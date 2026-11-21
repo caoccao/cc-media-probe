@@ -155,10 +155,10 @@ pair.hdmv-textst.dialog-style-segment.matroska-private-data	deferred		G1.5
 pair.hdmv-textst.dialog-style-segment.ts	deferred		G1.5			
 pair.hevc.annex-b.raw-file	active	0.5.0		itu-t-h-265: Annex B		
 pair.hevc.annex-b.ts	active	0.3.0		itu-t-h-265: Annex B; itu-t-h-222-0: 2.4.4		
-pair.hevc.configuration-record.flv-sequence-header	active	0.6.0		iso-iec-14496-15.md: 3; adobe-flv-f4v-10-1: Annex E		
+pair.hevc.configuration-record.flv-sequence-header	active	0.6.0		iso-iec-14496-15.md: 3; veovera-enhanced-rtmp-v2: ExVideoTagBody (SequenceStart)		
 pair.hevc.configuration-record.matroska-private-data	active	0.1.0		iso-iec-14496-15.md: 3; ietf-draft-cellar-codec: Codec Mappings		
 pair.hevc.configuration-record.mp4-sample-entry	active	0.1.0		iso-iec-14496-15.md: 3; iso-iec-14496-12.md: 3		
-pair.hevc.length-prefixed.flv-packets	active	0.6.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; adobe-flv-f4v-10-1: Annex E		
+pair.hevc.length-prefixed.flv-packets	active	0.6.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; veovera-enhanced-rtmp-v2: ExVideoTagBody (CodedFrames and CodedFramesX)		
 pair.hevc.length-prefixed.matroska-frames	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; ietf-draft-cellar-codec: Codec Mappings		
 pair.hevc.length-prefixed.mp4-samples	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; iso-iec-14496-12.md: 3		
 pair.kate.identification-header.matroska-laced-private-data	active	0.2.0		xiph-wiki-kate: Format specification; ietf-draft-cellar-codec: Codec Mappings		

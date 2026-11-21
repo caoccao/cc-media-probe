@@ -1,5 +1,8 @@
 # Every text file is stored and checked out with LF line endings.
 * text=auto eol=lf
 
+# Trailing tabs delimit empty coverage columns. The file hygiene check catches trailing spaces.
+docs/specs/coverage.tsv whitespace=-blank-at-eol
+
 # RFC texts are byte-identical to the RFC Editor's copies and verified by checksum.
 docs/specs/rfc/*.txt -text
