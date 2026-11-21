@@ -44,7 +44,7 @@ detect.program-stream	active	0.1.0		itu-t-h-222-0: 2.5; iso-iec-11172-1.md: 2		2
 detect.realaudio	active	0.1.0		multimedia-wiki-realmedia: RA Format		2026-11-21
 detect.realaudio-metafile	dropped		G1.5			
 detect.realmedia	active	0.1.0		realnetworks-rmff: Header Section		2026-11-21
-detect.rf64-bw64	active	0.1.0		ebu-tech-3306: 3; itu-r-bs-2088-2: 3		
+detect.rf64-bw64	active	0.1.0		ebu-tech-3306-v1-1: 3.4; ebu-tech-3306-v1-1: A.2; itu-r-bs-2088-2: 2.4; itu-r-bs-2088-2: 3		2026-11-21
 detect.riff-cd-xa	dropped		G1.5			
 detect.ssa-ass	active	0.1.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section		2026-11-21
 detect.subrip	active	0.1.0		loc-subrip: Description		2026-11-21
@@ -69,7 +69,7 @@ identify.aac.realmedia	active	0.6.0		multimedia-wiki-realmedia: audio/x-pn-reala
 identify.cea-608-708.mp4-mov	active	0.1.0		apple-quicktime-file-format: Closed captioning sample description		2026-11-21
 identify.evrc-qcelp-smv.3g2	active	0.1.0		3gpp2-c-s0050-b: 8.4.3; 3gpp2-c-s0050-b: 8.4.4; 3gpp2-c-s0050-b: 8.4.5; 3gpp2-c-s0050-b: 8.4.6; 3gpp2-c-s0050-b: 8.4.7		2026-11-21
 identify.kate.matroska	active	0.1.0		ietf-draft-cellar-codec: S_KATE		2026-11-21
-identify.kate.ogg	active	0.2.0		xiph-wiki-kate: Format specification; rfc3533: 6		
+identify.kate.ogg	active	0.2.0		xiph-wiki-kate: Format specification; rfc3533: 6		2026-11-21
 identify.legacy-fourcc-video.avi	active	0.1.0		microsoft-fourcc-codes: FOURCC Codes; rfc2361: Appendix B		2026-11-21
 identify.legacy-fourcc-video.matroska	active	0.1.0		ietf-draft-cellar-codec: V_MS/VFW/FOURCC		2026-11-21
 identify.legacy-fourcc-video.mov	active	0.1.0		mp4ra-sample-entries-qt: Sample entries		2026-11-21
@@ -149,8 +149,8 @@ pair.ffv1.version-3-configuration.matroska-private-data	active	0.1.0		rfc9043: 4
 pair.ffv1.version-3-configuration.mov-sample-entry	active	0.1.0		rfc9043: 4.3; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
 pair.flac.configuration-box.mp4-sample-entry	active	0.1.0		xiph-flac-in-isobmff: 3.3.2; iso-iec-14496-12.md: 3		2026-11-21
 pair.flac.streaminfo.matroska-private-data	active	0.1.0		rfc9639: 8.2; ietf-draft-cellar-codec: A_FLAC		2026-11-21
-pair.flac.streaminfo.native-file	active	0.2.0		rfc9639: 8.2		
-pair.flac.streaminfo.ogg-mapping-header	active	0.2.0		rfc9639: 8.2; rfc3533: 6		
+pair.flac.streaminfo.native-file	active	0.2.0		rfc9639: 8.1; rfc9639: 8.2		2026-11-21
+pair.flac.streaminfo.ogg-mapping-header	active	0.2.0		rfc9639: 8.2; rfc9639: 10.1; rfc3533: 6		2026-11-21
 pair.h-263.configuration-box.3gp-sample-entry	active	0.1.0		3gpp-ts-26244: 6.8; iso-iec-14496-12.md: 3		2026-11-21
 pair.h-263.flash-picture-header.flv-packets	active	0.6.0		adobe-flv-f4v-10-1: Annex E; adobe-flv-f4v-10-1: Annex E		
 pair.h-263.picture-header.3gp-samples	active	0.1.0		itu-t-h-263: 5.1; iso-iec-14496-12.md: 3		2026-11-21
@@ -198,7 +198,7 @@ pair.mpeg4-visual.object-layer-headers.raw-file	deferred		G17.n
 pair.mpeg4-visual.object-layer-headers.ts-ps	deferred		G17.n			
 pair.opus.configuration-box.mp4-sample-entry	active	0.1.0		xiph-opus-in-isobmff: 4.3.2; iso-iec-14496-12.md: 3		2026-11-21
 pair.opus.identification-header.matroska-private-data	active	0.1.0		rfc7845: 5.1; ietf-draft-cellar-codec: A_OPUS		2026-11-21
-pair.opus.identification-header.ogg-packets	active	0.2.0		rfc7845: 5.1; rfc3533: 6		
+pair.opus.identification-header.ogg-packets	active	0.2.0		rfc7845: 3; rfc7845: 5.1; rfc3533: 6		2026-11-21
 pair.opus.transport-stream-descriptor.ts	active	0.3.0		xiph-opus-in-mpeg-ts: 6; itu-t-h-222-0: 2.4.4		
 pair.pcm.configuration-box.mp4-sample-entry	active	0.1.0		iso-iec-23003-5.md: 2; iso-iec-14496-12.md: 3		2026-11-21
 pair.pcm.disc-lpcm.ps	active	0.3.0		dvdinfo-lpcm: Audio Pack for LPCM; itu-t-h-222-0: 2.4.4; dvdinfo-dvdmpeg: Extensions		
@@ -219,12 +219,12 @@ pair.realaudio.type-specific-data.matroska-private-data	active	0.6.0		multimedia
 pair.realaudio.type-specific-data.realmedia-stream-properties	active	0.6.0		multimedia-wiki-realmedia: audio/x-pn-realaudio and audio/x-pn-multirate-realaudio; realnetworks-rmff: Media Properties Header		
 pair.realvideo.type-specific-data.matroska-private-data	deferred		G17.n			
 pair.realvideo.type-specific-data.realmedia-stream-properties	deferred		G17.n			
-pair.speex.header-packet.ogg-packets	active	0.2.0		xiph-speex-manual: Ogg file format; rfc3533: 6		
+pair.speex.header-packet.ogg-packets	active	0.2.0		xiph-speex-manual: 7.3; rfc3533: 6		2026-11-21
 pair.ssa.file-header.file	active	0.7.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section		
 pair.ssa.private-data-header.matroska-private-data	active	0.1.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section; ietf-draft-cellar-codec: S_TEXT/ASS; ietf-draft-cellar-codec: S_TEXT/SSA		2026-11-21
 pair.subrip.cue-scan.file	active	0.7.0		loc-subrip: Description		
-pair.theora.identification-header.matroska-laced-private-data	active	0.2.0		xiph-theora-specification: 6.2; ietf-draft-cellar-codec: V_THEORA		
-pair.theora.identification-header.ogg-packets	active	0.2.0		xiph-theora-specification: 6.2; rfc3533: 6		
+pair.theora.identification-header.matroska-laced-private-data	active	0.2.0		xiph-theora-specification: 6.1; xiph-theora-specification: 6.2; ietf-draft-cellar-codec: V_THEORA; rfc9559: 10.3.2		2026-11-21
+pair.theora.identification-header.ogg-packets	active	0.2.0		xiph-theora-specification: 6.1; xiph-theora-specification: 6.2; xiph-theora-specification: A.2.1; rfc3533: 6		2026-11-21
 pair.truehd.configuration-box.mp4-sample-entry	active	0.1.0		dolby-truehd-isobmff: 2.5; iso-iec-14496-12.md: 3		2026-11-21
 pair.truehd.major-sync.matroska-frames	active	0.1.0		dolby-truehd-bitstream: 4.2; ietf-draft-cellar-codec: A_TRUEHD; ietf-draft-cellar-codec: A_MLP		2026-11-21
 pair.truehd.major-sync.raw-file	active	0.4.0		dolby-truehd-bitstream: 4.2		
@@ -245,8 +245,8 @@ pair.vobsub.index-file.file	active	0.7.0		ietf-draft-cellar-codec: S_VOBSUB
 pair.vobsub.index-private-data.matroska-private-data	active	0.1.0		ietf-draft-cellar-codec: S_VOBSUB		2026-11-21
 pair.vobsub.mp4-palette.mp4-sample-entry	deferred		G17.n			
 pair.vobsub.sub-picture-packets.ps	active	0.3.0		dvdinfo-spu: Sub-Pictures; itu-t-h-222-0: 2.4.4; dvdinfo-dvdmpeg: Extensions		
-pair.vorbis.identification-header.matroska-laced-private-data	active	0.1.0		xiph-vorbis-specification: 4.2.2; ietf-draft-cellar-codec: A_VORBIS		2026-11-21
-pair.vorbis.identification-header.ogg-packets	active	0.2.0		xiph-vorbis-specification: 4.2.2; rfc3533: 6		
+pair.vorbis.identification-header.matroska-laced-private-data	active	0.1.0		xiph-vorbis-specification: 4.2.1; xiph-vorbis-specification: 4.2.2; ietf-draft-cellar-codec: A_VORBIS; rfc9559: 10.3.2		2026-11-21
+pair.vorbis.identification-header.ogg-packets	active	0.2.0		xiph-vorbis-specification: 4.2.1; xiph-vorbis-specification: 4.2.2; xiph-vorbis-specification: A.2; rfc3533: 6		2026-11-21
 pair.vp8-vp9.configuration-box.mp4-sample-entry	active	0.1.0		webm-vp-codec-isobmff: VP Codec Configuration Box; iso-iec-14496-12.md: 3		2026-11-21
 pair.vp8.frame-header.avi-chunks	active	0.1.0		rfc6386: 9.1; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
 pair.vp8.frame-header.ivf-frames	active	0.5.0		rfc6386: 9.1; multimedia-wiki-ivf: Frame header		
@@ -289,7 +289,7 @@ probe.dts	active	0.4.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4
 probe.dv	active	0.5.0		iec-61834-2.md: 2; iec-61834-2.md: 3		
 probe.dvd-video	active	0.8.0		dvdinfo-ifo: IFO file		
 probe.f4v	active	0.1.0		adobe-flv-f4v-10-1: 1		2026-11-21
-probe.flac	active	0.2.0		rfc9639: 6		
+probe.flac	active	0.2.0		rfc9639: 6; rfc9639: 8		2026-11-21
 probe.flv	active	0.6.0		adobe-flv-f4v-10-1: Annex E		
 probe.fragmented-mp4	active	0.1.0		iso-iec-14496-12.md: 3; iso-iec-14496-12-2015: 8.8		2026-11-21
 probe.h264	active	0.5.0		itu-t-h-264: Annex B		
@@ -305,13 +305,13 @@ probe.mpeg-video	active	0.5.0		itu-t-h-262: 6.2.2; iso-iec-11172-2.md: 2
 probe.mpeg4-visual	deferred		G17.n			
 probe.musepack	deferred		G17.n			
 probe.mxf	deferred		G17.n			
-probe.ogg	active	0.2.0		rfc3533: 6		
+probe.ogg	active	0.2.0		rfc3533: 4; rfc3533: 6; xiph-ogg-skeleton: Ogg Skeleton version 3.0 Format Specification; rfc7845: 4; xiph-theora-specification: A.2.3; xiph-vorbis-specification: A.2; rfc9639: 10.1; xiph-speex-manual: 7.3		2026-11-21
 probe.ogm	deferred		G17.n			
 probe.pgs	active	0.7.0		thescorpius-pgs: Introduction; thescorpius-pgs: Presentation Composition Segment		
 probe.program-stream	active	0.3.0		itu-t-h-222-0: 2.5; iso-iec-11172-1.md: 2; dvdinfo-dvdmpeg: Extensions		
 probe.realaudio	active	0.6.0		multimedia-wiki-realmedia: RA Format		
 probe.realmedia	active	0.6.0		realnetworks-rmff: Header Section		
-probe.rf64-bw64	active	0.4.0		ebu-tech-3306: 3; itu-r-bs-2088-2: 3		
+probe.rf64-bw64	active	0.4.0		ebu-tech-3306-v1-1: 3.4; ebu-tech-3306-v1-1: A.2; itu-r-bs-2088-2: 2.4; itu-r-bs-2088-2: 3; itu-r-bs-2088-2: 4		
 probe.ssa-ass	active	0.7.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section		
 probe.subrip	active	0.7.0		loc-subrip: Description		
 probe.transport-stream	active	0.3.0		itu-t-h-222-0: 2.4		
@@ -342,7 +342,7 @@ registry.wave-format-tags	active	0.1.0		rfc2361: Appendix A; iana-wave-avi-codec
 rule.codec-strings	active	0.1.0		rfc6381: 3		2026-11-21
 rule.language-tags	active	0.1.0		rfc5646: 2; iana-language-subtag-registry: Registry; loc-iso-639-2: Code list		2026-11-21
 rule.media-types	active	0.1.0		rfc6838: 4.2; iana-media-types: Registry		2026-11-21
-rule.vorbis-chapter-comments	active	0.2.0		xiph-wiki-chapter-extension: Format		
+rule.vorbis-chapter-comments	active	0.2.0		xiph-wiki-chapter-extension: Format		2026-11-21
 tags.apev2	active	0.4.0		hydrogenaudio-apev2: Specification		
 tags.id3v1	active	0.4.0		id3-v1: ID3v1		
 tags.id3v2-2	active	0.4.0		id3-v2-2: 3		
@@ -351,4 +351,4 @@ tags.id3v2-4	active	0.4.0		id3-v2-4-structure: 3; id3-v2-4-frames: 4
 tags.itunes	active	0.1.0		apple-quicktime-file-format: Metadata atoms and types		2026-11-21
 tags.matroska	active	0.1.0		rfc9559: 5.1.8; ietf-draft-cellar-tags: 3; ietf-draft-cellar-tags: 4		2026-11-21
 tags.riff-information	active	0.1.0		microsoft-riff-mci-1-0: 2		2026-11-21
-tags.vorbis-comment	active	0.2.0		xiph-vorbis-comment: Comment field and header specification		
+tags.vorbis-comment	active	0.2.0		xiph-vorbis-comment: Comment encoding; xiph-vorbis-comment: Field names		2026-11-21

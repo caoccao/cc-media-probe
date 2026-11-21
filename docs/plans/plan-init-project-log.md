@@ -625,3 +625,37 @@ The maintainer changed the decision above and asked for online research on VobSu
 | Scope | Identification only: a track is VobSub when its handler, sample entry, stream type and object type all match those codes. It is reported with its timescale and the dimensions of its track header; the palette stays raw bytes, and the palette pair stays deferred to G17.n. | The codes are private, so only their combination identifies the track; nothing public describes the palette. |
 
 `identify.vobsub.mp4` is active again for 0.1.0, confirmed against the stored page. Section 4.3, Phase 6, Appendix B.6 and the source dossier say so.
+
+## 2026-11-21 — Progress: Phase 1, task 17, RF64 and release 0.2.0
+
+**RF64.** `ebu-tech-3306-v1-1` was downloaded on the first request; EBU did not refuse it this time. Version 1.1 (July 2009) defines RF64 in section 3.4: the file starts with `RF64` instead of `RIFF`, and a mandatory `ds64` chunk follows, whose 64-bit sizes replace the 32-bit fields that hold 0xFFFFFFFF. Annex A.2 gives the `RF64` chunk with its form type `WAVE` and the `ds64` structure. BS.2088-2 gives the same for BW64 in sections 2.4, 3 and 4. Version 2 of Tech 3306 has no section 3, so its citation is replaced:
+
+| Row | Was | Now |
+|---|---|---|
+| `detect.rf64-bw64` (0.1.0) | `ebu-tech-3306: 3; itu-r-bs-2088-2: 3` | `ebu-tech-3306-v1-1: 3.4`, `A.2`; `itu-r-bs-2088-2: 2.4`, `3` |
+| `probe.rf64-bw64` (0.4.0) | the same | the same, and `itu-r-bs-2088-2: 4` for the `ds64` chunk |
+
+`detect.rf64-bw64` is confirmed, so all 162 active rows of 0.1.0 are. Version 2 of Tech 3306 stays in the manifest as the notice that refers to BS.2088; no row cites it. One inconsistency was found: the field table of BS.2088-2 section 3.2 spells the BW64 identifier as the characters 'b', 'w', '6', '4', while its section 2.4 ("the ID 'BW64' is used instead of 'RIFF' in the first four bytes of the file") and the structure of section 3.1 write it in capitals. An online search found no source that reads it in lower case. Phase 11 of the plan now says that the identifier is in capitals.
+
+**Release 0.2.0.** All 12 active rows are confirmed against the stored documents.
+
+| Row | Was | Now | Why |
+|---|---|---|---|
+| `probe.flac` | `rfc9639: 6` | adds `8` | Section 6 is the layout overview; the metadata blocks that Phase 9 reads are in section 8 |
+| `pair.flac.streaminfo.native-file` | `rfc9639: 8.2` | adds `8.1` | The block header that frames STREAMINFO |
+| `pair.flac.streaminfo.ogg-mapping-header` | `rfc9639: 8.2; rfc3533: 6` | adds `rfc9639: 10.1` | The Ogg mapping header itself |
+| `pair.opus.identification-header.ogg-packets` | `rfc7845: 5.1; rfc3533: 6` | adds `rfc7845: 3` | The placement of the identification header on the first page |
+| `pair.speex.header-packet.ogg-packets` | `xiph-speex-manual: Ogg file format` | `7.3` | The section number of the heading |
+| Theora pairs | `xiph-theora-specification: 6.2` | adds `6.1`, and `A.2.1` for Ogg | The common header that 6.2 starts with; the placement of the headers in Ogg |
+| Vorbis pairs (one of 0.1.0) | `xiph-vorbis-specification: 4.2.2` | adds `4.2.1`, and `A.2` for Ogg | 4.2.2 starts after the common header; the Ogg encapsulation |
+| Theora and Vorbis in Matroska | the codec ID subsection | adds `rfc9559: 10.3.2` | The Xiph lacing of the private data, to which the codec draft refers |
+| `probe.ogg` | `rfc3533: 6` | adds `rfc3533: 4`, the Skeleton format section, and the granule sections of each mapping: `rfc7845: 4`, `xiph-theora-specification: A.2.3`, `xiph-vorbis-specification: A.2`, `rfc9639: 10.1`, `xiph-speex-manual: 7.3` | Section 4 defines multiplexing and chaining; Skeleton and the granule rules are part of the Ogg probe and its duration (Phase 9, tasks 3 and 5) |
+| `tags.vorbis-comment` | `xiph-vorbis-comment: Comment field and header specification` | `Comment encoding`, `Field names` | The cited text is the page title; the structure and the field names are those sections |
+
+Kate in Ogg (the wiki's format specification), the Vorbis chapter comments (the wiki's `Format` section) and FLAC in Matroska needed no change.
+
+**Plan.** Theora's section A.2.3 says that streams before bitstream version 3.2.1, which have VREV 0 in the identification header, mark each frame's start rather than its end, and that one is added to the keyframe part of their granule position. Phase 9's duration rule said only "the granule shift for Theora", so it now names that correction. Appendix B.3 links version 1.1 of Tech 3306. These amendments are revision 13 of the plan.
+
+**Verification:** `node scripts/check.ts` passes on 2026-11-21.
+
+**Open:** task 17 for releases 0.3.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
