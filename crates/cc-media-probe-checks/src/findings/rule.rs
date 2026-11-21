@@ -41,7 +41,7 @@ pub enum Rule {
   Names,
   /// Literals live in constants modules (R33).
   Constants,
-  /// A source file that cannot be analysed.
+  /// A source file that cannot be analyzed.
   Syntax,
   /// Line coverage above 90% (R28).
   Coverage,

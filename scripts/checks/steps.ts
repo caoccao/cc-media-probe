@@ -31,3 +31,23 @@ export const DOCUMENTATION_ARGUMENTS = ['doc', '--quiet', '--locked', '--workspa
 export const STRUCTURE_COMMAND = 'structure';
 /** The target-ownership check. */
 export const TARGETS_COMMAND = 'targets';
+/** The type checker's entry point, relative to the repository root, by component; `npm ci` in `scripts` installs it. */
+export const TYPE_CHECKER = ['scripts', 'node_modules', 'typescript', 'bin', 'tsc'];
+/** The option of the type checker that names its configuration; the configuration's path follows. */
+export const TYPE_CHECK_OPTION = '--project';
+/** The type checker's configuration, which emits nothing, relative to the repository root, by component. */
+export const TYPE_CHECK_CONFIGURATION = ['scripts', 'tsconfig.json'];
+/** Measures line coverage over every test of every crate and writes an LCOV report; the report's path follows. */
+export const COVERAGE_ARGUMENTS = [
+  'llvm-cov',
+  '--quiet',
+  '--locked',
+  '--workspace',
+  '--all-features',
+  '--lcov',
+  '--output-path',
+];
+/** The LCOV report, relative to the repository root, by component. */
+export const COVERAGE_REPORT = ['target', 'coverage', 'lcov.info'];
+/** The coverage check of the checks crate; the report's path follows. */
+export const COVERAGE_COMMAND = 'coverage';

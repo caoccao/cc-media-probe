@@ -1,0 +1,16 @@
+# Resolves the fuzz workspace's proposed crates in the spike's lock file. It is
+# never built here: libfuzzer-sys compiles C++ and needs nightly (plan
+# section 9.5), and it lies outside the pure-Rust boundary (R15).
+
+[package]
+name = "fuzzing-dependencies"
+description = "Spike: the fuzz workspace's proposed dependencies (G1.3)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+arbitrary = "1.5.0"
+libfuzzer-sys = "0.4.13"

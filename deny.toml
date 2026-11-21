@@ -1,0 +1,106 @@
+# cargo-deny configuration (plan D4 and G1.3). CI runs `cargo deny check` with
+# the version that docs/design/dependency-dossier.md pins. The allow-lists
+# below are the ones approved at G1.3 on 2026-11-21; any other crate, license
+# or source fails the check and goes through GS.1.
+
+[graph]
+all-features = true
+
+[advisories]
+yanked = "deny"
+
+[licenses]
+# Every license expression in the approved graph can be satisfied with these.
+allow = ["Apache-2.0", "MIT", "Unicode-3.0"]
+# The allow-list runs ahead of the manifests, which gain their dependencies
+# only in the phase that first uses them.
+unused-allowed-license = "allow"
+private = { ignore = true }
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+allow-workspace = true
+# Only these crates may appear in the graph of the workspace.
+allow = [
+  # The graph of the two published crates (dossier, section 2).
+  "adler2",
+  "anstyle",
+  "clap",
+  "clap_builder",
+  "clap_lex",
+  "futures-io",
+  "itoa",
+  "memchr",
+  "miniz_oxide",
+  "pin-project-lite",
+  "proc-macro2",
+  "quote",
+  "serde",
+  "serde_core",
+  "serde_derive",
+  "serde_json",
+  "syn",
+  "tokio",
+  "unicode-ident",
+  "zmij",
+  # The development graph (dossier, section 4).
+  "alloca",
+  "anes",
+  "autocfg",
+  "bitflags",
+  "bytes",
+  "cast",
+  "cc",
+  "cfg-if",
+  "chacha20",
+  "ciborium",
+  "ciborium-io",
+  "ciborium-ll",
+  "core_detect",
+  "cpufeatures",
+  "criterion",
+  "criterion-plot",
+  "crunchy",
+  "either",
+  "fastrand",
+  "find-msvc-tools",
+  "futures-core",
+  "futures-lite",
+  "getrandom",
+  "half",
+  "itertools",
+  "libc",
+  "num-traits",
+  "oorandom",
+  "page_size",
+  "parking",
+  "peak_alloc",
+  "proptest",
+  "r-efi",
+  "rand",
+  "rand_core",
+  "rand_xorshift",
+  "regex",
+  "regex-automata",
+  "regex-syntax",
+  "same-file",
+  "shlex",
+  "tinytemplate",
+  "tokio-macros",
+  "unarray",
+  "walkdir",
+  "winapi",
+  "winapi-i686-pc-windows-gnu",
+  "winapi-util",
+  "winapi-x86_64-pc-windows-gnu",
+  "windows-link",
+  "windows-sys",
+  "zerocopy",
+  "zerocopy-derive",
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

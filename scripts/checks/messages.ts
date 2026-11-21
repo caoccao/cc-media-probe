@@ -34,6 +34,8 @@ export const HYGIENE_STEP = 'file hygiene';
 export const MARKDOWN_LINKS_STEP = 'Markdown links';
 /** Script structure. */
 export const SCRIPT_STRUCTURE_STEP = 'script structure (R34)';
+/** Script types. */
+export const SCRIPT_TYPES_STEP = 'script types (D24)';
 /** Script tests. */
 export const SCRIPT_TESTS_STEP = 'script tests';
 /** Rust formatting. */
@@ -44,6 +46,8 @@ export const LINTS_STEP = 'lints';
 export const RUST_STRUCTURE_STEP = 'structure (D23)';
 /** Rust tests. */
 export const RUST_TESTS_STEP = 'tests';
+/** Coverage. */
+export const COVERAGE_STEP = 'coverage (R28)';
 /** Rust documentation. */
 export const DOCUMENTATION_STEP = 'documentation';
 /** Target ownership. */
@@ -52,3 +56,5 @@ export const TARGETS_STEP = 'target ownership';
 export const PACKAGES_STEP = 'package contents';
 /** The pure-Rust verification. */
 export const PURE_RUST_STEP = 'pure Rust (D4)';
+/** The type checker is not installed. */
+export const TYPE_CHECKER_MISSING = 'the type checker is missing; run `npm ci` in the `scripts` directory (D24)';

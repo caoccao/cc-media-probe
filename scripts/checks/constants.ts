@@ -17,6 +17,8 @@
 
 // Constants that several checks share (R33): programs, arguments and messages.
 
+import type { StdioOptions } from 'node:child_process';
+
 /** The Cargo executable. */
 export const CARGO = 'cargo';
 /** The Git executable. */
@@ -36,9 +38,9 @@ export const PARENT_DIRECTORY = '..';
 /** Separates a file from its line in findings. */
 export const LOCATION_SEPARATOR = ':';
 /** Child process streams: no input, captured output, shown errors. */
-export const CAPTURED_STREAMS = ['ignore', 'pipe', 'inherit'];
+export const CAPTURED_STREAMS: StdioOptions = ['ignore', 'pipe', 'inherit'];
 /** Child process streams that are shared with this process. */
-export const INHERITED_STREAMS = 'inherit';
+export const INHERITED_STREAMS: StdioOptions = 'inherit';
 /** The suffix of the scripts' test files. */
 export const TEST_FILE_SUFFIX = '.test.ts';
 /** The extension of TypeScript files. */

@@ -30,3 +30,6 @@ docs/specs/files/
 fuzz/corpus/
 fuzz/artifacts/
 fuzz/coverage/
+
+# The type checker of the scripts, installed by npm ci in scripts/ (plan D24)
+node_modules/

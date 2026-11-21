@@ -1,0 +1,18 @@
+# Spike for gate G1.3: the dependency graph proposed for the two published
+# crates, with the development dependencies beside it. Its own workspace and
+# lock file, excluded from the root workspace (plan section 7.1). See README.md.
+
+[workspace]
+resolver = "3"
+members = [
+  "crates/cc-media-probe",
+  "crates/cc-media-probe-cli",
+  "crates/fuzzing-dependencies",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "Apache-2.0"
+publish = false

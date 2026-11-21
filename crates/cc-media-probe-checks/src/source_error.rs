@@ -15,7 +15,7 @@
 * limitations under the License.
 */
 
-//! An error in a source file that stops it from being analysed.
+//! An error in a source file that stops it from being analyzed.
 
 use std::fmt;
 

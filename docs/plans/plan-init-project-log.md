@@ -33,7 +33,7 @@ At the maintainer's request, the agent performed the step.
 | Constants modules and data tables | A file named `constants.rs` or lying under a `constants/` directory is a constants module and must hold only constants. Any other file whose items are all `const` and `static` items, with imports and documentation, also counts as one. Data tables therefore need no marker, and code would disqualify a file. | Recognition is automatic, and the content rule gives it no loophole. |
 | First list of abbreviations | The base list together with the borderline words, as presented, without `dts`. The list lives in `crates/cc-media-probe-checks/src/names/abbreviations.rs`. | DTS is the name of a codec in scope, and R32 exempts proper names. |
 | Name check | Words are split at underscores and at changes from a lower-case letter or a digit to an upper-case letter, and before the last capital of an acronym followed by lower case. `Id3v2` and `H264` therefore stay one word each. A word of a defined name that is on the list fails unless the whole name is one that Rust or a dependency fixes. A single-letter identifier or lifetime fails anywhere. | It follows R32 and the tests of Phase 1. |
-| Licence headers | The licence is stated in `LICENSE` and in each manifest's `license = "Apache-2.0"`. Every `.rs` file starts with the maintainer's copyright header: `Copyright (c) 2026. caoccao.com Sam Cao`, `All rights reserved.`, then the Apache-2.0 notice verbatim. The structure check verifies the year or year range and the rest of the text. | It is the maintainer's choice, in the style of a sibling project of the maintainer. |
+| License headers | The license is stated in `LICENSE` and in each manifest's `license = "Apache-2.0"`. Every `.rs` file starts with the maintainer's copyright header: `Copyright (c) 2026. caoccao.com Sam Cao`, `All rights reserved.`, then the Apache-2.0 notice verbatim. The structure check verifies the year or year range and the rest of the text. | It is the maintainer's choice, in the style of a sibling project of the maintainer. |
 | `.gitignore` | The root `.gitignore` adds `docs/specs/files/` and the fuzz workspace's `corpus/`, `artifacts/` and `coverage/` directories. `.serena/` keeps its own ignore file with `project.yml` tracked. IDE folders are left to each developer's global ignore file. | Only what this repository creates is ignored here. |
 | Bootstrap check | `scripts/check.sh` starts with file hygiene and Markdown links. File hygiene means UTF-8, LF line endings, a final newline, no trailing whitespace, no tabs, and scripts that are executable; verbatim third-party texts are exempt. The link check requires every relative Markdown link and heading anchor to resolve. | These are the checks that apply before any crate exists. |
 
@@ -156,3 +156,104 @@ What stays on purpose:
 - The fourth layer chooses its tool by platform, as D4 asks: `otool` on macOS, `readelf` on Linux, `objdump` or `dumpbin` on Windows.
 
 **Verification:** 20 script tests and 146 checks-crate tests pass, and `node scripts/verify-pure-rust.ts` finds the binary through Cargo's messages. Windows itself is first exercised by CI.
+
+## 2026-11-21 — American English (R35)
+
+The maintainer's instruction: always use American English, and fix the existing documents and code. The plan gained R35 (revision 9), and `CLAUDE.md` states the rule.
+
+**Corrected:**
+
+- **Words:** "licence" became `license`. Likewise `behavior`, `color`, `signaling`, `labeled`, `analyzed`, `catalog`, `organized`, `initialized`, `honored`, `canceled`, `flavor`, `flavored`, `centimeters`, `equaled` and `math`.
+- **Files:**
+  - the plan, this log and `CLAUDE.md`;
+  - the three READMEs, whose heading is now "License" and which stay byte-identical;
+  - four doc comments in the Rust crates;
+  - a comment in `.serena/project.yml`.
+
+**Kept on purpose:** the title of RFC 4421, "Additional Colour Sampling Modes", which is how the RFC spells it.
+
+**Enforcement:** review only, by the maintainer's choice. No check of the checks crate or of the scripts looks for British spellings.
+
+**Verification:** a search of every tracked file for British spellings (the -our, -ise, -isation, -yse, -re, -ogue and -ence forms, doubled consonants such as -lled, and words such as whilst and learnt) finds only that title.
+
+## 2026-11-21 — G1.3 choices, before the dossier
+
+The plan left these choices open, and the maintainer answered them before the dossier was written. G1.3 itself, the approval of the dossier, is still open.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Inflater (`zlib`) | `miniz_oxide` 0.9.1, without default features, with `with-alloc`. | 2 crates, no build script and no unsafe code. Its low-level inflater writes into a buffer the caller owns, which fits charge-before-reserve (plan section 7.5). `zlib-rs` uses unsafe code; the `flate2` wrappers allocate internally. |
+| Serialization | `serde` 1.0.229 with `derive`. | Attributes cover the contract of plan section 8.8, with hand-written implementations where needed. The proc-macro crates are in the inventory either way. |
+| Arguments | `clap` 4.6.8 with the builder API, without default features, with `std`, `help`, `usage` and `error-context`. | 4 crates, no build scripts, and no color, terminal detection or suggestions, so the byte-compared output of plan section 8.9 does not depend on the terminal. |
+| futures-io executor | `futures-lite` 2.6.1. | `block_on`, plus adapters that implement futures-io's traits over a file or bytes, which a shipped example needs. |
+| Allocation tracker | `peak_alloc` 0.3.0. | No dependencies. It reports current and peak usage, its peak can be reset, and a reallocation counts both blocks. |
+| Benchmarks | `criterion` 0.8.2, without default features. | Maintained and named by the plan. `cargo bench` needs a C compiler through `alloca`, which R15 permits for development tools. |
+| Rehearsal registry | An in-house script, `scripts/rehearsal-registry.ts`, written in Phase 8, instead of a tool. | It records publication times, so the rehearsal exercises the cooldown. The one existing tool is GPL-3.0, serves a git index and records no times. |
+| TypeScript | `typescript` 7.0.2 with `@types/node` 26.6.6. | The current release. It type-checks the scripts six times faster than 6.0.3, with the same result. |
+| Installing the tools | `cargo install --locked` at exact versions, locally and in CI. | Each tool is built from crates.io with the lock file it ships, and the cooldown applies to it. |
+| Cooldown | 3 days, as set in task 4. | Confirmed. |
+
+## 2026-11-21 — Progress: Phase 1, task 5
+
+**The dossier** is [docs/design/dependency-dossier.md](../design/dependency-dossier.md). For every crate, tool and npm package it gives the exact version, settings, license, release history and dependency list. It also holds the pure-Rust evidence and what approval sets in motion.
+
+**The evidence** comes from the spike [spikes/dependency-graph/](../../spikes/dependency-graph/README.md), a workspace of its own. It holds copies of the two published crates with exactly the proposed dependencies and features, and the development and fuzzing dependencies. The repository's checks ran against it with `--root`:
+
+- **Layer 1:** 24 packages and 0 findings, with a draft list of the six reviewed build scripts.
+- **Layer 2:** the build scripts of `proc-macro2`, `quote`, `serde`, `serde_core`, `serde_json` and `zmij` pass. Each was read in full from the packaged source.
+- **Layer 3:** 0 findings. On macOS, `cargo build` ran with every native-compiler variable naming a missing file, for no default features, the defaults and all features: 6 build-script runs. On x86_64 Linux and Windows, `cargo check --target` made 10 runs.
+- **Layer 4, on macOS:** the binary loads only `/usr/lib/libSystem.B.dylib`, and the check reports 0 findings.
+- **Advisories:** none in the OSV database for the 78 crate versions and the 3 npm packages.
+
+**Also changed:**
+
+- The stdio constants in `scripts/checks/constants.ts` are now typed `StdioOptions`. Both TypeScript versions reported them as the only type error in the scripts.
+- The plan is at revision 10, with D5 to D7, task 5, Phase 8 task 6, Appendix C.2.3, the layout and the documentation table updated.
+
+**Open:**
+
+- G1.3 approval of the dossier.
+- After approval: the reviewed list, `deny.toml`, the coverage step (which needs `cargo-llvm-cov` 0.9.1 locally; 0.8.7 is installed), and the npm files with `tsc`.
+- From CI: the 32-bit build inspection, and the fourth layer on Linux and Windows.
+- In Phase 8: whether `cargo-semver-checks` 0.51.0 reads the rustdoc JSON of the pinned toolchain.
+
+## 2026-11-21 — G1.3 Dependency allow-list [CONFIRM]
+
+The maintainer approved the [dependency dossier](../design/dependency-dossier.md) as proposed, and allowed the agent to install `cargo-llvm-cov` 0.9.1 and the npm packages on the development machine.
+
+## 2026-11-21 — Progress: Phase 1, task 6
+
+**What the approval set in motion:**
+
+- **Reviewed build scripts.** `crates/cc-media-probe-checks/data/build-scripts.tsv` holds the six reviews of the dossier.
+- **`deny.toml`:**
+  - licenses Apache-2.0, MIT and Unicode-3.0;
+  - crates.io as the only source;
+  - yanked versions denied;
+  - an allow-list of the 73 crate names of the dossier's sections 2 and 4, with the workspace's own crates allowed;
+  - duplicate versions as warnings.
+
+  `cargo-deny` is not installed locally, so CI runs it first (task 19).
+- **Type check.** `package.json` (`private`, `type: module`) pins `typescript` 7.0.2 and `@types/node` 26.6.6 exactly, with `package-lock.json`. `tsconfig.json` holds the settings of the dossier, and `node_modules/` is ignored. The check runner's new step "script types (D24)" starts the type checker with Node.js itself, so it needs no shell, and names `npm ci` when the type checker is missing.
+- **Coverage.** `cargo-llvm-cov` 0.9.1 replaced 0.8.7 through `cargo install --locked`. The check runner's new step "coverage (R28)" writes `target/coverage/lcov.info` and runs the coverage check of the checks crate.
+
+**Added by the agent, open to change at G1.9:** `.npmrc` sets `min-release-age=3`, npm's equivalent of the Cargo cooldown, and `save-exact=true`.
+
+**Verification:** `node scripts/check.ts` passes every step, the two new ones included, on 2026-11-21:
+
+- the type check reports no error;
+- `cc-media-probe-cli` is at 100.00% line coverage (10/10), and `cc-media-probe` has no executable lines;
+- the guard test passes under `cargo llvm-cov`, so the repository marker survives it.
+
+**Open:** tasks 7 to 11, the specification set.
+
+## 2026-11-21 — The npm files live in `scripts/`
+
+**The npm files.** The maintainer's instruction: `tsconfig.json` and `package.json` stay in the `scripts` folder. `package-lock.json` and `.npmrc` belong beside `package.json`, so all four moved there. That `package.json` is now the nearest one to every script, so its `"type": "module"` applies to them.
+
+- **Lock file:** regenerated with `npm install` in `scripts/`, with the same exact versions.
+- **The type-check step:** it starts `scripts/node_modules/typescript/bin/tsc` with `--project scripts/tsconfig.json`, both paths built from components. When the type checker is missing, it says to run `npm ci` in `scripts/`.
+- **Documents:** the plan (D24 and the layout of section 7.1), the dossier and `CLAUDE.md` name the new place.
+- **Width:** three lines of the check runner were wider than 120 characters, and are now wrapped. Two of them predate this change.
+
+**Serena.** At the maintainer's request, `.serena/project.yml` lists `typescript` after `rust` as a language server.

@@ -15,7 +15,7 @@
 * limitations under the License.
 */
 
-//! The placeholder behaviour of the tool: print its name and version.
+//! The placeholder behavior of the tool: print its name and version.
 
 use std::io::Write;
 use std::process::ExitCode;

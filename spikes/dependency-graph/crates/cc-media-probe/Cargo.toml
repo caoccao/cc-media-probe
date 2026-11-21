@@ -1,0 +1,29 @@
+[package]
+name = "cc-media-probe"
+description = "Spike: the library's proposed dependencies and features (G1.3)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["zlib"]
+zlib = ["dep:miniz_oxide"]
+serde = ["dep:serde"]
+tokio = ["dep:tokio"]
+futures-io = ["dep:futures-io"]
+
+[dependencies]
+futures-io = { version = "0.3.34", default-features = false, features = ["std"], optional = true }
+miniz_oxide = { version = "0.9.1", default-features = false, features = ["with-alloc"], optional = true }
+serde = { version = "1.0.229", default-features = false, features = ["std", "derive"], optional = true }
+tokio = { version = "1.54.1", default-features = false, optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.8.2", default-features = false }
+futures-lite = "2.6.1"
+peak_alloc = "0.3.0"
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", default-features = false, features = ["rt", "macros", "fs", "io-util"] }

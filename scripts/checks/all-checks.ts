@@ -19,6 +19,7 @@
 // that fails. Warnings are denied by the workspace lint table, never through RUSTFLAGS, which would drop the
 // repository marker.
 
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { runCommand } from './command.ts';
@@ -27,6 +28,7 @@ import { checkHygiene } from './hygiene/hygiene.ts';
 import { checkMarkdownLinks } from './markdown/links.ts';
 import {
   ALL_CHECKS_PASSED,
+  COVERAGE_STEP,
   DOCUMENTATION_STEP,
   FAILED_PREFIX,
   FORMATTING_STEP,
@@ -40,8 +42,10 @@ import {
   RUST_TESTS_STEP,
   SCRIPT_STRUCTURE_STEP,
   SCRIPT_TESTS_STEP,
+  SCRIPT_TYPES_STEP,
   STEP_PREFIX,
   TARGETS_STEP,
+  TYPE_CHECKER_MISSING,
 } from './messages.ts';
 import { checkNodeVersion } from './node-version.ts';
 import { checkPackages } from './packages/packages.ts';
@@ -49,6 +53,9 @@ import { verifyPureRust } from './pure-rust/pure-rust.ts';
 import { repositoryFiles } from './repository-files.ts';
 import { checkScriptStructure } from './script-structure/structure.ts';
 import {
+  COVERAGE_ARGUMENTS,
+  COVERAGE_COMMAND,
+  COVERAGE_REPORT,
   DOCUMENTATION_ARGUMENTS,
   FORMATTING_ARGUMENTS,
   LINTS_ARGUMENTS,
@@ -56,6 +63,9 @@ import {
   STRUCTURE_COMMAND,
   TARGETS_COMMAND,
   TESTS_ARGUMENTS,
+  TYPE_CHECK_CONFIGURATION,
+  TYPE_CHECK_OPTION,
+  TYPE_CHECKER,
 } from './steps.ts';
 
 /** One check: what it is called and how it runs. */
@@ -72,6 +82,25 @@ function passes(findings: readonly string[]): boolean {
   return findings.length === 0;
 }
 
+/** Type-checks the scripts with the type checker that `npm ci` installs in `scripts` (D24). */
+function typeCheck(root: string): boolean {
+  const typeChecker = join(root, ...TYPE_CHECKER);
+  if (!existsSync(typeChecker)) {
+    console.error(TYPE_CHECKER_MISSING);
+    return false;
+  }
+  return runCommand(process.execPath, [typeChecker, TYPE_CHECK_OPTION, join(root, ...TYPE_CHECK_CONFIGURATION)], root);
+}
+
+/** Measures coverage and applies the bar of R28 to the report (D23). */
+function coverage(root: string): boolean {
+  const report = join(root, ...COVERAGE_REPORT);
+  return (
+    runCommand(CARGO, [...COVERAGE_ARGUMENTS, report], root) &&
+    runCommand(CARGO, [...CHECKS_ARGUMENTS, COVERAGE_COMMAND, report], root)
+  );
+}
+
 /** The scripts' test files, as file-system paths. */
 function scriptTests(root: string): string[] {
   return repositoryFiles(root)
@@ -84,11 +113,19 @@ const STEPS: readonly Step[] = [
   { description: HYGIENE_STEP, run: (root) => passes(checkHygiene(root, repositoryFiles(root))) },
   { description: MARKDOWN_LINKS_STEP, run: (root) => passes(checkMarkdownLinks(root, repositoryFiles(root))) },
   { description: SCRIPT_STRUCTURE_STEP, run: (root) => passes(checkScriptStructure(root, repositoryFiles(root))) },
-  { description: SCRIPT_TESTS_STEP, run: (root) => runCommand(process.execPath, [...SCRIPT_TESTS_ARGUMENTS, ...scriptTests(root)], root) },
+  { description: SCRIPT_TYPES_STEP, run: (root) => typeCheck(root) },
+  {
+    description: SCRIPT_TESTS_STEP,
+    run: (root) => runCommand(process.execPath, [...SCRIPT_TESTS_ARGUMENTS, ...scriptTests(root)], root),
+  },
   { description: FORMATTING_STEP, run: (root) => runCommand(CARGO, FORMATTING_ARGUMENTS, root) },
   { description: LINTS_STEP, run: (root) => runCommand(CARGO, LINTS_ARGUMENTS, root) },
-  { description: RUST_STRUCTURE_STEP, run: (root) => runCommand(CARGO, [...CHECKS_ARGUMENTS, STRUCTURE_COMMAND], root) },
+  {
+    description: RUST_STRUCTURE_STEP,
+    run: (root) => runCommand(CARGO, [...CHECKS_ARGUMENTS, STRUCTURE_COMMAND], root),
+  },
   { description: RUST_TESTS_STEP, run: (root) => runCommand(CARGO, TESTS_ARGUMENTS, root) },
+  { description: COVERAGE_STEP, run: (root) => coverage(root) },
   { description: DOCUMENTATION_STEP, run: (root) => runCommand(CARGO, DOCUMENTATION_ARGUMENTS, root) },
   { description: TARGETS_STEP, run: (root) => runCommand(CARGO, [...CHECKS_ARGUMENTS, TARGETS_COMMAND], root) },
   { description: PACKAGES_STEP, run: (root) => passes(checkPackages(root)) },

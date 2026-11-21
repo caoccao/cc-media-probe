@@ -1,4 +1,12 @@
 # Build scripts in the dependency graph of the published crates, each read
 # and judged against the rule of D4 (plan section 6, second layer).
 # Columns: name, version, what it runs, what it emits; tab-separated.
-# The graph has no build scripts while it has no dependencies (G1.3).
+# Approved at G1.3 on 2026-11-21; the review is in section 3.2 of
+# docs/design/dependency-dossier.md. A new version is read again before
+# its row changes.
+proc-macro2	1.0.107	the Rust compiler named by RUSTC (behind RUSTC_WRAPPER and RUSTC_WORKSPACE_WRAPPER when set): --version, and test compiles of its own Rust probe files in src/probe/ that emit metadata only into a directory of OUT_DIR, which it then removes	rustc-cfg, rustc-check-cfg, rerun-if-changed, rerun-if-env-changed
+quote	1.0.47	the Rust compiler named by RUSTC: --version	rustc-cfg, rustc-check-cfg, rerun-if-changed
+serde	1.0.229	the Rust compiler named by RUSTC: --version; writes the Rust module private.rs into OUT_DIR	rustc-cfg, rustc-check-cfg, rerun-if-changed
+serde_core	1.0.229	the Rust compiler named by RUSTC: --version; writes the Rust module private.rs into OUT_DIR	rustc-cfg, rustc-check-cfg, rerun-if-changed
+serde_json	1.0.154	no program; reads CARGO_CFG_TARGET_ARCH and CARGO_CFG_TARGET_POINTER_WIDTH	rustc-cfg, rustc-check-cfg, rerun-if-changed
+zmij	1.0.23	the Rust compiler named by RUSTC: --version; reads OPT_LEVEL	rustc-cfg, rustc-check-cfg, rerun-if-changed

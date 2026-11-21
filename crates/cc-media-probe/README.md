@@ -4,6 +4,6 @@
 
 **Status:** in development; nothing is published yet. The [development plan](https://github.com/caoccao/cc-media-probe/blob/main/docs/plans/plan-init-project.md) describes the scope, the design and every phase up to 1.0, and the [development log](https://github.com/caoccao/cc-media-probe/blob/main/docs/plans/plan-init-project-log.md) records the decisions and the progress.
 
-## Licence
+## License
 
 Apache-2.0; see [LICENSE](LICENSE).

@@ -31,7 +31,7 @@ pub const INCLUSION_LABEL: &str = "inclusion";
 pub const NAMES_LABEL: &str = "names";
 /// Literals live in constants modules (R33).
 pub const CONSTANTS_LABEL: &str = "constants";
-/// A source file that cannot be analysed.
+/// A source file that cannot be analyzed.
 pub const SYNTAX_LABEL: &str = "syntax";
 /// Line coverage above 90% (R28).
 pub const COVERAGE_LABEL: &str = "coverage";

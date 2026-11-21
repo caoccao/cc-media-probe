@@ -4,6 +4,6 @@ The command-line tool of [cc-media-probe](https://github.com/caoccao/cc-media-pr
 
 **Status:** in development; nothing is published yet.
 
-## Licence
+## License
 
 Apache-2.0; see [LICENSE](LICENSE).
