@@ -22,7 +22,7 @@ export const OTHER_SCRIPT_EXTENSIONS = [
   '.awk', '.bash', '.bat', '.cjs', '.cmd', '.fish', '.js', '.mjs', '.pl', '.ps1', '.py', '.rb', '.sed', '.sh', '.zsh',
 ];
 /** Verbatim third-party texts, exempt from hygiene. */
-export const VERBATIM_PATTERNS = [/^LICENSE$/u, /^crates\/[^/]+\/LICENSE$/u, /^docs\/rfc\/rfc\d+\.txt$/u];
+export const VERBATIM_PATTERNS = [/^LICENSE$/u, /^crates\/[^/]+\/LICENSE$/u, /^docs\/specs\/rfc\/rfc\d+\.txt$/u];
 /** Tab-separated data, where tabs are the separator. */
 export const TAB_SEPARATED_EXTENSION = '.tsv';
 /** The decoder label of UTF-8. */

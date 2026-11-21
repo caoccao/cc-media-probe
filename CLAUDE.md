@@ -40,7 +40,7 @@ flowchart TD
 - **American English (R35).** Write everything in American English: documentation, plans, comments, rustdoc, messages, names in code and scripts, and commit messages. Write `color`, `behavior`, `license`, `initialize`, `analyze`, `catalog`, `signaling` and `labeled`, not `colour`, `behaviour`, `licence`, `initialise`, `analyse`, `catalogue`, `signalling` and `labelled`.
   - Titles and quoted text keep their own spelling: an RFC titled "Additional Colour Sampling Modes" stays so, and a traceability comment keeps a specification's field name such as `colour_primaries`.
   - The identifier for such a field is spelled the American way: `color_primaries`.
-  - Verbatim third-party texts, such as the RFCs in `docs/rfc/`, are never edited.
+  - Verbatim third-party texts, such as the RFCs in `docs/specs/rfc/`, are never edited.
 
 ## Clean room and sources
 
@@ -50,7 +50,7 @@ flowchart TD
 - No multimedia parsing or demuxing library may be used anywhere (R2). General-purpose crates are allowed, and only those on the allow-list approved at G1.3: [docs/design/dependency-dossier.md](docs/design/dependency-dossier.md), enforced in CI by `deny.toml`. Anything else goes through GS.1. A new version of a crate with a build script is read again before its row in `crates/cc-media-probe-checks/data/build-scripts.tsv` changes (D4). A manifest gains a dependency only in the phase that first uses it.
 - **Synthetic test media only** (R8): hand-annotated hex fixtures and in-repository builders. No third-party samples, no external tool to generate or validate fixtures, and no real media in the repository.
 - **Traceability** (§5.5): every parser module starts with a doc comment naming its specification and section; every field read from a file carries the specification's field name in a comment, in the specification's own spelling (the identifier itself is spelled out, R32); every entry of a signature or registry table carries a source reference; every constant whose value a specification defines names that specification and section in its doc comment.
-- RFC text in `docs/rfc/` is committed verbatim (`node scripts/fetch-rfcs.ts`). Other specifications are fetched into the git-ignored `docs/specs/files/`, one folder per topic and publisher, and are never committed (`node scripts/fetch-specs.ts`). Documents are stored only there, never in a scratch directory.
+- RFC text in `docs/specs/rfc/` is committed verbatim (`node scripts/fetch-rfcs.ts`). Other specifications are fetched into the git-ignored `docs/specs/files/`, one folder per topic and publisher, and are never committed (`node scripts/fetch-specs.ts`). Documents are stored only there, never in a scratch directory.
 - **Ask other sites slowly.** Send one request at a time, a few seconds apart for each site (the fetch scripts wait 2 seconds, 6 for the Internet Archive). When a site answers 403, 429 or 503, or refuses the connection, back off: wait longer for that site, honor `Retry-After`, and keep the longer interval. A site that answers with a challenge page is not asked again; use an archive capture instead.
 
 ## Code rules

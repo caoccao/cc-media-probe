@@ -96,14 +96,14 @@ test('writes the manifest and index, stores the text, and reports a missing erra
     'RFC 3533, erratum 6796: verified erratum missing from the errata table; classify it and add the row: ' +
       '3533\t6796\tverified\ttechnical\t6\t\t\t',
   ]);
-  assert.equal(readFileSync(join(root, 'docs', 'rfc', 'rfc3533.txt'), 'utf8'), TEXT);
+  assert.equal(readFileSync(join(root, 'docs', 'specs', 'rfc', 'rfc3533.txt'), 'utf8'), TEXT);
   assert.equal(
-    readFileSync(join(root, 'docs', 'rfc', 'manifest.tsv'), 'utf8').split('\n')[1],
+    readFileSync(join(root, 'docs', 'specs', 'rfc', 'manifest.tsv'), 'utf8').split('\n')[1],
     `3533\tOgg\tInformational\t${TEXT_ADDRESS}\t${checksum(Buffer.from(TEXT))}\t2026-11-21\tOgg pages`,
   );
   const row = '3533\t6796\tverified\ttechnical\t6\tparsing\tOgg pages\tFixes a field.\n';
-  writeFileSync(join(root, 'docs', 'rfc', 'errata.tsv'), ERRATA_HEADER + row);
-  assert.deepEqual(checkRfcs(root, ['docs/rfc/rfc3533.txt']), []);
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'errata.tsv'), ERRATA_HEADER + row);
+  assert.deepEqual(checkRfcs(root, ['docs/specs/rfc/rfc3533.txt']), []);
   rmSync(root, { recursive: true });
 });
 
@@ -112,25 +112,25 @@ test('verifies a stored text without downloading it again, and passes a complete
   const root = repository();
   const first = editor(responses([]));
   assert.equal(await fetchRfcs(root, first.downloader, '2026-11-21'), 0);
-  writeFileSync(join(root, 'docs', 'rfc', 'errata.tsv'), ERRATA_HEADER);
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'errata.tsv'), ERRATA_HEADER);
   const second = editor(responses([]));
   assert.equal(await fetchRfcs(root, second.downloader, '2026-12-01'), 0);
   assert.deepEqual(second.calls, [METADATA_ADDRESS, ERRATA_ADDRESS]);
-  assert.match(readFileSync(join(root, 'docs', 'rfc', 'manifest.tsv'), 'utf8'), /\t2026-11-21\t/u);
+  assert.match(readFileSync(join(root, 'docs', 'specs', 'rfc', 'manifest.tsv'), 'utf8'), /\t2026-11-21\t/u);
   rmSync(root, { recursive: true });
 });
 
 test('reports unlisted texts, unreadable metadata and a failed errata download', async (context) => {
   const problems = quiet(context);
   const root = repository();
-  mkdirSync(join(root, 'docs', 'rfc'));
-  writeFileSync(join(root, 'docs', 'rfc', 'rfc1.txt'), 'old');
+  mkdirSync(join(root, 'docs', 'specs', 'rfc'), { recursive: true });
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'rfc1.txt'), 'old');
   const partial = responses([]);
   partial.set(METADATA_ADDRESS, { mediaType: 'text/html', bytes: Buffer.from('<html>') });
   partial.delete(ERRATA_ADDRESS);
   assert.equal(await fetchRfcs(root, editor(partial).downloader, '2026-11-21'), 1);
   assert.deepEqual(problems, [
-    `${join('docs', 'rfc', 'rfc1.txt')}: RFC text that the manifest does not list`,
+    `${join('docs', 'specs', 'rfc', 'rfc1.txt')}: RFC text that the manifest does not list`,
     'RFC 3533: unexpected media type: text/html',
     'RFC 3533: the RFC Editor metadata could not be read',
     `${ERRATA_ADDRESS}: download failed: Error: not found`,
@@ -141,8 +141,8 @@ test('reports unlisted texts, unreadable metadata and a failed errata download',
 test('stops before downloading when the plan or the manifest is malformed', async (context) => {
   const problems = quiet(context);
   const root = repository();
-  mkdirSync(join(root, 'docs', 'rfc'));
-  writeFileSync(join(root, 'docs', 'rfc', 'manifest.tsv'), 'wrong header\n');
+  mkdirSync(join(root, 'docs', 'specs', 'rfc'), { recursive: true });
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'manifest.tsv'), 'wrong header\n');
   const { downloader, calls } = editor(responses([]));
   assert.equal(await fetchRfcs(root, downloader, '2026-11-21'), 1);
   assert.deepEqual(calls, []);

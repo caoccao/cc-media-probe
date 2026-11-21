@@ -15,7 +15,7 @@
 * limitations under the License.
 */
 
-// The index of `docs/rfc/README.md`, generated from the manifest: number linked to the text, title, status, role,
+// The index of `docs/specs/rfc/README.md`, generated from the manifest: number linked to the text, title, status, role,
 // then the license notice (plan section 5.2).
 
 import { EMPTY, ROW_END } from '../constants.ts';

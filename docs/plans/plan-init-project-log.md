@@ -418,3 +418,59 @@ Every cited section is provisional until task 17 opens the stored document.
 | Dolby TrueHD in ISO base media | The maintainer downloaded "MLP (Dolby TrueHD) streams within the ISO base media file format", the edition of 2019 (its PDF metadata calls it "Dolby TrueHD (MLP) bitstreams within the ISO base media file format"). It is the MP4-carriage document, so it is stored as `dolby-truehd-isobmff`, with the printed title and the 2019 edition, and not as the bitstream description. | The vendor serves it only to a browser. |
 
 Still manual: the 16 paid ISO/IEC and IEC standards, for G1.6.
+
+## 2026-11-21 — Paid standards: no purchases
+
+The maintainer does not want to buy the 16 paid standards, and none of them is in hand. Asked how they are to be covered, the maintainer chose descriptive substitutes.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Sourcing what the paid standards define | For each paid standard still missing, a free public description is researched (wiki pages and published articles, never an implementation's code), stored as a manifest row of class `descriptive`, and proposed at G1.6 in the way G1.5 approves descriptive sources. Behavior taken from it is labeled descriptive in code comments and in `formats.md`. Free official texts are used instead wherever they cover the same structures: ITU-T H.262 for MPEG-1 video, ITU-T H.222.0 for MPEG-1 systems, ISO/IEC 14496-12 for most of 14496-14. | No free official text covers the H.264, HEVC and VVC configuration records, AAC's AudioSpecificConfig, MP4's elementary stream descriptors or the MPEG-4 Visual headers. Deferring them would remove profile, level and audio parameters from 0.1.0. |
+
+G1.6 itself, the decision per document, is still open; this entry records the direction its proposal takes.
+
+## 2026-11-21 — Paid standards: descriptions in the repository
+
+The maintainer's instructions: describe each of the 16 paid standards in a Markdown file in the repository, with content from online research; put the files in `docs/specs/iso-iec/`; move `docs/rfc/` to `docs/specs/rfc/`. Asked about a PDF reader, the maintainer approved installing poppler.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Descriptions | One file per paid standard, `docs/specs/iso-iec/<identifier>.md`. Each one is in the project's own words, names the source of every statement (a manifest row or an RFC), and ends with its gaps and with what the project does until a source is approved. Field names keep the standards' spelling, because code comments cite them. | Nothing is copied from a standard the project does not hold. Every statement can be checked against a stored document. The gaps go to G1.6 openly. |
+| Citations | A coverage row cites a description as `<identifier>.md: <section>`. A row that needs a structure no free source covers cites `<identifier>.md: Gaps`. The coverage check accepts the descriptions as documents (the folder's `README.md` excepted). | The rows show which deliverables rest on a gap, so G1.6 decides each one. |
+| RFC folder | The RFC texts, `manifest.tsv`, `errata.tsv` and the generated `README.md` are in `docs/specs/rfc/`. The scripts, the hygiene exemption, `.gitattributes`, the plan and `CLAUDE.md` name the new path. | All specifications in one place. |
+| Reading PDFs | poppler 26.11.0 is installed with Homebrew. Its `pdftotext` reads the stored PDFs, and `unzip` reads Word and zipped documents. Extracted text goes to standard output and is not stored. | Tools on the maintainer's machine only; no project dependency (GS.1 does not apply). |
+
+## 2026-11-21 — Progress: descriptions of the paid standards
+
+**The descriptions.** `docs/specs/iso-iec/` has 16 descriptions and an index, `README.md`. Their main free sources:
+
+| Description | Main sources | Gaps |
+|---|---|---|
+| `iso-iec-14496-12.md` | Apple QuickTime File Format; 3GPP TS 26.244; MP4RA | Movie fragments other than `sidx` and `tfdt` |
+| `iso-iec-14496-15.md` | the yohhoy notes; the CELLAR codec mappings | The VVC configuration record |
+| `iso-iec-14496-1.md` | ETSI TS 102 428; MP4RA | The long form of the descriptor size rests on community sources only |
+| `iso-iec-14496-14.md` | 3GPP TS 26.244; MP4RA | None the deliverables need |
+| `iso-iec-14496-30.md` | W3C Breakouts Day 2025 talk; MP4RA; WebVTT | The box layout of `vttC` and `vlab` |
+| `iso-iec-23003-5.md` | the iTeh preview; MP4RA | The channel layout box |
+| `iso-iec-14496-3.md` | MultimediaWiki; the yohhoy notes; ETSI TS 102 005; RFC 6416 | SBR and PS signaling; LATM and LOAS |
+| `iso-iec-13818-7.md` | MultimediaWiki | ADIF |
+| `iso-iec-11172-3.md` | mp3-tech; RFC 2250 | The frame length formula |
+| `iso-iec-13818-3.md` | mp3-tech | Samples per MPEG-2 layer III frame; the multichannel extension |
+| `iso-iec-14496-2.md` | MP4RA, the CELLAR codec mappings, the FourCC lists and RFC 2361, for identification only | The visual object sequence and video object layer headers |
+| `iso-iec-11172-2.md` | ITU-T H.262 (section 6.3.1, annex D.9) | The MPEG-1 aspect ratio table |
+| `iso-iec-11172-1.md` | ITU-T H.222.0 and its Amendment 1 | The MPEG-1 pack header |
+| `iec-61834-2.md` | SMPTE ST 314 (its annex A lists the differences from IEC 61834); RFC 6469; DV data in AVI | The consumer codes of the auxiliary packs |
+| `iso-iec-14496-15-amd-1.md`, `iso-iec-14496-30-amd-1.md` | none needed | The deliverables use nothing that the amendments add |
+
+Statements written from memory that no stored source supported were removed or turned into gaps: the ADIF signature, the MPEG audio frame length formula, the 576 samples of an MPEG-2 layer III frame, and the MPEG-1 pack header bits. The section types of DV were checked against SMPTE ST 314: its table 2 prints "Audio" for 100, and section 4.7.1 gives 100 to the video section.
+
+**The coverage table.** 83 rows now cite descriptions instead of the paid standards, and 18 of them cite a `Gaps` section: ADIF (2 rows), LATM and LOAS (3), MPEG-4 Visual (7), the VVC configuration record and VVC's length-prefixed samples (4), and fragmented MP4 (2). Also corrected: the DV rows cited section 3 of RFC 6469, its media type parameters; the DIF structure is in section 2.1. The program-stream rows now also cite the MPEG-1 systems description, and the three MP4 rows for decoder-specific information also cite the descriptions of ISO/IEC 14496-1 and 14496-14.
+
+**For G1.6** (proposals, not decisions):
+
+- Approve each description as the substitute for its standard.
+- For each gap: defer the dependent features, or find another source through GS.2.
+  - Candidate sources found but not read: ISO's free 2015 edition of ISO/IEC 14496-12 (movie fragments), which only a browser can download, and US patents 5,907,444 and 6,101,070 (the consumer DV packs).
+  - VVC's length-prefixed samples need the length size that the configuration record gives, so they depend on that gap too.
+
+**Verification:** `node scripts/check.ts` passes every step on 2026-11-21.

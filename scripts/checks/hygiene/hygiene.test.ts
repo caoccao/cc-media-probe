@@ -52,5 +52,5 @@ test('reports binary and invalid text, and exempts verbatim texts', () => {
   assert.deepEqual(checkFile('image.png', new Uint8Array([137, 0, 1])), ['image.png: binary file; nothing binary is committed here']);
   assert.deepEqual(checkFile('latin.txt', new Uint8Array([0xe9, 0x0a])), ['latin.txt: not valid UTF-8']);
   assert.deepEqual(checkFile('LICENSE', encoder.encode('text \n')), []);
-  assert.deepEqual(checkFile('docs/rfc/rfc9559.txt', encoder.encode('text \r\n')), []);
+  assert.deepEqual(checkFile('docs/specs/rfc/rfc9559.txt', encoder.encode('text \r\n')), []);
 });

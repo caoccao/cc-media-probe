@@ -1,6 +1,6 @@
 # Specifications other than RFCs
 
-The documents that this project builds on besides the RFCs: standards, vendor specifications, registries, living documentation pages and the pinned Internet-Drafts, as Appendices A.7 and B of the [development plan](../plans/plan-init-project.md#appendix-b--non-rfc-specifications) list them. The RFCs are in [`docs/rfc/`](../rfc/README.md).
+The documents that this project builds on besides the RFCs: standards, vendor specifications, registries, living documentation pages and the pinned Internet-Drafts, as Appendices A.7 and B of the [development plan](../plans/plan-init-project.md#appendix-b--non-rfc-specifications) list them. The RFCs are in [`rfc/`](rfc/README.md), and descriptions of the paid standards, written from free sources, in [`iso-iec/`](iso-iec/README.md).
 
 ## Why the documents are not committed
 
@@ -15,7 +15,7 @@ files/
 ├── containers/
 │   ├── apple/            apple-quicktime-file-format.json, apple-caf-*.html
 │   ├── ietf/             the pinned drafts and the Matroska sources
-│   ├── iso-iec/          the paid ISO/IEC standards, placed by hand
+│   ├── microsoft/        microsoft-avi-riff-reference.md, microsoft-dv-in-avi.md, …
 │   └── …
 ├── video/
 │   ├── itu/              itu-t-h-264.pdf, itu-t-h-265.pdf, …

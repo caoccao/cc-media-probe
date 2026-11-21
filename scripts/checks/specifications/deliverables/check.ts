@@ -19,10 +19,10 @@
 // plan's own words; the keys of the deliverables and the coverage table, in both directions; and each source of a
 // coverage row against the documents of the two manifests.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { TEXT_ENCODING } from '../../constants.ts';
+import { MARKDOWN_EXTENSION, TEXT_ENCODING } from '../../constants.ts';
 import { EMPTY, PLAN_FILE } from '../constants.ts';
 import { MANIFEST_FILE as DOCUMENTS_FILE, SPECIFICATIONS_DIRECTORY } from '../documents/constants.ts';
 import { readDocuments } from '../documents/manifest.ts';
@@ -31,6 +31,8 @@ import { readManifest } from '../rfc/manifest.ts';
 import {
   COVERAGE_FILE,
   DELIVERABLES_FILE,
+  DESCRIPTIONS_DIRECTORY,
+  DESCRIPTIONS_INDEX,
   DETECT,
   DETECT_ONLY_FAMILY,
   DETECTION_SECTION,
@@ -127,8 +129,8 @@ export function compareKeys(
   ];
 }
 
-/** Every source names a document of the RFC manifest (`rfcNNNN`) or of the manifest of other documents, and a
- * section. */
+/** Every source names a document of the RFC manifest (`rfcNNNN`), of the manifest of other documents, or a committed
+ * description, and a section. */
 export function checkSources(file: string, rows: readonly Coverage[], documents: ReadonlySet<string>): string[] {
   const findings: string[] = [];
   for (const row of rows) {
@@ -145,8 +147,8 @@ export function checkSources(file: string, rows: readonly Coverage[], documents:
   return findings;
 }
 
-/** The documents that a source may name: `rfcNNNN` for each RFC of the manifest, and each identifier of the
- * manifest of other documents. */
+/** The documents that a source may name: `rfcNNNN` for each RFC of the manifest, each identifier of the manifest of
+ * other documents, and the file name of each committed description of a paid standard (`<identifier>.md`). */
 function knownDocuments(root: string): Set<string> {
   const documents = new Set<string>();
   const rfcFile = join(...RFC_DIRECTORY, RFCS_FILE);
@@ -159,6 +161,14 @@ function knownDocuments(root: string): Set<string> {
   if (existsSync(join(root, documentsFile))) {
     for (const entry of readDocuments(documentsFile, readFileSync(join(root, documentsFile), TEXT_ENCODING)).entries) {
       documents.add(entry.identifier);
+    }
+  }
+  const descriptions = join(root, ...DESCRIPTIONS_DIRECTORY);
+  if (existsSync(descriptions)) {
+    for (const name of readdirSync(descriptions)) {
+      if (name.endsWith(MARKDOWN_EXTENSION) && name !== DESCRIPTIONS_INDEX) {
+        documents.add(name);
+      }
     }
   }
   return documents;

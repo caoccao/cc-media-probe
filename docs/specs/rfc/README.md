@@ -1,6 +1,6 @@
 # RFCs
 
-The RFCs that this project builds on, as Appendix A of the [development plan](../plans/plan-init-project.md#appendix-a--rfc-list) lists them. Each `rfcNNNN.txt` is the RFC Editor's plain-text copy, byte for byte. [manifest.tsv](manifest.tsv) records where each one came from, its SHA-256 and the day it was retrieved, and `node scripts/check.ts` verifies every file against it.
+The RFCs that this project builds on, as Appendix A of the [development plan](../../plans/plan-init-project.md#appendix-a--rfc-list) lists them. Each `rfcNNNN.txt` is the RFC Editor's plain-text copy, byte for byte. [manifest.tsv](manifest.tsv) records where each one came from, its SHA-256 and the day it was retrieved, and `node scripts/check.ts` verifies every file against it.
 
 [errata.tsv](errata.tsv) lists every verified erratum of these RFCs, and every erratum held for document update that affects parsing, each with its relevance to this project and the components it affects (plan section 5.3). Code and fixtures that depend on a corrected rule cite the erratum.
 

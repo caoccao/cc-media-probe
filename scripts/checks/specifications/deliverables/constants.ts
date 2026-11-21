@@ -54,6 +54,10 @@ export const RELEASE_PATTERN = /^(?:\d+\.\d+\.\d+|1\.x)$/u;
 export const SOURCE_SEPARATOR = '; ';
 /** Separates a source's document from its section. */
 export const SECTION_SEPARATOR = ': ';
+/** The committed descriptions of the paid standards, relative to the repository root, by component. */
+export const DESCRIPTIONS_DIRECTORY = ['docs', 'specs', 'iso-iec'];
+/** The index of the descriptions, which is not one. */
+export const DESCRIPTIONS_INDEX = 'README.md';
 /** Starts the document of an RFC source; the number follows. */
 export const RFC_SOURCE_PREFIX = 'rfc';
 /** The section of plan section 4 that lists each kind. */

@@ -156,7 +156,7 @@ These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Re
 
 | # | Topic | Decision | Set |
 |---|---|---|---|
-| R1 | Specification sources | RFCs are downloaded to `docs/rfc/` and committed. Every non-RFC specification is linked in this plan; freely downloadable ones are also fetched into a git-ignored `docs/specs/files/`; paywalled ones are link-only. | Brief |
+| R1 | Specification sources | RFCs are downloaded to `docs/specs/rfc/` and committed. Every non-RFC specification is linked in this plan; freely downloadable ones are also fetched into a git-ignored `docs/specs/files/`; paywalled ones are link-only. | Brief |
 | R2 | Dependency policy | No multimedia parsing or demuxing library may be used, anywhere. General-purpose crates (serialization, compression, async runtimes, argument parsing, test tooling) are allowed. | Brief |
 | R3 | Probe depth | Container structure plus codec configuration and first headers, with bounded reads and no frame decoding. **Discovery:** every stream declaration that the probe reaches and can retain within its limits is reported; none of those is dropped. When a limit stops the enumeration, the report keeps what fits, names the limit, counts the further declarations it saw, and marks discovery incomplete. **Header parsing:** attempted for every reported stream, and each stream carries a header status. The report also says when discovery may be incomplete because its extent is unknown. | Brief, amended by Reviews 01 and 02 |
 | R4 | Format scope | The baseline in section 4.1, plus standalone subtitle files, disc playlists, ASF/WMV/WMA, and a post-1.0 phase for further formats. | Brief |
@@ -449,21 +449,23 @@ Every candidate was verified against the official RFC index dated 2026-11-19. Th
 ### 5.2 Repository layout and manifests
 
 ```
-docs/
+docs/specs/
+├── README.md              how to fetch; why the files are not committed
+├── manifest.tsv           one row per non-RFC document and draft         (committed)
+├── deliverables.tsv       everything sections 4.1 to 4.4 promise         (committed)
+├── coverage.tsv           deliverable → source document and section      (committed)
 ├── rfc/
 │   ├── README.md          index: number, title, status, role, license notice
-│   ├── manifest.tsv       one row per RFC                              (committed)
-│   ├── errata.tsv         verified errata, classified by relevance     (committed)
-│   └── rfcNNNN.txt        verbatim RFC text                            (committed)
-└── specs/
-    ├── README.md          how to fetch; why the files are not committed
-    ├── manifest.tsv       one row per non-RFC document and draft       (committed)
-    ├── deliverables.tsv   everything sections 4.1 to 4.4 promise       (committed)
-    ├── coverage.tsv       deliverable → source document and section    (committed)
-    └── files/             downloaded documents, by topic and publisher  (git-ignored)
+│   ├── manifest.tsv       one row per RFC                                (committed)
+│   ├── errata.tsv         verified errata, classified by relevance       (committed)
+│   └── rfcNNNN.txt        verbatim RFC text                              (committed)
+├── iso-iec/
+│   ├── README.md          what the descriptions are and how they are made
+│   └── <identifier>.md    description of a paid standard, from free sources (committed)
+└── files/                 downloaded documents, by topic and publisher    (git-ignored)
 ```
 
-**`docs/rfc/manifest.tsv`** columns: number, title, status, URL, SHA-256, retrieval date, role. It is generated from Appendix A. The manifest check compares the set of RFC numbers in the manifest with the set in Appendix A and with the files present. It never compares against a typed figure. Any count that appears in prose, in this plan or elsewhere, is a dated snapshot and is labeled as one.
+**`docs/specs/rfc/manifest.tsv`** columns: number, title, status, URL, SHA-256, retrieval date, role. It is generated from Appendix A. The manifest check compares the set of RFC numbers in the manifest with the set in Appendix A and with the files present. It never compares against a typed figure. Any count that appears in prose, in this plan or elsewhere, is a dated snapshot and is labeled as one.
 
 **`docs/specs/manifest.tsv`** columns:
 
@@ -488,7 +490,7 @@ The manifest is built from Appendix A.7 (Internet-Drafts) and Appendix B togethe
 
 **`docs/specs/deliverables.tsv`** is the list of what must be built. It has one key per deliverable of sections 4.1 to 4.4: a detector entry, a container prober, one pair of section 4.3 (a codec representation in one carriage), one tag version or frame group, one registry table, and each rule that has a source of its own, such as a chapter convention or a timestamp header. It is transcribed from section 4, changes only together with it, and is reviewed against it at G1.4. Because this list exists on its own, a deliverable without a coverage row is visible: its key has no partner.
 
-**`docs/specs/coverage.tsv`** has one row per deliverable key. Each row names the document and section the deliverable is built from, the fixture that accepts it, a `status`, a `release`, and whether the cited section has been confirmed in the stored document. A source is written `<document>: <section>`, where the document is `rfcNNNN` or an identifier of the non-RFC manifest; a row can name several, separated by semicolons. Keys start with their kind: `detect.`, `probe.`, `pair.<codec>.<representation>.<carriage>`, `identify.<codec>.<carriage>`, `tags.`, `registry.` and `rule.`.
+**`docs/specs/coverage.tsv`** has one row per deliverable key. Each row names the document and section the deliverable is built from, the fixture that accepts it, a `status`, a `release`, and whether the cited section has been confirmed in the stored document. A source is written `<document>: <section>`, where the document is `rfcNNNN`, an identifier of the non-RFC manifest, or the file name of a description in `docs/specs/iso-iec/` (`iso-iec-14496-15.md: 2`); a row can name several, separated by semicolons. A row that needs a structure no free source covers cites the `Gaps` section of the description that records it, and G1.6 decides that row. Keys start with their kind: `detect.`, `probe.`, `pair.<codec>.<representation>.<carriage>`, `identify.<codec>.<carriage>`, `tags.`, `registry.` and `rule.`.
 
 - `active`: scheduled for the named release. The check fails if an active row has no source that is present in a manifest and approved, or if its only source was declined.
 - `deferred`: not scheduled, with the gate that will decide it. Post-1.0 candidates start as deferred rows, so they do not block Phase 1. A deferred row becomes active only through its gate (G17.n, or GS.2 when a source becomes available), which sets its release and its source.
@@ -509,11 +511,12 @@ Policies:
 - Non-RFC documents are copyrighted by their publishers and are **not** redistributed. Only the manifests are committed; `scripts/fetch-specs.ts` reproduces the local copies.
 - **Living pages.** A checksum of a page that can change does not make the copy reproducible. For each `snapshot` row the manifest records an `immutable_reference` wherever one exists, and the fetch script retrieves that. Where a page is built from files in a public repository, the row stores the documentation file at a pinned commit, and only that file is opened (section 1.3). Otherwise the reference is an existing Internet Archive capture; none is requested. Where none exists, the row is marked as not reproducible upstream: the approved copy exists only locally. If that copy is lost, or the page has changed, the fetch script reports the difference and stops. The new content is adopted only by superseding the row through GS.2, after the changed parts were reviewed against the code that cites them. Nothing restricted is redistributed to work around this.
 - Paywalled standards are listed with their catalog page only. For each one, G1.6 records one of three outcomes: purchased, replaced by a named substitute, or the dependent feature deferred.
+- **Descriptions of the paid standards.** None of the paid standards is bought (development log, 2026-11-21). Each is described in `docs/specs/iso-iec/<identifier>.md`, in the project's own words, from the free sources that document the parts the deliverables need: free official texts where they cover the same structures, otherwise free vendor, 3GPP, ETSI and community documents. Every statement names its source, which is a row of a manifest; no implementation's code is a source (section 1.3). Each description ends with its gaps: what no free source covers, and what the project does until a source is approved. A description is proposed at G1.6 as the substitute for its standard, together with an outcome for each gap: another source through GS.2, or the dependent features deferred.
 
 ### 5.3 Errata and Internet-Drafts
 
-- **Errata.** RFC files stay verbatim. `docs/rfc/errata.tsv` records every verified erratum of every listed RFC, and every erratum held for document update that affects parsing: RFC number, erratum ID, status, type, section, relevance (`parsing`, `output` or `none`), the components it affects and a one-line summary. Code and fixtures that depend on a corrected rule cite the erratum ID. Verified errata known on 2026-11-20 are listed in Appendix A.8. The table is refreshed at every phase gate by `node scripts/fetch-rfcs.ts`, which compares it with the RFC Editor's list of errata, and each RFC with its metadata: it fails on a verified erratum missing from the table, a changed status or type, an obsoleted RFC and a changed title or status, and it notes an updating RFC that Appendix A does not list and a held erratum that is not in the table.
-- **Drafts.** Each Internet-Draft is pinned to an exact revision and a concrete archive URL (Appendix A.7), stored like a non-RFC document, and never committed. At every phase gate the pinned revisions are compared with the current ones; a newer revision is adopted only through GS.2. When a draft is published as an RFC it moves to `docs/rfc/` and Appendix A.
+- **Errata.** RFC files stay verbatim. `docs/specs/rfc/errata.tsv` records every verified erratum of every listed RFC, and every erratum held for document update that affects parsing: RFC number, erratum ID, status, type, section, relevance (`parsing`, `output` or `none`), the components it affects and a one-line summary. Code and fixtures that depend on a corrected rule cite the erratum ID. Verified errata known on 2026-11-20 are listed in Appendix A.8. The table is refreshed at every phase gate by `node scripts/fetch-rfcs.ts`, which compares it with the RFC Editor's list of errata, and each RFC with its metadata: it fails on a verified erratum missing from the table, a changed status or type, an obsoleted RFC and a changed title or status, and it notes an updating RFC that Appendix A does not list and a held erratum that is not in the table.
+- **Drafts.** Each Internet-Draft is pinned to an exact revision and a concrete archive URL (Appendix A.7), stored like a non-RFC document, and never committed. At every phase gate the pinned revisions are compared with the current ones; a newer revision is adopted only through GS.2. When a draft is published as an RFC it moves to `docs/specs/rfc/` and Appendix A.
 
 ### 5.4 Formats without a normative specification
 
@@ -630,7 +633,7 @@ cc-media-probe/
 │                                 depends on exactly that published library and reads documents
 ├── fuzz/                         its own workspace, nightly only, publish = false
 ├── spikes/                       disposable experiments, each its own workspace
-├── docs/                         plans, rfc, specs, guide, design, releases
+├── docs/                         plans, specs (with rfc and iso-iec), guide, design, releases
 ├── scripts/                      TypeScript run by Node.js (R34): check.ts, verify-pure-rust.ts,
 │                                 fetch-rfcs.ts, fetch-specs.ts, rehearsal-registry.ts (Phase 8);
 │                                 checks/ holds their modules, the offline checks of the
@@ -1528,7 +1531,7 @@ Synthetic fixtures prove conformance to the specifications. They cannot reveal h
 | `docs/design/examples.md` | Every shipped example with its required features and dev-dependencies. | Phase 2, extended with every example |
 | `docs/plans/plan-init-project-log.md` | Development log: the decisions of every gate with their reasoning, and the progress of every task. | Phase 1 |
 | `docs/releases/X.Y.Z.md` | The record of one release: commit, tag, toolchain, approved digests, registry checksums, and the authentication used for each crate. | Phase 8, one per release |
-| `docs/rfc/README.md`, `docs/specs/README.md` | Indexes and license notes for the specifications. | Phase 1 |
+| `docs/specs/rfc/README.md`, `docs/specs/README.md` | Indexes and license notes for the specifications. | Phase 1 |
 | `crates/cc-media-probe/examples/` | One runnable program per common task. | Phase 2 (compile-only), running from Phase 5 |
 
 **Diagrams (R14).** In every Markdown document (this plan, `CLAUDE.md`, the guides and the design documents), workflows and processes are drawn as Mermaid diagrams in fenced `mermaid` blocks, which GitHub renders. Directory trees and byte layouts stay as text. A diagram restates the prose next to it and adds no rule of its own. Rustdoc renders no Mermaid without an extra crate, so rustdoc describes processes in prose and links to the guide; adopting such a crate goes through GS.1.
@@ -1620,7 +1623,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1, G1.2 and G1.3 are passed, and tasks 3 to 11 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. G1.4 to G1.6, the reviews of the specification set and of the sources, are next. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1, G1.2 and G1.3 are passed, and tasks 3 to 11 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 to G1.6, the reviews of the specification set and of the sources, are next. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -1650,7 +1653,7 @@ flowchart TD
 4. Create the workspace: root manifest with shared package metadata, lint tables, the declarations of the `fuzzing` configuration name and of the repository marker, and `fuzz`, `spikes` and `readers` excluded; the six member crates with minimal content and **no dependencies**; `rust-toolchain.toml` naming one exact release; formatter and linter configuration; `.cargo/config.toml` with the dependency cooldown; the pure-Rust verification scripts; the target-ownership test; the structure check of D23, run by `scripts/check.ts`. The repository marker is built in the one way chosen at G1.2, with the test that belongs to it: the guard test for option A, or a test of the build script for option B. Nothing of the other option is created.
 5. **Dependency dossier.** For every crate and tool in D5 to D7: exact version, license, maintenance state and its own dependency list. For the graph of the two published crates, the evidence of the pure-Rust verification (D4): the inventory; every build script, read in full and identified by the checksum of its package in the lock file, with the reviewer's finding against the rule of D4, stating what the script runs and what it emits; and the build and result inspections for every shipped target that the local toolchain can build. The remaining targets, and the fourth layer on Linux and Windows, come from the first CI run (task 19) and are reported at G1.9. The dossier is `docs/design/dependency-dossier.md`, and its evidence is the spike `spikes/dependency-graph/`.
 6. **[CONFIRM] G1.3 — Dependency allow-list.** Approve the dossier. `deny.toml` is then written so that CI rejects any crate that is not on the list, and the coverage check of D23 is added to `scripts/check.ts` and CI. No dependency is added to any manifest before this gate; any later addition goes through GS.1.
-7. **RFCs.** Write `docs/rfc/manifest.tsv` from Appendix A and `scripts/fetch-rfcs.ts`, which downloads each `https://www.rfc-editor.org/rfc/rfcNNNN.txt`, records its SHA-256 and verifies it on later runs. Run it. Write `docs/rfc/errata.tsv` from Appendix A.8 and a fresh errata query for every listed RFC. Generate `docs/rfc/README.md` with the index and the IETF Trust license notice.
+7. **RFCs.** Write `docs/specs/rfc/manifest.tsv` from Appendix A and `scripts/fetch-rfcs.ts`, which downloads each `https://www.rfc-editor.org/rfc/rfcNNNN.txt`, records its SHA-256 and verifies it on later runs. Run it. Write `docs/specs/rfc/errata.tsv` from Appendix A.8 and a fresh errata query for every listed RFC. Generate `docs/specs/rfc/README.md` with the index and the IETF Trust license notice.
 8. **Other specifications.** Write `docs/specs/manifest.tsv` from Appendix A.7 and Appendix B with the columns of section 5.2, and `scripts/fetch-specs.ts`, which downloads `fetch` rows, stores `snapshot` rows from their immutable reference where one exists, checks the content type and checksum of everything it stores, and reports `manual` rows that are missing. Add `docs/specs/files/` to `.gitignore`. Resolve every row that Appendix B marks as unverified or incomplete: exact edition, landing page, the document file itself rather than a landing page, an immutable reference where the publisher offers one, retrieval policy. Record any document that cannot be located and any snapshot that is not reproducible upstream.
 9. **Scope baseline.** Write `docs/design/scope-baseline.md` from section 4.5, including the baseline revision it was read from.
 10. **Source dossier.** Write `docs/design/source-dossier.md` for every † entry of section 4, starting from Appendix B.6 (section 5.4).
@@ -2344,9 +2347,9 @@ Each addition is a minor release that follows the section 11 checklist and the r
 
 ## Appendix A — RFC list
 
-Every entry was verified against the RFC index of 2026-11-19. Obsoleted RFCs are excluded. Each is downloaded in Phase 1 to `docs/rfc/rfcNNNN.txt` from `https://www.rfc-editor.org/rfc/rfcNNNN.txt`. Links below go to the RFC Editor information page.
+Every entry was verified against the RFC index of 2026-11-19. Obsoleted RFCs are excluded. Each is downloaded in Phase 1 to `docs/specs/rfc/rfcNNNN.txt` from `https://www.rfc-editor.org/rfc/rfcNNNN.txt`. Links below go to the RFC Editor information page.
 
-On 2026-11-20 the list held 74 RFCs. That figure is a snapshot for the reader. The manifest check compares the set of numbers below with `docs/rfc/manifest.tsv` and never with a typed count. The list is reconciled against every parser, sniffer and identifier table planned in section 4.
+On 2026-11-20 the list held 74 RFCs. That figure is a snapshot for the reader. The manifest check compares the set of numbers below with `docs/specs/rfc/manifest.tsv` and never with a typed count. The list is reconciled against every parser, sniffer and identifier table planned in section 4.
 
 Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP = Best Current Practice, Info = Informational, Hist = Historic.
 
@@ -2466,7 +2469,7 @@ Each draft is pinned to the revision current on 2026-11-20. The archive URL iden
 
 ### A.8 Verified errata known on 2026-11-20
 
-RFC files are committed verbatim. Verified errata are recorded in `docs/rfc/errata.tsv` and cited where they change parsing. The RFC Editor publishes an inline-errata rendering only for RFCs that have verified errata; the parser-critical RFCs not listed here (9559, 7845, 9043, 6381, 5334, 9649) had none on this date. Phase 1 repeats the query for every RFC in the list.
+RFC files are committed verbatim. Verified errata are recorded in `docs/specs/rfc/errata.tsv` and cited where they change parsing. The RFC Editor publishes an inline-errata rendering only for RFCs that have verified errata; the parser-critical RFCs not listed here (9559, 7845, 9043, 6381, 5334, 9649) had none on this date. Phase 1 repeats the query for every RFC in the list.
 
 | RFC | Verified errata | Relevance |
 |---|---|---|
@@ -2479,7 +2482,7 @@ RFC files are committed verbatim. Verified errata are recorded in `docs/rfc/erra
 | 8216 (HTTP Live Streaming) | [5158](https://www.rfc-editor.org/errata/eid5158), [5263](https://www.rfc-editor.org/errata/eid5263), [6430](https://www.rfc-editor.org/errata/eid6430), [7283](https://www.rfc-editor.org/errata/eid7283) | To be classified in Phase 1; only section 3.5 of this RFC is used |
 | 8259, 2046, 3339, 3986, 4648, 9562 | Several each | General-purpose RFCs; reviewed in Phase 1 for anything that affects output formats |
 
-**Classified on 2026-11-21** (Phase 1 task 7). The query found 70 verified errata in 25 of the listed RFCs, and 39 held for document update; `docs/rfc/errata.tsv` classifies each verified one and the three held ones that affect parsing. Those that matter here:
+**Classified on 2026-11-21** (Phase 1 task 7). The query found 70 verified errata in 25 of the listed RFCs, and 39 held for document update; `docs/specs/rfc/errata.tsv` classifies each verified one and the three held ones that affect parsing. Those that matter here:
 
 - *Parsing:* RFC 8794 errata 7189 and 7191 (held), the ranges of valid element IDs: 0x80 is a valid one-octet ID and 0x4000 is no longer reserved. RFC 3533 erratum 8825, what the page CRC covers. RFC 2361 errata 5122, 5123, 5126, 1255 (held) and 5125 (held), registry numbers and names. RFC 6190 erratum 3711, the meaning of `no_inter_layer_pred_flag`.
 - *Output:* RFC 8259 erratum 5318, verified on 2026-05-28, removes the solidus from the characters that a JSON string may hold unescaped. Section 8.8 takes a position on it in Phase 2. RFC 3003 erratum 355 names the media type `audio/MPA`.
@@ -2505,6 +2508,7 @@ This appendix is the input for `docs/specs/manifest.tsv` (section 5.2). Each row
 - *ITU:* H.222.0 (04/2025), H.262 (02/2012), T.81, BT.2100-3 and BS.2088-2 lead an automated client to a login form. At the maintainer's choice, H.222.0 is stored at its 06/2021 edition with Amendment 1 (12/2022), and H.262 as its 02/2012 text published as Amendment 4; both download directly. T.81, BT.2100-3 and BS.2088-2 are `manual` rows downloaded in a browser. H.264, H.265, H.266, H.263, H.273, T.871 and T.35 are `fetch` rows.
 - *Living pages:* MP4RA's registries, the Microsoft Learn pages, the Matroska pages, the Ogg and Vorbis documentation, the FLAC and AV1 bindings, Enhanced RTMP, the ID3v2.4 frame list and the WavPack format are files at pinned commits. The Matroska pages are generated from the CELLAR working group's specification sources, which are stored instead. The other living pages, the AV1 and Theora PDFs and the Speex manual are archive captures. Apple's QuickTime documentation is a `tree` row.
 - *Other:* the 3GPP2 original of C.S0050-B no longer answers and is stored from an archive capture, beside ARIB's transposition. The APEv2 page's wiki answers automated clients with a challenge page, so it is an archive capture too. The full ASF specification downloads as a Word document. The maintainer placed the two Dolby documents on ISO base media by hand; the TrueHD bitstream description is stored from an archive capture of the vendor's own address. ISO's free 2015 edition of ISO/IEC 14496-12 is served only after a license page in a browser; it is a substitute for G1.6 to consider.
+- *Paid:* the 16 ISO/IEC and IEC rows stay `manual` and are not bought. `docs/specs/iso-iec/` describes the parts of each that the deliverables need, from free sources (section 5.2).
 
 Where a row shows an edition, that edition was the one in force on 2026-11-20. Phase 1 records the edition actually stored.
 
@@ -3153,3 +3157,4 @@ What changed in revision 11, by theme:
 - **The non-RFC manifest.** Section 5.2 adds a `folder` column, which stores each document under its topic and publisher, and a fifth retrieval, `tree`, for Apple's QuickTime documentation. A living page built from a public repository is stored as the file at a pinned commit; other living pages as an Internet Archive capture. Appendix B records how its open rows were resolved: SMPTE is free and leaves G1.6, five ITU documents need a browser, and several sources moved to archive captures.
 - **Deliverables and coverage.** Section 5.2 names the form of keys and of sources, and the deliverables of sections 4.1, 4.3 and 4.4 are compared with those tables in the plan's own words. Two cells of section 4.1, Flash and ASF, were reworded so that each comma separates one format.
 - **Fetching politely.** The fetch scripts pace their requests per site and back off when a site shows signs of blocking (the development log has the rule).
+- **Paid standards and the RFC folder.** Section 5.2 adds `docs/specs/iso-iec/`, which describes the 16 paid standards from free sources, and lets coverage rows cite those descriptions, their `Gaps` sections included. The RFC texts and their tables moved from `docs/rfc/` to `docs/specs/rfc/`, beside the other specifications.

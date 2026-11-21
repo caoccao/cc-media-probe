@@ -52,7 +52,7 @@ export interface RfcEntry {
   readonly role: string;
 }
 
-/** The file name of an RFC's text in `docs/rfc/`. */
+/** The file name of an RFC's text in `docs/specs/rfc/`. */
 export function rfcFileName(number: number): string {
   return `${RFC_FILE_PREFIX}${number}${RFC_FILE_EXTENSION}`;
 }

@@ -2,4 +2,4 @@
 * text=auto eol=lf
 
 # RFC texts are byte-identical to the RFC Editor's copies and verified by checksum.
-docs/rfc/*.txt -text
+docs/specs/rfc/*.txt -text

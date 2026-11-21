@@ -15,14 +15,14 @@
 * limitations under the License.
 */
 
-// The fixed text of the generated `docs/rfc/README.md`: what precedes the index, and the license notice after it.
+// The fixed text of the generated `docs/specs/rfc/README.md`: what precedes the index, and the license notice after it.
 
 /** The lines before the index. */
 export const README_OPENING = [
   '# RFCs',
   '',
   'The RFCs that this project builds on, as Appendix A of the ' +
-    '[development plan](../plans/plan-init-project.md#appendix-a--rfc-list) lists them. Each `rfcNNNN.txt` is the ' +
+    '[development plan](../../plans/plan-init-project.md#appendix-a--rfc-list) lists them. Each `rfcNNNN.txt` is the ' +
     'RFC Editor\'s plain-text copy, byte for byte. [manifest.tsv](manifest.tsv) records where each one came from, ' +
     'its SHA-256 and the day it was retrieved, and `node scripts/check.ts` verifies every file against it.',
   '',

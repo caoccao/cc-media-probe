@@ -40,19 +40,19 @@ const ENTRY = {
   role: 'Ogg pages',
 };
 const ERRATA = 'rfc\terratum\tstatus\ttype\tsection\trelevance\tcomponents\tsummary\n';
-const FILES = ['docs/rfc/rfc3533.txt'];
+const FILES = ['docs/specs/rfc/rfc3533.txt'];
 const STALE = 'differs from the index generated from the manifest; run `node scripts/fetch-rfcs.ts`';
 
 /** A repository root with a consistent RFC set of one RFC. */
 function repository(): string {
   const root = mkdtempSync(join(tmpdir(), 'rfc-check-'));
   mkdirSync(join(root, 'docs', 'plans'), { recursive: true });
-  mkdirSync(join(root, 'docs', 'rfc'));
+  mkdirSync(join(root, 'docs', 'specs', 'rfc'), { recursive: true });
   writeFileSync(join(root, 'docs', 'plans', 'plan-init-project.md'), PLAN);
-  writeFileSync(join(root, 'docs', 'rfc', 'rfc3533.txt'), TEXT);
-  writeFileSync(join(root, 'docs', 'rfc', 'manifest.tsv'), formatManifest([ENTRY]));
-  writeFileSync(join(root, 'docs', 'rfc', 'README.md'), renderReadme([ENTRY]));
-  writeFileSync(join(root, 'docs', 'rfc', 'errata.tsv'), ERRATA);
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'rfc3533.txt'), TEXT);
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'manifest.tsv'), formatManifest([ENTRY]));
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'README.md'), renderReadme([ENTRY]));
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'errata.tsv'), ERRATA);
   return root;
 }
 
@@ -64,15 +64,15 @@ test('passes a consistent RFC set', () => {
 
 test('reports a changed text, a missing text, an unlisted text and a stale index', () => {
   const root = repository();
-  writeFileSync(join(root, 'docs', 'rfc', 'rfc3533.txt'), 'changed');
-  writeFileSync(join(root, 'docs', 'rfc', 'README.md'), 'stale');
-  assert.deepEqual(checkRfcs(root, [...FILES, 'docs/rfc/rfc9559.txt']), [
-    `${join('docs', 'rfc', 'rfc3533.txt')}: the checksum differs from the manifest`,
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'rfc3533.txt'), 'changed');
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'README.md'), 'stale');
+  assert.deepEqual(checkRfcs(root, [...FILES, 'docs/specs/rfc/rfc9559.txt']), [
+    `${join('docs', 'specs', 'rfc', 'rfc3533.txt')}: the checksum differs from the manifest`,
     'RFC 9559: RFC text that the manifest does not list',
-    `${join('docs', 'rfc', 'README.md')}: ${STALE}`,
+    `${join('docs', 'specs', 'rfc', 'README.md')}: ${STALE}`,
   ]);
   assert.deepEqual(checkRfcs(root, []).slice(0, 1), [
-    `${join('docs', 'rfc', 'rfc3533.txt')}: the RFC text is missing; run \`node scripts/fetch-rfcs.ts\``,
+    `${join('docs', 'specs', 'rfc', 'rfc3533.txt')}: the RFC text is missing; run \`node scripts/fetch-rfcs.ts\``,
   ]);
   rmSync(root, { recursive: true });
 });
@@ -80,17 +80,17 @@ test('reports a changed text, a missing text, an unlisted text and a stale index
 test('reports a manifest that differs from Appendix A, and missing tables', () => {
   const root = repository();
   const unrecorded = { ...ENTRY, title: 'Old', checksum: '', retrieved: '' };
-  writeFileSync(join(root, 'docs', 'rfc', 'manifest.tsv'), formatManifest([unrecorded]));
-  rmSync(join(root, 'docs', 'rfc', 'errata.tsv'));
+  writeFileSync(join(root, 'docs', 'specs', 'rfc', 'manifest.tsv'), formatManifest([unrecorded]));
+  rmSync(join(root, 'docs', 'specs', 'rfc', 'errata.tsv'));
   assert.deepEqual(checkRfcs(root, FILES), [
-    `${join('docs', 'rfc', 'manifest.tsv')}: RFC 3533: title differs from the expected value: Ogg`,
-    `${join('docs', 'rfc', 'rfc3533.txt')}: present but not recorded in the manifest; delete it and run again`,
-    `${join('docs', 'rfc', 'README.md')}: ${STALE}`,
-    `${join('docs', 'rfc', 'errata.tsv')}: the errata table is missing`,
+    `${join('docs', 'specs', 'rfc', 'manifest.tsv')}: RFC 3533: title differs from the expected value: Ogg`,
+    `${join('docs', 'specs', 'rfc', 'rfc3533.txt')}: present but not recorded in the manifest; delete it and run again`,
+    `${join('docs', 'specs', 'rfc', 'README.md')}: ${STALE}`,
+    `${join('docs', 'specs', 'rfc', 'errata.tsv')}: the errata table is missing`,
   ]);
-  rmSync(join(root, 'docs', 'rfc', 'manifest.tsv'));
+  rmSync(join(root, 'docs', 'specs', 'rfc', 'manifest.tsv'));
   assert.deepEqual(checkRfcs(root, FILES), [
-    `${join('docs', 'rfc', 'manifest.tsv')}: the manifest is missing; run \`node scripts/fetch-rfcs.ts\``,
+    `${join('docs', 'specs', 'rfc', 'manifest.tsv')}: the manifest is missing; run \`node scripts/fetch-rfcs.ts\``,
   ]);
   rmSync(root, { recursive: true });
 });

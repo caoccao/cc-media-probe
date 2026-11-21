@@ -146,3 +146,30 @@ test('reports missing tables, and checks a repository whose tables agree', () =>
   assert.deepEqual(checkDeliverables(root), []);
   rmSync(root, { recursive: true });
 });
+
+test('accepts a committed description of a paid standard as a source, but not its index', () => {
+  const root = mkdtempSync(join(tmpdir(), 'deliverables-'));
+  const specifications = join(root, 'docs', 'specs');
+  mkdirSync(join(root, 'docs', 'plans'), { recursive: true });
+  mkdirSync(join(specifications, 'iso-iec'), { recursive: true });
+  writeFileSync(join(root, 'docs', 'plans', 'plan-init-project.md'), PLAN);
+  writeFileSync(join(specifications, 'iso-iec', 'iso-iec-14496-15.md'), '# Description\n');
+  writeFileSync(join(specifications, 'iso-iec', 'README.md'), '# Index\n');
+  const cells = (row: Deliverable): string =>
+    [row.key, row.kind, row.section, row.subject, row.item, row.carriage, row.phase].join('\t');
+  writeFileSync(
+    join(specifications, 'deliverables.tsv'),
+    ['key\tkind\tsection\tsubject\titem\tcarriage\tphase', ...DELIVERED.map(cells)].join('\n') + '\n',
+  );
+  const coverage = DELIVERED.map((row, index) =>
+    [row.key, 'active', '0.1.0', '', index === 0 ? 'README.md: 1' : 'iso-iec-14496-15.md: 2', '', ''].join('\t'),
+  );
+  writeFileSync(
+    join(specifications, 'coverage.tsv'),
+    ['key\tstatus\trelease\tgate\tsources\tfixture\tconfirmed', ...coverage].join('\n') + '\n',
+  );
+  assert.deepEqual(checkDeliverables(root), [
+    `${join('docs', 'specs', 'coverage.tsv')}: detect.matroska: source names no document of the manifests: README.md`,
+  ]);
+  rmSync(root, { recursive: true });
+});

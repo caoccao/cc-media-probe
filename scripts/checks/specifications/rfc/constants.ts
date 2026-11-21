@@ -18,7 +18,7 @@
 // Files, columns, addresses, vocabularies and messages of the RFC set (plan sections 5.2 and 5.3, Appendix A).
 
 /** The directory of the RFC texts, relative to the repository root, by component. */
-export const RFC_DIRECTORY = ['docs', 'rfc'];
+export const RFC_DIRECTORY = ['docs', 'specs', 'rfc'];
 /** The RFC manifest. */
 export const MANIFEST_FILE = 'manifest.tsv';
 /** The errata table. */
@@ -34,7 +34,7 @@ export const RFC_FILE_PREFIX = 'rfc';
 /** Ends the file name of an RFC text. */
 export const RFC_FILE_EXTENSION = '.txt';
 /** An RFC text as Git names it, with its number in the first group. */
-export const RFC_FILE_PATTERN = /^docs\/rfc\/rfc(\d+)\.txt$/u;
+export const RFC_FILE_PATTERN = /^docs\/specs\/rfc\/rfc(\d+)\.txt$/u;
 /** An RFC text as the directory lists it, with its number in the first group. */
 export const STORED_TEXT_PATTERN = /^rfc(\d+)\.txt$/u;
 /** A decimal digit. */
