@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Draft 5 for approval (revised after reviews 01, 02 and 03, and for the code rules of 2026-11-20; see [Appendix E](#appendix-e--revision-history)) |
-| **Date** | 2026-11-20 |
+| **Status** | Draft 6 for approval (revised after reviews 01, 02 and 03, and for the code rules of 2026-11-20 and 2026-11-21; see [Appendix E](#appendix-e--revision-history)) |
+| **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
 | **Licence** | Apache-2.0 |
@@ -152,7 +152,7 @@ Code is written from the syntax description and keeps the specification's field 
 
 ## 3. Confirmed requirements
 
-These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Review 01", "Review 02" and "Review 03" mean decided on 2026-11-20 in response to that review; "Code rules" means set on 2026-11-20 together with the agent instructions in `CLAUDE.md`.
+These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Review 01", "Review 02" and "Review 03" mean decided on 2026-11-20 in response to that review; "Code rules" means set on 2026-11-20 (R28 to R31) or 2026-11-21 (R32 and R33) together with the agent instructions in `CLAUDE.md`.
 
 | # | Topic | Decision | Set |
 |---|---|---|---|
@@ -187,6 +187,8 @@ These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Re
 | R29 | Modularity | The library is highly modularized: one concern per file, a directory for every format, codec and tag family that has more than one concern, and structures shared by several formats kept in shared modules (section 7.2). | Code rules |
 | R30 | Module roots | `lib.rs` and every `mod.rs` contain only module declarations, imports and re-exports, with their attributes and documentation. Every module that has submodules is a directory with a `mod.rs`. | Code rules |
 | R31 | File size | Every Rust file in the repository has at most 500 lines before its embedded tests. Every physical line counts, including comments, documentation and blank lines. The embedded tests are the one `#[cfg(test)] mod tests { … }` block that ends a file. | Code rules |
+| R32 | Names | Every name in the repository's code is made of whole words: Rust items, fields, variables, parameters, generic parameters, lifetimes, modules and crates, and the names in scripts. No abbreviations and no single-letter names. Two kinds are exempt. Names fixed by Rust, its standard library, a dependency or an external tool, such as `std::io`, `fmt`, `str`, trait and conventional method names like `len` and `from_str`, and Cargo and workflow keys. Proper names of formats, codecs, standards and products as they are commonly written, such as `Ebml`, `Mp4`, `H264`, `Id3v2`, `Crc32`, `serde`, and the `cc` of the crate names (R7). A specification's own spelling of a field goes in the traceability comment (section 5.5), not in the identifier. | Code rules |
+| R33 | Constants | Every numeric, string, character and byte-string literal in Rust code is a named constant in a dedicated constants module, which holds nothing but constants. The module sits beside the code that uses it: a `constants.rs`, or a `constants/` directory once it would pass the limit of R31. A constant that several modules use lives in the constants module of their nearest common parent. The data tables (detection signatures, registries, element schemas) count as constants modules. Literals stay inline only in test code (embedded test blocks, `tests.rs`, integration tests, benchmarks), in documentation, doc examples and the example programs, in attribute arguments and the other places where Rust accepts only a literal, and as the numbers 0 and 1. Message text is a constant too: a `format!` or `write!` template holds only placeholders, spacing and punctuation. | Code rules |
 
 ---
 
@@ -465,12 +467,12 @@ docs/
 
 | Column | Content |
 |---|---|
-| `id` | Stable short identifier, for example `itu-h264` or `etsi-ts-102366`. |
+| `identifier` | Stable short identifier, for example `itu-h264` or `etsi-ts-102366`. |
 | `title`, `publisher` | As printed on the document. |
 | `edition` | Exact edition, version or draft revision. "Living" for documentation that has no versions. |
 | `landing_url` | The publisher's page for the document. |
 | `artifact_url` | The document file itself, not a landing page, when one exists. Empty for paywalled documents. |
-| `immutable_ref` | A location that keeps returning the same bytes, where the publisher offers one: a dated version, a revision-pinned address, or an archived copy with its capture time. |
+| `immutable_reference` | A location that keeps returning the same bytes, where the publisher offers one: a dated version, a revision-pinned address, or an archived copy with its capture time. |
 | `content_type` | The media type the stored file must have. It is checked on retrieval, so an error page or a landing page is never stored as the document. |
 | `availability` | `free`, `paid`, or `none` (no normative specification exists). |
 | `retrieval` | `fetch` (the script downloads the artifact), `snapshot` (the script saves a dated copy of a living page), `manual` (you place a purchased or hand-downloaded file), `link` (not stored). |
@@ -502,7 +504,7 @@ Policies:
 
 - RFC text is committed. The IETF Trust Legal Provisions permit copying and distributing RFCs in full and without modification. Each file is byte-identical to the RFC Editor's copy and is verified by checksum.
 - Non-RFC documents are copyrighted by their publishers and are **not** redistributed. Only the manifests are committed; `scripts/fetch-specs.sh` reproduces the local copies.
-- **Living pages.** A checksum of a page that can change does not make the copy reproducible. For each `snapshot` row the manifest records an `immutable_ref` wherever one exists, and the fetch script retrieves that. Where none exists, the row is marked as not reproducible upstream: the approved copy exists only locally. If that copy is lost, or the page has changed, the fetch script reports the difference and stops. The new content is adopted only by superseding the row through GS.2, after the changed parts were reviewed against the code that cites them. Nothing restricted is redistributed to work around this.
+- **Living pages.** A checksum of a page that can change does not make the copy reproducible. For each `snapshot` row the manifest records an `immutable_reference` wherever one exists, and the fetch script retrieves that. Where none exists, the row is marked as not reproducible upstream: the approved copy exists only locally. If that copy is lost, or the page has changed, the fetch script reports the difference and stops. The new content is adopted only by superseding the row through GS.2, after the changed parts were reviewed against the code that cites them. Nothing restricted is redistributed to work around this.
 - Paywalled standards are listed with their catalogue page only. For each one, G1.6 records one of three outcomes: purchased, replaced by a named substitute, or the dependent feature deferred.
 
 ### 5.3 Errata and Internet-Drafts
@@ -519,9 +521,10 @@ A descriptive source is never treated as normative. Behaviour taken from one is 
 ### 5.5 Spec traceability
 
 - Every parser module starts with a doc comment naming the specification and section it implements.
-- Every field read from a file is commented with the spec's own field name.
+- Every field read from a file is commented with the spec's own field name. The identifier spells the name out in whole words (R32), and the comment keeps the specification's spelling: a field named `picture_width_in_macroblocks_minus_one` carries the comment `pic_width_in_mbs_minus1`.
 - **Tables carry their sources.** Each entry of the detection signature table and of every codec-registry table has a required source reference in its data structure, so an entry without a source does not compile.
-- `docs/guide/spec-map.md` maps each source module to its specifications, and each specification back to modules. A test fails if a module under `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/` or `registry/`, or a format-specific helper under `util/`, is missing from the map, or if the map names a source that is absent from the manifests.
+- **Constants carry their sources.** A constant whose value a specification defines (R33), such as an element ID, a box type or a flag mask, names that specification and section in its doc comment, because it no longer sits beside the parser whose module comment cites the source.
+- `docs/guide/spec-map.md` maps each source module to its specifications, and each specification back to modules. A test fails if a module under `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/` or `registry/`, or a format-specific helper under `utilities/`, is missing from the map, or if the map names a source that is absent from the manifests.
 - Source exceptions approved at G1.5 are listed in `spec-map.md` with their gate decision.
 - Where a specification is ambiguous or real-world practice is known to differ, the chosen behaviour and its reason are recorded next to the code.
 
@@ -547,7 +550,7 @@ Each decision below was researched online first (sources in [Appendix D](#append
 | D12 | Per-format feature flags | None before 1.0. All formats are always compiled, which keeps the test matrix small. Revisited at the 1.0 gate. | G16.1 |
 | D13 | Release mechanism | Hand-maintained changelog, version bump, annotated git tag on an approved commit. Every release has approved digests of its two package files and a recorded exact toolchain, and nothing counts as published unless the registry's checksums equal the digests. The CLI requires exactly the library version it was released with. A tag starts a release workflow that is safe to run again, by a re-run or by a manual start for the same tag: it checks what the registry already holds and performs only the missing steps (Appendix C.5). Uploads use crates.io Trusted Publishing after your approval. The first publish of each crate is manual because crates.io requires it. | G8.1 |
 | D14 | Fixture format | Hand-annotated hex files plus in-repository byte-level builders, owned by the test kit crate. See section 9. | G3.2 |
-| D15 | Async surface | One module per runtime feature, `aio::tokio` and `aio::futures`, each with a seekable entry point and a forward-only entry point. No name is shared between the two modules, so enabling both features changes neither (section 8.7). | G2.1, G3.1 |
+| D15 | Async surface | One module per runtime feature, `asynchronous::tokio` and `asynchronous::futures`, each with a seekable entry point and a forward-only entry point. No name is shared between the two modules, so enabling both features changes neither (section 8.7). | G2.1, G3.1 |
 | D16 | Probe-wide budget | One budget object is shared by every source, child probe and companion of a probe. It counts bytes read including bytes skipped, working memory, retained report data, retained payloads, decompressed output, work units, companion requests and sources opened. Limits are exact; every buffer is charged before it is reserved, growth is bounded by design, and a fixed-size record reports exhausted limits even when a limit is zero (section 7.5). | G3.3 |
 | D17 | Codec parsing contract | A codec parser receives the codec, the representation of the bytes, the framing mode and the container context. It returns an outcome (parsed, partially parsed, needs more bytes, no header present, malformed), how much of its input is finished and, where needed, a continuation value. A bounded per-stream assembler feeds it with pieces of packets or of a byte stream, keeps packet boundaries, and bounds repeated scanning. One traversal of the container feeds the assemblers of all streams (section 7.4). | G3.1 |
 | D18 | Serialized compatibility | A written contract for both directions within a schema major version and for rejection across major versions; a schema version on every root record (R26); identifiers as strings and quantities within the exactly representable range; a serializable error record separate from the live error type; a portable form for paths; an archive of JSON fixtures per crate release; and real old readers, each pinned to an exact release in a workspace of its own (R27, section 8.8). | G2.3 |
@@ -555,7 +558,7 @@ Each decision below was researched online first (sources in [Appendix D](#append
 | D20 | Companion files | As fixed by R18, with the rules of section 7.7: trusted root; containment after resolving links, under its stated condition; five resolver results; a source ID for every request, assigned before anything is opened; cached and limited requests; a stable identity for opened sources. Designed in Phase 2, shipped with its first consumer. | G2.2 |
 | D21 | Normalized-value rules | Written units, time origin, precedence and provenance for every normalized field; exact ratios from exact inputs; durations only from presentation intervals; estimates only through separate accessors (section 8.4, R25). | G2.2 |
 | D22 | Text encodings | In-house decoders for UTF-8, UTF-16, UTF-32, ISO 8859-1, Windows-1252 and Mac OS Roman. Whether other code pages come from an optional general-purpose encoding crate or are reported as raw bytes with a diagnostic is decided before AVI needs it. | G3.4 |
-| D23 | Enforcing the code rules | Three layers, all run by `scripts/check.sh` and CI. *Lints:* Clippy's restriction lints `self_named_module_files` (a module with submodules must be `name/mod.rs`) and `definition_in_module_root` (no definitions in a `mod.rs`; added in Clippy 1.99) are denied in the workspace lint table. *Structure check:* it covers what the lints do not: `lib.rs` and `main.rs`, inline module bodies and macro calls in a module root, `#[path]` attributes, `include!` of Rust source, and the line count of R31. It runs after the formatter, so it can rely on formatted layout, and it uses the standard library only. *Coverage check:* it reads the JSON summary of `cargo-llvm-cov` and applies R28 per crate and per area, because the tool's own threshold passes at exactly the threshold and knows no directories. Where the two checks live, the coverage command and what it excludes from the measured lines are decided at G1.2. | G1.2 |
+| D23 | Enforcing the code rules | Three layers, all run by `scripts/check.sh` and CI. *Lints:* four Clippy restriction lints are denied in the workspace lint table: `self_named_module_files` (a module with submodules must be `name/mod.rs`), `definition_in_module_root` (no definitions in a `mod.rs`; added in Clippy 1.99), `min_ident_chars` with an empty list of allowed short names (no single-letter item, field, variant, variable or parameter), and `single_char_lifetime_names`. *Structure check:* it covers what the lints do not. For R30 and R31: `lib.rs` and `main.rs`, inline module bodies and macro calls in a module root, `#[path]` attributes, `include!` of Rust source, and the line count. For R32: single-letter generic parameters, and every word of a defined name that is on the check's list of known abbreviations, unless the whole name is one that Rust or a dependency fixes. For R33: a literal outside a constants module and outside the exempt places, a letter or digit in a format template outside its placeholders, and anything but constants inside a constants module. It runs after the formatter, so it can rely on formatted layout, and it uses the standard library only. No tool tells every abbreviation from a word, so review remains the last check of R32, and each abbreviation a review finds joins the list. *Coverage check:* it reads the JSON summary of `cargo-llvm-cov` and applies R28 per crate and per area, because the tool's own threshold passes at exactly the threshold and knows no directories. Decided at G1.2: where the two checks live, the coverage command and what it excludes from the measured lines, how the structure check recognizes the data-table modules, and the first list of abbreviations. | G1.2 |
 
 **Pure-Rust verification (D4).** Four layers, each reported at G1.3 and repeated in CI:
 
@@ -611,7 +614,8 @@ cc-media-probe/
 │   │   └── fixtures/<format>/    annotated hex fixtures and expected results
 │   ├── cc-media-probe-doctest/   publish = false; compiles and runs the code blocks of
 │   │                             README.md and docs/guide/*.md against the library
-│   └── cc-media-probe-compat/    publish = false; runs the old-reader programs of readers/
+│   └── cc-media-probe-compatibility/
+│                                 publish = false; runs the old-reader programs of readers/
 │                                 against the current output (section 8.8)
 ├── readers/<version>/            one tiny workspace per retained old release: a program that
 │                                 depends on exactly that published library and reads documents
@@ -633,7 +637,7 @@ Ownership rules:
 - **What the marker gates.**
   - Tests inside `src/` that use the test kit or fixture files. Tests that use only inline vectors are ordinary unit tests and compile anywhere.
   - The toy walker (`toy/`).
-  - **Repository-only entry points** (`repo_api.rs`): a hidden module through which integration tests and benchmarks reach the toy walker and the few internals they measure. Integration tests and benchmarks link an ordinary build of the library, so without this module they could not reach a private walker.
+  - **Repository-only entry points** (`repository_entry_points.rs`): a hidden module through which integration tests and benchmarks reach the toy walker and the few internals they measure. Integration tests and benchmarks link an ordinary build of the library, so without this module they could not reach a private walker.
   - Outside the repository the marker is absent. None of this is compiled, and the published package passes `cargo test` on its own.
 - **The marker never widens the published API.** The tarball job (section 9.7) builds the unpacked package outside the repository and checks two things: a consumer program that names the repository-only module fails to compile, and the API comparison of section 8.10 is made on the unpacked package, so an item that exists only in a repository build can never be part of the compared surface.
 - **Licence and README.** Cargo packages only files inside a crate's directory. Each published crate carries its own `LICENSE` and `README.md`; the check script fails if the library's copies differ from the root files. The CLI has its own shorter README.
@@ -643,12 +647,14 @@ Ownership rules:
 
 ### 7.2 Library module layout
 
-The library is highly modularized (R29). Four rules shape its tree. They hold in every crate of the repository, and D23 enforces them.
+The library is highly modularized (R29). Four rules shape its tree, and two more govern the names and literals in its files. All six hold in every crate of the repository, and D23 enforces them.
 
 - **Module roots only declare (R30).** `lib.rs` and every `mod.rs` contain module declarations without a body, `use` imports, `pub use` re-exports, the attributes on those items (such as `#[cfg]` and `#[doc(hidden)]`), crate-level attributes, and `//!` documentation. Nothing else: no function, type, trait, `impl`, constant, static, type alias, macro definition, macro call, inline module body or inline test module. A module root whose tests do not belong to one of its files declares `#[cfg(test)] mod tests;`, and those tests live in `tests.rs`. A binary's `main.rs` follows the same rule and may in addition hold the `main` function, which only hands over to the crate's modules.
 - **Directories use `mod.rs` (R30).** A module with submodules is `name/mod.rs`, never `name.rs` beside a `name/` directory, so every module root falls under the previous rule. A module without submodules is a single file.
 - **At most 500 lines per file (R31).** Every `.rs` file in the repository has at most 500 lines before its embedded tests, counted on formatted source: the library, the CLI, the support crates, integration tests, benchmarks, examples, fuzz targets, build scripts, readers and spikes. Every physical line counts: code, comments, documentation and blank lines. The embedded tests are one `#[cfg(test)] mod tests { … }` block at the end of the file. A file that holds only tests, such as a module's `tests.rs` or an integration test, is counted in full. Static tables count like code: a table that would pass the limit is split into files by group, and each entry keeps its source reference (section 5.5). `#[path]` attributes and `include!` of Rust source are not used, so no file can exceed the limit by pulling in another.
 - **One concern per file (R29).** Walking a structure, mapping it to the normalized model, and building its typed details are separate files. A format, a codec or a tag family becomes a directory as soon as it has more than one concern. A structure that several formats read (wave-format and bitmap headers, FLAC metadata blocks, Vorbis comments) lives in one shared module that each of them uses, never inside one of its consumers.
+- **Names are whole words (R32).** Every name the code defines spells its words out: `identifier`, not `id`; `information`, not `info`; `maximum`, not `max`; `buffer`, not `buf`. No name is a single letter, generic parameters (`Source`, not `S`) and lifetimes (`'input`, not `'a`) included. A name that Rust, the standard library or a dependency fixes stays as it is, such as `fmt` in a `Display` implementation, and so does the name of a format, codec, standard or product as it is commonly written (`Ebml`, `Mp4`, `H264`, `Id3v2`). The trees below follow the rule.
+- **Literals live in constants modules (R33).** A number other than 0 and 1, a string, a character and a byte string are named constants in a constants module. That is a `constants.rs` beside the code that uses them, or a `constants/` directory split by group once it nears the limit. A constant that several modules share lives in the constants module of their nearest common parent. Data tables count as constants modules: Matroska's element IDs belong to its element table in `schema/`, while a value that only its block reader uses sits in `containers/matroska/constants.rs`. A constants module holds `const` and `static` items, their imports and their documentation, and nothing else; module roots stay declarations only (R30). Test code, documentation, doc examples, the example programs, attribute arguments and the other places where Rust accepts only a literal are exempt. A `format!` or `write!` template keeps only placeholders, spacing and punctuation, and names its message constant as an inline argument (`"{UNEXPECTED_END}: {element}"`).
 
 ```
 src/
@@ -660,28 +666,31 @@ src/
 ├── completeness/       Completeness, HeaderStatus, section status, reasons, fixed-size record
 ├── format/             Format enum, static descriptors, support level
 ├── codec/              Codec enum, descriptors, codec-string generation
-├── model/              MediaReport, Stream, VideoInfo, AudioInfo, SubtitleInfo, Chapter,
-│                       Tag, Attachment, Program, time, rational, language, colour, channels
+├── model/              MediaReport, Stream, VideoInformation, AudioInformation,
+│                       SubtitleInformation, Chapter, Tag, Attachment, Program, time,
+│                       rational, language, colour, channels
 ├── details/            FormatDetails, CodecDetails; one file per format and per codec
-├── io/                 source traits, adapters, block cache, forward-only window, budget
+├── input/              source traits, adapters, block cache, forward-only window, budget
 ├── companion/          source table; from the release that ships lookup, the resolver trait
 │                       and the built-in resolver
-├── aio/                async source trait and its entry points, each in a file of its own;
+├── asynchronous/       async source trait and its entry points, each in a file of its own;
 │                       tokio.rs, futures.rs (feature-gated)
 ├── detect/             signature table, scoring, text sniffing
 ├── registry/           codec identifier tables, one namespace per module
-├── util/               byte reader, bit reader, checked maths, CRC, text decoding, ID3v2 skip
+├── utilities/          byte reader, bit reader, checked maths, CRC, text decoding, ID3v2 skip
 ├── containers/         one directory per family: matroska/, isobmff/, riff/, ogg/, flac/,
 │                       mpegts/, mpegps/, caf/, flv/, real/, asf/, ivf/, …
 ├── codecs/             assemble/ (header assembler); video/, audio/, subtitle/, one directory
 │                       per codec
-├── tags/               id3v1, id3v2, ape, vorbis_comment, riff_info, itunes
+├── tags/               id3v1, id3v2, ape, vorbis_comment, riff_information, itunes
 ├── text/               srt, ssa, webvtt, usf
 ├── disc/               bluray, dvd
 ├── document/           root records, their version check, ErrorRecord (serde feature)
 ├── toy/                walker for the toy format; repository builds and fuzzing only
-├── repo_api.rs         repository builds only; entry points for tests/ and benches/
-└── fuzz_api.rs         compiled only under cfg(fuzzing); entry points for fuzz targets
+├── repository_entry_points.rs
+│                       repository builds only; entry points for tests/ and benches/
+└── fuzzing_entry_points.rs
+                        compiled only under cfg(fuzzing); entry points for fuzz targets
 ```
 
 Every name that ends in `/` is a directory with its own `mod.rs`. One family shows how far the splitting goes. The names are illustrative; a file is split further whenever it approaches the limit.
@@ -692,12 +701,13 @@ containers/matroska/
 ├── ebml/               variable-size integers, element headers, EBML header, CRC and void elements
 ├── schema/             the element table, one file per group of top-level elements
 ├── segment.rs          seek head, linear scan, further segments
-├── info.rs             segment information
+├── information.rs      segment information
 ├── tracks/             track entry, video, audio, colour, content encodings, block additions
 ├── blocks.rs           first blocks, lacing, restored header bytes
 ├── chapters.rs
 ├── tags.rs
 ├── attachments.rs
+├── constants.rs        values that only this family uses and that no table holds (R33)
 ├── completeness.rs     enumeration and its evidence
 └── map.rs              mapping to the normalized model and to the Matroska details
 ```
@@ -980,8 +990,8 @@ Entry points:
 | `probe_bytes(&[u8])` | In-memory data. |
 | `probe_source(source)` | The caller's own implementation of the positional source trait, for input that is neither a file nor a reader, such as ranges of a remote object. It need not implement `Read` or `Seek`. |
 | `detect_file` / `detect_reader` / `detect_stream` / `detect_bytes` / `detect_source` | Format detection only, for the same five kinds of input. `detect_stream` serves forward-only input such as standard input. |
-| `aio::tokio::…`, `aio::futures::…` | Async `probe_reader`, `probe_stream`, `detect_reader` and `detect_stream` for each runtime (section 8.7). |
-| `aio::probe_source`, `aio::detect_source` | The caller's own implementation of the async positional source trait. |
+| `asynchronous::tokio::…`, `asynchronous::futures::…` | Async `probe_reader`, `probe_stream`, `detect_reader` and `detect_stream` for each runtime (section 8.7). |
+| `asynchronous::probe_source`, `asynchronous::detect_source` | The caller's own implementation of the async positional source trait. |
 | `Prober::new()…` | Builder carrying options; exposes the same set of `probe_*` and `detect_*` methods, blocking and async. |
 
 Options on the builder (all optional): format hint, file-name hint, thoroughness level, every limit of section 7.5, attachment handling (skip, metadata only, with data), cover-art handling, default legacy text encoding and, from the release that ships lookup, companion lookup (off, built-in resolver, custom resolver).
@@ -992,10 +1002,10 @@ The result model:
 |---|---|
 | `MediaReport` | Format, media type, size, duration, overall bit rate, estimated duration and bit rate (separate accessors), streams, programs, chapter editions, tags, attachments, diagnostics, completeness, usage summary, format details, source table, external references. |
 | `Stream` | Index, container-native ID, unique ID where the container has one, kind, codec, header status, language (BCP 47 plus the original code), title, duration, start time, bit rate, estimated duration and bit rate (separate accessors), packet count, frame or sample count where established, disposition flags, kind-specific info, tags, codec details. Where a container can give one native ID to different streams over time, the entry also says where its declaration applies. |
-| `VideoInfo` | Coded and visible size, display size where one exists in pixels, pixel and display aspect ratio, frame rate and mode, bit depth, chroma format, scan type and field order, colour description, HDR metadata, rotation, stereo and projection info, alpha. |
-| `AudioInfo` | Sample rate, output sample rate, channel count, channel layout, bit depth, sample format, encoder delay and padding, immersive-audio signalling. |
-| `SubtitleInfo` | Text or bitmap kind, text encoding, canvas size, event count and time range where established. |
-| `CodecInfo` | `Codec` identity, human-readable name, profile, level, raw container codec identifier, and an RFC 6381 codec string where one is defined for the codec. |
+| `VideoInformation` | Coded and visible size, display size where one exists in pixels, pixel and display aspect ratio, frame rate and mode, bit depth, chroma format, scan type and field order, colour description, HDR metadata, rotation, stereo and projection info, alpha. |
+| `AudioInformation` | Sample rate, output sample rate, channel count, channel layout, bit depth, sample format, encoder delay and padding, immersive-audio signalling. |
+| `SubtitleInformation` | Text or bitmap kind, text encoding, canvas size, event count and time range where established. |
+| `CodecInformation` | `Codec` identity, human-readable name, profile, level, raw container codec identifier, and an RFC 6381 codec string where one is defined for the codec. |
 | `ChapterEdition`, `Chapter` | Unique IDs; start and end on the timeline of the segment that holds the media; for an ordered edition, its playback duration and each chapter's playback position; a reference to another segment where a chapter has one; titles per language, nesting, flags (section 8.5). |
 | `TagSet`, `Tag` | Targets including wildcards, level, name, optional value, language, nesting (section 8.5). |
 | `Attachment` | Unique ID, name, media type, size, description, optional data. |
@@ -1014,8 +1024,8 @@ Three properties that draft 1 treated as always present are optional:
 Typed detail sections, reachable from the same result:
 
 ```rust
-if let Some(FormatDetails::Matroska(mkv)) = report.format_details() {
-    println!("segment uid: {:?}", mkv.segment_uid());
+if let Some(FormatDetails::Matroska(matroska)) = report.format_details() {
+    println!("segment unique identifier: {:?}", matroska.segment_unique_identifier());
 }
 if let Some(CodecDetails::H264(h264)) = stream.codec_details() {
     println!("{} @ L{}", h264.profile(), h264.level());
@@ -1192,14 +1202,14 @@ Tokio and futures-io define different, incompatible `AsyncRead` and `AsyncSeek` 
 
 | Module (feature) | Seekable input | Forward-only input |
 |---|---|---|
-| `aio::tokio` (`tokio`) | `probe_reader`, `detect_reader`: `AsyncRead + AsyncSeek` | `probe_stream`, `detect_stream`: `AsyncRead` |
-| `aio::futures` (`futures-io`) | `probe_reader`, `detect_reader`: `AsyncRead + AsyncSeek` | `probe_stream`, `detect_stream`: `AsyncRead` |
-| `aio` (no feature) | `probe_source`, `detect_source`: the caller's own implementation of the async positional source trait | — |
+| `asynchronous::tokio` (`tokio`) | `probe_reader`, `detect_reader`: `AsyncRead + AsyncSeek` | `probe_stream`, `detect_stream`: `AsyncRead` |
+| `asynchronous::futures` (`futures-io`) | `probe_reader`, `detect_reader`: `AsyncRead + AsyncSeek` | `probe_stream`, `detect_stream`: `AsyncRead` |
+| `asynchronous` (no feature) | `probe_source`, `detect_source`: the caller's own implementation of the async positional source trait | — |
 
 - The seekable path performs positional reads as seek-then-read through the block cache, so files with metadata at the end work. The forward-only path uses the sliding window of D9.
 - With both features enabled, both modules exist and neither changes. No function is generic over "either runtime".
 - The features depend on the I/O traits only. No runtime, file API or executor is pulled in. Opening a file asynchronously is left to the caller; whether to add a path-based convenience that needs a runtime's file API is decided at G2.2.
-- **Custom sources.** A source that is neither a file nor a reader, such as ranges of a remote object, implements a positional source trait: the blocking one, passed to `probe_source` and `detect_source` at the crate root, or the async one, passed to the functions of the same names in `aio`. The async trait is defined by this library and needs neither runtime feature. A custom source states whether it knows its length. The async form of the companion resolver arrives with lookup (R18).
+- **Custom sources.** A source that is neither a file nor a reader, such as ranges of a remote object, implements a positional source trait: the blocking one, passed to `probe_source` and `detect_source` at the crate root, or the async one, passed to the functions of the same names in `asynchronous`. The async trait is defined by this library and needs neither runtime feature. A custom source states whether it knows its length. The async form of the companion resolver arrives with lookup (R18).
 - Tests: each feature alone and both together; a reader that returns pending several times before each chunk; a file with tail metadata through the seekable path; the same file through the forward-only path; detection through every function of the table; a custom blocking source and a custom async source that serve ranges and implement neither `Read` nor `Seek`.
 
 ### 8.8 Serialization and its compatibility contract
@@ -1406,8 +1416,8 @@ Expected results are stored beside each fixture as a text file and compared exac
 
 ### 9.3 Quality bars
 
-- **Coverage (R28).** Line coverage above 90% for each published crate as a whole, and for each area of the library: `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/`, `registry/`, `io/` and `util/`. Exactly 90.0% fails. It is measured with `cargo-llvm-cov` over the full test suite of a repository build, and the coverage check of D23 computes the figures from the tool's JSON summary. A crate or area is held to the bar from the first commit that gives it executable code, so tests arrive together with the code they cover. The figures for every crate and area are reported at every phase gate.
-- **Structure (R29 to R31).** The module lints and the structure check of D23 pass: module roots only declare, directory modules use `mod.rs`, and no `.rs` file has more than 500 lines before its embedded tests.
+- **Coverage (R28).** Line coverage above 90% for each published crate as a whole, and for each area of the library: `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/`, `registry/`, `input/` and `utilities/`. Exactly 90.0% fails. It is measured with `cargo-llvm-cov` over the full test suite of a repository build, and the coverage check of D23 computes the figures from the tool's JSON summary. A crate or area is held to the bar from the first commit that gives it executable code, so tests arrive together with the code they cover. The figures for every crate and area are reported at every phase gate.
+- **Structure (R29 to R33).** The lints and the structure check of D23 pass: module roots only declare, directory modules use `mod.rs`, no `.rs` file has more than 500 lines before its embedded tests, no defined name is a single letter or contains a listed abbreviation, and every literal outside the exempt places is a constant in a constants module.
 - Zero warnings from the compiler, the linter and rustdoc.
 - Every bug found after a format ships gets a minimized synthetic fixture before it is fixed.
 
@@ -1430,7 +1440,7 @@ Ceilings and limits for a phase are fixed before that phase's measurements are t
 
 ### 9.5 Fuzzing
 
-- **Access to private parsers.** Fuzz targets call the hidden `fuzz_api` module that exists only under `cfg(fuzzing)` (D19). A smoke test in CI builds and runs one target that reaches a private codec parser and one that runs the full public probe path.
+- **Access to private parsers.** Fuzz targets call the hidden `fuzzing_entry_points` module that exists only under `cfg(fuzzing)` (D19). A smoke test in CI builds and runs one target that reaches a private codec parser and one that runs the full public probe path.
 - **Seeds carry their routing.** A codec target needs more than payload bytes: it needs the representation and the context (for example the NAL length size). Each fixture therefore declares its fuzz target and, for codec targets, its representation and context. The corpus tool writes each seed in the input encoding of its target, which starts with those fields, into `fuzz/corpus/<target>/`. A container fixture goes to its container target and, where it embeds a codec header, the extracted header goes to the codec target with the right representation. The corpus directories are git-ignored and reproducible.
 - **Seeds are checked.** A test runs every seed through its target's entry point and asserts that it reaches the intended parser and produces the outcome recorded with the fixture. A seed that is rejected before the parser it was written for is a test failure.
 - **Pass conditions.** Every run uses a 5-second per-input timeout, a 1 GiB memory limit and a 1 MiB maximum input length. Any crash, timeout, out-of-memory stop or leak report is a failure and becomes a fixture.
@@ -1484,7 +1494,7 @@ Synthetic fixtures prove conformance to the specifications. They cannot reveal h
 | Rustdoc | Crate-level overview and quick start; every public item documented with an example; `missing_docs` denied. | Phase 2 (compile-only examples), running from Phase 5 |
 | `README.md` | What it is, install, 20-line example, format table, feature flags, MSRV and stability summary, licence. | Phase 1 stub, complete in Phase 8 |
 | `CHANGELOG.md` | Keep-a-Changelog format with a "Changed output" heading; updated in the commit that makes the change. | Phase 1 |
-| `CONTRIBUTING.md` | Clean-room rule, spec-traceability rule, fixture rules, dependency allow-list rule, module and file-size rules (section 7.2), coverage bar, how to add a format, check script. | Phase 1 |
+| `CONTRIBUTING.md` | Clean-room rule, spec-traceability rule, fixture rules, dependency allow-list rule, module, file-size, naming and constants rules (section 7.2), coverage bar, how to add a format, check script. | Phase 1 |
 | `CLAUDE.md`, `AGENTS.md` | Instructions for AI coding agents: the rules of this plan that apply to every change, the gates, and the agent rule of R10. `AGENTS.md` only points to `CLAUDE.md`. `CLAUDE.md` changes in the same commit as any plan revision that changes a rule it summarizes. | Before Phase 1 |
 | `SECURITY.md` | How to report a vulnerability; what counts as one (panic, hang, exceeding a configured limit, opening a file the caller did not allow); the condition under which companion containment is guaranteed (R18). | Phase 1 |
 | `docs/guide/getting-started.md` | Tutorial covering the common tasks. | Phase 8 |
@@ -1526,7 +1536,7 @@ Every format phase (5–7, 9–15, 17) applies this checklist to each format it 
 - [ ] Behaviour defined for forward-only sources, with its own expectation files.
 - [ ] Behaviour defined with each relevant Cargo feature disabled.
 - [ ] Spec citations in module and field comments.
-- [ ] Module layout as in section 7.2: the format is a directory of single-purpose files, module roots only declare, and the structure check passes.
+- [ ] Module layout as in section 7.2: the format is a directory of single-purpose files, module roots only declare, names are whole words, literals live in constants modules with their sources, and the structure check passes.
 
 **Tests**
 - [ ] Hex fixtures covering the minimal file, a full-featured file and each notable edge case.
@@ -1618,7 +1628,7 @@ flowchart TD
 **Tasks**
 
 1. **[MANUAL] G1.1 — Update the toolchain.** The installed compiler is 1.96.0; the project requires 1.100. Run `rustup update stable`, then `rustup component add rustfmt clippy llvm-tools`, then `rustup toolchain install nightly` (fuzzing and the docs.rs reproduction only). Confirm `rustc --version` reports 1.100.x.
-2. **[CONFIRM] G1.2 — Workspace and policy decisions,** before anything is created: D1 (the pinned toolchain and the toolchains in CI), D3 (layout and target ownership of section 7.1), the mechanism that marks a repository build (option A or option B of section 7.1), D4 (no unsafe; the pure-Rust check, its rule for build scripts and its list of permitted operating-system interface crates), the lint set including the two module lints of D23, where the structure check and the coverage check live, the coverage command and what it excludes from the measured lines (D23), whether source files carry a licence header, and how local tooling directories found in the working tree are handled in `.gitignore`.
+2. **[CONFIRM] G1.2 — Workspace and policy decisions,** before anything is created: D1 (the pinned toolchain and the toolchains in CI), D3 (layout and target ownership of section 7.1), the mechanism that marks a repository build (option A or option B of section 7.1), D4 (no unsafe; the pure-Rust check, its rule for build scripts and its list of permitted operating-system interface crates), the lint set including the four lints of D23, where the structure check and the coverage check live, the coverage command and what it excludes from the measured lines, how the structure check recognizes the data-table modules, and its first list of abbreviations (D23), whether source files carry a licence header, and how local tooling directories found in the working tree are handled in `.gitignore`.
 3. Create the directory structure of sections 5.2 and 7.1 and `scripts/check.sh` in its bootstrap form. From this commit on, every commit passes the script.
 4. Create the workspace: root manifest with shared package metadata, lint tables, the declarations of the `fuzzing` configuration name and of the repository marker, and `fuzz`, `spikes` and `readers` excluded; the five member crates with minimal content and **no dependencies**; `rust-toolchain.toml` naming one exact release; formatter and linter configuration; `.cargo/config.toml` with the dependency cooldown; the pure-Rust verification scripts; the target-ownership test; the structure check of D23, run by `scripts/check.sh`. The repository marker is built in the one way chosen at G1.2, with the test that belongs to it: the guard test for option A, or a test of the build script for option B. Nothing of the other option is created.
 5. **Dependency dossier.** For every crate and tool in D5 to D7: exact version, licence, maintenance state and its own dependency list. For the graph of the two published crates, the evidence of the pure-Rust verification (D4): the inventory; the text of every build script with the reviewer's finding against the rule of D4, stating what the script runs and what it emits; and the build and result inspections for every shipped target.
@@ -1638,7 +1648,7 @@ flowchart TD
 19. Add `.github/workflows/ci.yml` with the jobs from section 9.8 that apply to an empty workspace.
 20. **[MANUAL] G1.8 — Repository settings.** Confirm GitHub Actions is enabled for the repository and that the default workflow token is read-only.
 
-**Tests.** CI green on all three operating systems. The fetch scripts are idempotent and fail on a checksum or content-type mismatch. A link check over both manifests passes or lists known exceptions. The deliverables and coverage check passes, and fails when a key is removed from either table. The pure-Rust verification and the target-ownership test pass. `cargo metadata` succeeds in the root workspace with a spike directory and a reader directory present. The structure check passes on the workspace and fails on its own test inputs: a definition in a `mod.rs`, a function in a `lib.rs`, an inline module body in a module root, `name.rs` beside `name/`, and a file with 501 counted lines; a file with 500 counted lines followed by a test block of any length passes. The coverage check fails on a summary at exactly 90.0%, for a crate and for an area, and passes just above it. A test runs the CLI's placeholder binary, so the CLI meets the coverage bar from its first commit.
+**Tests.** CI green on all three operating systems. The fetch scripts are idempotent and fail on a checksum or content-type mismatch. A link check over both manifests passes or lists known exceptions. The deliverables and coverage check passes, and fails when a key is removed from either table. The pure-Rust verification and the target-ownership test pass. `cargo metadata` succeeds in the root workspace with a spike directory and a reader directory present. The structure check passes on the workspace and fails on its own test inputs: a definition in a `mod.rs`, a function in a `lib.rs`, an inline module body in a module root, `name.rs` beside `name/`, and a file with 501 counted lines; a file with 500 counted lines followed by a test block of any length passes. Its name check fails on a single-letter generic parameter and on a listed abbreviation inside a longer name, such as `header_buf`, and passes on a format name such as `Id3v2` and on `fmt` in a `Display` implementation. Its literal check fails on a number other than 0 and 1 outside a constants module, on a word in a `format!` template, and on a function inside a constants module; it passes on 0, on 1, on an attribute argument, on a test block and on a constants module. The coverage check fails on a summary at exactly 90.0%, for a crate and for an area, and passes just above it. A test runs the CLI's placeholder binary, so the CLI meets the coverage bar from its first commit.
 
 **Docs.** README stub, CONTRIBUTING, SECURITY, both spec READMEs, scope baseline, source dossier, decision log.
 
@@ -1705,12 +1715,12 @@ flowchart TD
 
 **Tasks**
 
-1. **I/O spike** (disposable; `spikes/io/` is a workspace of its own, see section 1.2). The smallest end-to-end slice of D8, D9, D15 and D17: one toy container walker written once, driven from a file, from bytes, from a custom positional source, from a forward-only reader, and from seekable and forward-only async readers of both runtimes with both features enabled. It includes: a header that spans two deliveries; two packets delivered back to back; a packet far larger than the assembler limit whose header fits in its first piece; a header of two units in which the second needs facts from the first; two interleaved streams on a forward-only reader, where the second stream's only header passes while the first is still waiting; a backward reference that falls outside the forward-only window followed by a readable sibling; a detection sample that would fall outside the window; and a two-file toy input opened through a resolver in blocking and async form, with the built-in check-then-open sequence run on Linux, macOS and Windows against links inside the root. Measure overhead against a hand-written blocking version.
+1. **I/O spike** (disposable; `spikes/input/` is a workspace of its own, see section 1.2). The smallest end-to-end slice of D8, D9, D15 and D17: one toy container walker written once, driven from a file, from bytes, from a custom positional source, from a forward-only reader, and from seekable and forward-only async readers of both runtimes with both features enabled. It includes: a header that spans two deliveries; two packets delivered back to back; a packet far larger than the assembler limit whose header fits in its first piece; a header of two units in which the second needs facts from the first; two interleaved streams on a forward-only reader, where the second stream's only header passes while the first is still waiting; a backward reference that falls outside the forward-only window followed by a readable sibling; a detection sample that would fall outside the window; and a two-file toy input opened through a resolver in blocking and async form, with the built-in check-then-open sequence run on Linux, macOS and Windows against links inside the root. Measure overhead against a hand-written blocking version.
 2. **[CONFIRM] G3.1 — I/O architecture.** Present the spike results. Confirm D8, D9, D15 and D17, or switch to the fallback. The spike is then deleted; nothing later depends on it.
 3. **[CONFIRM] G3.2 — Fixture format and access to internals** (D14, D19), before any permanent test-kit or fuzz code: a written description of the hex-fixture format with two sample fixtures, the builder interface, the per-fixture routing fields for fuzz seeds, the hidden access path for fuzz targets, and the list of repository-only entry points that integration tests and benchmarks may use. The mechanism behind the repository marker is not decided here; it was fixed at G1.2.
 4. **Test kit, first part.** Hex-fixture assembler; byte and bit writers; fault-injecting readers; counting readers; expectation comparison with a semantic part and an adapter part per fixture (section 9.2).
 5. **Toy format.** A tiny container format defined by this project and documented in the test kit, with builders and fixtures there, and a permanent walker inside the library that is compiled only in repository builds and for fuzzing. Integration tests and benchmarks reach it through the repository-only entry points of section 7.1. It replaces the spike as the lasting vehicle for measuring and testing the I/O layer, the budget and the header assembler, in this phase and in every later one.
-6. **I/O layer.** Source traits (blocking and async) that callers may implement, with the entry points that accept them; adapters for files, `Read + Seek`, byte slices and forward-only readers; async adapters in `aio::tokio` and `aio::futures`; block cache; the forward-only sliding window with its "range unavailable" result and its pinned detection prefix.
+6. **I/O layer.** Source traits (blocking and async) that callers may implement, with the entry points that accept them; adapters for files, `Read + Seek`, byte slices and forward-only readers; async adapters in `asynchronous::tokio` and `asynchronous::futures`; block cache; the forward-only sliding window with its "range unavailable" result and its pinned detection prefix.
 7. **Budget.** The shared budget of section 7.5: exact read clamping; the rule for the unobserved end of input; working-memory and payload accounting; charge before reservation with the capacity read back; the three growth cases and the change of owner; the fixed-size record; the companion-request counter; the usage summary. Measure the toy walker.
 8. **[CONFIRM] G3.3 — Default limits.** Confirm the default value of every counter in section 7.5.
 9. **Readers.** Byte reader (big- and little-endian integers, fixed-point, four-character codes); bit reader (MSB-first and LSB-first, Exp-Golomb, emulation-prevention removal); checked arithmetic helpers; CRC routines used by EBML and Ogg.
@@ -1724,14 +1734,14 @@ flowchart TD
 17. **[CONFIRM] G3.5 — Detection inventory for 0.1.0** (section 4.4): the list of formats, each signature with its source and approval gate, the outcome each prefix class produces, the per-representation rules for weak signatures, the validation check of each probed format, and the role of file-name hints.
 18. **Detection.** Signature table and scoring for the approved inventory; multi-unit validation for weak signatures, skipping a leading ID3v2 tag where a format allows one; text sniffing for subtitle files; the six outcomes of section 8.6; the pinned prefix on forward-only sources; bounded, repeatable validation of ambiguous candidates. Every `detect_*` function is fully functional at the end of this phase, in the blocking API and in both async modules, and `probe_*` follows the ordered procedure, returning the "unsupported format" error with the detected format.
 19. **Test kit, second part.** Truncation and mutation harness; the corpus tool with per-fixture routing.
-20. **Fuzz integration.** The `fuzz_api` module; the `fuzz/` workspace with a detection target and a toy-codec target; the seed check of section 9.5; the scheduled workflow; one benchmark.
+20. **Fuzz integration.** The `fuzzing_entry_points` module; the `fuzz/` workspace with a detection target and a toy-codec target; the seed check of section 9.5; the scheduled workflow; one benchmark.
 21. **CLI skeleton** to the approved contract: arguments, text output, the incrementally written JSON document, `--detect` with its outcome mapping, standard input named once, several inputs with mixed outcomes, the JSON-mode scan and the usage-error document, `--version` in both modes, output failure, exit codes.
 
 **Tests.** Unit tests for every reader against spec-derived vectors. Detection tests with a minimal signature fixture for every inventory entry, near-miss negatives, each of the six outcomes, identical prefixes with and without a file-name hint, a forward-only input that fits the budget but would need a detection sample outside the sliding window, and two ambiguous candidates of which the first cannot be checked within the budget. On the toy format: source parity with its semantic and adapter parts, including a custom positional source; fault injection; the budget tests of section 7.5, including limits of zero and one byte, the inputs of N − 1, N and N + 1 bytes, each growth case at its peak, the measured heap peak, and many simultaneous assemblers; the parser-contract tests of section 7.4; forward-only skipping; a backward reference outside the forward-only window followed by a readable sibling; a short prefix; a stop immediately after identification; a stream limit one below the number of declared streams. ID3v2 skip with tag sizes larger than the remaining input and larger than the budget. Async tests with each feature alone and both together, with pending reads, with tail metadata through the seekable path, and with detection through every async function. CLI tests for arguments, output shape, output failure and exit codes, including `--detect --strict` over a mixed batch and the byte-level usage-error cases of section 8.9.
 
 **Docs.** `architecture.md`; `spec-map.md` skeleton covering detection; the toy format's description; rustdoc for the source traits with an example.
 
-**Exit criteria.** Detection works for the whole approved inventory; all input paths work, including custom sources; resource gates of section 9.4 pass on the toy format; the coverage bar of R28 met for both published crates and for `io/`, `util/` and `detect/`.
+**Exit criteria.** Detection works for the whole approved inventory; all input paths work, including custom sources; resource gates of section 9.4 pass on the toy format; the coverage bar of R28 met for both published crates and for `input/`, `utilities/` and `detect/`.
 
 **[CONFIRM] G3.6 — Phase gate.**
 
@@ -1786,7 +1796,7 @@ Tables mapping container-level identifiers to the `Codec` enum, built from the r
 - **Entry states.** Mapped to a `Codec`; known but unsupported (named, no parser); alias of another entry. Several identifiers may map to one codec.
 - **Fallback.** An identifier that is in no table yields an unknown codec with the raw identifier preserved. Nothing is guessed.
 
-**Tests.** Per codec: fixtures for each profile family, each optional syntax branch and each representation; the parser-contract cases of section 7.4, including one-byte deliveries and a header at the start of an oversized packet; exhaustive truncation; a fuzz target through `fuzz_api`, with seeds routed by representation and context. The rows of section 4.3 that name this phase are compared with the parsers the code registers. Registry: no identifier with two meanings inside one namespace and context; every `Codec` that has a parser is reachable from at least one identifier; invented identifiers in every namespace take the fallback path.
+**Tests.** Per codec: fixtures for each profile family, each optional syntax branch and each representation; the parser-contract cases of section 7.4, including one-byte deliveries and a header at the start of an oversized packet; exhaustive truncation; a fuzz target through `fuzzing_entry_points`, with seeds routed by representation and context. The rows of section 4.3 that name this phase are compared with the parsers the code registers. Registry: no identifier with two meanings inside one namespace and context; every `Codec` that has a parser is reachable from at least one identifier; invented identifiers in every namespace take the fallback path.
 
 **Docs.** Rustdoc on every detail struct; codec section of `fields.md`; `spec-map.md` entries for parsers and registries.
 
@@ -2242,7 +2252,7 @@ Each addition is a minor release that follows the section 11 checklist and the r
 | GS.5 | MANUAL | Standing: require Trusted Publishing once both crates have a verified tokenless upload |
 | GS.6 | CONFIRM | Standing: the recovery route for a release that stopped half-way or is wrong |
 | G1.1 | MANUAL | Update Rust to 1.100; install components and nightly |
-| G1.2 | CONFIRM | Pinned toolchain, workspace layout, target ownership, the mechanism that marks a repository build, no-unsafe rule and pure-Rust verification with its build-script rule, lints, enforcement of the code rules and the coverage command (D23), licence headers |
+| G1.2 | CONFIRM | Pinned toolchain, workspace layout, target ownership, the mechanism that marks a repository build, no-unsafe rule and pure-Rust verification with its build-script rule, lints, enforcement of the code rules with the first list of abbreviations, and the coverage command (D23), licence headers |
 | G1.3 | CONFIRM | Dependency allow-list with exact versions and the pure-Rust evidence, before any dependency is added |
 | G1.4 | CONFIRM | Specification set: RFCs, errata, pinned drafts, non-RFC manifest, deliverables and their coverage; committing RFC texts |
 | G1.5 | CONFIRM | Sources for every format, codec, carriage and signature without a normative specification; the release that carries companion lookup if VobSub is reduced |
@@ -2962,6 +2972,10 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | Module layout lints | `self_named_module_files` makes `name/mod.rs` the only form of a module with submodules; its path handling was corrected in September 2025. `definition_in_module_root`, added in Clippy 1.99, rejects definitions in a `mod.rs`. It checks neither `lib.rs` nor `main.rs` nor inline module bodies, and it permits macro calls and exported macros. Both are restriction lints, off unless enabled. | [Clippy lint list](https://rust-lang.github.io/rust-clippy/master/index.html) · [`definition_in_module_root` source](https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/definition_in_module_root.rs) · [rust-clippy issue 14697](https://github.com/rust-lang/rust-clippy/issues/14697) |
 | Coverage thresholds | `--fail-under-lines` fails only when coverage is below the threshold, so a result exactly at the threshold passes. There is no per-directory threshold; `--json --summary-only` reports per-file figures. Files named `tests.rs` and directories named `tests` are left out of the report by default. | [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) |
 | Diagrams | GitHub renders Mermaid diagrams written in fenced `mermaid` blocks in Markdown files. Rustdoc does not; a proc-macro crate that embeds the Mermaid script would be needed for that. | [GitHub: creating diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams) · [aquamarine](https://github.com/mersinvald/aquamarine) |
+| **Revision for the code rules (draft 6)** | | |
+| Magic numbers | Clippy has no lint for unnamed literals. Requests for one go back to 2017, and none was implemented; the closest lints only judge how a literal is written. The literal check of D23 fills the gap. | [rust-clippy issue 1539](https://github.com/rust-lang/rust-clippy/issues/1539) · [rust-clippy issue 2342](https://github.com/rust-lang/rust-clippy/issues/2342) |
+| Short names | `min_ident_chars` (Clippy 1.72, restriction) rejects names no longer than its threshold, 1 by default, unless they are on `allowed-idents-below-min-chars`, whose default list allows `i`, `j`, `x`, `y`, `z`, `w` and `n`. It checks items, fields, variants and bindings, and skips names that follow a trait's own; it does not check generic parameters or lifetimes. `single_char_lifetime_names` covers lifetimes. No lint recognizes abbreviations. Reproduced on Clippy 0.1.96 in a disposable crate: with an empty allowed list, `i` and `'a` were rejected and a generic `T` was not. | [Clippy lint configuration](https://doc.rust-lang.org/clippy/lint_configuration.html) · [`min_ident_chars` source](https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/min_ident_chars.rs) |
+| Format templates | The template of `format!` and `write!` must be a string literal, but it can name a constant in scope as an inline argument (`"{NAME}"`), so message text can live in a constant. Reproduced in the same crate. | [`std::fmt`](https://doc.rust-lang.org/std/fmt/index.html) |
 
 ---
 
@@ -2974,6 +2988,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 3 | 2026-11-20 | Revised after review 02, which raised 50 findings. All were accepted; a per-finding record is kept beside the review. |
 | 4 | 2026-11-20 | Revised after review 03, which raised 64 findings. All were accepted; a per-finding record is kept beside the review. |
 | 5 | 2026-11-20 | Revised for four code rules, an agent rule and a diagram rule, set together with `CLAUDE.md` and `AGENTS.md`. No review round. |
+| 6 | 2026-11-21 | Revised for two more code rules, whole-word names and named constants, set together with `CLAUDE.md`. No review round. |
 
 What changed in draft 2, by theme:
 
@@ -3019,3 +3034,15 @@ What changed in draft 5, by theme:
 - **Enforcement.** D23 adds two Clippy restriction lints, a structure check for what the lints miss, and a coverage check that reads the coverage tool's summary, because the tool's own threshold passes at exactly the threshold and knows no directories. G1.2 decides where the checks live and how coverage is measured; Phase 1 builds and tests both checks.
 - **Testing and documentation.** Section 9.3, CI, the definition of done, Phases 1 to 3 and the documentation table follow the new rules. `CLAUDE.md` and `AGENTS.md` are listed, and `CLAUDE.md` changes in the same commit as any revision of a rule it summarizes.
 - **Diagrams.** R14 now asks for Mermaid diagrams of workflows and processes in Markdown documents. This plan has them for gate handling, the order of a release phase, the data flow, companion lookup, the outcome procedure, the phase map, the gated task order of Phases 1, 2, 3 and 8, the release workflow and the steps of a later release. The data-flow sketch of section 7.3 was replaced by its diagram.
+
+What changed in draft 6, by theme:
+
+- **Requirements.** R32 and R33 are new. Every name in the code is made of whole words, with exemptions only for names that Rust, a dependency or a tool fixes and for proper names of formats, codecs, standards and products. Every literal outside tests, documentation, attribute arguments and the numbers 0 and 1 is a named constant in a constants module beside the code that uses it.
+- **Names in this plan.** The plan's own names follow R32:
+  - Modules: `input/` (was `io/`), `asynchronous/` (`aio/`, so `asynchronous::tokio` and `asynchronous::futures`), `utilities/` (`util/`), `repository_entry_points.rs` (`repo_api.rs`), `fuzzing_entry_points.rs` (`fuzz_api.rs`), `riff_information` (`riff_info`), and Matroska's `information.rs` (`info.rs`).
+  - Types and accessors: `VideoInformation`, `AudioInformation`, `SubtitleInformation` and `CodecInformation` (`…Info`), and `segment_unique_identifier()` (`segment_uid()`).
+  - Elsewhere: the `cc-media-probe-compatibility` crate (`cc-media-probe-compat`), the `spikes/input/` spike (`spikes/io/`), and the manifest columns `identifier` and `immutable_reference` (`id`, `immutable_ref`).
+  - Format and codec names such as `mpegts`, `isobmff`, `h264` and `id3v2` are proper names and stay.
+- **Enforcement.** D23 adds `min_ident_chars` and `single_char_lifetime_names` to its lints, and a name check and a literal check to the structure check, because Clippy has no lint for abbreviations, for single-letter generic parameters or for magic numbers. G1.2 also approves the first list of abbreviations and how data-table modules are recognized.
+- **Traceability.** Section 5.5 keeps a specification's spelling of a field in its comment, and gives every constant whose value a specification defines a source of its own.
+- **Testing and documentation.** Sections 7.2 and 9.3, the definition of done, Phase 1, the documentation table, the gate summary and `CLAUDE.md` follow the new rules.
