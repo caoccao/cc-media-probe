@@ -659,3 +659,54 @@ Kate in Ogg (the wiki's format specification), the Vorbis chapter comments (the 
 **Verification:** `node scripts/check.ts` passes on 2026-11-21.
 
 **Open:** task 17 for releases 0.3.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.3.0
+
+**Decided by the maintainer** (GS.2 for the sources):
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| AV1 in transport streams | `aom-av1-mpeg2-ts` is pinned to `main/index.html` of the same commit, 0dc84bb, the working draft of 2026-10-08, and stored again; its `approved` cell is now `GS.2`. | The stored `index.html` was the site's list of preview builds (4.7 KB), not the specification. The specification moved to `main/` when the front page became that list. |
+| 204-byte packets | ETSI EN 300 421 V1.1.2 is a new `fetch` row, `etsi-en-300421`. Clause 4.4.2 applies RS(204,188) to each 188-byte packet, keeping the periodicity of 204 bytes. The 16 parity bytes are skipped and not checked. | H.222.0 defines only 188-byte packets, and Phase 10 task 1 reads 204-byte ones as well. |
+| 192-byte packets | The Blu-ray Disc Association's "BD-J Baseline Application and Logical Model Definition for BD-ROM" (March 2005) is a new `fetch` row, `bda-bd-j-baseline-application`, class `descriptive`. Its section 4.1 gives the source packet: a 4-byte `TP_extra_header`, then the 188-byte packet. The header is skipped and not reported. | It is the association's own text, still served by it. The maintainer first approved a BD-ROM patent and chose this document when it was found; it does not divide the header into fields, which only a patent does. |
+| Blu-ray stream types | The published patent US 8,208,795 B2 (Panasonic) is a new `fetch` row, `uspto-us-8208795`, class `descriptive`. Its description of FIGS. 9A to 9E gives the stream coding types 0x80 LPCM, 0x81 AC-3, 0x82 DTS, 0x90 presentation graphics, 0x91 interactive graphics and 0x92 text subtitles. They are read as stream types of the program map, in 192-byte BDAV streams only. | H.222.0 leaves 0x80 to 0xFF to private use. The patent gives the values for a playlist's stream table; no source found says that the program map uses the same values, so that reading is this decision. |
+| TrueHD in transport streams | `pair.truehd.major-sync.ts` is deferred to G17.n. A TrueHD stream in a transport stream is reported as a user-private stream type. | No approved source gives the Blu-ray types 0x83 (TrueHD), 0x84 (E-AC-3) or 0x85 and 0x86 (DTS-HD). The only page that lists them is an anonymous site that names no sources and gives text subtitles as 0x93, which contradicts the patent; the other lists come from implementations. |
+| Opus in transport streams | The pair is split. `pair.opus.transport-stream-control-header.ts` (0.3.0) reads the access unit and its control header (section 6), on a stream identified by stream type 0x06 and the registration descriptor `Opus` (sections 5.1 and 4.3). `pair.opus.transport-stream-descriptor.ts` is deferred to G17.n. | The only source, the unfinished draft 0.1.3, leaves every tag of the descriptor as "0x??", and EN 300 468 gives extension tags 0x80 to 0xFF to users, so the descriptor cannot be found. An online search found no later version. |
+
+**Confirmed.** All 27 active rows of 0.3.0 have their `confirmed` date, 2026-11-21. `detect.transport-stream` (0.1.0) cites the two new packet sources and is confirmed again.
+
+**Corrected.** A correction that recurs was applied to every row that cites it, in every release:
+
+| Citation | Now | Why |
+|---|---|---|
+| `itu-t-h-222-0: 2.4.4.9` (stream types) | `2.4.4.10` | In the stored edition, 06/2021, 2.4.4.9 is the syntax of the program map; Table 2-34 with the stream types is in 2.4.4.10 |
+| `itu-t-h-222-0: 2.4.4` (21 rows) | `2.4.4.10` for transport streams, `2.4.3.7` for program streams, both for TS/PS rows | The clause is all of the program-specific information. A stream is identified by its stream type in the program map (Table 2-34) and, in a program stream, by its `stream_id` (Table 2-22) |
+| `itu-t-h-222-0: 2.11.2` | `2.11.2.1` | Table 2-142 and the LATM rule are in that subclause; `identify.mpeg4-visual.ts-ps` also cites 2.5.4.2, since a program stream tells MPEG-4 Visual apart only through its map |
+| `etsi-ts-101154: 4` | `4.1.6.1` | Clause 4 is the whole systems layer; the stream types of private audio are in 4.1.6.1 |
+| `etsi-ts-103190-1: 4.3` | `4.2.3`, `4.3.3`, and `etsi-ts-103190-2: 6.2.1`, `6.3.2` | The table of contents, in the syntax and semantics of both parts; part 2 covers bitstream versions 1 and later |
+| `aom-av1-mpeg2-ts: Start code based format` | `2.1`, `2.2`, `3.1`, `3.2`, `3.4`, and `aom-av1-specification: 5.3` | Section numbers of the specification page; the registration and video descriptors, stream type 0x06, the start-code format, `stream_id` 0xBD, and the OBU syntax that the start codes wrap |
+| `smpte-rp-2025: 4` | `8` for Matroska; `4`, `6`, `7` and `8` for MP4 | Section 4 is the track definition; the sample entry, the `dvc1` box and the decoder configuration structure are 6, 7 and 8 |
+| `smpte-st-421: 6.1` (advanced-profile sequence header, all four carriages) | adds `Annex E` | The representation is a start-code stream; Annex E gives the start codes and the removal of emulation prevention. The rows of 0.5.0 and 0.6.0 are confirmed in their releases |
+| `dvdinfo-lpcm: Audio Pack for LPCM` | `Audio pack for LPCM` | The page's heading |
+| `xiph-opus-in-mpeg-ts: 6` | adds `4.3` and `5.1` | The registration descriptor and the stream type that identify the stream |
+
+**Completed** (sections that the rows needed and did not cite):
+
+| Row | Adds | For |
+|---|---|---|
+| AC-3, DTS and AC-4 in transport streams | `etsi-ts-102366: A.2`; `etsi-ts-102114: F.3`, `F.4`; `etsi-ts-103190-2: D.2`; `etsi-ts-101154: 4.1.6.1`; `etsi-en-300468: 6.1`, `6.3`, `G.1`, `D.7` | Their stream types, `stream_id` and the descriptors that identify them in ATSC and DVB streams |
+| AC-3 and DTS in program streams | `dvdinfo-dvdmpeg: Extensions` | The sub-stream numbers of private stream 1 |
+| DTS core, PGS and HDMV TextST (0.7.0) in transport streams | `uspto-us-8208795: FIGS. 9A to 9E` | Their Blu-ray stream types |
+| DVB subtitles in transport streams | `etsi-en-300743: 6.2`, `6.3` | The PES data field and stream type 0x06 with the subtitling descriptor |
+| Subtitling and teletext descriptors | `etsi-en-300468: 6.1` | The descriptor tags 0x59 and 0x56 |
+| VC-1 in transport and program streams | `smpte-rp-227: 5.2` | `stream_id` 0xFD and its extension |
+| `probe.program-stream` | `itu-t-h-222-0: 2.4.3.6`, `2.4.3.7` | The PES packets, to which 2.5.3.7 refers |
+| `probe.transport-stream` | `itu-t-h-222-0: 2.6`, `Annex A`; the two packet sources; `etsi-en-300468: 5.2.3`, `6.1`, `6.2.33`, `6.3`, `Annex A`, `D`, `G`, `H`; `dolby-vision-mpeg-2-ts: 3.1`, `3.3`; the patent | Descriptors, the CRC, 192- and 204-byte packets, service names and their character coding, the codec descriptors, dynamic-range signaling, and the Blu-ray types (Phase 10, tasks 1 and 7) |
+| `registry.registration-descriptors` | `itu-t-h-222-0: 2.6.9`, and the sources of `AC-3`, `VC-1`, `AV01`, `Opus` and `DOVI` | The registered identifiers that the registry holds |
+| `registry.transport-stream-types` | `itu-t-h-222-0-amd-1: 5`, `etsi-ts-102366: A.2.1`, `etsi-ts-102114: F.3`, `smpte-rp-227: 5.1.1`, the patent | Amendment 1 adds stream type 0x36 to Table 2-34; the private types of AC-3, DTS, VC-1 and Blu-ray |
+
+**Plan and dossier.** Revision 14 of the plan: Appendix B.1 adds EN 300 421 and pins the AV1 row to the specification page. Appendix B.6 and the source dossier add the Blu-ray sources. Phase 10, tasks 1, 7 and 9, and section 4.3 apply the decisions above. Appendix B.1 also named H.222.0 (04/2025), the edition that needs a login; it now names the stored 06/2021 edition with its Amendment 1, which the maintainer chose when the documents were placed.
+
+**Verification:** `node scripts/check.ts` passes on 2026-11-21.
+
+**Open:** task 17 for releases 0.4.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.

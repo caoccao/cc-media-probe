@@ -33,6 +33,7 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | HDMV TextST | `jpo-jp-5339002`, with `uspto-us-8326118` | Approve; the fields are checked against the segment length | Detect-only, or defer |
 | XSUB | `multimedia-wiki-xsub` | Approve | Identification only |
 | Blu-ray playlists and clip information | Partial notes only | Defer the Blu-ray part of Phase 15 | Defer Phase 15 |
+| Blu-ray transport streams: 192-byte packets and stream types (task 17) | `bda-bd-j-baseline-application`, `uspto-us-8208795` | Approved through GS.2; TrueHD, E-AC-3 and DTS-HD types not covered | 188-byte packets only; Blu-ray types reported as user private |
 | DVD LPCM headers | `dvdinfo-lpcm` | Approve | Container-declared values only |
 | Blu-ray LPCM headers | None located | Container-declared values only | Container-declared values only |
 | DVD private-stream sub-stream numbers | `dvdinfo-dvdmpeg` | Approve for the ranges; an audio sub-stream's codec is identified by its sync word | Container-declared values only |
@@ -68,6 +69,13 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 **DVD-Video information files.** `dvdinfo-ifo`, `dvdinfo-ifo-vts` and `dvdinfo-pgc` give the byte layouts of the video manager and title set headers, their attributes, and program chains. The cell and time tables are only partly described. *Proposed:* approve for Phase 15, where the title-set reader is limited to what they describe.
 
 **Blu-ray playlists and clip information.** A wiki user page documents the playlist header and marks but omits the play items and the stream number table, and marks the extension data as unknown. A published patent describes the mark types. Nothing was found for clip information files. *Proposed:* defer the Blu-ray part of Phase 15, as the plan's fallback says.
+
+**Blu-ray transport streams** (*added in task 17*). The verification of the transport-stream rows found that no approved source covered the 192-byte packets of BDAV streams or the Blu-ray stream types, which ITU-T H.222.0 leaves in its user-private range. Two sources were found and approved by the maintainer through GS.2:
+
+- `bda-bd-j-baseline-application`, the Blu-ray Disc Association's "BD-J Baseline Application and Logical Model Definition for BD-ROM" (March 2005), still served by the association. Its section 4.1 gives the source packet: a 4-byte `TP_extra_header`, then the 188-byte transport packet, 32 of them to an aligned unit of 6144 bytes. It does not divide the header into fields, so the header is skipped.
+- `uspto-us-8208795`, a published patent (Panasonic, 2012). Its description of FIGS. 9A to 9E gives the stream coding types of a playlist's stream table: 0x80 LPCM, 0x81 AC-3 and 0x82 DTS for audio, 0x90 presentation graphics, 0x91 interactive graphics and 0x92 text subtitles. No source found says that the program map uses the same values; the maintainer decided that these values are read as stream types in 192-byte streams only.
+
+No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page that lists them is an anonymous programming site that names no sources and gives a text-subtitle value that contradicts the patent; the other lists come from implementations, which are not sources (plan section 1.3). TrueHD in transport streams is deferred to G17.n.
 
 ### Audio
 

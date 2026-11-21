@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 13; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
+| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 14; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
 | **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
@@ -251,7 +251,7 @@ Rules:
 - **Unlisted carriages.** A codec met in a carriage that no row lists is reported as identified, with container-declared properties. Its header is not parsed until a pair is added to this table, with its source and fixture.
 - **Wave-format and bitmap-format tracks in Matroska.** Matroska can wrap an AVI-style stream format in its private data. Such a track uses the representation of the matching AVI pair. The mechanism has one fixture of its own in Phase 5; further pairs of this kind are listed only where a row names them.
 - **Identification only, by design.** Some codecs have no header to parse, or parsing them is out of scope. They are listed separately below. This is permanent and is not a pending parser.
-- **Deferred pairs.** A carriage marked "deferred to G17.n" was deferred at G1.5 or G1.6, because no approved source covers that representation. Its key stays in the coverage table as a deferred row, the codec is identified meanwhile (the table below names the gate), and GS.2 brings the pair back when a source is approved.
+- **Deferred pairs.** A carriage marked "deferred to G17.n" was deferred at G1.5, at G1.6 or in task 17 of Phase 1, because no approved source covers that representation. Its key stays in the coverage table as a deferred row, the codec is identified meanwhile (the table below names the gate), and GS.2 brings the pair back when a source is approved.
 
 **Video**
 
@@ -309,13 +309,14 @@ Rules:
 | DTS family | Extension substream header | 4 | Matroska frames (5); TS/PS (10); raw file (11) |
 | DTS family | Configuration box | 4 | MP4 sample entry (6) |
 | DTS family | 14-bit and byte-swapped stream variants | 11 | Raw file (11); WAVE data (11) |
-| TrueHD, MLP | Major sync | 4 | Matroska frames (5); TS (10); raw file (11) |
+| TrueHD, MLP | Major sync | 4 | Matroska frames (5); TS (deferred to G17.n); raw file (11) |
 | TrueHD | Configuration box | 4 | MP4 sample entry (6) |
 | FLAC | STREAMINFO block | 4 | Matroska private data (5); Ogg mapping header (9); native file (9) |
 | FLAC | Configuration box | 4 | MP4 sample entry (6) |
 | Opus | Identification header | 4 | Matroska private data (5); Ogg packets (9) |
 | Opus | Configuration box | 4 | MP4 sample entry (6) |
-| Opus | Transport-stream descriptor and control header | 10 | TS (10) |
+| Opus | Transport-stream control header | 10 | TS (10) |
+| Opus | Transport-stream descriptor | Deferred | TS (deferred to G17.n) |
 | Vorbis | Identification header | 4 | Matroska laced private data (5); Ogg packets (9) |
 | ALAC† | Codec configuration ("magic cookie") | 4 | Matroska private data (5); MP4/MOV sample entry (6); CAF chunk (11) |
 | PCM | Wave format structures | 4 | Matroska wave-format private data (5); AVI stream format (7); WAVE format chunk (11); ASF stream format (13) |
@@ -363,6 +364,7 @@ Notes on this table:
 - The pinned mapping lets a USF track carry stream-wide metadata, styles and effects in its private data. Until Phase 14 that pair is pending, not identification only.
 - A dagger on a carriage (Dirac in Ogg, AAC in RealMedia) means that this binding, not the codec, lacks a normative source and is decided at G1.5. G1.5 approved the mapping of Dirac into Ogg and deferred AAC in RealMedia.
 - The ADIF header is read up to its program configuration elements, which no approved source describes (G1.6); the sampling rate and channels they hold are deferred. Of the VBRI layout only the byte and frame counts are read (G1.5). Disc LPCM in program streams is the DVD form; the Blu-ray form in transport streams has no public description (G1.5).
+- Two transport-stream pairs were deferred in task 17 of Phase 1. The only source for Opus in transport streams, an unfinished draft, leaves the tags of its descriptor unassigned, so the descriptor cannot be found; an Opus stream is identified by its registration descriptor, and its control header is read. No approved source gives the Blu-ray stream type of TrueHD, so a TrueHD stream in a transport stream is reported as a user-private stream type.
 
 **Identification only, by design**
 
@@ -1634,7 +1636,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 and 0.2.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 to 0.3.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -2036,11 +2038,11 @@ flowchart TD
 
 ### Phase 10 — MPEG transport and program streams (0.3.0)
 
-**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; carriage of AV1 and of Opus in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421, RP 2025 and RP 227; the DVD descriptions approved at G1.5 (LPCM, sub-pictures, sub-stream numbers); RFC 2250, RFC 4425, RFC 6416.
+**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; ETSI EN 300 421 for 204-byte packets; the Blu-ray Disc Association's BD-J application definition for 192-byte packets, and the published patent US 8,208,795 B2 for the Blu-ray stream types, both approved through GS.2 in task 17 of Phase 1; carriage of AV1 and of Opus in MPEG-2 TS; Dolby Vision in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421, RP 2025 and RP 227; the DVD descriptions approved at G1.5 (LPCM, sub-pictures, sub-stream numbers); RFC 2250, RFC 4425, RFC 6416.
 
 **Tasks**
 
-1. **Transport stream.** Packet size detection (188, 192 and 204 bytes); synchronization; table sections reassembled across packets, each checked by its CRC; program association and program map tables; service description table for names; stream types and all relevant descriptors (registration, language, audio and video codec descriptors, subtitling, teletext, dynamic-range signaling). New registry namespaces for stream types and registration identifiers.
+1. **Transport stream.** Packet size detection (188, 192 and 204 bytes) and synchronization. A 192-byte packet is a source packet of a BDAV stream: a 4-byte header, which is skipped and not reported, then the 188-byte packet (BD-J application definition, section 4.1). A 204-byte packet is the 188-byte packet followed by its 16 Reed-Solomon parity bytes, which are skipped and not checked (EN 300 421, clause 4.4.2). Table sections are reassembled across packets, each checked by its CRC. Read: the program association and program map tables; the service description table for names; stream types and all relevant descriptors (registration, language, audio and video codec descriptors, subtitling, teletext, dynamic-range signaling). New registry namespaces for stream types and registration identifiers.
 2. **Programs.** Each program reported with its member streams, its clock-reference PID and its own duration.
 3. **Stream discovery (R3).** The stream inventory is the association table together with the program maps. Every stream a program map declares is reported, whether or not any payload was seen. A PID that carries elementary-stream packets but is declared by no table is reported as undeclared.
    - *Which table.* Tables are tracked by identity: the association table by its transport stream ID and version, each program map by its program number and version.
@@ -2062,12 +2064,12 @@ flowchart TD
    - *An exact duration* is derived only from presentation intervals on one program's timeline (section 8.4): the latest presentation end minus the earliest presentation start among the program's streams. A stream's presentation end is its latest presentation timestamp plus the duration of that access unit, which must be known exactly from the parsed headers: the frame or field period for video, the samples per frame at the sample rate for audio. This is established only when every packet of the file was examined, no timestamp discontinuity was found, every wrap was counted, and that last duration is known for every stream that could set the end. The result is "derived" and fills the normalized duration of the program and of its streams.
    - *The report's duration* is set only when the file holds exactly one program. With several programs each has its own timeline and its own duration, reported on the program.
    - *Everything else is an estimate or an observation.* With an unexamined middle, the timestamps or clock references at the two ends give an estimate, offered only through the estimate accessors with its method. No estimate is offered when a discontinuity indicator was seen in a window, when an endpoint is missing, or when the endpoint difference disagrees with the size-based estimate beyond a tolerance. The timing status is then "cut short", because a wider scan window would have established the value. When the whole file was examined and the duration of the last access unit is still unknown, the value is "not available by design". Bit rate follows the duration it was computed from.
-7. **Disc-flavored streams.** Blu-ray stream types for audio, graphics and text subtitles.
+7. **Disc-flavored streams.** Blu-ray stream types for audio, graphics and text subtitles, read only in 192-byte BDAV streams: 0x80 LPCM, 0x81 AC-3, 0x82 DTS, 0x90 presentation graphics, 0x91 interactive graphics and 0x92 text subtitles. The patent gives them as the stream coding types of a playlist's stream table; reading them as the stream types of the program map was decided in task 17 of Phase 1, since no approved source says so. No approved source gives the types of TrueHD, E-AC-3 or DTS-HD, so such streams are reported as user-private stream types (G17.n).
 8. **Program stream.** MPEG-1 and MPEG-2 pack headers; system header; program stream map; PES; private stream sub-stream identification by the DVD sub-stream ranges, with the codec of each audio sub-stream identified by its sync word (G1.5).
    - *Inventory.* With a program stream map, the map is the inventory. Without one, streams exist only by observation: the inventory is reached with the header of the first PES packet that carries an elementary stream (section 8.3). A file that holds pack headers, a system header or padding and no such packet is an error naming the format. A file with one such packet is `Ok`.
    - *Discovery* without a map is complete only if the whole file was read.
    - *Timing.* System clock references are delivery clocks and are treated like the clock references of task 6. Exact durations come from presentation intervals under the same conditions.
-9. **Additional codec parsers and pairs** of section 4.3 for this phase: the VC-1 advanced-profile sequence header and the VC-1 decoder configuration structure; LATM AAC, identified by its stream type (its configuration was deferred at G1.6); DVD LPCM headers in program streams (Blu-ray LPCM was deferred at G1.5); the AC-4 sync frame with its table of contents; the Opus descriptor and control header of transport streams; the start-code OBU format and the video descriptor of AV1 in transport streams; the DVB subtitling descriptor; the teletext descriptor; the sub-picture stream packets of program streams.
+9. **Additional codec parsers and pairs** of section 4.3 for this phase: the VC-1 advanced-profile sequence header and the VC-1 decoder configuration structure; LATM AAC, identified by its stream type (its configuration was deferred at G1.6); DVD LPCM headers in program streams (Blu-ray LPCM was deferred at G1.5); the AC-4 sync frame with its table of contents; the control header of Opus in transport streams, whose stream is identified by its registration descriptor (the descriptor was deferred to G17.n in task 17 of Phase 1, because the draft leaves its tags unassigned); the start-code OBU format and the video descriptor of AV1 in transport streams; the DVB subtitling descriptor; the teletext descriptor; the sub-picture stream packets of program streams.
 10. **Forward-only behavior.** Discovery and headers work within the read budget, in one traversal. There is no tail window, so values that need the end are present only when the stream ended within the budget and that end was observed (section 7.5).
 11. **Retrofits.** VC-1 in Matroska and in MP4, both through the decoder configuration structure. Report changes reviewed.
 12. **[CONFIRM] G10.1 — Scan window defaults.** Tasks 1 to 10 are built with configurable windows. Before any expectation file or read ceiling is fixed, present measurements of discovery completeness against bytes read on builder-generated streams, and confirm the head and tail windows and the tolerance of task 6.
@@ -2562,11 +2564,12 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 | RIFF, WAVE, AVI format descriptions | RIFF family; secondary | Free | snapshot | [riff](https://www.loc.gov/preservation/digital/formats/fdd/fdd000025.shtml) · [wave](https://www.loc.gov/preservation/digital/formats/fdd/fdd000001.shtml) · [avi](https://www.loc.gov/preservation/digital/formats/fdd/fdd000059.shtml) | ✓ |
 | EBU Tech 3285; EBU Tech 3306, versions 2 and 1.1; ITU-R BS.2088-2 (11/2025) | Broadcast WAVE; RF64 (version 2 of Tech 3306 refers to BS.2088, so the RF64 structure comes from version 1.1, added through GS.2 in task 17); BW64 | Free | fetch | [3285](https://tech.ebu.ch/docs/tech/tech3285.pdf) · [3306](https://tech.ebu.ch/docs/tech/tech3306.pdf) · [3306 v1.1](https://tech.ebu.ch/docs/tech/tech3306v1_1.pdf) · [BS.2088-2](https://www.itu.int/rec/R-REC-BS.2088-2-202511-I/en) | ✓ |
 | Core Audio Format Specification 1.0 | CAF | Free | snapshot | [developer.apple.com](https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_intro/CAF_intro.html) | ✓ |
-| ITU-T H.222.0 (04/2025) | MPEG-2 transport and program streams | Free | fetch | [itu.int](https://www.itu.int/rec/T-REC-H.222.0-202504-I/en) | ✓ |
+| ITU-T H.222.0 (06/2021) and its Amendment 1 (12/2022) | MPEG-2 transport and program streams. The current edition, 04/2025, needs a login, so the maintainer chose these when the documents were placed (development log) | Free | fetch | [06/2021](https://www.itu.int/rec/T-REC-H.222.0-202106-S/en) · [Amd. 1](https://www.itu.int/rec/T-REC-H.222.0-202212-S!Amd1/en) | ✓ |
 | ISO/IEC 11172-1:1993 | MPEG-1 systems (program stream pack headers) | Paid | manual | [iso.org/standard/19180](https://www.iso.org/standard/19180.html) | ◇ |
 | ETSI EN 300 468 V1.20.1 | DVB service information | Free | fetch | [PDF](https://www.etsi.org/deliver/etsi_en/300400_300499/300468/01.20.01_60/en_300468v012001p.pdf) | ✓ |
 | ETSI TS 101 154 V2.10.1 | Use of video and audio coding in transport streams: stream types and descriptors | Free | fetch | [PDF](https://www.etsi.org/deliver/etsi_ts/101100_101199/101154/02.10.01_60/ts_101154v021001p.pdf) | ✓ |
-| Carriage of AV1 in MPEG-2 TS (working draft of 2026-03-25; living) | AV1 in transport streams: its start-code OBU format, the registration descriptor and the AV1 video descriptor | Free | snapshot | [aomediacodec.github.io](https://aomediacodec.github.io/av1-mpeg2-ts/) | ✓ |
+| ETSI EN 300 421 V1.1.2 | 204-byte transport packets: the Reed-Solomon RS(204,188) packet. Added through GS.2 in task 17 | Free | fetch | [PDF](https://www.etsi.org/deliver/etsi_en/300400_300499/300421/01.01.02_60/en_300421v010102p.pdf) | ✓ |
+| Carriage of AV1 in MPEG-2 TS (working draft of 2026-10-08, at a pinned commit) | AV1 in transport streams: its start-code OBU format, the registration descriptor and the AV1 video descriptor. The site's front page now lists preview builds, so the row was pinned to the specification page through GS.2 in task 17 | Free | snapshot | [aomediacodec.github.io](https://aomediacodec.github.io/av1-mpeg2-ts/main/index.html) | ✓ |
 | Opus in MPEG-TS, draft 0.1.3 | Opus in transport streams | Free | fetch | [PDF](https://opus-codec.org/docs/ETSI_TS_opus-v0.1.3-draft.pdf) | ✓ |
 | Ogg documentation, framing, Skeleton (living) | Ogg; secondary to RFC 3533 | Free | snapshot | [index](https://xiph.org/ogg/doc/) · [framing](https://xiph.org/ogg/doc/framing.html) · [skeleton](https://xiph.org/ogg/doc/skeleton.html) | ✓ |
 | Enhanced RTMP v2 (living) | Modern codecs in FLV | Free | snapshot | [veovera.org](https://veovera.org/docs/enhanced/enhanced-rtmp-v2) | ✓ |
@@ -2658,6 +2661,7 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | HDMV TextST | Published patents, found at G1.5: [JP 5339002 B2](https://patents.google.com/patent/JP5339002B2/ja) (Sony), with syntax tables that give the size of every field, and [US 8,326,118 B2](https://patents.google.com/patent/US8326118B2/en) (LG), with the same fields by name | ✓ | Detect-only, or defer |
 | XSUB | [Community description](https://wiki.multimedia.cx/index.php/XSUB) | ✓ | Identification only |
 | Blu-ray playlists and clip information | [Community notes on playlists](https://en.wikibooks.org/wiki/User:Bdinfo/mpls); a [published patent description](https://patents.google.com/patent/US9530455B2/en) of the mark types; none located for clip information | mixed | Defer Phase 15 |
+| Blu-ray transport streams: 192-byte packets and stream types | Found in task 17 and approved through GS.2: the Blu-ray Disc Association's [BD-J application definition](https://us.blu-raydisc.com/wp-content/uploads/sites/2/2019/09/bdj_gem_application_definition-15496.pdf) (March 2005), section 4.1, for the source packet; the published patent [US 8,208,795 B2](https://patents.google.com/patent/US8208795B2/en) (Panasonic) for the stream coding types of LPCM, AC-3, DTS, presentation graphics, interactive graphics and text subtitles; none located for TrueHD, E-AC-3 or DTS-HD | ✓ | 188-byte packets only; Blu-ray types reported as user private |
 | Disc LPCM headers; DVD private-stream identifiers | [LPCM pack description](https://dvd.sourceforge.net/dvdinfo/lpcm.html) · [stream identifiers](https://dvd.sourceforge.net/dvdinfo/mpeghdrs.html); the [sub-stream ranges](https://dvd.sourceforge.net/dvdinfo/dvdmpeg.html), found at G1.5; none located for Blu-ray LPCM | mixed | Container-declared values only |
 | Kate | [Format description on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/OggKate), which also describes the Matroska mapping; the [original page](https://wiki.xiph.org/OggKate) did not respond on 2026-11-20 | ✓ | Identification only |
 | Chapter comments in Vorbis comment blocks | [Convention on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/Chapter_Extension); the [original page](https://wiki.xiph.org/Chapter_Extension) did not respond on 2026-11-20 | ✓ | Chapter comments stay ordinary tags |
@@ -3090,6 +3094,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 11 | 2026-11-21 | Amended for the specification set of Phase 1. |
 | 12 | 2026-11-21 | Amended at gates G1.4, G1.5 and G1.6. |
 | 13 | 2026-11-21 | Amended in task 17, the verification of the cited sections. |
+| 14 | 2026-11-21 | Amended in task 17, for release 0.3.0. |
 
 What changed in draft 2, by theme:
 
@@ -3193,3 +3198,7 @@ What changed in revision 12, by theme:
 What changed in revision 13, by theme:
 
 - **Task 17, releases 0.1.0 and 0.2.0.** Appendix B.3 adds version 1.1 of EBU Tech 3306, approved through GS.2, for the RF64 structure that version 2 leaves to BS.2088. Appendix B.6, section 4.3 and Phase 6 identify VobSub in MP4 from the private codes that a community description reports. Phase 9 adds to the Ogg duration the frame-count correction for Theora streams older than bitstream version 3.2.1, and Phase 11 says that the RF64 and BW64 identifiers are written in capitals, which one field table of BS.2088-2 contradicts.
+
+What changed in revision 14, by theme:
+
+- **Task 17, release 0.3.0.** Appendix B.1 adds ETSI EN 300 421 for 204-byte transport packets, and Appendix B.6 the Blu-ray Disc Association's BD-J application definition for the 192-byte source packet and a published patent for the Blu-ray stream types, all approved through GS.2; Phase 10, tasks 1 and 7, says how they are read. The AV1 transport-stream row is pinned to the specification page, since the site's front page now lists preview builds. Section 4.3 and Phase 10 defer the Opus descriptor, whose tags the only draft leaves unassigned, and TrueHD in transport streams, whose Blu-ray stream type has no source. Appendix B.1 names the stored edition of H.222.0, 06/2021 with its Amendment 1, instead of the 04/2025 edition.

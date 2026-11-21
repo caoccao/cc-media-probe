@@ -199,7 +199,8 @@ pair.mpeg4-visual.object-layer-headers.ts-ps	pair	4.3	MPEG-4 Visual	Visual objec
 pair.opus.configuration-box.mp4-sample-entry	pair	4.3	Opus	Configuration box	MP4 sample entry	6
 pair.opus.identification-header.matroska-private-data	pair	4.3	Opus	Identification header	Matroska private data	5
 pair.opus.identification-header.ogg-packets	pair	4.3	Opus	Identification header	Ogg packets	9
-pair.opus.transport-stream-descriptor.ts	pair	4.3	Opus	Transport-stream descriptor and control header	TS	10
+pair.opus.transport-stream-control-header.ts	pair	4.3	Opus	Transport-stream control header	TS	10
+pair.opus.transport-stream-descriptor.ts	pair	4.3	Opus	Transport-stream descriptor	TS	deferred to G17.n
 pair.pcm.configuration-box.mp4-sample-entry	pair	4.3	PCM	PCM configuration box	MP4 sample entry	6
 pair.pcm.disc-lpcm.ps	pair	4.3	PCM	Disc LPCM headers†	PS	10
 pair.pcm.disc-lpcm.ts	pair	4.3	PCM	Disc LPCM headers†	TS	deferred to G17.n
@@ -228,7 +229,7 @@ pair.theora.identification-header.ogg-packets	pair	4.3	Theora	Identification hea
 pair.truehd.configuration-box.mp4-sample-entry	pair	4.3	TrueHD	Configuration box	MP4 sample entry	6
 pair.truehd.major-sync.matroska-frames	pair	4.3	TrueHD, MLP	Major sync	Matroska frames	5
 pair.truehd.major-sync.raw-file	pair	4.3	TrueHD, MLP	Major sync	raw file	11
-pair.truehd.major-sync.ts	pair	4.3	TrueHD, MLP	Major sync	TS	10
+pair.truehd.major-sync.ts	pair	4.3	TrueHD, MLP	Major sync	TS	deferred to G17.n
 pair.tta.file-header.matroska-private-data	pair	4.3	TTA†	File header structure	Matroska private data	retrofit in 11
 pair.tta.file-header.native-file	pair	4.3	TTA†	File header structure	Native file	11
 pair.usf.document-header.file	pair	4.3	USF†	Document header	File	14
