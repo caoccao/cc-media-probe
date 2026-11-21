@@ -40,7 +40,10 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | Kate | `xiph-wiki-kate` | Identification only | Identification only |
 | Chapter comments in Vorbis comments | `xiph-wiki-chapter-extension` | Approve | Chapter comments stay ordinary tags |
 | Dirac in Ogg | `dirac-ogg-mapping` | Approve | Identified only in Ogg |
-| MPEG audio VBR headers | `mp3-tech-info-tag` for the Xing/Info layout; `codeproject-mpeg-audio-frame-header` for VBRI | Approve; for VBRI only the identifier, version, byte count and frame count | No VBR header is read |
+| MPEG audio VBR headers | `mp3-tech-info-tag` for the Xing/Info layout; `codeproject-mpeg-audio-frame-header` for VBRI and, since task 17, for where the Xing/Info header starts | Approve; for VBRI only the identifier, version, byte count and frame count | No VBR header is read |
+| TrueHD interleaved with AC-3 (task 17) | `uspto-us-8086331` | Approved through GS.2; each frame read by its own sync word and length | Pure TrueHD and MLP files only |
+| WavPack standard sample rates (task 17) | None located | Rate from the stored WAVE header, otherwise not available | Not available |
+| ID3v2 tags in WAVE (task 17) | None located for the chunk identifier | Recognized by the ID3v2 header at the start of a chunk's data | Reported as an unknown chunk |
 | Windows Media Video 7/8 extra data | None located | Bitmap header fields only | Bitmap header fields only |
 | VobSub palette in MP4 | None located | Identification only | Identified only in MP4 |
 | ID3v1 | `id3-v1` | Approve | Presence reported, content not read |
@@ -86,6 +89,14 @@ No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page tha
 **Windows Media Audio extra data.** The MultimediaWiki page gives sizes for the extra data of versions 1 and 2 and some of their flag bits, and nothing for Professional, Lossless or Voice. *Proposed:* the fallback, wave-format fields only; the extra data is kept as raw bytes.
 
 **MPEG audio VBR headers.** `mp3-tech-info-tag` describes the Xing/Info header and its extension, including encoder delay and padding. For the VBRI layout, the candidate article's current page is rendered by script, but a capture of 2012, `codeproject-mpeg-audio-frame-header`, holds its text. Its table gives the header 32 bytes after the end of the first frame header: the identifier `VBRI`, a 16-bit version, delay, quality, a 32-bit byte count at offset 10, a 32-bit frame count at offset 14, and the fields of its table of contents, all big-endian. Two rows contradict themselves: the delay is called a float but is 2 bytes long, and the scale factor is called a DWORD but is 2 bytes long. The article also ships code, which was not opened. No document from the originator of either layout was found. *Decided at G1.5:* approve `mp3-tech-info-tag` for Xing/Info, and the article for the VBRI identifier, version, byte count and frame count only.
+
+*Added in task 17:* the Info tag page places the `Xing` string only "mostly at 0x24". The article says where the Xing/Info header starts: after the 4-byte frame header and the Layer III side information, whose sizes its table 2.2.1 gives (32 bytes for MPEG-1 stereo, 17 for MPEG-1 mono and MPEG-2 or 2.5 stereo, 9 for MPEG-2 or 2.5 mono). The maintainer approved the article through GS.2 for its sections 2.2 and 2.3.1 as well.
+
+**TrueHD interleaved with AC-3** (*added in task 17*). The Dolby TrueHD description does not mention the variant. The published patent `uspto-us-8086331` (Panasonic, 2011) describes it with its FIG. 7 as the "DD/MLP" audio stream of BD-ROM: AC-3 and MLP audio frames are multiplexed in one primary audio stream, at very different rates, and the AC-3 frames are the base data. It gives no stream type and no exact order of the frames. The maintainer approved it through GS.2; each frame is read by its own sync word and length.
+
+**WavPack standard sample rates** (*added in task 17*). The WavPack 5 format document gives the rate as a 4-bit index into "15 standard rates", 15 meaning a custom rate, and does not list them; neither does its text of 2009 nor the MultimediaWiki page, and the custom-rate sub-block has no documented layout. Only implementations list the rates, and they are not sources (plan section 1.3). The maintainer decided that a native file reports the rate from the WAVE header that its sub-block `ID_RIFF_HEADER` stores, and otherwise leaves it unavailable, with the index kept raw. Matroska stores the rate itself.
+
+**ID3v2 tags in WAVE** (*added in task 17*). No document assigns the RIFF chunk that holds an ID3v2 tag. Community reports name `id3 `, `ID3 ` and `ID32`, and the Microsoft page on ID3 tags that an encyclopedia cites for WAVE does not mention it. The maintainer decided that a chunk is read as an ID3v2 tag when its data starts with a valid ID3v2 header whose tag size fits the chunk, whatever its identifier, which is reported as found.
 
 **DVD LPCM headers.** `dvdinfo-lpcm` gives every field of the LPCM audio pack header with its bit layout. *Proposed:* approve for program streams. No description of the Blu-ray LPCM header was found, so LPCM in transport streams keeps container-declared values only.
 

@@ -710,3 +710,60 @@ Kate in Ogg (the wiki's format specification), the Vorbis chapter comments (the 
 **Verification:** `node scripts/check.ts` passes on 2026-11-21.
 
 **Open:** task 17 for releases 0.4.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.4.0
+
+**Decided by the maintainer** (GS.2 for the sources):
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| DTS byte-swapped and 14-bit variants | ETSI TS 102 114 V1.2.1 (2002-12) is a new `fetch` row, `etsi-ts-102114-v1-2-1`. Its section 5.3 gives the sync word as 0xfe7f 0x0180 when the bytes of each 16-bit word are swapped, and a 14-bit format that holds the stream in the low 14 bits of each 16-bit word, with the sync word in three words, 0x1fff, 0xe800 and 0x07f. The frame header still comes from V1.6.1. | The stored V1.6.1 mentions 14-bit streams only to align two sync words; V1.3.1 already dropped the text. |
+| TrueHD interleaved with AC-3 | The published patent US 8,086,331 B2 (Panasonic, 2011) is a new `fetch` row, `uspto-us-8086331`, class `descriptive`. Its description of FIG. 7 calls the stream "DD/MLP": AC-3 and MLP audio frames are multiplexed in one primary audio stream at very different rates, and the AC-3 frames are the base data. Each frame is read by its own sync word and length. | The Dolby description does not mention the variant. The patent gives no stream type and no exact order of the frames. |
+| WavPack sample rate | A native file reports its rate from the WAVE header that its sub-block `ID_RIFF_HEADER` stores. Without it the rate is not available, and the index is kept raw; the table of standard rates is deferred to G17.n. | The format document gives a 4-bit index into "15 standard rates" and does not list them; its text of 2009 and the MultimediaWiki page do not either, and only implementations do. Matroska stores the rate itself. |
+| ID3v2 tags in WAVE | A chunk whose data starts with a valid ID3v2 header (ID3v2.4 structure, section 3.1), and whose tag size fits the chunk, is read as an ID3v2 tag; its identifier is reported as found. | No document assigns the chunk. Community reports name three identifiers, and the Microsoft page that an encyclopedia cites for ID3 in WAVE does not mention WAVE. |
+| APEv2 | Five new `snapshot` rows, stored from archive captures: `hydrogenaudio-ape-tags-header` (header and footer), `-ape-tag-item`, `-ape-tags-flags`, `-ape-key` and `-ape-item-value`. | The stored specification page is an overview of the order of header, items and footer; the fields are on the pages it links. |
+| Where the Xing/Info header starts | `codeproject-mpeg-audio-frame-header`, approved at G1.5 for the VBRI fields only, is also approved for its sections 2.2 and 2.3.1: the Xing/Info header follows the 4-byte frame header and the Layer III side information, 32, 17 or 9 bytes by version and channel mode. | The Info tag page places the `Xing` string only "mostly at 0x24", and the ISO/IEC 11172-3 description does not cover side information. |
+
+**Confirmed.** All 32 active rows of 0.4.0 have their `confirmed` date, 2026-11-21. The rows of 0.1.0 and 0.3.0 that the corrections below changed were checked again against the stored documents and keep their dates; `pair.pcm.wave-format.asf-stream-format` (0.6.0) is confirmed in its release.
+
+**Corrected.** A correction that recurs was applied to every row that cites it, in every release:
+
+| Citation | Now | Why |
+|---|---|---|
+| `microsoft-riff-mci-1-0: 3` and `2` | `Waveform Audio File Format (WAVE)`; `INFO List Chunk` and `CSET (Character Set) Chunk` | The document has no numbered sections. Chapters 3 and 2 hold every multimedia format and all of RIFF |
+| `microsoft-waveformatex: Remarks` (`detect.wave`, `probe.wave`) | `Members` | The remarks give only an example of extra data for MS-ADPCM |
+| `microsoft-waveformatextensible: Members` (four rows) | adds `Remarks` | The speaker positions of `dwChannelMask` and the subformats are in the remarks |
+| `loc-aac-adif: Description` | `Self-documentation` | The description says only that a brief header precedes the data; the header's fields are under "Self-documentation" |
+| `apple-alac-magic-cookie: ALACSpecificConfig` | `ALAC Specific Info (24 bytes) (mandatory)`, `Channel Layout Info (24 bytes) (optional)`, `Channel Layout Tags`, and `CAF File` or `MP4/M4A File` by carriage | The name of a structure, not a heading; the cookie includes the optional channel layout |
+| `dolby-truehd-bitstream: 4.2` | adds `3.3` for the major sync pairs; `4.1` and `5` for raw files | The syntax of `major_sync_info`; the access unit length, and the two file types, with or without the SMPTE timestamp header |
+| `mp3-tech-info-tag: Info tag`, `hydrogenaudio-apev2: Specification` | `Introduction` | Neither page has a heading; the convention of 0.1.0 for pages without one. The new APEv2 pages are cited the same way |
+| `id3-v1: ID3v1` | `What is ID3 (v1)?`, `What is ID3v1.1?` | The page's headings |
+| `id3-v2-4-frames: 4` | `4.2`, `4.14` | Section 4 holds every declared frame; Appendix B.5 names text frames and attached pictures |
+
+**Completed** (sections that the rows needed and did not cite):
+
+| Row | Adds | For |
+|---|---|---|
+| ADTS pairs (0.1.0, 0.3.0, 0.4.0) | `iso-iec-14496-3.md: 3`, `4` | The sampling-frequency index and channel configuration to which the ADTS description refers |
+| `probe.aac` | `iso-iec-13818-7.md: 3`, `loc-aac-adif: Self-documentation` | ADIF files |
+| AC-3 raw file and `probe.ac3` | `etsi-ts-102366: E.2.8` | Channel and programme extensions: how dependent substreams replace or add channels (Phase 11 task 7) |
+| `probe.caf` | `CAF Chunk Header`, `Audio Description Chunk`, `Audio Data Chunk`, `Packet Table Chunk`, `Channel Layout Chunk`, `Magic Cookie Chunk`, `Information Chunk` | Phase 11 task 4 |
+| `probe.dts` | `etsi-ts-102114: 7.4`, `7.5.2`, and V1.2.1 `5.3` | DTS-HD streams and the variants |
+| `pair.mpeg-audio.vbr-headers.raw-file` | `codeproject-mpeg-audio-frame-header: 2.2`, `2.3.1` | Where the Xing/Info header starts |
+| `probe.tta` | `TTA Frame Structure` | The frame length and the trailing tags |
+| WavPack | `wavpack-5-file-format: 3.0` for the native pair; `1.0` to `4.0` for the probe; `ietf-draft-cellar-codec: 4.1` and `wavpack-5-file-format: 2.0` for Matroska | Metadata sub-blocks, multichannel block sequences and trailing tags; the reduced block header, to which `A_WAVPACK4` refers |
+| `probe.wave` | `microsoft-riff-mci-1-0: Chunks`, `LIST Chunk`; `ebu-tech-3285: 2.3`; `id3-v2-4-structure: 3.1` | The chunk rules, the INFO list, the broadcast extension and embedded ID3v2 tags (Phase 11 task 3). Tech 3285 was in the manifest, and no row cited it |
+| `probe.wave64` | `Waveform Audio File Format (WAVE)`, `microsoft-waveformatex: Members` | The chunks that Wave64 carries in 64-bit chunks |
+| `detect.truehd` | `dolby-truehd-bitstream: 5`, the new patent | The two file types, and files of the interleaved variant |
+| ID3v2 tags | `4.2`, `4.15` and `5` of versions 2.2 and 2.3; `4`, `5` and `6` of the 2.4 structure | Text frames, attached pictures, unsynchronization; the text encodings of version 2.4 and its tag location with the footer |
+| `tags.id3v1` | `id3-v2-3: 8.1` | The genre list, which the ID3v1 page does not give |
+
+`probe.rf64-bw64`, MPEG audio frame headers, the DTS core and extension substream pairs, and TTA headers needed no change.
+
+**Fetching.** The Internet Archive slowed down while the APEv2 pages were stored: the fetch script backed off to 96 seconds, and one page failed. It was stored on a second run a few minutes later, which backed off the same way.
+
+**Plan and dossier.** Revision 15 of the plan: Appendix B.3 adds TS 102 114 V1.2.1, Appendix B.5 the five APEv2 pages, and Appendix B.6 the patent and the two topics without a source. Phase 11, tasks 3, 5, 8, 9 and 10, applies the decisions above. The source dossier adds the same topics and the widened approval of the VBRI article.
+
+**Verification:** `node scripts/check.ts` passes on 2026-11-21.
+
+**Open:** task 17 for releases 0.5.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
