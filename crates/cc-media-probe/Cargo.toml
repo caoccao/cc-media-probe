@@ -1,0 +1,12 @@
+[package]
+name = "cc-media-probe"
+description = "Probe multimedia files in pure Rust: container format, streams, codec parameters, chapters, tags and attachments."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true

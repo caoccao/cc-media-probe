@@ -1,0 +1,4 @@
+# Build scripts in the dependency graph of the published crates, each read
+# and judged against the rule of D4 (plan section 6, second layer).
+# Columns: name, version, what it runs, what it emits; tab-separated.
+# The graph has no build scripts while it has no dependencies (G1.3).

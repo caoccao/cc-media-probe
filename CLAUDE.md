@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. [AGENTS.md](AGENTS
 
 `cc-media-probe` is a pure Rust library that inspects multimedia files and reports what they contain: container format, streams, codec parameters, chapters, tags and attachments. It never decodes audio or video. One universal API serves every supported format. The companion crate `cc-media-probe-cli` is the command-line tool. Licence: Apache-2.0.
 
-**Status on 2026-11-21:** planning. The development plan, [docs/plans/plan-init-project.md](docs/plans/plan-init-project.md), is at draft 6 and awaits approval. No code exists yet; work starts with Phase 1 once the plan is approved.
+**Where things stand:** the development plan, [docs/plans/plan-init-project.md](docs/plans/plan-init-project.md), is approved, and its status line names the current phase. Every gate decision and the progress of each task are in the development log, [docs/plans/plan-init-project-log.md](docs/plans/plan-init-project-log.md). Read both before starting work.
 
 The plan is the authority, and this file summarizes the rules that apply to every change. Section numbers (§), requirement IDs (R…), decision IDs (D…) and gate IDs (G…) below refer to the plan. The plan is long (about 3,000 lines), so read the sections a task touches rather than the whole file. If this file and the plan disagree, stop and ask.
 
@@ -19,7 +19,7 @@ flowchart TD
   D -->|yes| A["Stop at the gate: present the proposal<br/>and its alternatives, wait for the answer"]
   A --> R
   D -->|no| W["Make the change with its tests and docs"]
-  W --> C["scripts/check.sh passes<br/>(once it exists)"]
+  W --> C["node scripts/check.ts passes"]
   C --> L["Leave the change uncommitted and report"]
   L --> Q{"Does the maintainer ask<br/>for a commit?"}
   Q -->|yes| CM["Commit to main"]
@@ -34,7 +34,7 @@ flowchart TD
 - Nothing that depends on an unconfirmed decision is added to the workspace, the library or CI. Evidence for a decision comes from a disposable spike in `spikes/<name>/`, never from adopted code (§1.2).
 - **Standing gates** can arise at any time: a crate or tool outside the approved allow-list (GS.1); a specification source that changes, disappears or is newly proposed (GS.2); the crate name at risk (GS.3); a confirmed requirement of §3 that cannot be met as written (GS.4).
 - **Ask, don't guess.** Ask the maintainer about any decision that belongs to a gate or that the plan leaves open. Search online before proposing a technical decision.
-- Record gate decisions in `docs/decisions.md` with the date and the reasoning.
+- Record gate decisions, with the date and the reasoning, and the progress of each task in the development log, [docs/plans/plan-init-project-log.md](docs/plans/plan-init-project-log.md). The plan holds what is to be done; the log holds what was decided and done; this file holds neither.
 - When the plan turns out wrong or incomplete, amend it in the same change and call the amendment out at the phase gate (§1.2). A change to a requirement of §3 goes through GS.4 first.
 - When a plan revision changes a rule summarized here, update this file in the same change.
 
@@ -75,18 +75,26 @@ These rules hold in every crate of the repository (§7.2). Clippy lints and the 
   - Constants live in a constants module beside the code that uses them: `constants.rs`, or a `constants/` directory split by group once it nears 500 lines. A constant that several modules use lives in the constants module of their nearest common parent. A constants module holds only `const` and `static` items, their imports and their documentation. The data tables (detection signatures, registries, element schemas) count as constants modules.
   - Literals may stay inline only in test code (embedded test blocks, `tests.rs`, integration tests, benchmarks), in documentation, doc examples and the example programs, in attribute arguments and other places where Rust accepts only a literal, and as the numbers 0 and 1.
   - Message text is a constant too. A `format!` or `write!` template keeps only placeholders, spacing and punctuation and names the constant inline: `write!(formatter, "{UNEXPECTED_END}: {element}")`.
+- **Copyright header (G1.2).** Every `.rs` and every `.ts` file, tests and constants modules included, starts with the same copyright header: the maintainer's copyright line and the Apache-2.0 notice. Copy it from any existing file; only the year or year range may differ. The structure checks hold the exact text and verify it.
+- **Scripts are TypeScript (R34, D24).** Never write shell, awk, Python or JavaScript scripts. Every script is a `.ts` file run by Node.js on a long-term-support release (`.nvmrc` names `lts/*`): `node scripts/check.ts`.
+  - Import only Node.js built-in modules, through `node:` specifiers.
+  - Node.js strips types and does not check them, so use only erasable syntax: no `enum`, no `namespace`, no parameter properties. Write `.ts` extensions in import paths and `import type` for type-only imports.
+  - The Rust rules apply where they fit: whole-word names, one concern per file, at most 500 lines per file, literals as named constants in a `constants.ts` beside their users, and the copyright header. A template literal outside a constants module holds only substitutions, spacing and punctuation.
+  - Entry scripts sit in `scripts/` and only hand over to the modules in `scripts/checks/`. Every module with logic of its own has tests in a `*.test.ts` file in its directory, using `node:test` and `node:assert`. Modules that only start programs are exercised by the check run.
+  - The scripts run the same on Linux, macOS and Windows. Build every file-system path from components with `path.join`; never write a separator into a path or concatenate one. Names that Git or Markdown give, such as `src/lib.rs` from `git ls-files`, use `/` by their own format on every platform and become file-system paths only through `join`. Start programs without a shell, and take generated paths from the tool that makes them, such as the `executable` of Cargo's JSON build messages, instead of assuming a directory or an `.exe` suffix. The only platform branch is the choice of the tool that lists a binary's libraries (D4, fourth layer). The Rust checks follow the same convention.
+  - The script structure check enforces the header, the line limit and the literal rule; review covers names and modularity. From G1.3 on, `tsc --noEmit` type-checks the scripts.
 - **Pure Rust, no `unsafe`** (R15, D4): `forbid(unsafe_code)` in every crate, and nothing in the published crates' dependency graph compiles or links C or C++.
 - **No panics on input** (§7.6): no `unwrap`, `expect`, unchecked indexing or unchecked arithmetic on values derived from input. Every loop over file structure is bounded by the probe budget (§7.5). Walkers are iterative, with explicit stacks; there is no input-driven recursion. A failing source is an error that keeps its original cause (R19), never "unsupported format".
 - **Stable API** (§8.1, §8.10): private fields with accessors; `#[non_exhaustive]` on public enums and options types; builders instead of struct literals; a missing value is `None`, never a zero or an empty string; estimates only through the separate estimate accessors (R25); Cargo features are additive.
 
 ## Quality bars
 
-- **Coverage (R28):** line coverage **above 90%**, where exactly 90.0% fails. It applies to each published crate as a whole and to each library area: `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/`, `registry/`, `input/` and `utilities/`. A crate or area is held to it from the first change that gives it executable code, so write the tests together with the code.
+- **Coverage (R28):** line coverage **above 90%**, where exactly 90.0% fails. It applies to each published crate as a whole and to each library area: `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/`, `registry/`, `input/` and `utilities/`. A crate or area is held to it from the first change that gives it executable code, so write the tests together with the code. It is measured from the LCOV report of `cargo llvm-cov --workspace --all-features --lcov`, without the lines of embedded test blocks, which the tool would count as covered.
 - Zero warnings from the compiler, Clippy and rustdoc. Every public item has rustdoc with an example; `missing_docs` is denied.
 - A bug found after a format ships gets a minimized synthetic fixture before it is fixed.
 - A change to reported output updates its expectation files and is listed in `CHANGELOG.md` under "Changed output" and in the phase-gate summary (§9.6).
 - **Diagrams (R14, §10):** in Markdown documents (the plan, this file, guides, design documents), draw workflows and processes as Mermaid diagrams in fenced `mermaid` blocks. Directory trees and byte layouts stay as text. A diagram restates the prose beside it and adds no rule of its own; when the prose changes, update the diagram in the same change. Rustdoc stays prose, because it renders no Mermaid without an extra crate (GS.1).
-- `scripts/check.sh` must pass on every change once it exists; Phase 1, task 3 creates it. CI repeats it on Linux, macOS and Windows.
+- `node scripts/check.ts` must pass on every change; CI repeats it on Linux, macOS and Windows. It runs the Node.js version, hygiene, link, script-structure and script-test checks, the Rust format, lint, test, documentation and packaging checks, and the checks of `cc-media-probe-checks`: `structure` (R30 to R33 and the header), `targets`, and the pure-Rust layers (`inventory`, `build-output`, `dynamic-libraries`). The `coverage` check joins it once G1.3 approves the coverage tool.
 
 ## Layout and toolchain
 
@@ -95,7 +103,10 @@ The planned workspace is in §7.1, and the library's module tree is in §7.2.
 - `crates/cc-media-probe/`: the library (published).
 - `crates/cc-media-probe-cli/`: the command-line tool (published; binary `cc-media-probe`).
 - `crates/cc-media-probe-testkit/`, `crates/cc-media-probe-doctest/`, `crates/cc-media-probe-compatibility/`: unpublished support crates. Fixtures live in the test kit under `fixtures/<format>/`.
+- `crates/cc-media-probe-checks/`: the unpublished repository checks, standard library only. `data/` holds their committed lists. The name check's abbreviations are in `src/names/abbreviations.rs`; an abbreviation that a review finds is added there.
 - `fuzz/`, `spikes/<name>/`, `readers/<version>/`: workspaces of their own, excluded from the root workspace.
-- `docs/`: `plans/`, `rfc/`, `specs/`, `guide/`, `design/`, `releases/` and `decisions.md`.
+- `docs/`: `plans/` (the plan and its development log), `rfc/`, `specs/`, `guide/`, `design/` and `releases/`.
 
-Toolchain: Rust 1.100, edition 2024, pinned to one exact release in `rust-toolchain.toml` (D1). The machine currently has Rust 1.96.0; upgrading is the maintainer's step at gate G1.1, so do not work around it.
+Toolchain: Rust 1.100, edition 2024, pinned to the exact release `1.100.0` in `rust-toolchain.toml` (D1). Nightly is used only for fuzzing and the docs.rs job. `rustfmt.toml` sets `max_width = 120` and `tab_spaces = 2`; the scripts use the same width and indentation. The scripts need Node.js on a long-term-support release (`lts/*`, D24).
+
+Repository builds are marked by `--cfg cc_media_probe_repository` in the root `.cargo/config.toml` (option A of §7.1). **Never set `RUSTFLAGS`**: it replaces that flag, and the library's guard test then fails. Warnings are denied by the workspace lint table instead.

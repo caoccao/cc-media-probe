@@ -1,0 +1,12 @@
+[package]
+name = "cc-media-probe-checks"
+description = "Repository checks for cc-media-probe: structure, names, constants, coverage, targets and the pure-Rust inventory."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

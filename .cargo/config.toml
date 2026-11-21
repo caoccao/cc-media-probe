@@ -1,0 +1,14 @@
+# The repository marker (plan section 7.1, option A, decided at G1.2). Code that
+# needs the test kit, the toy walker and the repository-only entry points is
+# compiled only under this configuration name. Never set RUSTFLAGS in this
+# repository: it replaces these flags, and the guard test then fails.
+[build]
+rustflags = ["--cfg", "cc_media_probe_repository"]
+
+# Dependency cooldown (plan section 6): versions younger than this are ignored
+# unless they are already in Cargo.lock.
+[registry]
+global-min-publish-age = "3 days"
+
+[resolver]
+incompatible-publish-age = "deny"

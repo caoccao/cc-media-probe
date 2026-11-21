@@ -1,0 +1,12 @@
+[package]
+name = "cc-media-probe-compatibility"
+description = "Runs the retained old readers of cc-media-probe against current output."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

@@ -1,0 +1,6 @@
+# Operating-system libraries that the published binaries may load, and that
+# a build script may name (platform "build-script"), per D4 (plan section 6,
+# third and fourth layers). Columns: platform, library; tab-separated. A
+# library ending in * matches by prefix; names compare without ASCII case.
+# macOS: measured on 2026-11-21 with otool -L.
+macos	/usr/lib/libSystem.B.dylib

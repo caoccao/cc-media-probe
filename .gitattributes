@@ -1,0 +1,5 @@
+# Every text file is stored and checked out with LF line endings.
+* text=auto eol=lf
+
+# RFC texts are byte-identical to the RFC Editor's copies and verified by checksum.
+docs/rfc/*.txt -text

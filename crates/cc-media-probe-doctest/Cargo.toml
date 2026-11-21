@@ -1,0 +1,12 @@
+[package]
+name = "cc-media-probe-doctest"
+description = "Compiles and runs the code blocks of the README and the guides of cc-media-probe."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

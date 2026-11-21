@@ -1,0 +1,7 @@
+# R32: no single-letter names, so no short name is allowed.
+allowed-idents-below-min-chars = []
+# Section 7.6 forbids these on input; tests may use them.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true

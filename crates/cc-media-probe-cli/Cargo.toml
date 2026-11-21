@@ -1,0 +1,16 @@
+[package]
+name = "cc-media-probe-cli"
+description = "The cc-media-probe command-line tool: probe multimedia files and print what they contain."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[[bin]]
+name = "cc-media-probe"
+path = "src/main.rs"
+
+[lints]
+workspace = true

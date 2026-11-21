@@ -1,0 +1,12 @@
+[package]
+name = "cc-media-probe-testkit"
+description = "Test kit for cc-media-probe: hex fixtures, byte and bit writers, container builders and test readers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

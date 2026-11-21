@@ -1,0 +1,44 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/cc-media-probe",
+    "crates/cc-media-probe-cli",
+    "crates/cc-media-probe-testkit",
+    "crates/cc-media-probe-doctest",
+    "crates/cc-media-probe-compatibility",
+    "crates/cc-media-probe-checks",
+]
+# Separate workspaces with their own lock files (plan section 7.1).
+exclude = ["fuzz", "spikes", "readers"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+license = "Apache-2.0"
+repository = "https://github.com/caoccao/cc-media-probe"
+
+[workspace.lints.rust]
+warnings = { level = "deny", priority = -1 }
+unsafe_code = "forbid"
+missing_docs = "deny"
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(fuzzing)", "cfg(cc_media_probe_repository)"] }
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+# Code rules R30 and R32 (D23).
+self_named_module_files = "deny"
+definition_in_module_root = "deny"
+min_ident_chars = "deny"
+single_char_lifetime_names = "deny"
+# No panics on input (plan section 7.6).
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
+private_intra_doc_links = "deny"

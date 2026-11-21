@@ -1,0 +1,11 @@
+# Every Cargo target of the workspace and the package that owns it (plan
+# section 7.1). Columns: package, kind, name; tab-separated. The targets
+# check fails on a target that is missing here or listed here but missing.
+cc-media-probe	lib	cc_media_probe
+cc-media-probe-cli	bin	cc-media-probe
+cc-media-probe-cli	test	placeholder
+cc-media-probe-testkit	lib	cc_media_probe_testkit
+cc-media-probe-doctest	lib	cc_media_probe_doctest
+cc-media-probe-compatibility	lib	cc_media_probe_compatibility
+cc-media-probe-checks	lib	cc_media_probe_checks
+cc-media-probe-checks	bin	cc-media-probe-checks
