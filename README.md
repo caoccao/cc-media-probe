@@ -4,6 +4,10 @@
 
 **Status:** in development; nothing is published yet. The [development plan](https://github.com/caoccao/cc-media-probe/blob/main/docs/plans/plan-init-project.md) describes the scope, the design and every phase up to 1.0, and the [development log](https://github.com/caoccao/cc-media-probe/blob/main/docs/plans/plan-init-project-log.md) records the decisions and the progress.
 
+## Contributing
+
+Bug reports and proposals are welcome as issues. [CONTRIBUTING.md](https://github.com/caoccao/cc-media-probe/blob/main/CONTRIBUTING.md) says how to write a useful one, how to report a vulnerability privately, and which rules every change follows.
+
 ## License
 
 Apache-2.0; see [LICENSE](LICENSE).

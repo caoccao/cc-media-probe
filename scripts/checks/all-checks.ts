@@ -33,6 +33,7 @@ import {
   FAILED_PREFIX,
   FORMATTING_STEP,
   HYGIENE_STEP,
+  JOINT_PACKAGING_STEP,
   LINTS_STEP,
   MARKDOWN_LINKS_STEP,
   NODE_VERSION_STEP,
@@ -60,6 +61,7 @@ import {
   COVERAGE_REPORT,
   DOCUMENTATION_ARGUMENTS,
   FORMATTING_ARGUMENTS,
+  JOINT_PACKAGING_ARGUMENTS,
   LINTS_ARGUMENTS,
   SCRIPT_TESTS_ARGUMENTS,
   STRUCTURE_COMMAND,
@@ -132,6 +134,7 @@ const STEPS: readonly Step[] = [
   { description: DOCUMENTATION_STEP, run: (root) => runCommand(CARGO, DOCUMENTATION_ARGUMENTS, root) },
   { description: TARGETS_STEP, run: (root) => runCommand(CARGO, [...CHECKS_ARGUMENTS, TARGETS_COMMAND], root) },
   { description: PACKAGES_STEP, run: (root) => passes(checkPackages(root)) },
+  { description: JOINT_PACKAGING_STEP, run: (root) => runCommand(CARGO, JOINT_PACKAGING_ARGUMENTS, root) },
   { description: PURE_RUST_STEP, run: (root) => verifyPureRust(root) },
 ];
 

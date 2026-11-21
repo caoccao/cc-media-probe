@@ -27,6 +27,18 @@ export const LINTS_ARGUMENTS = ['clippy', '--quiet', '--locked', '--workspace', 
 export const TESTS_ARGUMENTS = ['test', '--quiet', '--locked', '--workspace', '--all-features'];
 /** Builds the documentation of every crate. */
 export const DOCUMENTATION_ARGUMENTS = ['doc', '--quiet', '--locked', '--workspace', '--no-deps', '--all-features'];
+/** Packages both published crates in one command, with their verification builds (Appendix C.2.1, step 3). The
+ * support crates are never selected. Uncommitted changes are allowed, so that the check runs before a commit. */
+export const JOINT_PACKAGING_ARGUMENTS = [
+  'package',
+  '--quiet',
+  '--locked',
+  '--allow-dirty',
+  '--package',
+  'cc-media-probe',
+  '--package',
+  'cc-media-probe-cli',
+];
 /** The Rust structure check. */
 export const STRUCTURE_COMMAND = 'structure';
 /** The target-ownership check. */

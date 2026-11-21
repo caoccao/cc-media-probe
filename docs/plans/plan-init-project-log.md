@@ -942,3 +942,118 @@ Every row that cites `dvdinfo-dvdmpeg: Extensions` was checked again against the
 **Plan and dossier.** Revision 19 of the plan gives Phase 15 its specifications and says, in tasks 1 and 2, what is read. Phase 10 and Appendix B.6 name the new pages. The source dossier adds task-17 notes on the information files and the sub-stream numbers.
 
 **Open:** tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Choices for tasks 18 and 19
+
+The maintainer answered these questions before the project documents and the CI workflow were written.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Vulnerability reports | GitHub's private vulnerability reporting: the **Report a vulnerability** button on the Security tab. G1.8 turns it on. | No address goes into the repository. |
+| `SECURITY.md` (GS.4) | Not in this repository. R14 is amended accordingly. How to report a vulnerability, what counts as one and the containment condition of R18 form a section of `CONTRIBUTING.md`. | The maintainer's instruction. R14 named the file, so the change goes through GS.4, decided by that instruction. |
+| Supported versions | Not stated. The question was answered by dropping `SECURITY.md`, so no policy on which releases get security fixes is written down. | — |
+| Outside contributions | Issues only. `CONTRIBUTING.md` says how to write a useful issue and sets out every rule for the maintainer's own changes. There are still no pull requests (plan section 1.2). | It leaves the plan's workflow as it is. |
+| 32-bit targets | Not supported: a non-goal beside `no_std` and WebAssembly, never built or tested. The code stays portable only because the robustness rules require checked conversions; nothing is promised. Section 9.8 loses its 32-bit build, and the dossier's 32-bit row says "not supported". | The maintainer's decision, chosen over a compile-time error. |
+| Actions and runners (GS.1) | GitHub's checkout 7.0.1, setup-node 7.1.0 and cache 6.1.0, each pinned to its full commit SHA; the runner images `ubuntu-26.04`, `macos-26` and `windows-2025`. G1.8 allows only actions created by GitHub and requires SHA pinning. | Nothing in a run changes until the workflow file does. |
+| CI scope in Phase 1 | Beside `node scripts/check.ts` on the three runners, the tests on current stable and on the declared `rust-version`, and the audit: joint packaging and the feature combinations. The reproducibility check of Appendix C.2.1 step 5 and the tarball job follow in Phase 8. | Both apply to an empty workspace and already pass. |
+| Local tools | `cargo-deny` 0.21.0 and `cargo-hack` 0.6.46 are installed on the development machine with `cargo install --locked --version`, with the cooldown given through Cargo's environment variables. | So that `deny.toml` and the feature build are checked here before the first CI run. |
+
+## 2026-11-21 — Progress: Phase 1, tasks 18 and 19
+
+**Task 18: the project documents.**
+
+- `CHANGELOG.md` follows Keep a Changelog 1.1.0. Beside the six kinds of change of that format, a release can list "Changed output". Its Unreleased section says that nothing is published yet.
+- `CONTRIBUTING.md` covers:
+  - issues as the way to contribute;
+  - the section "Reporting a vulnerability", with GitHub's private reporting, what counts as a vulnerability and the containment condition of R18;
+  - the rules: clean room, sources and traceability, dependencies, fixtures, code, scripts, language, coverage and documentation;
+  - how a format is added, after section 11;
+  - the checks, with what they need and what CI adds.
+
+  It has four Mermaid diagrams: issues, a vulnerability report, adding a format, and the checks with CI.
+- `README.md` gains a short "Contributing" section with an absolute link, because the library ships a byte-identical copy, which was updated.
+
+**Task 19: the CI workflow.** `.github/workflows/ci.yml` runs on every push to `main` and to every `release/*` branch, with read-only contents permission. It has five jobs:
+
+- **Checks:** `node scripts/check.ts` on the three runners, after Node.js from `.nvmrc`, `npm ci` in `scripts/`, `rustup toolchain install` and `cargo-llvm-cov`.
+- **Tests on current stable**, on the three runners.
+- **Tests on the declared `rust-version`**, on Linux, through the new `node scripts/test-declared-rust-version.ts`. Its module, `scripts/checks/rust-version/`, reads the release that both published packages declare from `cargo metadata`, installs it with rustup and runs the tests with it. Three tests cover the reading.
+- **Feature combinations**, with `cargo-hack`.
+- **The audit**, with `cargo-deny`.
+
+The Cargo tools are cached per tool, version and runner. Checkout keeps no credentials.
+
+**Also changed:**
+
+- `node scripts/check.ts` gained the step "joint packaging (Appendix C.2.1)": `cargo package --locked --allow-dirty` of both published crates in one command, with the verification builds. `--allow-dirty` lets the step run before a commit.
+- **Plan, revision 20:**
+  - section 2: 32-bit targets are a non-goal;
+  - R14: SECURITY is dropped, and CONTRIBUTING says how to report a vulnerability;
+  - D7: how the cooldown reaches `cargo install`;
+  - section 7.1: the layout;
+  - section 7.7: where the containment condition is stated;
+  - section 9.8: no 32-bit build; how the workflow is built and when the other jobs join;
+  - section 10: the CONTRIBUTING and dossier rows; the SECURITY row is removed;
+  - Phase 1: the progress line, tasks 5, 18, 19 and G1.8, and the Docs line;
+  - the gate summary;
+  - Appendix D: a group of research;
+  - Appendix E.
+- **Dependency dossier:**
+  - section 1.5: the cooldown for `cargo install`;
+  - new section 1.7 with the three actions, their SHAs and licenses (MIT);
+  - the 32-bit row of section 3.3;
+  - the first `cargo-deny` run in section 6.
+- **`CLAUDE.md`:**
+  - `CONTRIBUTING.md` changes with a plan revision that changes a rule it states;
+  - CI uses only GitHub's own actions pinned to SHAs, and another action goes through GS.1;
+  - the jobs CI adds to the check script.
+
+**Verification, on macOS with Node.js 26.13.1 and Rust 1.100.0, on 2026-11-21:**
+
+- `node scripts/check.ts` passes every step, the new joint packaging included.
+- The 90 script tests and 149 Rust tests pass.
+- Coverage: `cc-media-probe-cli` is at 100.00% (10/10), and `cc-media-probe` has no executable lines.
+- `cargo deny --locked check` reports advisories, bans, licenses and sources ok.
+- `cargo hack build --locked --workspace --feature-powerset` builds all six crates.
+- The new module reads `1.100` from the workspace's real `cargo metadata`. The full run of `node scripts/test-declared-rust-version.ts` was not made locally, because it would install the toolchain `1.100` beside the pinned `1.100.0`; CI makes it first.
+- The four diagrams of `CONTRIBUTING.md` render without errors.
+- Each action's tag resolves to the pinned SHA with `git ls-remote`, and each action is MIT-licensed.
+
+**Choices made without asking**, each open to change at G1.9:
+
+- Joint packaging is a step of the check script rather than a separate job, because Appendix C.2.1 puts it in the check suite and CI runs that suite on fresh runners.
+- A script reads the declared `rust-version` instead of repeating it in the workflow, so a raise of `rust-version` needs no edit of `ci.yml`.
+- The cooldown variables are set on each tool-install step only, so they never override `.cargo/config.toml` for the workspace's own commands.
+- Runs are not canceled when a newer push arrives, so every commit of `main` gets its own result.
+- The disclosure wording of `CONTRIBUTING.md`: the advisory is published with the release that contains the fix.
+
+**Expected on the first CI run:** the fourth pure-Rust layer fails on Linux and Windows, because `crates/cc-media-probe-checks/data/system-libraries.tsv` has only the macOS entry. That run measures the libraries, which are then added and reported at G1.9, as task 5 planned.
+
+**Open:**
+
+- **G1.8 [MANUAL]**, before the first push:
+  - In **Settings → Actions → General**, under **Actions permissions**:
+    - choose "Allow caoccao, and select non-caoccao, actions and reusable workflows";
+    - tick "Allow actions created by GitHub" and "Require actions to be pinned to a full-length commit SHA";
+    - click **Save**.
+  - Under **Workflow permissions**, choose read access to contents and packages, and leave "Allow GitHub Actions to create and approve pull requests" off. Click **Save**.
+  - In **Settings → Advanced Security**, enable "Private vulnerability reporting".
+- After G1.8 and a push on the maintainer's request:
+  - the first CI run;
+  - the allow-list entries of Linux and Windows;
+  - G1.9.
+
+## 2026-11-21 — G1.8 Repository settings [MANUAL]
+
+The maintainer reported the settings done:
+
+- GitHub Actions allows only actions created by GitHub, pinned to a full-length commit SHA.
+- The default workflow token has read access only.
+- Private vulnerability reporting is enabled.
+
+The commit with tasks 18 and 19 starts the first CI run.
+
+**Open:**
+
+- The results of that run, with the allow-list entries of Linux and Windows that it measures.
+- G1.9.

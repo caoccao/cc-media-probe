@@ -2,7 +2,7 @@
 
 The evidence for gate G1.3 of the [development plan](../plans/plan-init-project.md): every crate and tool proposed in D5 to D7, and the pure-Rust verification of D4 for the graph of the two published crates. The choices come from the maintainer's answers of 2026-11-21, and the approval followed the same day; both are recorded in the [development log](../plans/plan-init-project-log.md).
 
-- **Status:** approved at G1.3 on 2026-11-21. Each manifest gains its dependencies in the phase that first uses them; until then no manifest of the workspace names any of these crates. Any other crate, tool or version change goes through GS.1, and this document is updated with it.
+- **Status:** approved at G1.3 on 2026-11-21. Each manifest gains its dependencies in the phase that first uses them; until then no manifest of the workspace names any of these crates. Any other crate, tool or version change goes through GS.1, and this document is updated with it. The GitHub Actions of section 1.7 were approved through GS.1 on 2026-11-21.
 - **Resolved:** 2026-11-21, by Cargo 1.100.0 with the workspace's dependency cooldown of 3 days. Every version below is the newest release that the cooldown admits.
 - **Evidence:** the spike [`spikes/dependency-graph/`](../../spikes/dependency-graph/README.md). It copies the two published crates with exactly the dependencies and features approved here, together with the development and fuzzing dependencies. Its lock file pins every version in this document.
 - **Advisories:** none. On 2026-11-21 the OSV database, which includes the RustSec advisories, listed no vulnerability for any of the 78 crate versions in the spike's lock file, or for the three npm packages of section 6.
@@ -50,7 +50,7 @@ The command-line tool has no development dependencies: its tests run the binary.
 
 ### 1.5 Cargo tools
 
-Each tool is installed with `cargo install --locked --version <version> <tool>`, locally and in CI. It is built from crates.io with the lock file it ships, and the cooldown applies to it. CI caches the binaries. The tools are development tools and lie outside the boundary of D4 (R15).
+Each tool is installed with `cargo install --locked --version <version> <tool>`, locally and in CI. It is built from crates.io with the lock file it ships. `cargo install` reads only the user's configuration, not the repository's, so the cooldown is given to it through Cargo's environment variables, `CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE="3 days"` and `CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=deny`. CI caches the binaries, one cache per tool, version and runner. The tools are development tools and lie outside the boundary of D4 (R15).
 
 | Tool | Version | Released | License | Rust | Crates in its lock file | What it is for |
 |---|---|---|---|---|---|---|
@@ -72,6 +72,18 @@ The publishing rehearsal of Appendix C.2.3 needs no tool: its local registry is 
 | `@types/node` | 26.6.6 | 2026-10-28 | MIT | `undici-types` 8.9.0 (MIT). |
 
 `tsc --noEmit` runs with `strict`, `erasableSyntaxOnly`, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `module` set to `nodenext`, and three stricter checks: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and `noPropertyAccessFromIndexSignature`. With these settings, 7.0.2 and 6.0.3 both reported one error in the current scripts: the stdio constants were typed as plain string arrays. That was fixed with the `StdioOptions` type. Both now pass. 7.0.2 checks the 36 files in 0.09 seconds, 6.0.3 in 0.54 seconds.
+
+### 1.7 GitHub Actions (GS.1, 2026-11-21)
+
+The CI workflow, `.github/workflows/ci.yml` (plan section 9.8), uses only these three actions, all made by GitHub. Each is pinned to the full commit SHA that its release tag named on 2026-11-21, resolved with `git ls-remote`; the version stands in a comment beside it. A new version is a change under GS.1, like a crate. The repository allows only actions created by GitHub and requires SHA pinning (G1.8).
+
+| Action | Version | Commit | Released | License | Runtime | What it is for |
+|---|---|---|---|---|---|---|
+| `actions/checkout` | 7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | 2026-07-20 | MIT | Node.js 24 | The checkout of the pushed commit, without persisted credentials. |
+| `actions/setup-node` | 7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` | 2026-10-08 | MIT | Node.js 24 | Node.js from `.nvmrc` (`lts/*`), without its npm cache. |
+| `actions/cache` | 6.1.0 | `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` | 2026-06-26 | MIT | Node.js 24 | The installed Cargo tools of section 1.5, one cache per tool, version and runner. |
+
+The runner images are named exactly: `ubuntu-26.04`, `macos-26` (arm64) and `windows-2025`. They are not dependencies, but like the actions they change only when the workflow file does.
 
 ## 2. The published graph
 
@@ -145,7 +157,8 @@ The two published spike crates were built with `CC`, `CXX` and `AR` naming a fil
 |---|---|---|---|
 | `aarch64-apple-darwin` | `cargo build` | 6 | 0 |
 | `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`, in one target directory | `cargo check --target` | 10 | 0 |
-| 32-bit (`i686`) | Not run locally: the toolchain has no 32-bit standard library installed. The 32-bit job of CI (task 19) runs it. | — | — |
+| 32-bit (`i686`) | Not run: 32-bit targets are not supported, at the maintainer's decision of 2026-11-21 (plan section 2). | — | — |
+| x86_64 Linux and Windows, as hosts | `cargo build` on the CI runners: the first CI run (task 19) | — | — |
 
 `cargo check` runs every build script with the target's `TARGET` and `CARGO_CFG_*` values, which is what this layer inspects; it does not link. Of the 10 runs, the four target-dependent scripts (`serde`, `serde_core`, `serde_json`, `zmij`) ran once per target. `proc-macro2` and `quote` ran once for the host, because they build the derive macro. On every target, `serde_json` emitted `fast_arithmetic="64"`. No run emitted a link instruction or left a native object.
 
@@ -251,7 +264,7 @@ Done on 2026-11-21, right after the approval:
    - **Advisories:** denied.
    - **Bans:** an allow-list of exactly the crates of sections 2 and 4, so that CI rejects any crate that is not on it (GS.1). Duplicate versions produce warnings, not errors, because the development graph holds two versions of `syn`.
 
-   The fuzz workspace gets its own configuration, which adds NCSA, when it is created. `cargo-deny` is first run by CI (task 19), which checks this file.
+   The fuzz workspace gets its own configuration, which adds NCSA, when it is created. `cargo-deny` 0.21.0 first checked this file on the development machine on 2026-11-21, during task 19: `cargo deny --locked check` reports advisories, bans, licenses and sources ok. CI repeats it on every push.
 3. `cargo-llvm-cov` 0.9.1 replaced 0.8.7 on the development machine, and the coverage step of D23 joined `scripts/check.ts` after the tests.
 4. `scripts/package.json`, `scripts/package-lock.json` and `scripts/tsconfig.json` were added, with `node_modules/` in `.gitignore`, and the type check joined `scripts/check.ts` after the script structure check. `scripts/.npmrc` sets `min-release-age=3`, so that npm resolves packages under the same 3-day cooldown as Cargo, and `save-exact=true`.
 

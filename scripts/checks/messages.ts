@@ -56,6 +56,8 @@ export const DOCUMENTATION_STEP = 'documentation';
 export const TARGETS_STEP = 'target ownership';
 /** Package contents. */
 export const PACKAGES_STEP = 'package contents';
+/** Joint packaging. */
+export const JOINT_PACKAGING_STEP = 'joint packaging (Appendix C.2.1)';
 /** The pure-Rust verification. */
 export const PURE_RUST_STEP = 'pure Rust (D4)';
 /** The type checker is not installed. */

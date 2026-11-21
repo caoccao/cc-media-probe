@@ -1,0 +1,153 @@
+# Continuous integration (plan section 9.8), on every push to main and to every release/* branch. There are no pull
+# requests (plan section 1.2). Every job starts on a fresh runner.
+#
+# The actions are GitHub's own, pinned to full commit SHAs, and the runner images are named exactly, so that a run
+# changes only with this file (approved through GS.1 on 2026-11-21; docs/design/dependency-dossier.md, section 1.7).
+# The three runners are the supported targets; 32-bit targets are not supported (plan section 2).
+#
+# Phase 1 runs the jobs that apply to an empty workspace (task 19). The others join in the phase that first gives them
+# something to check.
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+
+permissions:
+  contents: read
+
+env:
+  # The tool versions of docs/design/dependency-dossier.md, section 1.5.
+  CARGO_LLVM_COV_VERSION: "0.9.1"
+  CARGO_DENY_VERSION: "0.21.0"
+  CARGO_HACK_VERSION: "0.6.46"
+
+jobs:
+  checks:
+    name: Checks (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, macos-26, windows-2025]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install the type checker of the scripts
+        run: npm ci
+        working-directory: scripts
+      - name: Install the pinned toolchain of rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Restore cargo-llvm-cov
+        id: coverage-tool
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/bin/cargo-llvm-cov
+            ~/.cargo/bin/cargo-llvm-cov.exe
+          key: cargo-llvm-cov-${{ env.CARGO_LLVM_COV_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Install cargo-llvm-cov
+        if: steps.coverage-tool.outputs.cache-hit != 'true'
+        run: cargo install --locked --version ${{ env.CARGO_LLVM_COV_VERSION }} cargo-llvm-cov
+        env:
+          # cargo install reads only the user's configuration, not .cargo/config.toml, so the dependency cooldown of
+          # that file is given here (plan D7).
+          CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE: 3 days
+          CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE: deny
+      - name: Run every check of the repository
+        run: node scripts/check.ts
+
+  stable:
+    name: Tests on current stable (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, macos-26, windows-2025]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install current stable
+        run: rustup toolchain install stable --profile minimal
+      - name: Run the tests on current stable
+        run: cargo +stable test --locked --workspace --all-features
+
+  declared-rust-version:
+    name: Tests on the declared rust-version
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install the pinned toolchain of rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Run the tests on the release that the packages declare
+        run: node scripts/test-declared-rust-version.ts
+
+  features:
+    name: Feature combinations
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned toolchain of rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Restore cargo-hack
+        id: feature-tool
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-hack
+          key: cargo-hack-${{ env.CARGO_HACK_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Install cargo-hack
+        if: steps.feature-tool.outputs.cache-hit != 'true'
+        run: cargo install --locked --version ${{ env.CARGO_HACK_VERSION }} cargo-hack
+        env:
+          CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE: 3 days
+          CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE: deny
+      - name: Build every feature combination of every crate
+        run: cargo hack build --locked --workspace --feature-powerset
+
+  audit:
+    name: Licenses, advisories and allow-list
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned toolchain of rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Restore cargo-deny
+        id: audit-tool
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-deny
+          key: cargo-deny-${{ env.CARGO_DENY_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Install cargo-deny
+        if: steps.audit-tool.outputs.cache-hit != 'true'
+        run: cargo install --locked --version ${{ env.CARGO_DENY_VERSION }} cargo-deny
+        env:
+          CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE: 3 days
+          CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE: deny
+      - name: Check licenses, advisories, sources and the crate allow-list of deny.toml
+        run: cargo deny --locked check
