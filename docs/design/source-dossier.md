@@ -19,9 +19,10 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | IVF | `multimedia-wiki-ivf` | Approve | Detect-only |
 | RealMedia container | `realnetworks-rmff` | Approve | Container-level reporting, or detect-only |
 | RealAudio file headers and type-specific data | `multimedia-wiki-realmedia` | Approve | Detect-only |
-| RealVideo type-specific data | None located | Identification only | Container-level reporting |
+| RealVideo type-specific data | None located | Identification only; in RealMedia, container-level reporting (task 17) | Container-level reporting |
 | AAC in RealMedia | None located | Identification only | Identified only in RealMedia |
-| Windows Media Audio extra data | None usable | Wave-format fields only | Wave-format fields only |
+| Windows Media Audio extra data | None usable; for 0x0161, `microsoft-asf-specification` (task 17) | Wave-format fields only; for 0x0161, its three fields (task 17) | Wave-format fields only |
+| Windows Media Audio version 1 format tag (task 17) | `multimedia-wiki-twocc` | Approved through GS.2 | Reported as an unknown format tag |
 | Wave64 | `multimedia-wiki-wave64` | Approve | Detect-only |
 | TTA | `tausoft-tta` | Approve | Detect-only |
 | ALAC configuration | `apple-alac-magic-cookie` | Approve | Container-declared values only |
@@ -71,6 +72,8 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 
 *Proposed:* approve both for what they cover; RealVideo and AAC in RealMedia are reduced to identification only, with container-declared values, because no description of their type-specific data was found. This changes the RealVideo rows of plan section 4.3.
 
+*Added in task 17:* neither source says where the codec code of a RealVideo stream sits in its type-specific data, and neither names the MIME type of a video stream; the wiki's RealVideo page gives no layout either. The maintainer decided that such a stream is reported at container level: its kind from the top-level type of its MIME type string, its declared bit rates and duration, and no codec name. AAC streams are identified by the codes `raac` and `racp` of their RealAudio type-specific data, which the wiki lists.
+
 **Wave64.** `multimedia-wiki-wave64` (revision 15287, 2017) gives the chunk header (a 128-bit GUID and a 64-bit size that includes the header) and the GUIDs of the known chunks. The vendor's white paper it links to no longer answers and has no archive capture. The payload of the format chunk is a wave format structure, which the approved Microsoft documents describe. *Proposed:* approve.
 
 **DVD-Video information files.** `dvdinfo-ifo`, `dvdinfo-ifo-vts` and `dvdinfo-pgc` give the byte layouts of the video manager and title set headers, their attributes, and program chains. The cell and time tables are only partly described. *Proposed:* approve for Phase 15, where the title-set reader is limited to what they describe.
@@ -95,6 +98,8 @@ No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page tha
 **ALAC configuration.** `apple-alac-magic-cookie` is Apple's own text description of the configuration ("magic cookie"): the 24-byte specific configuration, the optional channel layout, and how it is wrapped in MP4 sample entries and in CAF. It is hosted in Apple's repository of the codec's implementation; only this file is opened. *Proposed:* approve.
 
 **Windows Media Audio extra data.** The MultimediaWiki page gives sizes for the extra data of versions 1 and 2 and some of their flag bits, and nothing for Professional, Lossless or Voice. *Proposed:* the fallback, wave-format fields only; the extra data is kept as raw bytes.
+
+*Added in task 17:* the approved ASF specification, section 11.1.1, defines the type-specific data of format tag 0x0161 as the wave format followed by `dwSamplesPerBlock`, `wEncodeOptions` and `dwSuperBlockAlign`, without the meaning of the option bits. The maintainer decided that these three fields are read for 0x0161, in every carriage. The format tags come from Microsoft's page of audio subtypes, `microsoft-audio-subtype-guids`, which lists 0x000A and 0x0161 to 0x0163. No Microsoft document gives 0x0160, for version 1; `multimedia-wiki-twocc` (revision 16072, 2025), the wiki's list of format tags, does, and was approved through GS.2 for that value alone.
 
 **MPEG audio VBR headers.** `mp3-tech-info-tag` describes the Xing/Info header and its extension, including encoder delay and padding. For the VBRI layout, the candidate article's current page is rendered by script, but a capture of 2012, `codeproject-mpeg-audio-frame-header`, holds its text. Its table gives the header 32 bytes after the end of the first frame header: the identifier `VBRI`, a 16-bit version, delay, quality, a 32-bit byte count at offset 10, a 32-bit frame count at offset 14, and the fields of its table of contents, all big-endian. Two rows contradict themselves: the delay is called a float but is 2 bytes long, and the scale factor is called a DWORD but is 2 bytes long. The article also ships code, which was not opened. No document from the originator of either layout was found. *Decided at G1.5:* approve `mp3-tech-info-tag` for Xing/Info, and the article for the VBRI identifier, version, byte count and frame count only.
 
@@ -140,6 +145,8 @@ No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page tha
 **Dirac in Ogg.** The codec project's wiki page points to the official mapping, `dirac-ogg-mapping`, a PDF of the Dirac project stored from a capture of 2012. *Proposed:* approve. As the codec project's own document it could be classed `normative` at G1.5.
 
 **ID3v1.** `id3-v1` describes ID3v1 and ID3v1.1. *Proposed:* approve.
+
+**ASF pictures** (*added in task 17*). Phase 13 maps ASF attributes to tags, including pictures. Microsoft's list of ASF attributes, approved through GS.2 as `microsoft-asf-attribute-list`, names the attributes and their data types, `WM/Picture` among them. Its `WM_PICTURE` structure is documented only in memory, with pointers, so no document gives the bytes a file stores. *Decided:* `WM/Picture` is kept as a binary tag, and no picture fields are decoded.
 
 **VobButtons.** `dvdinfo-pci` gives the layout of presentation control packets, including the button table; the pinned Matroska codec draft names the track type. Nothing describes a signature of `btn` files. *Proposed:* identification in Matroska; `btn` files by extension hint only (R22).
 

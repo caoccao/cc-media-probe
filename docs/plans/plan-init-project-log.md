@@ -810,3 +810,56 @@ No change was needed for the Annex B pairs of H.264, HEVC and VVC, the VP8 and V
 **Verification:** `node scripts/check.ts` passes on 2026-11-21.
 
 **Open:** task 17 for releases 0.6.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.6.0
+
+**Decided by the maintainer** (GS.2 for the sources):
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| H.263 in FLV | Adobe's SWF File Format Specification, version 19 (2012), is a new `snapshot` row, `adobe-swf-file-format-19`, class `normative`, stored from the Internet Archive capture of Adobe's address of 2013-02-02. Its chapter 14, "Sorenson H.263 Bitstream Format", gives the picture header that `pair.h-263.flash-picture-header.flv-packets` reads. | The plan said that the FLV specification defines this header, but FLV 10.1 says "For all but AVCVIDEOPACKET, see the SWF File Format Specification". The SWF table refers to the H.263 clauses 5.1.x for the meaning of its fields. adobe.com answered 403, so it was not asked again. |
+| Windows Media codes | Microsoft's pages "Video Subtype GUIDs" and "Audio Subtype GUIDs" are new `snapshot` rows, pinned to the documentation commit of the other Learn pages. The video page gives `WMV1`, `WMV2`, `WMV3` and `WVC1`; the audio page gives the format tags 0x000A and 0x0161 to 0x0163. The wiki's list of format tags, `multimedia-wiki-twocc` (revision 16072), class `descriptive`, is approved for 0x0160 alone. | No stored document gave these codes; the ASF specification lists only 0x0161 to 0x0163 (11.1). No Microsoft document gives 0x0160, for version 1. |
+| ASF tags | Microsoft's "Attribute List" of ASF attributes is a new `snapshot` row, `microsoft-asf-attribute-list`, for normalized keys and value types. `WM/Picture` is kept as a binary tag, and no picture fields are decoded. | The ASF specification names only the content description fields and the aspect-ratio attributes. Microsoft documents `WM_PICTURE` only as an in-memory structure with pointers, so no document gives the layout a file stores. |
+| RealVideo in RealMedia | Reported at container level: its kind from the top-level type of the MIME type, with the declared bit rates and duration, and no codec name. | Neither approved description says where the code of a video stream sits in its type-specific data, or names the video MIME type; the wiki's RealVideo page gives no layout either. |
+| Windows Media Audio extra data | For 0x0161, `dwSamplesPerBlock`, `wEncodeOptions` (as a raw number) and `dwSuperBlockAlign` are read as typed details, in every carriage. Other tags keep raw bytes. | ASF section 11.1.1 defines them, while section 4.3 said that no public description existed. The extra data of a wave format belongs to its format tag. |
+| Dolby Vision in ISO base media files | The stored version 2.8 (9 July 2026) is adopted. The manifest and Appendix B.1 record it, and `probe.mp4` (0.1.0) cites its section 3.2. | The plan named v2.5. Version 2.7 assigned reserved bits of the configuration record to feature flags, and 2.8 added CMAF profiles. |
+
+**Confirmed.** All 33 active rows of 0.6.0 have their `confirmed` date, 2026-11-21, including `pair.av1.low-overhead.flv-packets`, `pair.pcm.wave-format.asf-stream-format` and the VC-1 ASF pair, which earlier releases had changed. The six rows of 0.1.0 that the corrections below changed were checked again against the stored documents and keep their dates.
+
+**Corrected.** A correction that recurs was applied to every row that cites it, in every release:
+
+| Citation | Now | Why |
+|---|---|---|
+| `adobe-flv-f4v-10-1: Annex E` (seven rows, `detect.flv` of 0.1.0 among them) | The subsections that each row reads: `E.2` for detection; `E.4.2.1` and `E.4.2.2` for AAC; `E.4.2.1` for MPEG audio; `E.4.3.1` and `E.4.3.2` for H.264; `E.2` to `E.5` for `probe.flv`; `E.4.2.1` and `E.4.3.1` for the codec registry | Annex E is the whole FLV format |
+| `adobe-flv-f4v-10-1: Annex E` for AV1 (two rows) | `veovera-enhanced-rtmp-v2: Enhanced Video` | FLV 10.1 has no AV1; Enhanced RTMP carries it under the code `av01` |
+| `veovera-enhanced-rtmp-v2: ExVideoTagBody (SequenceStart)`, `ExVideoTagBody (CodedFrames and CodedFramesX)`, `Enhanced codecs` | `Enhanced Video`; `Enhanced Audio` and `Enhanced Video` for the registry | These are parts of a table, or no heading at all; the page's headings are "Enhanced Audio" and "Enhanced Video" |
+| `microsoft-asf-specification: 3` (`detect.asf`, `detect.wma`, `detect.wmv` of 0.1.0) | `3.1`, `10.1` | Detection reads the Header Object, whose GUID is in 10.1 |
+| `realnetworks-rmff: Header Section` (`detect.realmedia` of 0.1.0) | `RealMedia File Header` | Detection reads the `.RMF` object |
+| `pair.h-263.flash-picture-header.flv-packets`: `Annex E`, twice | `adobe-swf-file-format-19: Sorenson H.263 Bitstream Format`, `itu-t-h-263: 5.1`, `adobe-flv-f4v-10-1: E.4.3.1` | The decision above |
+| `identify.realvideo.realmedia`: `multimedia-wiki-realmedia: Codecs` | `rfc6838: 4.2` | The decision above: the kind comes from the top-level type of the MIME type, and the codec is not named |
+
+**Completed** (sections that the rows needed and did not cite):
+
+| Row | Adds | For |
+|---|---|---|
+| The ASF pairs of PCM, WMA, WMV and VC-1 | `microsoft-asf-specification: 9.1` (audio) or `9.2` (video); `5.2.3` for the VC-1 payloads | The media types that fill the type-specific data of section 3.3 |
+| The three WMA pairs | `microsoft-asf-specification: 11.1`, `11.1.1`; the audio subtype page; the list of format tags | The format tags, and the extra data of 0x0161 |
+| The two WMV pairs and the four VC-1 pairs in ASF, AVI and Matroska | The video subtype page (`Encoded Video Types`); for the simple- and main-profile structure, `rfc4425: 1` and, in AVI and Matroska, `microsoft-bitmapinfoheader: Members` | The codes; Windows Media Video 9 as VC-1; the bitmap header that carries the structure |
+| The FLV pairs of AAC, MPEG audio and H.264 | `veovera-enhanced-rtmp-v2: Enhanced Audio` or `Enhanced Video` | The enhanced headers carry them too, under `mp4a`, `.mp3` and `avc1` |
+| `pair.av1.low-overhead.flv-packets` | `aom-av1-specification: 7.5` | A body of coded frames holds one temporal unit, as an IVF frame does |
+| `probe.asf`, `probe.wma`, `probe.wmv` | `2`, `3`, `4.1`, `4.6`, `4.7`, `4.8`, `4.13`, `5`, `7.4`, `7.5`, `9`, `10`, and the attribute list | What Phase 13 task 2 reads: the objects, the header extension objects, the first payloads, the rules for metadata, the pixel aspect ratio, the media types and the GUIDs. The three probes share one reader |
+| `probe.flv` | Enhanced RTMP's `Enhanced Audio`, `Enhanced Video`, `Enhancing onMetaData` and `Multitrack Streaming via Enhanced RTMP` | The extended and multitrack headers, and the metadata (Phase 13 task 1) |
+| `probe.realmedia` | The RMFF headers it reads, the RealAudio type-specific data, the wiki's codec list, `rfc6838: 4.2` | Phase 13 task 4 |
+| `probe.realaudio`, `pair.realaudio.file-headers.standalone-file` | `audio/x-pn-realaudio and audio/x-pn-multirate-realaudio`, `Codecs` | Version 5 is laid out only in the section on type-specific data, and the code names the codec |
+| `identify.aac.realmedia`, `pair.realaudio.type-specific-data.realmedia-stream-properties` | `Codecs`, and for AAC the RMFF media properties header | The codes `raac` and `racp`, and those of RealAudio |
+| `probe.mp4` (0.1.0) | `dolby-vision-isobmff: 3.2` | The decision above |
+
+No change was needed for `registry.asf-identifiers`, `registry.realmedia-fourcc` or the RealAudio pair in Matroska.
+
+**Fetching.** The SWF specification was read from the archive capture to standard output before the decision, then stored; adobe.com answered 403 and was not asked again. The Microsoft pages were stored from the documentation repository at the pinned commit, after one request each to find their last change, and the wiki page at its revision. Requests went one at a time, a few seconds apart for each site.
+
+**Plan and dossier.** Revision 17 of the plan changes section 4.3 (the WMA row and the identification of RealVideo), section 4.4 (RealMedia), Phase 6 task 6 (Dolby Vision 2.8), Phase 13 (its specifications and tasks 1 to 4), and Appendices B.1 (SWF, the subtype pages, Dolby Vision 2.8), B.5 (the attribute list) and B.6 (the WMA extra data, 0x0160, the RealVideo codes, ASF pictures). The deliverables table follows the WMA row. The source dossier adds rows and task-17 notes for RealMedia, WMA, 0x0160 and ASF pictures.
+
+**Verification:** `node scripts/check.ts` passes on 2026-11-21.
+
+**Open:** task 17 for releases 0.7.0 and 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
