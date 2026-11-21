@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 11; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
+| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 12; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
 | **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
@@ -198,7 +198,7 @@ These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Re
 
 ### 4.1 Container and stream formats
 
-"Release" is the version in which probing for the format first ships. A dagger (†) marks a format with no public normative specification; its sources are decided at gate G1.5, and it can be reduced to detection only or deferred there. Detection is covered separately in section 4.4.
+"Release" is the version in which probing for the format first ships. A dagger (†) marks a format with no public normative specification; its sources are decided at gate G1.5, and it can be reduced to detection only or deferred there. G1.5 and G1.6 decided them on 2026-11-21: a format deferred there joined the post-1.0 candidates, and a detect-only type dropped there is marked so. Both keep their keys in the coverage table, as deferred or dropped rows (section 5.2). Detection is covered separately in section 4.4.
 
 | Family | Formats (typical extensions) | Phase | Release |
 |---|---|---|---|
@@ -206,22 +206,24 @@ These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Re
 | ISO base media | MP4 (`mp4`, `m4v`, `m4a`), fragmented MP4, 3GP/3G2, F4V (`f4v`, `f4a`, `f4b`) | 6 | 0.1.0 |
 | QuickTime | MOV (`mov`, `qt`) | 6 | 0.1.0 |
 | RIFF video | AVI including OpenDML and DV type 1 / type 2 | 7 | 0.1.0 |
-| Ogg | Ogg (`ogg`, `oga`, `ogv`, `opus`), OGM† (`ogm`) | 9 | 0.2.0 |
+| Ogg | Ogg (`ogg`, `oga`, `ogv`, `opus`, `ogm`) | 9 | 0.2.0 |
 | FLAC | Native FLAC (`flac`) | 9 | 0.2.0 |
 | MPEG systems | Transport stream (`ts`, `m2ts`, `mts`), program stream (`mpg`, `mpeg`, `vob`, `evo`, `evob`) | 10 | 0.3.0 |
 | PCM containers | WAVE (`wav`), RF64/BW64, Wave64† (`w64`), Core Audio Format (`caf`) | 11 | 0.4.0 |
-| Raw audio streams | MPEG audio layers I–III (`mp2`, `mp3`), AAC as ADTS or ADIF (`aac`) and as LATM/LOAS (`loas`, `latm`), AC-3 / E-AC-3 (`ac3`, `eac3`, `ec3`, `eb3`), DTS / DTS-HD (`dts`, `dtshd`, `dtsma`), TrueHD / MLP (`thd`, `mlp`, `thd+ac3`), TTA† (`tta`), WavPack (`wv`) | 11 | 0.4.0 |
-| Raw video streams | H.264 (`264`, `h264`, `avc`), HEVC (`265`, `h265`, `hevc`), VVC (`266`, `vvc`), AV1 OBU (`obu`, `av1`), MPEG-1/2 video (`m1v`, `m2v`, `mpv`), MPEG-4 Visual elementary streams, VC-1 (`vc1`), Dirac (`drc`), DV (`dv`) | 12 | 0.5.0 |
+| Raw audio streams | MPEG audio layers I–III (`mp2`, `mp3`), AAC as ADTS or ADIF (`aac`), AC-3 / E-AC-3 (`ac3`, `eac3`, `ec3`, `eb3`), DTS / DTS-HD (`dts`, `dtshd`, `dtsma`), TrueHD / MLP (`thd`, `mlp`, `thd+ac3`), TTA† (`tta`), WavPack (`wv`) | 11 | 0.4.0 |
+| Raw video streams | H.264 (`264`, `h264`, `avc`), HEVC (`265`, `h265`, `hevc`), VVC (`266`, `vvc`), AV1 OBU (`obu`, `av1`), MPEG-1/2 video (`m1v`, `m2v`, `mpv`), VC-1 (`vc1`), Dirac (`drc`), DV (`dv`) | 12 | 0.5.0 |
 | Simple video containers | IVF† (`ivf`) | 12 | 0.5.0 |
 | Flash | FLV (`flv`; tag-based files only) | 13 | 0.6.0 |
 | RealMedia | RealMedia† (`rm`, `rmvb`, `rv`), RealAudio† (`ra`) | 13 | 0.6.0 |
 | ASF | ASF (`asf`), WMV (`wmv`), WMA (`wma`) | 13 | 0.6.0 |
 | Subtitle files | SubRip† (`srt`), SSA/ASS† (`ssa`, `ass`), WebVTT (`vtt`), USF† (`usf`), VobSub† (`idx` + `sub`), PGS† (`sup`), HDMV TextST† (`textst`) | 14 | 0.7.0 |
-| Disc structures | Blu-ray playlists and clip info† (`mpls`, `clpi`), DVD-Video title sets† (`ifo` + `vob`) | 15 | 0.8.0 |
-| Detect-only | RIFF CD-XA†, HD-DVD subtitles†, Windows Television recordings†, Internet Video Recording†, MicroDVD†, VobButtons† (`btn`), RealAudio metafiles† (`ram`) | 3 | 0.1.0 |
-| Post-1.0 candidates | AIFF/AIFC, AMR, MXF, Monkey's Audio, Musepack, DSD (DSF/DSDIFF), AU | 17 | 1.x |
+| Disc structures | DVD-Video title sets† (`ifo` + `vob`) | 15 | 0.8.0 |
+| Detect-only | RIFF CD-XA† (dropped at G1.5), HD-DVD subtitles† (dropped at G1.5), Windows Television recordings† (dropped at G1.5), Internet Video Recording† (dropped at G1.5), MicroDVD†, VobButtons† (`btn`), RealAudio metafiles† (`ram`; dropped at G1.5) | 3 | 0.1.0 |
+| Post-1.0 candidates | AIFF/AIFC, AMR, MXF, Monkey's Audio, Musepack, DSD (DSF/DSDIFF), AU, OGM†, AAC as LATM/LOAS (`loas`, `latm`), MPEG-4 Visual elementary streams, Blu-ray playlists and clip info† (`mpls`, `clpi`) | 17 | 1.x |
 
 F4V is an ISO base media derivative and is handled by the Phase 6 box walker. Only tag-based FLV belongs to Phase 13.
+
+The last four post-1.0 candidates were deferred at G1.5 and G1.6, for want of an approved source: OGM's stream headers (an OGM file is read as Ogg, and those streams are of unknown codec), the LOAS sync layer, the MPEG-4 Visual headers and the Blu-ray structures. Each comes back through GS.2 when a source is approved.
 
 ### 4.2 Codecs whose headers are parsed
 
@@ -229,9 +231,9 @@ For each codec the library extracts the parameters that are available without de
 
 | Kind | Codecs |
 |---|---|
-| Video | H.264/AVC, H.265/HEVC, H.266/VVC, AV1, VP8, VP9, MPEG-1 video, MPEG-2 video, MPEG-4 Visual, H.263, VC-1, Theora, Dirac/VC-2, ProRes, DV, FFV1, Motion JPEG, RealVideo†, Windows Media Video 7/8. Identification only, by design, for uncompressed video and legacy FourCC codecs. |
-| Audio | AAC (all signaling variants), MPEG audio layers I–III, AC-3, E-AC-3, AC-4, DTS family, TrueHD/MLP, FLAC, Opus, Vorbis, ALAC†, PCM variants, AMR and AMR-WB (configuration box), WavPack, TTA†, Speex, RealAudio family†, Windows Media Audio family†. Identification only for EVRC, QCELP and SMV. |
-| Subtitle | SubRip†, SSA/ASS†, WebVTT, 3GPP timed text, QuickTime text, TTML (identification), USF†, Kate†, VobSub†, PGS†, DVB subtitles, DVB teletext, HDMV TextST†, XSUB†, CEA-608/708 captions (identification) |
+| Video | H.264/AVC, H.265/HEVC, H.266/VVC, AV1, VP8, VP9, MPEG-1 video, MPEG-2 video, H.263, VC-1, Theora, Dirac/VC-2, ProRes, DV, FFV1, Motion JPEG, Windows Media Video 7/8. Identification only, by design, for uncompressed video and legacy FourCC codecs. Identification only until a source is approved (G1.5, G1.6): MPEG-4 Visual, RealVideo†, and VVC in its configuration-record carriages. |
+| Audio | AAC (AudioSpecificConfig, ADTS, and the ADIF header up to its program configuration elements; LATM is identified only), MPEG audio layers I–III, AC-3, E-AC-3, AC-4, DTS family, TrueHD/MLP, FLAC, Opus, Vorbis, ALAC†, PCM variants, AMR and AMR-WB (configuration box), WavPack, TTA†, Speex, RealAudio family†, Windows Media Audio family†. Identification only for EVRC, QCELP and SMV. |
+| Subtitle | SubRip†, SSA/ASS†, WebVTT, 3GPP timed text, QuickTime text, TTML (identification), USF†, Kate† (identification), VobSub†, PGS†, DVB subtitles, DVB teletext, HDMV TextST†, XSUB†, CEA-608/708 captions (identification) |
 | Other | VobButtons: identification only (R22) |
 
 Typical extracted properties: for video, coded, visible and display dimensions, pixel aspect ratio, frame rate, profile, level and tier, bit depth, chroma format, scan type, color description, HDR metadata and dynamic-range signaling; for audio, sample rate, channel count and layout, bit depth, profile, immersive-audio signaling, encoder delay; for subtitles, text or bitmap kind, language, encoding, canvas size.
@@ -249,6 +251,7 @@ Rules:
 - **Unlisted carriages.** A codec met in a carriage that no row lists is reported as identified, with container-declared properties. Its header is not parsed until a pair is added to this table, with its source and fixture.
 - **Wave-format and bitmap-format tracks in Matroska.** Matroska can wrap an AVI-style stream format in its private data. Such a track uses the representation of the matching AVI pair. The mechanism has one fixture of its own in Phase 5; further pairs of this kind are listed only where a row names them.
 - **Identification only, by design.** Some codecs have no header to parse, or parsing them is out of scope. They are listed separately below. This is permanent and is not a pending parser.
+- **Deferred pairs.** A carriage marked "deferred to G17.n" was deferred at G1.5 or G1.6, because no approved source covers that representation. Its key stays in the coverage table as a deferred row, the codec is identified meanwhile (the table below names the gate), and GS.2 brings the pair back when a source is approved.
 
 **Video**
 
@@ -260,8 +263,8 @@ Rules:
 | H.265/HEVC | Decoder configuration record | 4 | Matroska private data (5); MP4 sample entry (6); FLV sequence header (13) |
 | H.265/HEVC | Length-prefixed NAL units | 4 | Matroska frames (5); MP4 samples (6); FLV packets (13) |
 | H.265/HEVC | Annex B byte stream | 4 | TS (10); raw file (12) |
-| H.266/VVC | Decoder configuration record | 4 | Matroska private data (5); MP4 sample entry (6) |
-| H.266/VVC | Length-prefixed NAL units | 4 | Matroska frames (5); MP4 samples (6) |
+| H.266/VVC | Decoder configuration record | Deferred | Matroska private data (deferred to G17.n); MP4 sample entry (deferred to G17.n) |
+| H.266/VVC | Length-prefixed NAL units | Deferred | Matroska frames (deferred to G17.n); MP4 samples (deferred to G17.n) |
 | H.266/VVC | Annex B byte stream | 4 | TS (10); raw file (12) |
 | AV1 | Configuration record | 4 | Matroska private data (5); MP4 sample entry (6); FLV sequence header (13) |
 | AV1 | Low-overhead OBU stream | 4 | Matroska frames (5); MP4 samples (6); IVF frames (12); raw file (12); FLV packets (13) |
@@ -271,7 +274,7 @@ Rules:
 | VP9 | Uncompressed frame header | 4 | Matroska frames (5); MP4 samples (6); IVF frames (12) |
 | VP8 | Frame tag and key-frame header | 4 | Matroska frames (5); AVI chunks (7); IVF frames (12) |
 | MPEG-1/2 video | Sequence header and extensions | 4 | Matroska private data and frames (5); MP4/MOV decoder-specific information and samples (6); AVI chunks (7); TS/PS (10); raw file (12) |
-| MPEG-4 Visual | Visual object sequence and video object layer headers | 4 | Matroska frames (5); MP4 decoder-specific information (6); AVI chunks (7); TS/PS (10); raw file (12) |
+| MPEG-4 Visual | Visual object sequence and video object layer headers | Deferred | Matroska frames (deferred to G17.n); MP4 decoder-specific information (deferred to G17.n); AVI chunks (deferred to G17.n); TS/PS (deferred to G17.n); raw file (deferred to G17.n) |
 | Motion JPEG | JPEG frame header | 4 | Matroska frames (5); MOV samples (6); AVI chunks (7) |
 | ProRes | Frame header | 4 | Matroska frames (5); MOV samples (6) |
 | DV | DIF header plus the video and audio auxiliary packs of the first DIF sequence | 4 | MOV samples (6); AVI types 1 and 2 (7); raw file (12) |
@@ -285,19 +288,19 @@ Rules:
 | VC-1 | Decoder configuration structure | 10 | Matroska private data (retrofit in 10); MP4 sample entry (retrofit in 10) |
 | VC-1 | Simple- and main-profile sequence structure in stream-format extra data | 13 | ASF stream format (13); AVI stream format (retrofit in 13); Matroska bitmap-format private data (retrofit in 13) |
 | Dirac/VC-2 | Parse info and sequence header | 12 | Raw file (12); Ogg packets† (retrofit in 12); Matroska frames (retrofit in 12) |
-| RealVideo† | Type-specific data for RV10 to RV40 | 13 | RealMedia stream properties (13); Matroska private data (retrofit in 13) |
-| Windows Media Video 7/8 | Bitmap header. Codec-specific extra data† is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes | 13 | ASF stream format (13); AVI stream format (retrofit in 13) |
+| RealVideo† | Type-specific data for RV10 to RV40 | Deferred | RealMedia stream properties (deferred to G17.n); Matroska private data (deferred to G17.n) |
+| Windows Media Video 7/8 | Bitmap header. Codec-specific extra data† is kept as raw bytes: G1.5 found no public description of it | 13 | ASF stream format (13); AVI stream format (retrofit in 13) |
 
 **Audio**
 
 | Codec | Representation | Parser phase | Carriages (phase in which the pair ships) |
 |---|---|---|---|
-| AAC | AudioSpecificConfig | 4 | Matroska private data (5); MP4 decoder-specific information (6); AVI wave-format extra data (7); FLV sequence header (13); RealMedia type-specific data† (13) |
+| AAC | AudioSpecificConfig | 4 | Matroska private data (5); MP4 decoder-specific information (6); AVI wave-format extra data (7); FLV sequence header (13); RealMedia type-specific data† (deferred to G17.n) |
 | AAC | ADTS header | 4 | AVI chunks (7); TS/PS (10); raw file (11) |
-| AAC | LATM/LOAS configuration | 10 | TS (10); raw file (11) |
-| AAC | ADIF header | 11 | Raw file (11) |
+| AAC | LATM/LOAS configuration | Deferred | TS (deferred to G17.n); raw file (deferred to G17.n) |
+| AAC | ADIF header up to its program configuration elements | 11 | Raw file (11) |
 | MPEG audio | Frame header | 4 | Matroska frames (5); MP4 samples (6); AVI chunks (7); TS/PS (10); raw file (11); FLV packets (13) |
-| MPEG audio | VBR headers† (the Xing/Info and VBRI layouts) | 11 | Raw file (11) |
+| MPEG audio | VBR headers† (the Xing/Info layout, and the byte and frame counts of the VBRI layout) | 11 | Raw file (11) |
 | AC-3, E-AC-3 | Sync frame and bitstream information | 4 | Matroska frames (5); AVI chunks (7); TS/PS (10); raw file (11) |
 | AC-3, E-AC-3 | Configuration boxes | 4 | MP4 sample entry (6) |
 | AC-4 | Configuration box | 4 | MP4 sample entry (6) |
@@ -318,7 +321,7 @@ Rules:
 | PCM | Wave format structures | 4 | Matroska wave-format private data (5); AVI stream format (7); WAVE format chunk (11); ASF stream format (13) |
 | PCM | QuickTime sound descriptions | 4 | MOV sample entry (6) |
 | PCM | PCM configuration box | 4 | MP4 sample entry (6) |
-| PCM | Disc LPCM headers† | 10 | TS (10); PS (10) |
+| PCM | Disc LPCM headers† | 10 | TS (deferred to G17.n); PS (10) |
 | AMR, AMR-WB | 3GPP configuration box | 6 | 3GP sample entry (6) |
 | Speex | Header packet | 9 | Ogg packets (9) |
 | WavPack | Native block header and metadata sub-blocks | 11 | Native file (11) |
@@ -326,7 +329,7 @@ Rules:
 | TTA† | File header structure | 11 | Native file (11); Matroska private data (retrofit in 11) |
 | RealAudio† | File headers of versions 3, 4 and 5 | 13 | Standalone file (13) |
 | RealAudio† | Stream type-specific data naming the codec (14.4, 28.8, AC-3 based, Sipro, Cook, ATRAC3, AAC, lossless) | 13 | RealMedia stream properties (13); Matroska private data (retrofit in 13) |
-| Windows Media Audio† | Wave format structure for format tags 0x0160, 0x0161 (versions 1 and 2), 0x0162 (Professional), 0x0163 (Lossless) and 0x000A (Voice). Codec-specific extra data is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes | 13 | ASF stream format (13); AVI stream format (retrofit in 13); Matroska wave-format private data (retrofit in 13) |
+| Windows Media Audio† | Wave format structure for format tags 0x0160, 0x0161 (versions 1 and 2), 0x0162 (Professional), 0x0163 (Lossless) and 0x000A (Voice). Codec-specific extra data is kept as raw bytes: G1.5 found no public description of it | 13 | ASF stream format (13); AVI stream format (retrofit in 13); Matroska wave-format private data (retrofit in 13) |
 
 **Subtitle**
 
@@ -337,7 +340,7 @@ Rules:
 | WebVTT | Header text carried by the container | 4 | Matroska private data (5); MP4 configuration box (6) |
 | WebVTT | Header block of a file, including the timestamp-map header of RFC 8216 | 14 | File (14) |
 | VobSub† | Index-style private data | 4 | Matroska private data (5) |
-| VobSub† | Palette in decoder-specific information | 6 | MP4 sample entry (6) |
+| VobSub† | Palette in decoder-specific information | Deferred | MP4 sample entry (deferred to G17.n) |
 | VobSub† | Sub-picture stream packets | 10 | PS (10) |
 | VobSub† | Index file | 14 | File (14) |
 | PGS† | First display set, starting with its presentation composition segment | 4 | Matroska frames (5); TS (10); file (14) |
@@ -347,7 +350,7 @@ Rules:
 | SSA/ASS† | Script header carried as private data | 5 | Matroska private data (5) |
 | SSA/ASS† | Script header at the start of a file | 14 | File (14) |
 | XSUB† | Subtitle packet header | 7 | AVI chunks (7) |
-| Kate† | Identification header | 9 | Ogg packets (9); Matroska laced private data (retrofit in 9) |
+| Kate† | Identification header | Deferred | Ogg packets (deferred to G17.n); Matroska laced private data (deferred to G17.n) |
 | DVB teletext | Teletext descriptor | 10 | TS (10) |
 | HDMV TextST† | Dialog style segment | 14 | File (14); TS (retrofit in 14); Matroska private data (retrofit in 14) |
 | USF† | Document header | 14 | File (14) |
@@ -358,11 +361,12 @@ Notes on this table:
 
 - Speex has no codec identifier in the pinned Matroska codec mapping, so there is no Speex pair for Matroska. A Speex stream wrapped in a wave-format track is identified from the WAVE registry and falls under the rule for unlisted carriages.
 - The pinned mapping lets a USF track carry stream-wide metadata, styles and effects in its private data. Until Phase 14 that pair is pending, not identification only.
-- A dagger on a carriage (Dirac in Ogg, AAC in RealMedia) means that this binding, not the codec, lacks a normative source and is decided at G1.5.
+- A dagger on a carriage (Dirac in Ogg, AAC in RealMedia) means that this binding, not the codec, lacks a normative source and is decided at G1.5. G1.5 approved the mapping of Dirac into Ogg and deferred AAC in RealMedia.
+- The ADIF header is read up to its program configuration elements, which no approved source describes (G1.6); the sampling rate and channels they hold are deferred. Of the VBRI layout only the byte and frame counts are read (G1.5). Disc LPCM in program streams is the DVD form; the Blu-ray form in transport streams has no public description (G1.5).
 
 **Identification only, by design**
 
-These are reported with their identity and container-declared properties. Their final header status is "identified", and they do not count against completeness (section 8.3).
+These are reported with their identity and container-declared properties. Their final header status is "identified", and they do not count against completeness (section 8.3). A row that names a gate was reduced there; its parser is a deferred pair of the tables above.
 
 | Codec | Why there is nothing to parse | Carried in (phase) |
 |---|---|---|
@@ -373,14 +377,21 @@ These are reported with their identity and container-declared properties. Their 
 | CEA-608/708 captions | The sample entry identifies them | MP4/MOV (6) |
 | SubRip and plain text carried in a container | Plain text without a header in this carriage | Matroska (5) |
 | VobButtons | R22 | Matroska (5) |
+| H.266/VVC | No free source gives its configuration record, which also holds the length of its NAL units (G1.6) | Matroska (5), MP4 (6) |
+| MPEG-4 Visual | No free source gives its headers (G1.6) | Matroska (5), MP4 (6), AVI (7), TS/PS (10) |
+| RealVideo | No public description of its type-specific data (G1.5) | Matroska (5), RealMedia (13) |
+| AAC in LATM | No complete free source of its configuration (G1.6); the stream type identifies it | TS (10) |
+| AAC in RealMedia | No public description of its type-specific data (G1.5); the RealAudio type-specific data names the codec | RealMedia (13) |
+| VobSub in MP4 | No public description of its decoder-specific information (G1.5); a community description gives the private codes that identify the track (task 17) | MP4 (6) |
+| Kate | Its public description identifies a stream but does not give its header (G1.5) | Matroska (5), Ogg (9) |
 
 ### 4.4 Detection inventory
 
 Detection and probing are separate promises. Draft 1 promised detection of every listed format in `0.1.0`; that promise is withdrawn because it depended on source decisions that were not yet made.
 
 - **Inventory.** The set of formats that `0.1.0` detects is frozen at gate G3.5, before detection is implemented. It contains every format of Phases 5 to 15, and every detect-only type, whose signature source was approved by the route that applies to it: G1.4 for RFCs and freely available specifications, G1.5 for descriptive sources, G1.6 for paywalled standards or their substitutes. A post-1.0 candidate is included only if its signature comes from a source that is already approved (for example AMR, whose magic number is in RFC 4867); otherwise it joins at its own gate G17.n. Each later release has its own inventory, recorded in `formats.md`.
-- **Every signature has a source.** A signature without a cited source cannot be added (section 5.5). A detect-only type for which no acceptable public description exists is either dropped from the inventory at G1.5 or kept as a hint-only entry: it has no signature and can only produce the "hint only" outcome of section 8.6. VobButtons files are kept that way if no signature source is approved (R22). A confirmed requirement is never dropped silently; if it cannot be delivered by either route, GS.4 is raised.
-- **Per representation.** Where one format has several stream representations, each has its own detection rule and its own inventory entry. Raw AAC is three entries: ADTS, ADIF and LOAS. The release of each entry is fixed at G3.5. The proposal is that all three are detected from `0.1.0`, subject to their sources, and probed from `0.4.0`.
+- **Every signature has a source.** A signature without a cited source cannot be added (section 5.5). A detect-only type for which no acceptable public description exists is either dropped from the inventory at G1.5 or kept as a hint-only entry: it has no signature and can only produce the "hint only" outcome of section 8.6. G1.5 approved no signature source for VobButtons files, so they are kept that way (R22). A confirmed requirement is never dropped silently; if it cannot be delivered by either route, GS.4 is raised.
+- **Per representation.** Where one format has several stream representations, each has its own detection rule and its own inventory entry. Raw AAC has two entries, ADTS and ADIF; LOAS, the third, was deferred at G1.6 for want of a source of its sync layer. The release of each entry is fixed at G3.5. The proposal is that both are detected from `0.1.0` and probed from `0.4.0`.
 - **Outcomes.** Detection returns one of six outcomes, defined in section 8.6: identified, family only, ambiguous, hint only, insufficient data, unknown.
 - **File-name hints.** An extension orders candidates that the bytes already allow, and when the bytes allow none it can produce the separate "hint only" outcome. It never overrides a conclusive signature and is never reported as an identification. Tests run identical prefixes with and without a hint.
 - **Recognized but not probed.** `probe_*` on such a file returns an error naming the detected format (R20). `Format` exposes its support level, so a caller can ask in advance.
@@ -409,26 +420,26 @@ The project brief defines audio and video scope by reference to an external base
 | MPEG program streams | `mpg mpeg m2v mpv evo evob vob` | Probe | 10 |
 | MPEG transport streams | `ts m2ts mts` | Probe | 10 |
 | MPEG-1/2 video elementary streams | `m1v m2v mpv` | Probe | 12 |
-| Blu-ray playlist | `mpls` | Probe† | 15 |
+| Blu-ray playlist | `mpls` | Deferred at G1.5; a post-1.0 candidate | 17 |
 | Matroska | `mk3d mka mks mkv` | Probe | 5 |
 | PGS | `sup` | Probe† | 14 |
 | QuickTime | `mov` | Probe | 6 |
 | AV1 OBU streams | `av1 obu` | Probe | 12 |
-| Ogg, OGM | `ogg ogm ogv` | Probe (OGM†) | 9 |
+| Ogg, OGM | `ogg ogm ogv` | Probe (an OGM file is read as Ogg; OGM stream headers deferred at G1.5) | 9 |
 | Opus in Ogg | `opus ogg` | Probe | 9 |
-| RealMedia | `ra ram rm rmvb rv` | Probe† (`ram` metafiles: detect-only) | 13 |
+| RealMedia | `ra ram rm rmvb rv` | Probe† (RealVideo identified only; `ram` metafiles dropped at G1.5) | 13 |
 | SubRip | `srt` | Probe† | 14 |
 | SSA/ASS | `ass ssa` | Probe† | 14 |
 | TTA | `tta` | Probe† | 11 |
 | USF | `usf xml` | Probe† | 14 |
 | VC-1 elementary streams | `vc1` | Probe | 12 |
-| VobButtons | `btn` | Detect-only†; identified as a Matroska stream (R22) | 3, 5 |
+| VobButtons | `btn` | Hint only† (G1.5); identified as a Matroska stream (R22) | 3, 5 |
 | VobSub | `idx` | Probe† | 14 |
 | WAVE | `wav` | Probe | 11 |
 | WavPack | `wv` | Probe | 11 |
 | WebM | `weba webm webma webmv` | Probe | 5 |
 | WebVTT | `vtt webvtt` | Probe | 14 |
-| Types the baseline recognizes but does not read | ADIF AAC, ASF, RIFF CD-XA, HD-DVD subtitles, Internet Video Recording, Windows Television, MicroDVD | ADIF and ASF: probe (11, 13). The rest: detect-only† | 3 |
+| Types the baseline recognizes but does not read | ADIF AAC, ASF, RIFF CD-XA, HD-DVD subtitles, Internet Video Recording, Windows Television, MicroDVD | ADIF and ASF: probe (11, 13). MicroDVD: detect-only†. The rest: dropped at G1.5 | 3 |
 
 Beyond the baseline, this plan adds VVC elementary streams, RF64/BW64, Wave64, CAF as a container, raw DV, DVD-Video title sets and the post-1.0 candidates.
 
@@ -490,7 +501,7 @@ The manifest is built from Appendix A.7 (Internet-Drafts) and Appendix B togethe
 
 **`docs/specs/deliverables.tsv`** is the list of what must be built. It has one key per deliverable of sections 4.1 to 4.4: a detector entry, a container prober, one pair of section 4.3 (a codec representation in one carriage), one tag version or frame group, one registry table, and each rule that has a source of its own, such as a chapter convention or a timestamp header. It is transcribed from section 4, changes only together with it, and is reviewed against it at G1.4. Because this list exists on its own, a deliverable without a coverage row is visible: its key has no partner.
 
-**`docs/specs/coverage.tsv`** has one row per deliverable key. Each row names the document and section the deliverable is built from, the fixture that accepts it, a `status`, a `release`, and whether the cited section has been confirmed in the stored document. A source is written `<document>: <section>`, where the document is `rfcNNNN`, an identifier of the non-RFC manifest, or the file name of a description in `docs/specs/iso-iec/` (`iso-iec-14496-15.md: 2`); a row can name several, separated by semicolons. A row that needs a structure no free source covers cites the `Gaps` section of the description that records it, and G1.6 decides that row. Keys start with their kind: `detect.`, `probe.`, `pair.<codec>.<representation>.<carriage>`, `identify.<codec>.<carriage>`, `tags.`, `registry.` and `rule.`.
+**`docs/specs/coverage.tsv`** has one row per deliverable key. Each row names the document and section the deliverable is built from, the fixture that accepts it, a `status`, a `release`, and whether the cited section has been confirmed in the stored document. A source is written `<document>: <section>`, where the document is `rfcNNNN`, an identifier of the non-RFC manifest, or the file name of a description in `docs/specs/iso-iec/` (`iso-iec-14496-15.md: 2`); a row can name several, separated by semicolons. A row that needs a structure no free source covers cites the `Gaps` section of the description that records it, and G1.6 decides that row. G1.6 decided all of them on 2026-11-21, and since task 16 no row cites a gap: each kept what its sources cover, and the rest became deferred rows. Keys start with their kind: `detect.`, `probe.`, `pair.<codec>.<representation>.<carriage>`, `identify.<codec>.<carriage>`, `tags.`, `registry.` and `rule.`.
 
 - `active`: scheduled for the named release. The check fails if an active row has no source that is present in a manifest and approved, or if its only source was declined.
 - `deferred`: not scheduled, with the gate that will decide it. Post-1.0 candidates start as deferred rows, so they do not block Phase 1. A deferred row becomes active only through its gate (G17.n, or GS.2 when a source becomes available), which sets its release and its source.
@@ -510,8 +521,8 @@ Policies:
 - RFC text is committed. The IETF Trust Legal Provisions permit copying and distributing RFCs in full and without modification. Each file is byte-identical to the RFC Editor's copy and is verified by checksum.
 - Non-RFC documents are copyrighted by their publishers and are **not** redistributed. Only the manifests are committed; `scripts/fetch-specs.ts` reproduces the local copies.
 - **Living pages.** A checksum of a page that can change does not make the copy reproducible. For each `snapshot` row the manifest records an `immutable_reference` wherever one exists, and the fetch script retrieves that. Where a page is built from files in a public repository, the row stores the documentation file at a pinned commit, and only that file is opened (section 1.3). Otherwise the reference is an existing Internet Archive capture; none is requested. Where none exists, the row is marked as not reproducible upstream: the approved copy exists only locally. If that copy is lost, or the page has changed, the fetch script reports the difference and stops. The new content is adopted only by superseding the row through GS.2, after the changed parts were reviewed against the code that cites them. Nothing restricted is redistributed to work around this.
-- Paywalled standards are listed with their catalog page only. For each one, G1.6 records one of three outcomes: purchased, replaced by a named substitute, or the dependent feature deferred.
-- **Descriptions of the paid standards.** None of the paid standards is bought (development log, 2026-11-21). Each is described in `docs/specs/iso-iec/<identifier>.md`, in the project's own words, from the free sources that document the parts the deliverables need: free official texts where they cover the same structures, otherwise free vendor, 3GPP, ETSI and community documents. Every statement names its source, which is a row of a manifest; no implementation's code is a source (section 1.3). Each description ends with its gaps: what no free source covers, and what the project does until a source is approved. A description is proposed at G1.6 as the substitute for its standard, together with an outcome for each gap: another source through GS.2, or the dependent features deferred.
+- Paywalled standards are listed with their catalog page only. For each one, G1.6 records one of three outcomes: purchased, replaced by a named substitute, or the dependent feature deferred. On 2026-11-21 G1.6 substituted all 16 with their descriptions: each is a `link` row whose `approved` cell is G1.6 and whose `applies_to` names its description.
+- **Descriptions of the paid standards.** None of the paid standards is bought (development log, 2026-11-21). Each is described in `docs/specs/iso-iec/<identifier>.md`, in the project's own words, from the free sources that document the parts the deliverables need: free official texts where they cover the same structures, otherwise free vendor, 3GPP, ETSI and community documents. Every statement names its source, which is a row of a manifest; no implementation's code is a source (section 1.3). Each description ends with its gaps: what no free source covers, and what the project does until a source is approved. G1.6 approved each description as the substitute for its standard and decided its gaps: a row that rests on a gap keeps what the free sources cover and defers the rest to G17.n, unless another source was approved through GS.2.
 
 ### 5.3 Errata and Internet-Drafts
 
@@ -836,7 +847,7 @@ These apply to all code that touches file content and are enforced by lints, tes
 
 Some inputs span several files: a VobSub index and its data file, a Blu-ray playlist and its clips, a DVD title set and its object files.
 
-**Availability (R18).** The lookup described here ships in the release of its first consumer. That is planned to be `0.7.0`, with VobSub: resolver trait, builder option, CLI switch and example arrive in one release. If G1.5 reduces or defers VobSub, lookup moves to the next release that has a consumer, which is `0.8.0` with the disc formats. If no consumer remains, it is not shipped and stays a design in `api.md`. Releases before that one never open another file; they only list, under external references, the companions a format expects. The design is written in Phase 2 and exercised in the Phase 3 spike, so the earlier API leaves room for it.
+**Availability (R18).** The lookup described here ships in the release of its first consumer. G1.5 kept VobSub, so that is `0.7.0`, with VobSub: resolver trait, builder option, CLI switch and example arrive in one release. If G1.5 reduces or defers VobSub, lookup moves to the next release that has a consumer, which is `0.8.0` with the disc formats. If no consumer remains, it is not shipped and stays a design in `api.md`. Releases before that one never open another file; they only list, under external references, the companions a format expects. The design is written in Phase 2 and exercised in the Phase 3 spike, so the earlier API leaves room for it.
 
 **Default: off.** Even once it has shipped, no other file is opened unless the caller enables lookup. The report then contains what the given file holds, names the expected companions under external references, and its completeness states that companions were not enabled.
 
@@ -1211,7 +1222,7 @@ Tests round-trip, through the report and through JSON: an attachment-targeted bi
 - **Bounded.** Detection never opens companions. It reads a bounded prefix and, on seekable sources, bounded later samples for formats with weak signatures.
 - **Forward-only sources.** Detection reads only from a prefix that stays pinned until the prober has taken over, and the prober starts from that pinned prefix. Detection can therefore never push bytes out of the sliding window that the walker still needs. A format whose detection would need samples beyond the pinned prefix gets a lower confidence, or "insufficient data", on such a source.
 - **Ambiguity is kept, not guessed away.** When several candidates remain, `probe_*` checks them with bounded tests that read only bytes which can be read again (section 8.3). A candidate that cannot be checked stays a candidate: a small budget, a short prefix or a detect-only format never turns an ambiguous result into "unknown".
-- **Weak signatures are checked per representation.** ADTS and MPEG audio need several consecutive valid frame headers. LOAS needs its sync pattern with consistent frame lengths over several frames. ADIF has one header at the start of the file and is checked by its signature and the plausibility of that header; no repetition is expected.
+- **Weak signatures are checked per representation.** ADTS and MPEG audio need several consecutive valid frame headers. ADIF has one header at the start of the file and is checked by its signature and the plausibility of that header; no repetition is expected.
 
 ### 8.7 Async
 
@@ -1594,7 +1605,7 @@ Every format phase (5–7, 9–15, 17) applies this checklist to each format it 
 | 12 | Raw video streams and IVF | M | 0.5.0 |
 | 13 | FLV, RealMedia, ASF | L | 0.6.0 |
 | 14 | Subtitle files and companion lookup | M | 0.7.0 |
-| 15 | Disc playlists and multi-file inputs | L | 0.8.0 |
+| 15 | DVD-Video and multi-file inputs | M | 0.8.0 |
 | 16 | Stabilization | M | **1.0.0** |
 | 17 | Post-1.0 formats | ongoing | 1.x |
 
@@ -1608,7 +1619,7 @@ flowchart TD
   subgraph LATER ["One release per phase"]
     direction LR
     P9["9 Ogg, FLAC<br/>0.2.0"] --> P10["10 Transport and<br/>program streams<br/>0.3.0"] --> P11["11 Audio files<br/>0.4.0"] --> P12["12 Raw video, IVF<br/>0.5.0"]
-    P12 --> P13["13 FLV, RealMedia, ASF<br/>0.6.0"] --> P14["14 Subtitle files,<br/>companion lookup<br/>0.7.0"] --> P15["15 Disc playlists<br/>0.8.0"]
+    P12 --> P13["13 FLV, RealMedia, ASF<br/>0.6.0"] --> P14["14 Subtitle files,<br/>companion lookup<br/>0.7.0"] --> P15["15 DVD-Video<br/>0.8.0"]
   end
   subgraph STABLE ["Stable"]
     direction LR
@@ -1623,7 +1634,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1, G1.2 and G1.3 are passed, and tasks 3 to 11 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 to G1.6, the reviews of the specification set and of the sources, are next. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is next. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -1661,7 +1672,7 @@ flowchart TD
 12. **[CONFIRM] G1.4 — Specification set.** Review the RFC list, the errata table, the pinned draft revisions, the non-RFC manifest, the deliverables list against section 4, and the coverage table's mapping of each deliverable to a document. Sections cited in documents that are not yet obtained are provisional; task 17 confirms them. Confirm that committing the RFC text files to the repository is acceptable.
 13. **[CONFIRM] G1.5 — Sources for formats without a normative specification.** For each † format, codec, carriage and detect-only signature: approve the named description, reduce to detection or identification only, or defer (R17). If VobSub is reduced or deferred here, this gate also records which release then carries companion lookup: the first one that still has a consumer, or none (R18).
 14. **[CONFIRM] G1.6 — Paywalled standards.** For each document marked Paid in Appendix B, choose one outcome: purchase; rely on the named free substitute; or defer the features that depend on it. The decision is recorded per document in the manifest.
-15. **[MANUAL] G1.7 — Purchases.** Buy the documents chosen at G1.6 and place them in `docs/specs/files/`. They are never committed. Skipped if nothing was chosen.
+15. **[MANUAL] G1.7 — Purchases.** Buy the documents chosen at G1.6 and place them in `docs/specs/files/`. They are never committed. Skipped if nothing was chosen. On 2026-11-21 nothing was bought; the step places the free 2015 edition of ISO/IEC 14496-12 that G1.6 chose, which ISO serves only to a browser.
 16. Apply the outcomes of G1.5 and G1.6: update section 4, the detection candidates, both tables of task 11 and the affected phases of this plan, including the release that carries companion lookup. The checks must pass afterwards. An outcome that would break a confirmed requirement goes to GS.4; the requirement is not dropped by this task.
 17. **Section verification.** With every chosen document now in hand, each active coverage row is checked against the stored text: the cited section is opened and confirmed to contain the rule the deliverable needs. The row's provisional mark is cleared and the date recorded. A row that cannot be confirmed is given another source through GS.2, deferred to a named gate, or raised under GS.4. The outcome is part of the phase-gate summary.
 18. Add `README.md` (stub), `CHANGELOG.md`, `CONTRIBUTING.md` and `SECURITY.md`. The development log, `docs/plans/plan-init-project-log.md`, exists from G1.1 on.
@@ -1777,22 +1788,21 @@ flowchart TD
 |---|---|
 | H.264/AVC | NAL unit header; sequence parameter set including VUI and cropping; decoder configuration record |
 | H.265/HEVC | Video and sequence parameter sets; profile, tier, level; VUI; decoder configuration record |
-| H.266/VVC | Sequence parameter set; profile, tier, level; decoder configuration record |
+| H.266/VVC | Sequence parameter set; profile, tier, level. The decoder configuration record is deferred (G1.6), so VVC in Matroska and MP4 is identified only |
 | AV1 | OBU header and sequence header in the low-overhead stream format; configuration record |
 | VP9 | Uncompressed frame header; the codec configuration box it shares with VP8 |
 | VP8 | Frame tag and key-frame header (RFC 6386) |
 | MPEG-1/2 video | Sequence header and extensions |
-| MPEG-4 Visual | Visual object sequence and video object layer headers |
 | Motion JPEG | Frame header |
 | ProRes | Frame header |
-| DV | DIF header (system), then the video auxiliary pack (aspect ratio) and the audio auxiliary pack (sampling rate, channels) of the first DIF sequence; partial when a pack is missing |
+| DV | DIF header (system), then the video auxiliary pack and the audio auxiliary pack (sampling rate, quantization, channels) of the first DIF sequence; partial when a pack is missing. The aspect ratio is read where SMPTE ST 314 defines the display codes; for consumer DV they have no approved source (G1.6), and it is absent |
 | FFV1 | Version 3: configuration record. Versions 0 and 1: the parameters at the start of the first key frame. Both use the range decoder for header symbols only (RFC 9043) |
 
 **Milestone 4B — Audio**
 
 | Codec | Parsed |
 |---|---|
-| AAC | AudioSpecificConfig with explicit SBR/PS signaling, channel configuration and program config element; ADTS header. Implicit signaling sits in the frame payload behind entropy-coded data and is not read: the result is "partially parsed by design", states that an implicit extension is possible, and leaves the output sample rate as declared |
+| AAC | AudioSpecificConfig with explicit SBR/PS signaling and channel configuration; ADTS header. A program config element (channel configuration 0) has no approved source (G1.6) and is not read. Implicit signaling sits in the frame payload behind entropy-coded data and is not read: the result is "partially parsed by design", states that an implicit extension is possible, and leaves the output sample rate as declared |
 | MPEG audio | Frame header for layers I–III |
 | AC-3 / E-AC-3 | Sync and bitstream information; container configuration boxes |
 | AC-4 | Container configuration box |
@@ -1884,7 +1894,7 @@ Tables mapping container-level identifiers to the `Codec` enum, built from the r
    - A track's start time is the total length of the empty edits that precede its first media edit, in the movie timescale.
    - The media time of an edit is a position in the media, in the media timescale. It selects the first presented sample and is reported in the details; for audio it is reported as encoder delay. It is never used as a start offset.
 5. **Media headers.** Packed ISO 639-2 language; extended language tag; handler type mapped to stream kind. A handler the library does not know gives the kind "unknown" and is kept as its four-character code.
-6. **Sample descriptions.** Visual, audio, subtitle, text, caption, timecode and metadata sample entries with all codec configuration boxes: AVC, HEVC, VVC, AV1, VP9, H.263, MPEG-4 elementary stream descriptors, AMR, AC-3, E-AC-3, AC-4, DTS, Opus, FLAC, ALAC, TrueHD, PCM, dynamic-range configuration, color information, pixel aspect ratio, clean aperture, field handling, mastering display and content light level, bit-rate box. The 3G2 speech codecs are identified from their sample entries. The parsers that section 4.3 assigns to this phase are written here: the H.263 configuration box and picture header, the AMR configuration box, the QuickTime text sample description, and the sub-picture palette of a VobSub† track.
+6. **Sample descriptions.** Visual, audio, subtitle, text, caption, timecode and metadata sample entries with all codec configuration boxes: AVC, HEVC, AV1, VP9, H.263, MPEG-4 elementary stream descriptors, AMR, AC-3, E-AC-3, AC-4, DTS, Opus, FLAC, ALAC, TrueHD, PCM, dynamic-range configuration, color information, pixel aspect ratio, clean aperture, field handling, mastering display and content light level, bit-rate box. The 3G2 speech codecs, VVC and MPEG-4 Visual are identified from their sample entries, and VobSub† only when its handler, sample entry, stream type and object type all match the private codes that a community description reports (task 17); its palette stays raw bytes. The parsers that section 4.3 assigns to this phase are written here: the H.263 configuration box and picture header, the AMR configuration box and the QuickTime text sample description.
 7. **Which description is in use.** A track can declare several sample descriptions. The sample-to-chunk table selects one per chunk; in fragments the track-extends default or a track-fragment override selects one. Two facts are kept apart, because the first can be known while the second is not:
    - *The description of the first sample.* It is taken from the first chunk of the sample-to-chunk table or, when the tables are empty, from the first track fragment that was examined for this track. Once known it is final: fragments that were not examined cannot change which description the first sample uses. The stream's codec and headers come from this description.
    - *The set of descriptions used anywhere.* The details list every description as used, unused or unobserved. "Unused" needs full coverage: all chunk entries and all fragments were examined. Without it, a description that nothing examined refers to is "unobserved". A stream that uses more than one description gets a diagnostic.
@@ -1997,20 +2007,20 @@ flowchart TD
 
 ### Phase 9 — Ogg family and FLAC (0.2.0)
 
-**Specifications.** RFC 3533 with errata 6796 and 8825, RFC 5334, RFC 7845, RFC 8486 with erratum 7342, RFC 6716 with erratum 4853, RFC 9639 with errata 8256 and 8810; Vorbis I; Theora; Ogg Skeleton; Speex; RFC 5215 and RFC 5574 as secondary references; the OGM and Kate descriptions and the chapter-comment convention if approved at G1.5.
+**Specifications.** RFC 3533 with errata 6796 and 8825, RFC 5334, RFC 7845, RFC 8486 with erratum 7342, RFC 6716 with erratum 4853, RFC 9639 with errata 8256 and 8810; Vorbis I; Theora; Ogg Skeleton; Speex; RFC 5215 and RFC 5574 as secondary references; the Kate description, for identification, and the chapter-comment convention, both approved at G1.5.
 
 **Tasks**
 
 1. **Ogg pages.** Capture pattern, header flags, granule position, serial number, sequence number, CRC, segment table and packet reassembly.
 2. **Links and logical streams.** Streams multiplexed within one link run concurrently. Chained links follow one another. Codec identification from the first packet of each stream.
-3. **Codec mappings.** Vorbis (identification and comment headers), Opus (identification and comment headers, all channel mapping families, pre-skip, output gain), Theora (new parser: size, frame rate, aspect ratio, color space, pixel format), FLAC in Ogg, Speex (new parser), Kate† (new parser), Skeleton, and OGM† stream headers for video, audio and text.
+3. **Codec mappings.** Vorbis (identification and comment headers), Opus (identification and comment headers, all channel mapping families, pre-skip, output gain), Theora (new parser: size, frame rate, aspect ratio, color space, pixel format), FLAC in Ogg, Speex (new parser), Kate† (identified only, G1.5), and Skeleton. OGM† stream headers were deferred at G1.5: an OGM file is read as Ogg, and those streams are of unknown codec.
 4. **Chain inventory.** The first link is read sequentially. On a seekable source the last page of the file is read; if its serial number belongs to the known link, the chain has one link. Otherwise the end of the known link is found by bisection on serial numbers, the next link's first pages are read, and the step repeats. Each bisection step is one bounded read, the number of links is capped, and every step is charged to the budget. The inventory is complete only when the chain was followed to the end of the file. If the budget or the cap ends the search, or a forward-only source ends before the end of the data, discovery is incomplete and the report says so.
 5. **Duration.** For one link: the latest end time minus the earliest start time among its timed streams; concurrent streams are not added together. This needs the start and the end of **every** timed stream of the link. The last page of a link is not enough: it belongs to one logical stream, and another stream may have ended on an earlier page. Each stream's end is the granule position of its own last page, found by a bounded backward scan from the end of the link. Granule positions are converted per codec: sample counts at the stream's rate for Vorbis, FLAC and Speex; 48 kHz with pre-skip removed and the start offset taken from the first audio page for Opus (RFC 7845 section 4); the granule shift for Theora; the stream header's time unit for OGM. Streams fall into three groups. *Timed by a known mapping:* converted as above. *Known not to carry media time:* a Skeleton stream; it takes no part. *Unknown timing:* a stream whose codec the library does not recognize may well be timed and may outlast the others. If a Skeleton stream in the link states that stream's granule rate and start, it is timed by those values. Otherwise its last granule position is kept as an observation and the link has no exact duration. Endpoint coverage is recorded per stream, separately from the chain inventory. The total is the sum over links and is reported only when the inventory is complete, both endpoints of every timed stream in every link were read, and no link holds a stream of unknown timing. Otherwise it is absent, and the observed part, including the duration of the recognized streams, is in the details.
 6. **Vorbis comments.** Normalized tags; embedded pictures. Chapter comments are mapped to chapters by the convention approved at G1.5; without that approval they stay ordinary tags.
 7. **Native FLAC.** A leading ID3v2 tag is skipped with the Phase 3 routine and noted in a diagnostic; its content is reported from Phase 11. Then the stream marker and all metadata block types: STREAMINFO, padding, application, seek table, comments, cue sheet (mapped to chapters), picture.
 8. **FLAC duration.** STREAMINFO carries the sample rate and the total number of samples. A nonzero total gives the exact duration at once, on seekable and forward-only sources alike. A zero total means unknown, and the duration is absent.
 9. **Completeness.** The stream inventory of a link is its first header pages; the streams and tags of the first link are complete after them. On a forward-only source the chain inventory and the Ogg duration are established only if the data ends within the read budget and that end was observed (section 7.5): an input that fills the read limit exactly has not shown its end. Native FLAC is a single-stream format. Its results come from the metadata blocks and do not need the end of the input.
-10. **Retrofits,** the pairs that section 4.3 lists for this phase: the Theora identification header and the Kate† identification header, each in Matroska laced private data and each with its own fixture. Speex has no pair in Matroska, because the pinned codec mapping defines no identifier for it. Report changes reviewed (section 9.6).
+10. **Retrofits,** the pairs that section 4.3 lists for this phase: the Theora identification header in Matroska laced private data, with its own fixture. Kate is identified only (G1.5). Speex has no pair in Matroska, because the pinned codec mapping defines no identifier for it. Report changes reviewed (section 9.6).
 
 **Tests.** Section 11 checklist, including: the worked examples from RFC 9639; multiplexed streams; a multiplexed link whose last page belongs to the stream that ends first; a link in which one stream's final page lies outside the backward scan; a two-link chain; a three-link chain whose middle link cannot be reached under a small budget; Opus with pre-skip, a nonzero start and end trimming; packets spanning pages; every Opus mapping family; FLAC through a non-seekable reader with a nonzero and with a zero total; a leading ID3v2 tag larger than the remaining input and larger than the budget; a link in which an unrecognized stream outlasts the audio, with and without Skeleton timing for it; a forward-only Ogg input one byte shorter than the read limit, exactly as long, and one byte longer; a Theora track and a Kate track in Matroska.
 
@@ -2026,7 +2036,7 @@ flowchart TD
 
 ### Phase 10 — MPEG transport and program streams (0.3.0)
 
-**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; carriage of AV1 and of Opus in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421 and RP 2025; RFC 2250, RFC 4425, RFC 6416.
+**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; carriage of AV1 and of Opus in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421, RP 2025 and RP 227; the DVD descriptions approved at G1.5 (LPCM, sub-pictures, sub-stream numbers); RFC 2250, RFC 4425, RFC 6416.
 
 **Tasks**
 
@@ -2053,11 +2063,11 @@ flowchart TD
    - *The report's duration* is set only when the file holds exactly one program. With several programs each has its own timeline and its own duration, reported on the program.
    - *Everything else is an estimate or an observation.* With an unexamined middle, the timestamps or clock references at the two ends give an estimate, offered only through the estimate accessors with its method. No estimate is offered when a discontinuity indicator was seen in a window, when an endpoint is missing, or when the endpoint difference disagrees with the size-based estimate beyond a tolerance. The timing status is then "cut short", because a wider scan window would have established the value. When the whole file was examined and the duration of the last access unit is still unknown, the value is "not available by design". Bit rate follows the duration it was computed from.
 7. **Disc-flavored streams.** Blu-ray stream types for audio, graphics and text subtitles.
-8. **Program stream.** MPEG-1 and MPEG-2 pack headers; system header; program stream map; PES; private stream sub-stream identification for DVD and HD DVD conventions.
+8. **Program stream.** MPEG-1 and MPEG-2 pack headers; system header; program stream map; PES; private stream sub-stream identification by the DVD sub-stream ranges, with the codec of each audio sub-stream identified by its sync word (G1.5).
    - *Inventory.* With a program stream map, the map is the inventory. Without one, streams exist only by observation: the inventory is reached with the header of the first PES packet that carries an elementary stream (section 8.3). A file that holds pack headers, a system header or padding and no such packet is an error naming the format. A file with one such packet is `Ok`.
    - *Discovery* without a map is complete only if the whole file was read.
    - *Timing.* System clock references are delivery clocks and are treated like the clock references of task 6. Exact durations come from presentation intervals under the same conditions.
-9. **Additional codec parsers and pairs** of section 4.3 for this phase: the VC-1 advanced-profile sequence header and the VC-1 decoder configuration structure; LATM/LOAS AAC; disc LPCM headers; the AC-4 sync frame with its table of contents; the Opus descriptor and control header of transport streams; the start-code OBU format and the video descriptor of AV1 in transport streams; the DVB subtitling descriptor; the teletext descriptor; the sub-picture stream packets of program streams.
+9. **Additional codec parsers and pairs** of section 4.3 for this phase: the VC-1 advanced-profile sequence header and the VC-1 decoder configuration structure; LATM AAC, identified by its stream type (its configuration was deferred at G1.6); DVD LPCM headers in program streams (Blu-ray LPCM was deferred at G1.5); the AC-4 sync frame with its table of contents; the Opus descriptor and control header of transport streams; the start-code OBU format and the video descriptor of AV1 in transport streams; the DVB subtitling descriptor; the teletext descriptor; the sub-picture stream packets of program streams.
 10. **Forward-only behavior.** Discovery and headers work within the read budget, in one traversal. There is no tail window, so values that need the end are present only when the stream ended within the budget and that end was observed (section 7.5).
 11. **Retrofits.** VC-1 in Matroska and in MP4, both through the decoder configuration structure. Report changes reviewed.
 12. **[CONFIRM] G10.1 — Scan window defaults.** Tasks 1 to 10 are built with configurable windows. Before any expectation file or read ceiling is fixed, present measurements of discovery completeness against bytes read on builder-generated streams, and confirm the head and tail windows and the tolerance of task 6.
@@ -2078,13 +2088,13 @@ flowchart TD
 2. **Retrofit.** The leading ID3v2 tag of a native FLAC file, skipped since Phase 9, is now extracted. Report changes reviewed.
 3. **WAVE family.** Format chunk including extensible; fact; data; INFO list; broadcast extension; cue points; embedded ID3; RF64 and BW64 size chunk; Wave64† GUID chunks; compressed audio carried in WAVE detected by inspecting the data.
 4. **Core Audio Format.** Audio description, channel layout, codec configuration, packet table (frame counts, priming and remainder), information strings.
-5. **MPEG audio.** Leading-tag skip; multi-frame synchronization check; the two VBR header layouts†, if their descriptions were approved at G1.5; duration from the VBR header ("declared"). Without a header, or without an approved description, a constant-rate estimate is offered only through the estimate accessor, the normalized duration is absent, and timing is "not available by design".
-6. **AAC.** Three raw representations, each with its own detection rule (section 8.6) and fixture: ADTS files; ADIF files, which have a single header; LOAS files, read with the Phase 10 LATM/LOAS parser.
+5. **MPEG audio.** Leading-tag skip; multi-frame synchronization check; the Xing/Info header† and the byte and frame counts of the VBRI header†, approved at G1.5; duration from the VBR header ("declared"). Without a header, or without an approved description, a constant-rate estimate is offered only through the estimate accessor, the normalized duration is absent, and timing is "not available by design".
+6. **AAC.** Two raw representations, each with its own detection rule (section 8.6) and fixture: ADTS files; ADIF files, which have a single header, read up to its program configuration elements (G1.6). Raw LOAS files were deferred at G1.6.
 7. **AC-3 and E-AC-3,** including dependent substreams.
 8. **DTS,** including 14-bit and byte-swapped variants and extension substreams.
 9. **TrueHD and MLP,** including the variant interleaved with AC-3.
 10. **TTA† and WavPack.** Headers, metadata sub-blocks, trailing tags. Both have a retrofit pair in Matroska, as section 4.3 lists: the TTA header structure in codec private data, and the Matroska form of WavPack. WavPack in Matroska is a different layout from the native file: the version is in the codec private data and each payload starts with a reduced block header. It has its own parsing path and its own fixture, independent of the native-file fixture.
-11. **Detection hardening.** The rule follows the representation, as section 8.6 states. Self-framed streams (MPEG audio, ADTS, LOAS, AC-3, DTS, TrueHD) have weak signatures and require several consecutive valid frames. ADIF is not self-framed: it has one header at the start of the file and is accepted on its signature and the plausibility of that header, with no repetition expected. The false-positive analysis is documented per representation.
+11. **Detection hardening.** The rule follows the representation, as section 8.6 states. Self-framed streams (MPEG audio, ADTS, AC-3, DTS, TrueHD) have weak signatures and require several consecutive valid frames. ADIF is not self-framed: it has one header at the start of the file and is accepted on its signature and the plausibility of that header, with no repetition expected. The false-positive analysis is documented per representation.
 
 **Tests.** Section 11 checklist per format, including a constant-rate MPEG audio file without a VBR header (normalized duration absent, estimate present with its method, report complete), each raw AAC representation, a valid ADIF file with its single header as a positive detection case, a file that begins with the ADIF signature followed by an implausible header as a negative one, a Matroska WavPack track with multichannel and hybrid data, and a Matroska TTA track.
 
@@ -2094,14 +2104,14 @@ flowchart TD
 
 ### Phase 12 — Raw video streams and IVF (0.5.0)
 
-**Specifications.** ITU-T H.264, H.265, H.266, H.262; AV1 bitstream specification; SMPTE ST 421 and ST 2042-1; IEC 61834 and ISO/IEC 14496-2, or their substitutes from G1.6; the IVF description and the Ogg mapping of Dirac if approved at G1.5; RFC 6184, RFC 7798, RFC 9328, RFC 4425, RFC 6469 as secondary references.
+**Specifications.** ITU-T H.264, H.265, H.266, H.262; AV1 bitstream specification; SMPTE ST 421 and ST 2042-1; the description of IEC 61834-2 with SMPTE ST 314 and US 5,907,444, its substitute from G1.6; the IVF description and the Ogg mapping of Dirac, approved at G1.5; RFC 6184, RFC 7798, RFC 9328, RFC 4425, RFC 6469 as secondary references.
 
 **Tasks**
 
 1. **Byte-stream formats** for H.264, HEVC and VVC: start-code scanning, parameter set discovery through the header assembler, frame rate from timing information, detection of dynamic-range enhancement units.
 2. **AV1** in both the low-overhead and the length-delimited stream formats.
 3. **IVF†.** Header: codec, dimensions, time base, frame count ("declared").
-4. **MPEG-1/2 video, MPEG-4 Visual, VC-1, Dirac** elementary streams. Dirac gets its parser here. Its retrofit pairs are those of section 4.3: Dirac in Ogg†, if that mapping was approved at G1.5, and Dirac in Matroska, each with its own fixture.
+4. **MPEG-1/2 video, VC-1, Dirac** elementary streams; raw MPEG-4 Visual streams were deferred at G1.6. Dirac gets its parser here. Its retrofit pairs are those of section 4.3: Dirac in Ogg†, whose mapping G1.5 approved, and Dirac in Matroska, each with its own fixture.
 5. **Raw DV.**
 6. **Detection hardening** with multi-unit validation.
 
@@ -2113,7 +2123,7 @@ flowchart TD
 
 ### Phase 13 — FLV, RealMedia, ASF (0.6.0)
 
-**Specifications.** Adobe Flash Video File Format Specification 10.1 (FLV part); Enhanced RTMP; Microsoft ASF specification; the RealMedia, RealAudio and Windows Media Audio descriptions approved at G1.5.
+**Specifications.** Adobe Flash Video File Format Specification 10.1 (FLV part); Enhanced RTMP; Microsoft ASF specification; the RealMedia and RealAudio descriptions approved at G1.5.
 
 **Tasks**
 
@@ -2124,10 +2134,10 @@ flowchart TD
    - *Proof.* That maximum is established only when the header of every tag in the file was examined, within the limits, and the duration of the packet that ends last is known exactly from the codec parameters. The result is then "derived".
    - *Without proof,* the latest end observed is kept in the details, and a duration built on the observation is offered only as an estimate. Timing is "cut short" when a limit prevented the proof, and "not available by design" when every tag was examined and the last packet's duration still cannot be known from the codec parameters.
 2. **ASF.** GUID-keyed object walker; file properties; stream properties for each stream type; extended stream properties; language list; metadata and metadata library; content description and extended content description mapped to tags including pictures; codec list; bit-rate properties; content protection objects reported; markers mapped to chapters; first payload per stream fed to the header assembler where needed.
-3. **Windows Media codecs,** as enumerated in section 4.3: Windows Media Audio by format tag; Windows Media Video 7/8 from the bitmap header, with its extra data† only where G1.5 approved a description; the VC-1 advanced profile through the Phase 10 parser; and the simple- and main-profile sequence structure carried in stream-format extra data, which gets its parser here.
-4. **RealMedia†.** File header; properties; content description; media properties per stream with video and audio type-specific data; multi-rate logical streams; standalone RealAudio in the versions enumerated in section 4.3. RealAudio metafiles are detect-only.
+3. **Windows Media codecs,** as enumerated in section 4.3: Windows Media Audio by format tag; Windows Media Video 7/8 from the bitmap header, with its extra data† kept as raw bytes (G1.5); the VC-1 advanced profile through the Phase 10 parser; and the simple- and main-profile sequence structure carried in stream-format extra data, which gets its parser here.
+4. **RealMedia†.** File header; properties; content description; media properties per stream with audio type-specific data, while RealVideo and AAC streams are identified only (G1.5); multi-rate logical streams; standalone RealAudio in the versions enumerated in section 4.3. RealAudio metafiles were dropped from the inventory at G1.5.
 5. **Registry namespaces** for ASF identifiers, RealMedia four-character codes and FLV codec identifiers.
-6. **Retrofits,** each pair of section 4.3 with its own fixture: RealVideo and RealAudio in Matroska; Windows Media Audio in AVI and in Matroska; Windows Media Video 7/8 in AVI; the VC-1 simple- and main-profile structure in AVI and in Matroska. Report changes reviewed.
+6. **Retrofits,** each pair of section 4.3 with its own fixture: RealAudio in Matroska; Windows Media Audio in AVI and in Matroska; Windows Media Video 7/8 in AVI; the VC-1 simple- and main-profile structure in AVI and in Matroska. Report changes reviewed.
 
 **Tests.** Section 11 checklist per format, including: a tag-based FLV file with a declared duration; one without, whose last tags are a sequence-end tag and a configuration tag; one in which an earlier-decoded picture is presented last; one with two audio tracks of different length; a file that ends after its header, asserting zero streams; a fixture for every retrofit pair of task 6; and confirmation that the Phase 6 F4V fixture is unaffected.
 
@@ -2141,7 +2151,7 @@ flowchart TD
 
 **Tasks**
 
-1. **Companion lookup,** if VobSub is still a consumer after G1.5. VobSub is then the first format that needs a companion, so the whole lookup surface ships here, before it: the resolver trait in blocking and async form with its five results; the built-in resolver with the trusted root, the containment rule and its stated condition (section 7.7); request caching, the request limit and source identities; an in-memory resolver in the tests; the builder option; the CLI switch; the example and guide section. Source IDs on diagnostics and errors exist since `0.1.0`; from here on the source table can hold more than one entry. Lookup stays off by default (R18). All of this is added to the public API and to the JSON document; nothing existing changes. **If G1.5 reduced or deferred VobSub,** this task and everything that depends on it move to Phase 15. The `0.7.0` release then contains no resolver, no builder option and no CLI switch, and its release notes and examples do not mention lookup. If Phase 15 was deferred as well, lookup is not shipped (R18).
+1. **Companion lookup.** G1.5 kept VobSub, the first format that needs a companion, so the whole lookup surface ships here, before it: the resolver trait in blocking and async form with its five results; the built-in resolver with the trusted root, the containment rule and its stated condition (section 7.7); request caching, the request limit and source identities; an in-memory resolver in the tests; the builder option; the CLI switch; the example and guide section. Source IDs on diagnostics and errors exist since `0.1.0`; from here on the source table can hold more than one entry. Lookup stays off by default (R18). All of this is added to the public API and to the JSON document; nothing existing changes.
 2. **Text layer and the encodings of each format.** Byte-order-mark detection; UTF-8 validation; the default legacy encoding decided at G3.4. Which encodings a format accepts is a property of that format, and detection applies it before any text is interpreted:
 
    | Format | Accepted | Anything else |
@@ -2163,7 +2173,7 @@ flowchart TD
 7. **USF†.** Metadata, languages, styles: from a file, and from the stream-wide header that a Matroska track may carry in its private data. The second is the retrofit pair of section 4.3.
 8. **VobSub†.** Index file: canvas size, palette, one stream per language index, entry counts. Probed alone, an index yields all of that; the data file is named under external references and the completeness states that companions were not consulted or not available. With lookup enabled, the data file is opened through the resolver and the first sub-picture packet of each stream is checked.
 9. **PGS†.** Segment walk within the budget: canvas size, frame rate, display-set count, time range.
-10. **HDMV TextST†.** Style segment: regions and fonts. Two retrofit pairs: transport-stream carriage, where such streams have been identified without a parser since Phase 10, and Matroska, whose private data holds the same style segment.
+10. **HDMV TextST†.** Style segment: regions and fonts, from the patent texts approved at G1.5; the fields read are checked against the segment length, and a segment whose fields do not add up gives a partial result. Two retrofit pairs: transport-stream carriage, where such streams have been identified without a parser since Phase 10, and Matroska, whose private data holds the same style segment.
 11. **Totals.** Event counts, display-set counts and time ranges describe the whole file. They are reported only when the file was read to its end within the budget and that end was observed (section 7.5); otherwise they are absent and the observed values are in the details. Each of these files is a single-stream format: its inventory is reached once its signature or first structure was validated.
 
 **Tests.** Section 11 checklist per format. An encoding matrix with a stated expected outcome in every cell: each text format in UTF-8, UTF-16 and UTF-32, with and without byte-order mark, in a legacy encoding, and with each line-ending convention. Among its cells: a UTF-16 file that spells `WEBVTT`, which is not detected as WebVTT; and a SubRip file in a legacy encoding without a byte-order mark, which is decoded with the default and raises the diagnostic. A WebVTT file with no cue. A WebVTT header with a timestamp map. For the XML contract: nesting up to and beyond the nesting limit; a document type declaration with entity declarations; a reference to an undeclared entity; an entity-expansion attack, which must not grow; and an external identifier, which must not be opened. A subtitle file larger than the read budget, and one exactly as long as it. A USF track and a TextST track in Matroska. The same VobSub pair through a path with lookup enabled, through a reader with a supplied resolver, and as an isolated index with no companion; a VobSub index whose data file cannot be found, asserting `is_complete()` false; every companion test of section 7.7.
@@ -2172,23 +2182,17 @@ flowchart TD
 
 ---
 
-### Phase 15 — Disc playlists and multi-file inputs (0.8.0)
+### Phase 15 — DVD-Video and multi-file inputs (0.8.0)
 
-**Goal.** Probe inputs that span several files, through companion lookup. Lookup normally ships in Phase 14; if VobSub was reduced or deferred at G1.5, its whole surface ships here instead, as the first task of this phase (R18). This phase runs only for the disc formats approved at G1.5; if both were deferred there, it is skipped and its release number is not used.
+**Goal.** Probe DVD-Video title sets, which span several files, through the companion lookup of Phase 14. G1.5 approved the DVD descriptions and deferred the Blu-ray structures (playlists and clip information) to G17.n, so this phase covers DVD-Video only.
 
 **Tasks**
 
-1. **Blu-ray†.** Playlist files: play items with clip names and in/out times, stream tables with coding type, language and audio/video attributes, marks, sub-paths. Clip information files: program and stream information.
-2. **Blu-ray aggregation rules.**
-   - *Duration* is the sum, over the play items of the main path in order, of each item's out time minus its in time. A clip used twice counts twice; a trimmed clip counts only its interval. Alternative angles and sub-paths are not added.
-   - *Streams* keep their play-item identity. Each play item's stream table is read as it stands: an entry is identified by the play item it belongs to and its position there, and carries its packet identifier, coding type, language and attributes. Entries of different play items are treated as one stream only when all of those agree; that stream then records every play item in which it is present. If two clips reuse a packet identifier and coding type for streams that differ in language or attributes, they remain separate streams. A stream introduced by a later item is reported and marked.
-   - *Chapters.* The playlist is one chapter edition. Only entry marks become chapters. Link marks and any other mark type are kept in the details with their type.
-   - *Enrichment*, only with lookup enabled: the clip information of every distinct clip is read; stream files are probed for headers, one distinct clip at a time, within the sources-opened and read limits. Clips that were not inspected are listed, and their streams keep the playlist-declared attributes with the header status "not attempted".
-3. **DVD-Video†.** Title-set information files: video, audio and sub-picture attributes with languages; program chains with their programs and cells.
-4. **DVD aggregation rules.** A title set can contain several program chains with different playback paths. Each chain is one chapter edition with its own duration and chapters. The report's streams are the title set's attribute tables. The report's duration is set only when the title set has exactly one program chain; otherwise it is absent and each edition carries its own. With lookup enabled, the title set's object files are probed as one logical concatenated source for stream headers, within the limits.
-5. **External references** are listed on every result, whether lookup is on or off. Diagnostics and errors name the file they concern through its source ID.
+1. **DVD-Video†.** Title-set information files: video, audio and sub-picture attributes with languages; program chains with their programs and cells.
+2. **DVD aggregation rules.** A title set can contain several program chains with different playback paths. Each chain is one chapter edition with its own duration and chapters. The report's streams are the title set's attribute tables. The report's duration is set only when the title set has exactly one program chain; otherwise it is absent and each edition carries its own. With lookup enabled, the title set's object files are probed as one logical concatenated source for stream headers, within the limits.
+3. **External references** are listed on every result, whether lookup is on or off. Diagnostics and errors name the file they concern through its source ID.
 
-**Tests.** Section 11 checklist; directory-shaped fixtures built by the test kit; a playlist that repeats a trimmed clip; a later play item that introduces a stream; two clips that reuse a packet identifier for different languages; a link mark among entry marks; alternative angles; a diagnostic raised in the second clip; a title set with two program chains; missing companions; an in-memory resolver; lookup off.
+**Tests.** Section 11 checklist; directory-shaped fixtures built by the test kit; a title set with two program chains; a diagnostic raised in the second object file; missing companions; an in-memory resolver; lookup off.
 
 **[OPTIONAL] G15.1 — Acceptance.** **[CONFIRM] G15.2 — Phase gate.** **[CONFIRM] G15.3 — Release go/no-go for 0.8.0.** **[MANUAL] G15.4 — Approve the publishing run.**
 
@@ -2233,7 +2237,7 @@ Each addition is a minor release that follows the section 11 checklist and the r
 | AU | Format description |
 | Advanced Professional Video | RFC 9924 |
 | Opt-in full-scan mode | Exact frame counts, exact durations, late-starting streams, mid-stream parameter changes |
-| Formats deferred at G1.5 or G1.6 | As recorded there |
+| Deferred at G1.5 or G1.6 | OGM stream headers, the LOAS sync layer, MPEG-4 Visual, the Blu-ray structures (section 4.1), and the deferred pairs of section 4.3, each with the gap that its gate recorded; a source approved through GS.2 brings one back |
 
 ---
 
@@ -2349,7 +2353,7 @@ Each addition is a minor release that follows the section 11 checklist and the r
 
 Every entry was verified against the RFC index of 2026-11-19. Obsoleted RFCs are excluded. Each is downloaded in Phase 1 to `docs/specs/rfc/rfcNNNN.txt` from `https://www.rfc-editor.org/rfc/rfcNNNN.txt`. Links below go to the RFC Editor information page.
 
-On 2026-11-20 the list held 74 RFCs. That figure is a snapshot for the reader. The manifest check compares the set of numbers below with `docs/specs/rfc/manifest.tsv` and never with a typed count. The list is reconciled against every parser, sniffer and identifier table planned in section 4.
+On 2026-11-20 the list held 74 RFCs. On 2026-11-21, G1.4 added the 11 RFCs in force that update a listed RFC, directly or through another added one, so the list holds 85. The obsoleted RFCs 2646, 3798 and 7320, which also update listed RFCs, stay out; their successors are RFC 8098 and RFC 8820, and RFC 3676, which replaces RFC 2646, updates no listed RFC. These figures are a snapshot for the reader. The manifest check compares the set of numbers below with `docs/specs/rfc/manifest.tsv` and never with a typed count. The list is reconciled against every parser, sniffer and identifier table planned in section 4.
 
 Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP = Best Current Practice, Info = Informational, Hist = Historic.
 
@@ -2395,6 +2399,8 @@ Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP
 | [5574](https://www.rfc-editor.org/info/rfc5574) | RTP Payload Format for the Speex Codec | PS | Speex parameters | 9 |
 | [4352](https://www.rfc-editor.org/info/rfc4352) | RTP Payload Format for the Extended Adaptive Multi-Rate Wideband (AMR-WB+) Audio Codec | PS | AMR-WB+ identification in 3GP | 6 |
 | [3558](https://www.rfc-editor.org/info/rfc3558) | RTP Payload Format for Enhanced Variable Rate Codecs (EVRC) and Selectable Mode Vocoders (SMV) | PS | EVRC and SMV identification in 3G2 | 6 |
+| [4788](https://www.rfc-editor.org/info/rfc4788) | Enhancements to RTP Payload Formats for EVRC Family Codecs | PS | Updates RFC 3558: EVRC-B | 6 |
+| [5188](https://www.rfc-editor.org/info/rfc5188) | RTP Payload Format for the Enhanced Variable Rate Wideband Codec (EVRC-WB) and the Media Subtype Updates for EVRC-B Codec | PS | Updates RFC 4788: EVRC-WB | 6 |
 | [2658](https://www.rfc-editor.org/info/rfc2658) | RTP Payload Format for PureVoice(tm) Audio | PS | QCELP identification in 3G2 | 6 |
 | [7587](https://www.rfc-editor.org/info/rfc7587) | RTP Payload Format for the Opus Speech and Audio Codec | PS | Opus parameters | 4 |
 | [7741](https://www.rfc-editor.org/info/rfc7741) | RTP Payload Format for VP8 Video | PS | VP8 payload header | 4 |
@@ -2405,6 +2411,11 @@ Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP
 | [4421](https://www.rfc-editor.org/info/rfc4421) | RTP Payload Format for Uncompressed Video: Additional Colour Sampling Modes | PS | Updates RFC 4175 | 4 |
 | [3190](https://www.rfc-editor.org/info/rfc3190) | RTP Payload Format for 12-bit DAT Audio and 20- and 24-bit Linear Sampled Audio | PS | Linear PCM variants | 4 |
 | [3551](https://www.rfc-editor.org/info/rfc3551) | RTP Profile for Audio and Video Conferences with Minimal Control | IS | Baseline audio encodings vocabulary | 4 |
+| [5761](https://www.rfc-editor.org/info/rfc5761) | Multiplexing RTP Data and Control Packets on a Single Port | PS | Updates RFC 3551; RTP sessions only, nothing parsed | 4 |
+| [8035](https://www.rfc-editor.org/info/rfc8035) | Session Description Protocol (SDP) Offer/Answer Clarifications for RTP/RTCP Multiplexing | PS | Updates RFC 5761; RTP sessions only, nothing parsed | 4 |
+| [8858](https://www.rfc-editor.org/info/rfc8858) | Indicating Exclusive Support of RTP and RTP Control Protocol (RTCP) Multiplexing Using the Session Description Protocol (SDP) | PS | Updates RFC 5761; RTP sessions only, nothing parsed | 4 |
+| [7007](https://www.rfc-editor.org/info/rfc7007) | Update to Remove DVI4 from the Recommended Codecs for the RTP Profile for Audio and Video Conferences with Minimal Control (RTP/AVP) | PS | Updates RFC 3551: the recommended audio encodings | 4 |
+| [8860](https://www.rfc-editor.org/info/rfc8860) | Sending Multiple Types of Media in a Single RTP Session | PS | Updates RFC 3551; RTP sessions only, nothing parsed | 4 |
 | [2586](https://www.rfc-editor.org/info/rfc2586) | The Audio/L16 MIME content type | Info | 16-bit linear PCM | 4 |
 
 ### A.3 Media types, codec parameters and registries
@@ -2419,6 +2430,9 @@ Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP
 | [5334](https://www.rfc-editor.org/info/rfc5334) | Ogg Media Types | PS | Ogg media types and codec identification | 9 |
 | [2361](https://www.rfc-editor.org/info/rfc2361) | WAVE and AVI Codec Registries | Info | WAVE format tags and video four-character codes | 4, 7 |
 | [2046](https://www.rfc-editor.org/info/rfc2046) | Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types | DS | Media type syntax | 3 |
+| [5147](https://www.rfc-editor.org/info/rfc5147) | URI Fragment Identifiers for the text/plain Media Type | PS | Updates RFC 2046: fragment identifiers of text/plain | 3 |
+| [6657](https://www.rfc-editor.org/info/rfc6657) | Update to MIME regarding "charset" Parameter Handling in Textual Media Types | PS | Updates RFC 2046: the charset parameter of text media types | 3 |
+| [8098](https://www.rfc-editor.org/info/rfc8098) | Message Disposition Notification | IS | Updates RFC 2046; mail only, nothing parsed | 3 |
 | [6838](https://www.rfc-editor.org/info/rfc6838) | Media Type Specifications and Registration Procedures | BCP | Media type naming rules | 3 |
 | [9694](https://www.rfc-editor.org/info/rfc9694) | Guidelines for the Definition of New Top-Level Media Types | BCP | Updates RFC 6838 | 3 |
 | [8081](https://www.rfc-editor.org/info/rfc8081) | The "font" Top-Level Media Type | PS | Font attachments | 5 |
@@ -2438,6 +2452,7 @@ Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP
 | [5484](https://www.rfc-editor.org/info/rfc5484) | Associating Time-Codes with RTP Streams | PS | SMPTE time-code fields, for QuickTime timecode tracks | 6 |
 | [9562](https://www.rfc-editor.org/info/rfc9562) | Universally Unique IDentifiers (UUIDs) | PS | Extended box types, GUID-keyed objects | 3, 6, 13 |
 | [3986](https://www.rfc-editor.org/info/rfc3986) | Uniform Resource Identifier (URI): Generic Syntax | IS | External data references | 6, 15 |
+| [8820](https://www.rfc-editor.org/info/rfc8820) | URI Design and Ownership | BCP | Updates RFC 3986; URI design only, nothing parsed | 6, 15 |
 | [4648](https://www.rfc-editor.org/info/rfc4648) | The Base16, Base32, and Base64 Data Encodings | PS | Embedded pictures in comments; hex rendering | 3, 9 |
 | [8259](https://www.rfc-editor.org/info/rfc8259) | The JavaScript Object Notation (JSON) Data Interchange Format | IS | JSON output | 3, 8 |
 | [7493](https://www.rfc-editor.org/info/rfc7493) | The I-JSON Message Format | PS | Exactly representable number range in the JSON output | 2, 8 |
@@ -2482,7 +2497,7 @@ RFC files are committed verbatim. Verified errata are recorded in `docs/specs/rf
 | 8216 (HTTP Live Streaming) | [5158](https://www.rfc-editor.org/errata/eid5158), [5263](https://www.rfc-editor.org/errata/eid5263), [6430](https://www.rfc-editor.org/errata/eid6430), [7283](https://www.rfc-editor.org/errata/eid7283) | To be classified in Phase 1; only section 3.5 of this RFC is used |
 | 8259, 2046, 3339, 3986, 4648, 9562 | Several each | General-purpose RFCs; reviewed in Phase 1 for anything that affects output formats |
 
-**Classified on 2026-11-21** (Phase 1 task 7). The query found 70 verified errata in 25 of the listed RFCs, and 39 held for document update; `docs/specs/rfc/errata.tsv` classifies each verified one and the three held ones that affect parsing. Those that matter here:
+**Classified on 2026-11-21** (Phase 1 task 7). The query found 70 verified errata in 25 of the listed RFCs, and 39 held for document update; `docs/specs/rfc/errata.tsv` classifies each verified one and the three held ones that affect parsing. The 11 RFCs that G1.4 added have one verified erratum, RFC 5761 erratum 3380, about RTP sessions and not relevant, and none held. Those that matter here:
 
 - *Parsing:* RFC 8794 errata 7189 and 7191 (held), the ranges of valid element IDs: 0x80 is a valid one-octet ID and 0x4000 is no longer reserved. RFC 3533 erratum 8825, what the page CRC covers. RFC 2361 errata 5122, 5123, 5126, 1255 (held) and 5125 (held), registry numbers and names. RFC 6190 erratum 3711, the meaning of `no_inter_layer_pred_flag`.
 - *Output:* RFC 8259 erratum 5318, verified on 2026-05-28, removes the solidus from the characters that a JSON string may hold unescaped. Section 8.8 takes a position on it in Phase 2. RFC 3003 erratum 355 names the media type `audio/MPA`.
@@ -2508,7 +2523,7 @@ This appendix is the input for `docs/specs/manifest.tsv` (section 5.2). Each row
 - *ITU:* H.222.0 (04/2025), H.262 (02/2012), T.81, BT.2100-3 and BS.2088-2 lead an automated client to a login form. At the maintainer's choice, H.222.0 is stored at its 06/2021 edition with Amendment 1 (12/2022), and H.262 as its 02/2012 text published as Amendment 4; both download directly. T.81, BT.2100-3 and BS.2088-2 are `manual` rows downloaded in a browser. H.264, H.265, H.266, H.263, H.273, T.871 and T.35 are `fetch` rows.
 - *Living pages:* MP4RA's registries, the Microsoft Learn pages, the Matroska pages, the Ogg and Vorbis documentation, the FLAC and AV1 bindings, Enhanced RTMP, the ID3v2.4 frame list and the WavPack format are files at pinned commits. The Matroska pages are generated from the CELLAR working group's specification sources, which are stored instead. The other living pages, the AV1 and Theora PDFs and the Speex manual are archive captures. Apple's QuickTime documentation is a `tree` row.
 - *Other:* the 3GPP2 original of C.S0050-B no longer answers and is stored from an archive capture, beside ARIB's transposition. The APEv2 page's wiki answers automated clients with a challenge page, so it is an archive capture too. The full ASF specification downloads as a Word document. The maintainer placed the two Dolby documents on ISO base media by hand; the TrueHD bitstream description is stored from an archive capture of the vendor's own address. ISO's free 2015 edition of ISO/IEC 14496-12 is served only after a license page in a browser; it is a substitute for G1.6 to consider.
-- *Paid:* the 16 ISO/IEC and IEC rows stay `manual` and are not bought. `docs/specs/iso-iec/` describes the parts of each that the deliverables need, from free sources (section 5.2).
+- *Paid:* the 16 ISO/IEC and IEC standards are not bought. `docs/specs/iso-iec/` describes the parts of each that the deliverables need, from free sources (section 5.2), and G1.6 approved each description as its substitute; the 16 rows are `link` rows. ISO's free 2015 edition of ISO/IEC 14496-12 is a `manual` row, approved through GS.2 at G1.6, for the movie fragments and compact sample sizes.
 
 Where a row shows an edition, that edition was the one in force on 2026-11-20. Phase 1 records the edition actually stored.
 
@@ -2545,7 +2560,7 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 | FOURCC Codes; IANA WAVE and AVI codec registry (living) | Codec identifiers | Free | snapshot | [fourcc](https://learn.microsoft.com/en-us/windows/win32/directshow/fourcc-codes) · [iana](https://www.iana.org/assignments/wave-avi-codec-registry/wave-avi-codec-registry.xhtml) | ✓ |
 | Multimedia Programming Interface and Data Specifications 1.0 (1991) and its later update on new data types | RIFF itself: chunk rules, the INFO list and the character-set chunk | Free | fetch | [specification (PDF)](https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/riffmci.pdf) · [update (PDF)](https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf) | ✓ |
 | RIFF, WAVE, AVI format descriptions | RIFF family; secondary | Free | snapshot | [riff](https://www.loc.gov/preservation/digital/formats/fdd/fdd000025.shtml) · [wave](https://www.loc.gov/preservation/digital/formats/fdd/fdd000001.shtml) · [avi](https://www.loc.gov/preservation/digital/formats/fdd/fdd000059.shtml) | ✓ |
-| EBU Tech 3285; EBU Tech 3306; ITU-R BS.2088-2 (11/2025) | Broadcast WAVE; RF64; BW64 | Free | fetch | [3285](https://tech.ebu.ch/docs/tech/tech3285.pdf) · [3306](https://tech.ebu.ch/docs/tech/tech3306.pdf) · [BS.2088-2](https://www.itu.int/rec/R-REC-BS.2088-2-202511-I/en) | ✓ |
+| EBU Tech 3285; EBU Tech 3306, versions 2 and 1.1; ITU-R BS.2088-2 (11/2025) | Broadcast WAVE; RF64 (version 2 of Tech 3306 refers to BS.2088, so the RF64 structure comes from version 1.1, added through GS.2 in task 17); BW64 | Free | fetch | [3285](https://tech.ebu.ch/docs/tech/tech3285.pdf) · [3306](https://tech.ebu.ch/docs/tech/tech3306.pdf) · [BS.2088-2](https://www.itu.int/rec/R-REC-BS.2088-2-202511-I/en) | ✓ |
 | Core Audio Format Specification 1.0 | CAF | Free | snapshot | [developer.apple.com](https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_intro/CAF_intro.html) | ✓ |
 | ITU-T H.222.0 (04/2025) | MPEG-2 transport and program streams | Free | fetch | [itu.int](https://www.itu.int/rec/T-REC-H.222.0-202504-I/en) | ✓ |
 | ISO/IEC 11172-1:1993 | MPEG-1 systems (program stream pack headers) | Paid | manual | [iso.org/standard/19180](https://www.iso.org/standard/19180.html) | ◇ |
@@ -2576,6 +2591,7 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 | Theora Specification | Theora | Free | fetch | [PDF](https://www.theora.org/doc/Theora.pdf) | ✓ |
 | SMPTE ST 421 | VC-1 | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/st421/) | ✓ |
 | SMPTE RP 2025 | VC-1 in ISO base media: the decoder configuration structure, which Matroska uses as well | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/rp2025/) | ✓ |
+| SMPTE RP 227 | VC-1 in MPEG-2 transport and program streams: the stream type and the registration descriptor. Added through GS.2 at G1.4 | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/rp227/) | ✓ |
 | SMPTE ST 2042-1 | VC-2 / Dirac | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/st2042-1/) | ✓ |
 | SMPTE RDD 36 | ProRes | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/rdd36/) | ✓ |
 | SMPTE ST 2086 | Mastering display color volume | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/st2086/) | ✓ |
@@ -2639,16 +2655,16 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | USF | Published version 1.1 text and DTD ([one copy](https://subtitld.org/en/development/usf), found by search; content to be confirmed) | ○ | Detect-only |
 | VobSub index; DVD sub-pictures | [Community description](https://dvd.sourceforge.net/dvdinfo/spu.html); [Matroska subtitle mapping](https://www.matroska.org/technical/subtitles.html) | ✓ | Detect-only |
 | PGS | [Technical article](https://blog.thescorpius.com/index.php/2017/07/15/presentation-graphic-stream-sup-files-bluray-subtitle-format/) | ✓ | Detect-only |
-| HDMV TextST | None located | ○ | Detect-only, or defer |
+| HDMV TextST | Published patents, found at G1.5: [JP 5339002 B2](https://patents.google.com/patent/JP5339002B2/ja) (Sony), with syntax tables that give the size of every field, and [US 8,326,118 B2](https://patents.google.com/patent/US8326118B2/en) (LG), with the same fields by name | ✓ | Detect-only, or defer |
 | XSUB | [Community description](https://wiki.multimedia.cx/index.php/XSUB) | ✓ | Identification only |
 | Blu-ray playlists and clip information | [Community notes on playlists](https://en.wikibooks.org/wiki/User:Bdinfo/mpls); a [published patent description](https://patents.google.com/patent/US9530455B2/en) of the mark types; none located for clip information | mixed | Defer Phase 15 |
-| Disc LPCM headers; DVD private-stream identifiers | [LPCM pack description](https://dvd.sourceforge.net/dvdinfo/lpcm.html) · [stream identifiers](https://dvd.sourceforge.net/dvdinfo/mpeghdrs.html); none located for Blu-ray LPCM | mixed | Container-declared values only |
+| Disc LPCM headers; DVD private-stream identifiers | [LPCM pack description](https://dvd.sourceforge.net/dvdinfo/lpcm.html) · [stream identifiers](https://dvd.sourceforge.net/dvdinfo/mpeghdrs.html); the [sub-stream ranges](https://dvd.sourceforge.net/dvdinfo/dvdmpeg.html), found at G1.5; none located for Blu-ray LPCM | mixed | Container-declared values only |
 | Kate | [Format description on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/OggKate), which also describes the Matroska mapping; the [original page](https://wiki.xiph.org/OggKate) did not respond on 2026-11-20 | ✓ | Identification only |
 | Chapter comments in Vorbis comment blocks | [Convention on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/Chapter_Extension); the [original page](https://wiki.xiph.org/Chapter_Extension) did not respond on 2026-11-20 | ✓ | Chapter comments stay ordinary tags |
 | Dirac in Ogg | [Mapping on the container project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/OggDirac) | ✓ | Identified only in Ogg |
-| MPEG audio VBR headers (the Xing/Info and VBRI layouts) | [Description of the Info tag and its extension](http://gabriel.mp3-tech.org/mp3infotag.html); [article that describes both layouts](https://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header). No document from the originator of either layout was located | ✓ | No VBR header is read; duration absent, estimate only |
+| MPEG audio VBR headers (the Xing/Info and VBRI layouts) | [Description of the Info tag and its extension](http://gabriel.mp3-tech.org/mp3infotag.html); [article that describes both layouts](https://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header), readable in a capture of 2012. No document from the originator of either layout was located | ✓ | No VBR header is read; duration absent, estimate only |
 | Windows Media Video 7/8 extra data | None located | ○ | Bitmap header fields only |
-| VobSub in MP4: palette in decoder-specific information | None located beyond the registered object type | ○ | Identified only in MP4 |
+| VobSub in MP4: palette in decoder-specific information | None located for the palette. A [forum thread of 2006](https://forum.doom9.org/showthread.php?t=110419&page=4) reports the private codes of the track from files, which identify it (task 17) | ✓ | Identified only in MP4 |
 | AAC in RealMedia | Covered by the RealMedia description above, if that is approved | ✓ | Identified only in RealMedia |
 | ID3v1 | [Description on the tag format's site, archived copy](https://web.archive.org/web/2024/https://id3.org/ID3v1) | ✓ | Presence reported, content not read |
 | DVD-Video information files | [Community description](https://dvd.sourceforge.net/dvdinfo/ifo.html) | ✓ | Defer |
@@ -3040,7 +3056,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | Advisories | The OSV database listed no vulnerability for the 78 crate versions of the spike's lock file or for the three npm packages, on 2026-11-21. | [OSV](https://osv.dev/) |
 | **Phase 1, the specification set (revision 11)** | | |
 | RFC Editor records | Each RFC has a metadata document at `https://www.rfc-editor.org/rfc/rfcNNNN.json` with its title, status, and the RFCs that obsolete and update it. Every erratum is in one list, `https://www.rfc-editor.org/api/v1/errata.json`, with its status, type and section. On 2026-11-21 no RFC of Appendix A was obsoleted, and every title and status matched. | [RFC 8794 metadata](https://www.rfc-editor.org/rfc/rfc8794.json) · [errata list](https://www.rfc-editor.org/api/v1/errata.json) |
-| RFC texts | The plain-text copies are served as `text/plain` and total 6.7 MB for the 74 RFCs. 63 contain form feeds, and the newer ones start with a byte-order mark, so they are exempt from hygiene and stored without line-ending conversion. Each names its own number in a `Request for Comments:` line near the top. | RFC Editor downloads |
+| RFC texts | The plain-text copies are served as `text/plain` and total 6.7 MB for the 74 RFCs of 2026-11-20. 63 contain form feeds, and the newer ones start with a byte-order mark, so they are exempt from hygiene and stored without line-ending conversion. Each names its own number in a `Request for Comments:` line near the top. | RFC Editor downloads |
 | Redistributing RFCs | Trust Legal Provisions 5.0, section 3.c.i, permits anyone to copy and distribute IETF documents in full and without modification. For the Independent Submission, IAB and IRTF streams, section 8.c.iii extends the license of section 3.a beyond the standards process instead. Earlier RFCs carry the notice of the Internet Society or the IETF Trust; RFC 1950 and 1951 carry their authors' copyright with permission to copy. | [TLP 5.0](https://trustee.ietf.org/documents/trust-legal-provisions/tlp-5/) · [TLP FAQ](https://trustee.ietf.org/documents/trust-legal-provisions/copyright-policy-and-tlp-faq/) |
 | JSON strings | RFC 8259 erratum 5318, verified on 2026-05-28, removes U+002F from the `unescaped` rule of section 7. | [Erratum 5318](https://www.rfc-editor.org/errata/eid5318) |
 | SMPTE documents | SMPTE made its whole catalog of standards, recommended practices, engineering guidelines and registered disclosure documents free on 2026-06-17. Each publication is a ZIP archive on its document library. | [TV Technology](https://www.tvtechnology.com/standards/smpte-makes-its-standards-freely-accessible-to-the-global-media-technology-community) · [IBC](https://www.ibc.org/connective-tech/news/smpte-opens-up-standards-catalogue-for-free/22794) |
@@ -3049,6 +3065,11 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | Pinned repository files | `raw.githubusercontent.com` serves a file at a commit as `text/plain`, or `application/octet-stream` for large and binary files, whatever its extension. | Requests of 2026-11-21 |
 | Apple's QuickTime documentation | The page is a script application; its content is a tree of JSON documents under `tutorials/data/documentation/quicktime-file-format`, each naming its children in its topic sections. | Requests of 2026-11-21 |
 | ISO's free standards | The list of publicly available standards is built by script, and the free 2015 edition of ISO/IEC 14496-12 is served only after a license page. | Requests of 2026-11-21 |
+| **Phase 1, gate G1.4 (revision 12)** | | |
+| Pinned drafts | On 2026-11-21 the datatracker still gives draft-ietf-cellar-codec at -21 in IESG evaluation, draft-ietf-cellar-tags at -25 in the RFC Editor queue, and draft-ietf-cellar-chapter-codecs at -05, expired. | [Datatracker](https://datatracker.ietf.org/doc/draft-ietf-cellar-tags/) |
+| Updating RFCs | Of the RFCs that update listed ones, 2646 is obsoleted by 3676, 3798 by 8098 and 7320 by 8820. RFC 5761 is updated by 8035 and 8858, and RFC 4788 by 5188; nothing updates those three. | RFC Editor metadata of 2026-11-21 |
+| VC-1 in MPEG-2 streams | SMPTE RP 227 (2010) gives a VC-1 elementary stream the stream type 0xEA and a registration descriptor with sub-descriptors (section 5.1), and applies them to program streams (section 6.1). ETSI TS 101 154 refers to it. | [SMPTE RP 227](https://pub.smpte.org/doc/rp227/) |
+| Carriage in H.222.0 | The 06/2021 edition defines the carriage of ISO/IEC 14496 data (2.11), H.264 (2.14), HEVC (2.17) and VVC (2.23); its Amendment 1 adds LCEVC. | The stored texts |
 
 ---
 
@@ -3067,6 +3088,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 9 | 2026-11-21 | Amended for the language rule (R35). |
 | 10 | 2026-11-21 | Amended for the choices of G1.3 and the dependency dossier. |
 | 11 | 2026-11-21 | Amended for the specification set of Phase 1. |
+| 12 | 2026-11-21 | Amended at gates G1.4, G1.5 and G1.6. |
 
 What changed in draft 2, by theme:
 
@@ -3158,3 +3180,11 @@ What changed in revision 11, by theme:
 - **Deliverables and coverage.** Section 5.2 names the form of keys and of sources, and the deliverables of sections 4.1, 4.3 and 4.4 are compared with those tables in the plan's own words. Two cells of section 4.1, Flash and ASF, were reworded so that each comma separates one format.
 - **Fetching politely.** The fetch scripts pace their requests per site and back off when a site shows signs of blocking (the development log has the rule).
 - **Paid standards and the RFC folder.** Section 5.2 adds `docs/specs/iso-iec/`, which describes the 16 paid standards from free sources, and lets coverage rows cite those descriptions, their `Gaps` sections included. The RFC texts and their tables moved from `docs/rfc/` to `docs/specs/rfc/`, beside the other specifications.
+
+What changed in revision 12, by theme:
+
+- **Gate G1.4.** The specification set is approved. Appendix A adds the 11 RFCs in force that update listed RFCs, directly or through another added one; the obsoleted RFCs 2646, 3798 and 7320 stay out. A.8 records the one new verified erratum.
+- **VC-1 in MPEG-2 streams.** Appendix B.2 and Phase 10 add SMPTE RP 227, approved through GS.2, for the stream type and registration descriptor of VC-1 in transport and program streams.
+- **Gate G1.5.** The source dossier's proposals are accepted. Appendix B.6 names the sources found during the gate: two patents for HDMV TextST, a readable capture of the article on the VBRI layout, and the page with the DVD sub-stream ranges. Task 16 applies the outcomes.
+- **Gate G1.6.** Section 5.2, Appendix B and task 15 record that the 16 paid standards are substituted by their descriptions and listed as `link` rows, and that G1.7 places the free 2015 edition of ISO/IEC 14496-12 instead of a purchase.
+- **Task 16.** Section 4 applies the outcomes of G1.5 and G1.6: OGM, raw LOAS and MPEG-4 Visual streams and the Blu-ray structures join the post-1.0 candidates; five detect-only types are marked dropped; the pairs without an approved source are marked "deferred to G17.n", and their codecs join the identification table; the ADIF and VBRI rows say what is read. Sections 4.5, 7.7 and 8.6 and Phases 4, 6, 9 to 15 and 17 follow, and Phase 15 covers DVD-Video only. With every row approved, the coverage check now requires an approved source for each active row (section 5.2).

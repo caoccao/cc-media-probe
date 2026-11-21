@@ -23,7 +23,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { checkDeliverables, checkSources, compareKeys, compareWithPlan } from './check.ts';
+import { checkApproval, checkDeliverables, checkSources, compareKeys, compareWithPlan } from './check.ts';
 import { PLAN } from './plan-tables.test.ts';
 import { plannedTables } from './plan-tables.ts';
 import type { Coverage, Deliverable } from './tables.ts';
@@ -117,6 +117,19 @@ test('matches the keys of both tables, and the sources with the documents', () =
   ]);
 });
 
+test('requires an approved source for each active row, and none for a deferred one', () => {
+  const approved = new Set(['rfc9559', 'iso-iec-14496-15.md']);
+  const rows = [
+    covered('probe.a', ['candidate-description: 2', 'rfc9559: 5']),
+    covered('probe.b', ['candidate-description: 2']),
+    covered('probe.c', ['iso-iec-14496-15.md: 2']),
+    { ...covered('probe.d', []), status: 'deferred', release: '', gate: 'G17.n' },
+  ];
+  assert.deepEqual(checkApproval('c.tsv', rows, approved), [
+    'c.tsv: probe.b: an active row names at least one approved source',
+  ]);
+});
+
 test('reports missing tables, and checks a repository whose tables agree', () => {
   const root = mkdtempSync(join(tmpdir(), 'deliverables-'));
   mkdirSync(join(root, 'docs', 'plans'), { recursive: true });
@@ -170,6 +183,7 @@ test('accepts a committed description of a paid standard as a source, but not it
   );
   assert.deepEqual(checkDeliverables(root), [
     `${join('docs', 'specs', 'coverage.tsv')}: detect.matroska: source names no document of the manifests: README.md`,
+    `${join('docs', 'specs', 'coverage.tsv')}: detect.matroska: an active row names at least one approved source`,
   ]);
   rmSync(root, { recursive: true });
 });

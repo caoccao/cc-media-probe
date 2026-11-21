@@ -72,7 +72,7 @@ Where a living page is built from files in a public Git repository, the row stor
 
 ## Manual rows
 
-A `manual` row is a document that the script cannot download: a paid standard, or a file that its site serves only to a browser. Download it by hand from `artifact_url` (or buy it from `landing_url`), save it as `docs/specs/files/<folder>/<identifier>.pdf`, and run `node scripts/fetch-specs.ts <identifier>`, which records its SHA-256. Until then each run notes the file as missing.
+A `manual` row is a document that the script cannot download, because its site serves it only to a browser. Download it by hand from `artifact_url`, save it as `docs/specs/files/<folder>/<identifier>` with the extension of its `content_type` (`.pdf`, `.zip`), and run `node scripts/fetch-specs.ts <identifier>`, which records its SHA-256. Until then each run notes the file as missing.
 
 ## Deliverables and coverage
 
@@ -87,6 +87,6 @@ Keys start with their kind: `detect.`, `probe.`, `pair.<codec>.<representation>.
 - every manifest row follows the rules of its retrieval, and every draft of Appendix A.7 is fetched at its pinned revision;
 - every document stored locally matches its recorded SHA-256, and every stored file belongs to a row;
 - the deliverables have the same words as the tables of plan sections 4.1 and 4.3, in both directions;
-- the keys of the two tables are the same set, and every source names a document of a manifest.
+- the keys of the two tables are the same set, every source names a document of a manifest, and every active row names at least one approved source: an RFC, a manifest row whose `approved` cell names a gate, or a description of a paid standard.
 
 CI has no stored documents, so there it checks the tables alone.

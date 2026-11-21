@@ -29,6 +29,7 @@ import { readDocuments } from '../documents/manifest.ts';
 import { MANIFEST_FILE as RFCS_FILE, RFC_DIRECTORY } from '../rfc/constants.ts';
 import { readManifest } from '../rfc/manifest.ts';
 import {
+  ACTIVE,
   COVERAGE_FILE,
   DELIVERABLES_FILE,
   DESCRIPTIONS_DIRECTORY,
@@ -49,6 +50,7 @@ import {
   MALFORMED_SOURCE,
   MISSING_DELIVERABLE,
   MISSING_TABLE,
+  NO_APPROVED_SOURCE,
   NO_COVERAGE,
   NO_DELIVERABLE,
   UNKNOWN_SOURCE,
@@ -72,12 +74,15 @@ export function checkDeliverables(root: string): string[] {
   const deliverables = readDeliverables(deliverablesFile, readFileSync(join(root, deliverablesFile), TEXT_ENCODING));
   const coverage = readCoverage(coverageFile, readFileSync(join(root, coverageFile), TEXT_ENCODING));
   const plan = readFileSync(join(root, ...PLAN_FILE), TEXT_ENCODING);
+  const documents = knownDocuments(root);
+  const approved = new Set([...documents].filter(([, isApproved]) => isApproved).map(([document]) => document));
   return [
     ...deliverables.findings,
     ...coverage.findings,
     ...compareWithPlan(deliverablesFile, deliverables.rows, plannedTables(plan)),
     ...compareKeys(deliverablesFile, coverageFile, deliverables.rows, coverage.rows),
-    ...checkSources(coverageFile, coverage.rows, knownDocuments(root)),
+    ...checkSources(coverageFile, coverage.rows, new Set(documents.keys())),
+    ...checkApproval(coverageFile, coverage.rows, approved),
   ];
 }
 
@@ -129,6 +134,20 @@ export function compareKeys(
   ];
 }
 
+/** Every active row names at least one approved document (plan section 5.2): an RFC, which G1.4 approved as a set, a
+ * row of the manifest of other documents whose `approved` cell names a gate, or a committed description, which G1.6
+ * approved as the substitute for its standard. */
+export function checkApproval(file: string, rows: readonly Coverage[], approved: ReadonlySet<string>): string[] {
+  const findings: string[] = [];
+  for (const row of rows.filter((candidate) => candidate.status === ACTIVE)) {
+    const documents = row.sources.map((source) => source.split(SECTION_SEPARATOR)[0] ?? EMPTY);
+    if (!documents.some((document) => approved.has(document))) {
+      findings.push(`${file}: ${row.key}: ${NO_APPROVED_SOURCE}`);
+    }
+  }
+  return findings;
+}
+
 /** Every source names a document of the RFC manifest (`rfcNNNN`), of the manifest of other documents, or a committed
  * description, and a section. */
 export function checkSources(file: string, rows: readonly Coverage[], documents: ReadonlySet<string>): string[] {
@@ -147,27 +166,28 @@ export function checkSources(file: string, rows: readonly Coverage[], documents:
   return findings;
 }
 
-/** The documents that a source may name: `rfcNNNN` for each RFC of the manifest, each identifier of the manifest of
- * other documents, and the file name of each committed description of a paid standard (`<identifier>.md`). */
-function knownDocuments(root: string): Set<string> {
-  const documents = new Set<string>();
+/** The documents that a source may name, and whether a gate approved each: `rfcNNNN` for each RFC of the manifest,
+ * each identifier of the manifest of other documents, and the file name of each committed description of a paid
+ * standard (`<identifier>.md`). */
+function knownDocuments(root: string): Map<string, boolean> {
+  const documents = new Map<string, boolean>();
   const rfcFile = join(...RFC_DIRECTORY, RFCS_FILE);
   if (existsSync(join(root, rfcFile))) {
     for (const entry of readManifest(rfcFile, readFileSync(join(root, rfcFile), TEXT_ENCODING)).entries) {
-      documents.add(`${RFC_SOURCE_PREFIX}${entry.number}`);
+      documents.set(`${RFC_SOURCE_PREFIX}${entry.number}`, true);
     }
   }
   const documentsFile = join(...SPECIFICATIONS_DIRECTORY, DOCUMENTS_FILE);
   if (existsSync(join(root, documentsFile))) {
     for (const entry of readDocuments(documentsFile, readFileSync(join(root, documentsFile), TEXT_ENCODING)).entries) {
-      documents.add(entry.identifier);
+      documents.set(entry.identifier, entry.approved !== EMPTY);
     }
   }
   const descriptions = join(root, ...DESCRIPTIONS_DIRECTORY);
   if (existsSync(descriptions)) {
     for (const name of readdirSync(descriptions)) {
       if (name.endsWith(MARKDOWN_EXTENSION) && name !== DESCRIPTIONS_INDEX) {
-        documents.add(name);
+        documents.set(name, true);
       }
     }
   }

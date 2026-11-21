@@ -4,10 +4,10 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 
 | | |
 |---|---|
-| Status | Proposed for G1.5; nothing here is approved yet |
+| Status | Decided at G1.5 on 2026-11-21. Every proposal was accepted. At the maintainer's request, HDMV TextST and the VBRI layout were researched further and their sources approved, and a source was added for the DVD sub-stream numbers. The [development log](../plans/plan-init-project-log.md) records the decisions. |
 | Researched | 2026-11-21 |
 | Sources read | The prose of each candidate only. No implementation's code was opened, and links to code were not followed (plan section 1.3). |
-| Where they are | Each proposed source is a row of [`docs/specs/manifest.tsv`](../specs/manifest.tsv) with the class `descriptive` and an empty `approved` cell; `node scripts/fetch-specs.ts` stores it under `docs/specs/files/`. Wiki pages are pinned to a revision of their source, other living pages to an Internet Archive capture. |
+| Where they are | Each source is a row of [`docs/specs/manifest.tsv`](../specs/manifest.tsv) with the class `descriptive`; its `approved` cell names G1.5, or GS.2 for the sources found during the gate. `node scripts/fetch-specs.ts` stores it under `docs/specs/files/`. Wiki pages are pinned to a revision of their source, other living pages to an Internet Archive capture. |
 
 **Dispositions** (plan section 5.4, R17): *approve* the named description as a `descriptive` source; reduce a format to *detection only*; reduce a codec to *identification only*; *defer* to after 1.0; or, for detect-only types, *drop* from the inventory or keep as *hint only*. A descriptive source is never treated as normative: behavior taken from it is labeled in code comments and in `formats.md`.
 
@@ -30,15 +30,16 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | USF | `titlevision-usf` | Approve | Detect-only |
 | VobSub index and DVD sub-pictures | `dvdinfo-spu`, with the Matroska subtitle mapping | Approve | Detect-only |
 | PGS | `thescorpius-pgs` | Approve | Detect-only |
-| HDMV TextST | Patent texts, not yet read | Defer, unless G1.5 approves a patent text | Detect-only, or defer |
+| HDMV TextST | `jpo-jp-5339002`, with `uspto-us-8326118` | Approve; the fields are checked against the segment length | Detect-only, or defer |
 | XSUB | `multimedia-wiki-xsub` | Approve | Identification only |
 | Blu-ray playlists and clip information | Partial notes only | Defer the Blu-ray part of Phase 15 | Defer Phase 15 |
 | DVD LPCM headers | `dvdinfo-lpcm` | Approve | Container-declared values only |
-| Blu-ray LPCM headers; DVD private-stream sub-stream numbers | None located | Container-declared values only; open question below | Container-declared values only |
+| Blu-ray LPCM headers | None located | Container-declared values only | Container-declared values only |
+| DVD private-stream sub-stream numbers | `dvdinfo-dvdmpeg` | Approve for the ranges; an audio sub-stream's codec is identified by its sync word | Container-declared values only |
 | Kate | `xiph-wiki-kate` | Identification only | Identification only |
 | Chapter comments in Vorbis comments | `xiph-wiki-chapter-extension` | Approve | Chapter comments stay ordinary tags |
 | Dirac in Ogg | `dirac-ogg-mapping` | Approve | Identified only in Ogg |
-| MPEG audio VBR headers | `mp3-tech-info-tag` for the Xing/Info layout | Approve for Xing/Info; VBRI not read | No VBR header is read |
+| MPEG audio VBR headers | `mp3-tech-info-tag` for the Xing/Info layout; `codeproject-mpeg-audio-frame-header` for VBRI | Approve; for VBRI only the identifier, version, byte count and frame count | No VBR header is read |
 | Windows Media Video 7/8 extra data | None located | Bitmap header fields only | Bitmap header fields only |
 | VobSub palette in MP4 | None located | Identification only | Identified only in MP4 |
 | ID3v1 | `id3-v1` | Approve | Presence reported, content not read |
@@ -76,7 +77,7 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 
 **Windows Media Audio extra data.** The MultimediaWiki page gives sizes for the extra data of versions 1 and 2 and some of their flag bits, and nothing for Professional, Lossless or Voice. *Proposed:* the fallback, wave-format fields only; the extra data is kept as raw bytes.
 
-**MPEG audio VBR headers.** `mp3-tech-info-tag` describes the Xing/Info header and its extension, including encoder delay and padding. For the VBRI layout the candidate article could not be read: its page is rendered by script, and its capture holds no text. No document from the originator of either layout was found. *Proposed:* approve for Xing/Info; a file with a VBRI header gets a duration estimate only.
+**MPEG audio VBR headers.** `mp3-tech-info-tag` describes the Xing/Info header and its extension, including encoder delay and padding. For the VBRI layout, the candidate article's current page is rendered by script, but a capture of 2012, `codeproject-mpeg-audio-frame-header`, holds its text. Its table gives the header 32 bytes after the end of the first frame header: the identifier `VBRI`, a 16-bit version, delay, quality, a 32-bit byte count at offset 10, a 32-bit frame count at offset 14, and the fields of its table of contents, all big-endian. Two rows contradict themselves: the delay is called a float but is 2 bytes long, and the scale factor is called a DWORD but is 2 bytes long. The article also ships code, which was not opened. No document from the originator of either layout was found. *Decided at G1.5:* approve `mp3-tech-info-tag` for Xing/Info, and the article for the VBRI identifier, version, byte count and frame count only.
 
 **DVD LPCM headers.** `dvdinfo-lpcm` gives every field of the LPCM audio pack header with its bit layout. *Proposed:* approve for program streams. No description of the Blu-ray LPCM header was found, so LPCM in transport streams keeps container-declared values only.
 
@@ -92,7 +93,12 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 
 **PGS.** `thescorpius-pgs` (2017, updated 2019) gives the segment header and the five segment types with their fields, and names the two patents it is based on. *Proposed:* approve. Its worked example comes from a real file and is not used as a fixture (R8).
 
-**HDMV TextST.** Appendix B.6 found nothing. Published patents describe the dialog style segment and its region styles in syntax tables, and the pinned Matroska codec draft cites the section of the Blu-ray specification, which is not public. The patents were not read yet. *Proposed:* defer, unless G1.5 asks for a patent text to be read and approved.
+**HDMV TextST.** Appendix B.6 found nothing, and the pinned Matroska codec draft cites the section of the Blu-ray specification, which is not public. Two published patents describe the stream:
+
+- `jpo-jp-5339002`, Sony's JP 5339002 B2 (granted 2013), in Japanese. Its figures 11 to 17 are syntax tables with the size and mnemonic of every field: the stream (a dialog style segment, a 16-bit count of presentation segments, then the presentation segments), the segment descriptor (an 8-bit type, 0x81 for the style segment and 0x82 for a presentation segment, and a 16-bit length), and the dialog style set with its region styles and user styles. Its paragraphs 0083 to 0099 restate the sizes in prose. Rows that the figures shade, the font style and the two outline fields, are features of the invention, so the patent alone does not establish them as part of the disc format.
+- `uspto-us-8326118`, LG's US 8,326,118 B2 (granted 2012), in English. Its figures 9A to 9D give the same structures by field name, without sizes, and its text explains each field.
+
+*Decided at G1.5:* approve both, Sony's for the layout and LG's as corroboration. The parser checks the fields it reads against `segment_length`, and a segment whose fields do not add up gives a partial result.
 
 **XSUB.** `multimedia-wiki-xsub` (revision 10542, 2008) gives the packet header: timestamp string, dimensions, coordinates, palette and the length of the run-length data. It links to an implementation's source, which was not opened. *Proposed:* approve.
 
@@ -113,17 +119,19 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 ### Nothing located
 
 - **Windows Media Video 7/8 extra data:** bitmap header fields only.
-- **VobSub palette in MP4:** the object type is registered, the layout of its decoder-specific information is not described; identification only.
-- **DVD private-stream sub-stream numbers:** the located pages say that the first payload byte is a sub-stream number but list no values. Without them, program streams from DVD cannot tell their private streams apart by number. *Open question for G1.5:* look for a further source, or identify the codec of each private stream from its own sync pattern, which the approved codec specifications define.
+- **VobSub palette in MP4:** the layout of its decoder-specific information is not described; identification only. No registry identifies the track: the MP4 registration authority lists stream type 0x38 and object type 0xE0 only within user-private ranges, does not register the handler `subp`, and registers `mp4s` only as generic MPEG-4 Systems. *Added in task 17:* `doom9-vobsub-in-mp4`, page 4 of a forum thread of 2006 whose posters examined such files, reports the handler `subp`, the sample entry `mp4s`, stream type 0x38, object type 0xE0, a 90 kHz timescale and samples that are DVD sub-picture bitmaps (posts 71, 77 and 80). The maintainer approved it through GS.2 for identification only: a track is VobSub when all four codes agree. A layout of the palette was found only on an implementation project's issue tracker, which is not a source here (plan section 1.3).
+- **DVD private-stream sub-stream numbers:** the pages read first say that the first payload byte is a sub-stream number but list no values. During G1.5, the same site's page on how DVD differs from MPEG, `dvdinfo-dvdmpeg`, was found: 0x20 to 0x3F are sub-pictures, 0x80 to 0x87 audio (AC-3, DTS, SDDS) and 0xA0 to 0xA7 LPCM. *Decided at G1.5:* approve it for these ranges; an audio sub-stream's codec is identified by its sync word, which the approved ETSI specifications of AC-3 and DTS define, whatever its number.
 - **RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording, RealAudio metafiles:** no public description; drop from the inventory, as the fallback says.
 
 ## What G1.5 changes in the plan
 
-If the proposals are approved as written, task 16 updates the plan:
+G1.5 accepted every proposal, so task 16 updates the plan, together with the outcomes of G1.6:
 
-- The RealVideo rows of section 4.3 become identification only.
-- MicroDVD stays as a detect-only type.
+- The RealVideo rows of section 4.3 become identification only, as do AAC in RealMedia, the VobSub palette in MP4 and Kate.
+- OGM and MicroDVD stay as detect-only types; RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording and RealAudio metafiles leave the inventory.
 - The Blu-ray part of Phase 15 is deferred.
-- The VBRI layout is not read.
+- HDMV TextST keeps its parser in Phase 14, from the patent texts, and its deferred coverage rows become active.
+- The VBRI layout is read for its byte and frame counts.
+- Program streams from DVD identify their private streams by sub-stream number and, for audio, by sync word.
 
 VobSub keeps its companion lookup in 0.7.0 (R18).

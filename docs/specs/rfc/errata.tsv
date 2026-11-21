@@ -46,6 +46,7 @@ rfc	erratum	status	type	section	relevance	components	summary
 4867	4348	verified	technical	4.3.1	none		States that an encoder follows codec mode requests.
 4867	4349	verified	technical	8.1	none		Clarifies the SDP mode-set parameter.
 4867	8531	verified	editorial	8.2	none		Corrects a reference for the ptime parameter.
+5761	3380	verified	technical	4	none		Corrects the RTP payload type that conflicts with receiver summary information packets from 80 to 81; RTP sessions are not read.
 6184	3318	verified	technical	8.1	none		Corrects the max-dpb formula of the SDP parameters.
 6190	3711	verified	technical	1.1.3	parsing	H.264 scalable extension NAL unit header	Swaps the meaning of no_inter_layer_pred_flag: 0 allows inter-layer prediction, 1 does not.
 6386	3395	verified	editorial	20.16./p.239	none		Corrects the attached reference decoder (section 20), which this project never reads.

@@ -1,13 +1,13 @@
 # Descriptions of the paid standards
 
-This directory covers the 16 paid ISO/IEC and IEC documents listed in the [source manifest](../manifest.tsv), including two amendments. The project uses public evidence, including publisher previews, corrigenda and independently published specifications. Each file describes the fields needed by the probe in the project's own words. A description is a `descriptive` source (plan section 5.4), proposed for approval at G1.6. Behavior taken from it is labeled as descriptive in code comments and in `formats.md`.
+This directory covers the 16 paid ISO/IEC and IEC documents listed in the [source manifest](../manifest.tsv), including two amendments. The project uses public evidence, including publisher previews, corrigenda and independently published specifications. Each file describes the fields needed by the probe in the project's own words. A description is a `descriptive` source (plan section 5.4); G1.6 approved each one as the substitute for its standard on 2026-11-21. Behavior taken from it is labeled as descriptive in code comments and in `formats.md`.
 
 - **Nothing is copied from the standards.** Field names are given as the standards spell them, because code comments cite them (plan section 5.5); layouts and meanings are restated from the sources.
 - **Sources are traceable.** References use manifest identifiers, RFC numbers or direct links to supporting clauses and examples. Additional public references are candidates for the project's source review. A registration establishes a code's meaning. A profile or earlier edition establishes the rules within its stated scope.
 - **Implementations are never a source.** Search results that pointed to an implementation's code were not opened (plan section 1.3).
 - **Gaps are stated.** Each file records which claims its cited material leaves open and which fields the probe can still identify.
 
-A coverage row cites a description as `<file name>: <section>`, for example `iso-iec-14496-15.md: 2`. A row that needs a structure the cited sources do not establish cites the description's gaps, `iso-iec-14496-15.md: Gaps`; G1.6 decides such a row.
+A coverage row cites a description as `<file name>: <section>`, for example `iso-iec-14496-15.md: 2`. A row that needs a structure the cited sources do not establish cites the description's gaps, `iso-iec-14496-15.md: Gaps`. G1.6 decided such rows: each keeps what the cited sources establish, and the rest is deferred to G17.n until another source is approved through GS.2.
 
 | File | Standard | What the project needs from it |
 |---|---|---|

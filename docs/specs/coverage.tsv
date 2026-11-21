@@ -1,340 +1,354 @@
 key	status	release	gate	sources	fixture	confirmed
-detect.3gp-3g2	active	0.1.0		3gpp-ts-26244: 5; 3gpp2-c-s0050-b: 8		
-detect.aac-adif	active	0.1.0		iso-iec-13818-7.md: Gaps		
-detect.aac-adts	active	0.1.0		iso-iec-13818-7.md: 2		
-detect.aac-loas	active	0.1.0		iso-iec-14496-3.md: Gaps		
-detect.ac3	active	0.1.0		etsi-ts-102366: 4.3; etsi-ts-102366: E.1.2		
+detect.3gp-3g2	active	0.1.0		3gpp-ts-26244: 5.3.4; 3gpp2-c-s0050-b: 8.1.1		2026-11-21
+detect.aac-adif	active	0.1.0		loc-aac-adif: Description; iso-iec-13818-7.md: 3		2026-11-21
+detect.aac-adts	active	0.1.0		iso-iec-13818-7.md: 2		2026-11-21
+detect.aac-loas	deferred		G17.n			
+detect.ac3	active	0.1.0		etsi-ts-102366: 4.3; etsi-ts-102366: 4.4; etsi-ts-102366: E.1.2; etsi-ts-102366: E.1.3		2026-11-21
 detect.aiff-aifc	deferred		G17.n			
 detect.amr	deferred		G17.n			
-detect.asf	active	0.1.0		microsoft-asf-specification: 3		
+detect.asf	active	0.1.0		microsoft-asf-specification: 3		2026-11-21
 detect.au	deferred		G17.n			
-detect.av1-obu	active	0.1.0		aom-av1-specification: 5.3; aom-av1-specification: Annex B		
-detect.avi	active	0.1.0		microsoft-avi-riff-reference: AVI RIFF File Reference; opendml-avi-1-02: 1; microsoft-dv-in-avi: DV Data in the AVI File Format		
-detect.blu-ray-playlists	deferred		G1.5			
-detect.caf	active	0.1.0		apple-caf-specification: CAF File Overview		
-detect.dirac	active	0.1.0		smpte-st-2042-1: 9		
+detect.av1-obu	active	0.1.0		aom-av1-specification: 5.3; aom-av1-specification: Annex B		2026-11-21
+detect.avi	active	0.1.0		microsoft-avi-riff-reference: AVI RIFF Form; opendml-avi-1-02: 2.0; opendml-avi-1-02: 3.0; microsoft-dv-in-avi: DV Data in the AVI File Format		2026-11-21
+detect.blu-ray-playlists	deferred		G17.n			
+detect.caf	active	0.1.0		apple-caf-specification: CAF File Header		2026-11-21
+detect.dirac	active	0.1.0		smpte-st-2042-1: 10.5.1		2026-11-21
 detect.dsd-dsf-dsdiff	deferred		G17.n			
-detect.dts	active	0.1.0		etsi-ts-102114: 5.3		
-detect.dv	active	0.1.0		iec-61834-2.md: 2; iec-61834-2.md: 3		
-detect.dvd-video	active	0.1.0		dvdinfo-ifo: IFO		
-detect.f4v	active	0.1.0		adobe-flv-f4v-10-1: F4V file format		
-detect.flac	active	0.1.0		rfc9639: 6		
-detect.flv	active	0.1.0		adobe-flv-f4v-10-1: Annex E		
-detect.fragmented-mp4	active	0.1.0		iso-iec-14496-12.md: 3; iso-iec-14496-12.md: Gaps		
-detect.h264	active	0.1.0		itu-t-h-264: Annex B		
-detect.hd-dvd-subtitles	deferred		G1.5			
-detect.hdmv-textst	deferred		G1.5			
-detect.hevc	active	0.1.0		itu-t-h-265: Annex B		
-detect.internet-video-recording	deferred		G1.5			
-detect.ivf	active	0.1.0		multimedia-wiki-ivf: File header		
-detect.matroska	active	0.1.0		rfc8794: 11; rfc9559: 5		
-detect.microdvd	active	0.1.0		multimedia-wiki-microdvd: Format		
+detect.dts	active	0.1.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4		2026-11-21
+detect.dv	active	0.1.0		iec-61834-2.md: 2; iec-61834-2.md: 3		2026-11-21
+detect.dvd-video	active	0.1.0		dvdinfo-ifo: IFO file		2026-11-21
+detect.f4v	active	0.1.0		adobe-flv-f4v-10-1: 1		2026-11-21
+detect.flac	active	0.1.0		rfc9639: 6		2026-11-21
+detect.flv	active	0.1.0		adobe-flv-f4v-10-1: Annex E		2026-11-21
+detect.fragmented-mp4	active	0.1.0		iso-iec-14496-12.md: 3; iso-iec-14496-12-2015: 8.8		2026-11-21
+detect.h264	active	0.1.0		itu-t-h-264: Annex B		2026-11-21
+detect.hd-dvd-subtitles	dropped		G1.5			
+detect.hdmv-textst	active	0.1.0		jpo-jp-5339002: Figures 11 to 14		2026-11-21
+detect.hevc	active	0.1.0		itu-t-h-265: Annex B		2026-11-21
+detect.internet-video-recording	dropped		G1.5			
+detect.ivf	active	0.1.0		multimedia-wiki-ivf: Introduction		2026-11-21
+detect.matroska	active	0.1.0		rfc8794: 11; rfc9559: 4.3		2026-11-21
+detect.microdvd	active	0.1.0		multimedia-wiki-microdvd: Introduction		2026-11-21
 detect.monkey-s-audio	deferred		G17.n			
-detect.mov	active	0.1.0		apple-quicktime-file-format: Movie atoms		
-detect.mp4	active	0.1.0		iso-iec-14496-12.md: 2; iso-iec-14496-12.md: 3		
-detect.mpeg-audio	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2		
-detect.mpeg-video	active	0.1.0		itu-t-h-262: 6.2.2; iso-iec-11172-2.md: 2		
-detect.mpeg4-visual	active	0.1.0		iso-iec-14496-2.md: Gaps		
+detect.mov	active	0.1.0		apple-quicktime-file-format: Movie atoms		2026-11-21
+detect.mp4	active	0.1.0		iso-iec-14496-12.md: 2; iso-iec-14496-12.md: 3		2026-11-21
+detect.mpeg-audio	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2		2026-11-21
+detect.mpeg-video	active	0.1.0		itu-t-h-262: 6.2.2; iso-iec-11172-2.md: 2		2026-11-21
+detect.mpeg4-visual	deferred		G17.n			
 detect.musepack	deferred		G17.n			
 detect.mxf	deferred		G17.n			
-detect.ogg	active	0.1.0		rfc3533: 6		
-detect.ogm	active	0.1.0		rfc3533: 6		
-detect.pgs	active	0.1.0		thescorpius-pgs: Segments		
-detect.program-stream	active	0.1.0		itu-t-h-222-0: 2.5; iso-iec-11172-1.md: 2		
-detect.realaudio	active	0.1.0		multimedia-wiki-realmedia: RealAudio file format		
-detect.realaudio-metafile	deferred		G1.5			
-detect.realmedia	active	0.1.0		realnetworks-rmff: Header Section		
+detect.ogg	active	0.1.0		rfc3533: 6		2026-11-21
+detect.ogm	deferred		G17.n			
+detect.pgs	active	0.1.0		thescorpius-pgs: Introduction; thescorpius-pgs: Presentation Composition Segment		2026-11-21
+detect.program-stream	active	0.1.0		itu-t-h-222-0: 2.5; iso-iec-11172-1.md: 2		2026-11-21
+detect.realaudio	active	0.1.0		multimedia-wiki-realmedia: RA Format		2026-11-21
+detect.realaudio-metafile	dropped		G1.5			
+detect.realmedia	active	0.1.0		realnetworks-rmff: Header Section		2026-11-21
 detect.rf64-bw64	active	0.1.0		ebu-tech-3306: 3; itu-r-bs-2088-2: 3		
-detect.riff-cd-xa	deferred		G1.5			
-detect.ssa-ass	active	0.1.0		kotus-ssa-v4-plus: Sections		
-detect.subrip	active	0.1.0		loc-subrip: Description		
-detect.transport-stream	active	0.1.0		itu-t-h-222-0: 2.4		
-detect.truehd	active	0.1.0		dolby-truehd-bitstream: Major sync		
-detect.tta	active	0.1.0		tausoft-tta: TTA Header Structure		
-detect.usf	active	0.1.0		titlevision-usf: Specification		
-detect.vc-1	active	0.1.0		smpte-st-421: Annex E		
-detect.vobbuttons	active	0.1.0		dvdinfo-pci: PCI; ietf-draft-cellar-codec: B_VOBBTN		
-detect.vobsub	active	0.1.0		dvdinfo-spu: Sub-Picture Unit		
-detect.vvc	active	0.1.0		itu-t-h-266: Annex B		
-detect.wave	active	0.1.0		microsoft-riff-mci-1-0: 3; microsoft-waveformatex: Remarks		
-detect.wave64	active	0.1.0		multimedia-wiki-wave64: Format		
-detect.wavpack	active	0.1.0		wavpack-5-file-format: Block Header		
-detect.webm	active	0.1.0		webm-container-guidelines: Guidelines; rfc9559: 22		
-detect.webvtt	active	0.1.0		w3c-webvtt: 4		
-detect.windows-television	deferred		G1.5			
-detect.wma	active	0.1.0		microsoft-asf-specification: 3		
-detect.wmv	active	0.1.0		microsoft-asf-specification: 3		
-identify.cea-608-708.mp4-mov	active	0.1.0		apple-quicktime-file-format: Closed captioning		
-identify.evrc-qcelp-smv.3g2	active	0.1.0		3gpp2-c-s0050-b: 8		
-identify.legacy-fourcc-video.avi	active	0.1.0		microsoft-fourcc-codes: FOURCC Codes; rfc2361: Appendix B		
-identify.legacy-fourcc-video.matroska	active	0.1.0		ietf-draft-cellar-codec: V_MS/VFW/FOURCC		
-identify.legacy-fourcc-video.mov	active	0.1.0		mp4ra-sample-entries-qt: Sample entries		
-identify.subrip-plain-text.matroska	active	0.1.0		ietf-draft-cellar-codec: S_TEXT/UTF8		
-identify.ttml.mp4	active	0.1.0		iso-iec-14496-30.md: 3		
-identify.uncompressed-video.avi	active	0.1.0		microsoft-bitmapinfoheader: Members		
-identify.uncompressed-video.matroska	active	0.1.0		ietf-draft-cellar-codec: V_UNCOMPRESSED		
-identify.uncompressed-video.mov	active	0.1.0		apple-quicktime-file-format: Video sample description		
-identify.vobbuttons.matroska	active	0.1.0		ietf-draft-cellar-codec: B_VOBBTN		
-pair.3gpp-timed-text.sample-description.mp4-and-3gp-sample-entry	active	0.1.0		3gpp-ts-26245: 5.16; iso-iec-14496-12.md: 3		
-pair.aac.adif.raw-file	active	0.4.0		iso-iec-13818-7.md: Gaps		
-pair.aac.adts.avi-chunks	active	0.1.0		iso-iec-13818-7.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		
+detect.riff-cd-xa	dropped		G1.5			
+detect.ssa-ass	active	0.1.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section		2026-11-21
+detect.subrip	active	0.1.0		loc-subrip: Description		2026-11-21
+detect.transport-stream	active	0.1.0		itu-t-h-222-0: 2.4		2026-11-21
+detect.truehd	active	0.1.0		dolby-truehd-bitstream: 4.2		2026-11-21
+detect.tta	active	0.1.0		tausoft-tta: TTA Header Structure		2026-11-21
+detect.usf	active	0.1.0		titlevision-usf: Universal Subtitle Format (USF) Specification v1.1		2026-11-21
+detect.vc-1	active	0.1.0		smpte-st-421: Annex E		2026-11-21
+detect.vobbuttons	active	0.1.0		dvdinfo-pci: Presentation Control Information (PCI) Packet Layout; ietf-draft-cellar-codec: B_VOBBTN		2026-11-21
+detect.vobsub	active	0.1.0		dvdinfo-spu: Sub-Pictures		2026-11-21
+detect.vvc	active	0.1.0		itu-t-h-266: Annex B		2026-11-21
+detect.wave	active	0.1.0		microsoft-riff-mci-1-0: 3; microsoft-waveformatex: Remarks		2026-11-21
+detect.wave64	active	0.1.0		multimedia-wiki-wave64: Introduction		2026-11-21
+detect.wavpack	active	0.1.0		wavpack-5-file-format: 2.0		2026-11-21
+detect.webm	active	0.1.0		webm-container-guidelines: Demuxer Guidelines; rfc9559: 4.3		2026-11-21
+detect.webvtt	active	0.1.0		w3c-webvtt: 4		2026-11-21
+detect.windows-television	dropped		G1.5			
+detect.wma	active	0.1.0		microsoft-asf-specification: 3		2026-11-21
+detect.wmv	active	0.1.0		microsoft-asf-specification: 3		2026-11-21
+identify.aac-latm.ts	active	0.3.0		itu-t-h-222-0: 2.4.4.9		
+identify.aac.realmedia	active	0.6.0		multimedia-wiki-realmedia: audio/x-pn-realaudio and audio/x-pn-multirate-realaudio		
+identify.cea-608-708.mp4-mov	active	0.1.0		apple-quicktime-file-format: Closed captioning sample description		2026-11-21
+identify.evrc-qcelp-smv.3g2	active	0.1.0		3gpp2-c-s0050-b: 8.4.3; 3gpp2-c-s0050-b: 8.4.4; 3gpp2-c-s0050-b: 8.4.5; 3gpp2-c-s0050-b: 8.4.6; 3gpp2-c-s0050-b: 8.4.7		2026-11-21
+identify.kate.matroska	active	0.1.0		ietf-draft-cellar-codec: S_KATE		2026-11-21
+identify.kate.ogg	active	0.2.0		xiph-wiki-kate: Format specification; rfc3533: 6		
+identify.legacy-fourcc-video.avi	active	0.1.0		microsoft-fourcc-codes: FOURCC Codes; rfc2361: Appendix B		2026-11-21
+identify.legacy-fourcc-video.matroska	active	0.1.0		ietf-draft-cellar-codec: V_MS/VFW/FOURCC		2026-11-21
+identify.legacy-fourcc-video.mov	active	0.1.0		mp4ra-sample-entries-qt: Sample entries		2026-11-21
+identify.mpeg4-visual.avi	active	0.1.0		microsoft-fourcc-codes: FOURCC Codes; rfc2361: Appendix B		2026-11-21
+identify.mpeg4-visual.matroska	active	0.1.0		ietf-draft-cellar-codec: V_MPEG4/ISO/AP; ietf-draft-cellar-codec: V_MPEG4/ISO/ASP; ietf-draft-cellar-codec: V_MPEG4/ISO/SP		2026-11-21
+identify.mpeg4-visual.mp4	active	0.1.0		mp4ra-oti: Object types; iso-iec-14496-1.md: 3; iso-iec-14496-1.md: 4		2026-11-21
+identify.mpeg4-visual.ts-ps	active	0.3.0		itu-t-h-222-0: 2.4.4.9; itu-t-h-222-0: 2.11.2		
+identify.realvideo.matroska	active	0.1.0		ietf-draft-cellar-codec: V_REAL/RV10; ietf-draft-cellar-codec: V_REAL/RV20; ietf-draft-cellar-codec: V_REAL/RV30; ietf-draft-cellar-codec: V_REAL/RV40		2026-11-21
+identify.realvideo.realmedia	active	0.6.0		realnetworks-rmff: Media Properties Header; multimedia-wiki-realmedia: Codecs		
+identify.subrip-plain-text.matroska	active	0.1.0		ietf-draft-cellar-codec: S_TEXT/UTF8		2026-11-21
+identify.ttml.mp4	active	0.1.0		iso-iec-14496-30.md: 3		2026-11-21
+identify.uncompressed-video.avi	active	0.1.0		microsoft-bitmapinfoheader: Members		2026-11-21
+identify.uncompressed-video.matroska	active	0.1.0		ietf-draft-cellar-codec: V_UNCOMPRESSED		2026-11-21
+identify.uncompressed-video.mov	active	0.1.0		apple-quicktime-file-format: Video sample description ('stsd')		2026-11-21
+identify.vobbuttons.matroska	active	0.1.0		ietf-draft-cellar-codec: B_VOBBTN		2026-11-21
+identify.vobsub.mp4	active	0.1.0		doom9-vobsub-in-mp4: Posts 71, 77 and 80; mp4ra-handlers: Handlers; mp4ra-stream-types: Stream types; iso-iec-14496-1.md: 4		2026-11-21
+identify.vvc.matroska	active	0.1.0		ietf-draft-cellar-codec: V_MPEGI/ISO/VVC		2026-11-21
+identify.vvc.mp4	active	0.1.0		mp4ra-sample-entries: Sample entries		2026-11-21
+pair.3gpp-timed-text.sample-description.mp4-and-3gp-sample-entry	active	0.1.0		3gpp-ts-26245: 5.16; iso-iec-14496-12.md: 3		2026-11-21
+pair.aac.adif.raw-file	active	0.4.0		loc-aac-adif: Description; iso-iec-13818-7.md: 3		
+pair.aac.adts.avi-chunks	active	0.1.0		iso-iec-13818-7.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
 pair.aac.adts.raw-file	active	0.4.0		iso-iec-13818-7.md: 2		
 pair.aac.adts.ts-ps	active	0.3.0		iso-iec-13818-7.md: 2; itu-t-h-222-0: 2.4.4		
-pair.aac.audio-specific-config.avi-wave-format-extra-data	active	0.1.0		iso-iec-14496-3.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.aac.audio-specific-config.flv-sequence-header	active	0.6.0		iso-iec-14496-3.md: 2; adobe-flv-f4v-10-1: Annex E		
-pair.aac.audio-specific-config.matroska-private-data	active	0.1.0		iso-iec-14496-3.md: 2; ietf-draft-cellar-codec: Codec Mappings		
-pair.aac.audio-specific-config.mp4-decoder-specific-information	active	0.1.0		iso-iec-14496-3.md: 2; iso-iec-14496-1.md: 4; iso-iec-14496-14.md: 2; iso-iec-14496-12.md: 3		
-pair.aac.audio-specific-config.realmedia-type-specific-data	deferred		G1.5			
-pair.aac.latm-loas.raw-file	active	0.4.0		iso-iec-14496-3.md: Gaps		
-pair.aac.latm-loas.ts	active	0.3.0		iso-iec-14496-3.md: Gaps; itu-t-h-222-0: 2.4.4		
-pair.ac-4.configuration-box.mp4-sample-entry	active	0.1.0		etsi-ts-103190-2: E.5; iso-iec-14496-12.md: 3		
+pair.aac.audio-specific-config.avi-wave-format-extra-data	active	0.1.0		iso-iec-14496-3.md: 2; iso-iec-14496-3.md: 3; iso-iec-14496-3.md: 4; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.aac.audio-specific-config.flv-sequence-header	active	0.6.0		iso-iec-14496-3.md: 2; iso-iec-14496-3.md: 3; iso-iec-14496-3.md: 4; adobe-flv-f4v-10-1: Annex E		
+pair.aac.audio-specific-config.matroska-private-data	active	0.1.0		iso-iec-14496-3.md: 2; iso-iec-14496-3.md: 3; iso-iec-14496-3.md: 4; ietf-draft-cellar-codec: A_AAC		2026-11-21
+pair.aac.audio-specific-config.mp4-decoder-specific-information	active	0.1.0		iso-iec-14496-3.md: 2; iso-iec-14496-3.md: 3; iso-iec-14496-3.md: 4; iso-iec-14496-1.md: 3; iso-iec-14496-1.md: 4; iso-iec-14496-14.md: 2; iso-iec-14496-12.md: 3		2026-11-21
+pair.aac.audio-specific-config.realmedia-type-specific-data	deferred		G17.n			
+pair.aac.latm-loas.raw-file	deferred		G17.n			
+pair.aac.latm-loas.ts	deferred		G17.n			
+pair.ac-4.configuration-box.mp4-sample-entry	active	0.1.0		etsi-ts-103190-2: E.5; iso-iec-14496-12.md: 3		2026-11-21
 pair.ac-4.sync-frame.ts	active	0.3.0		etsi-ts-103190-1: Annex G; etsi-ts-103190-1: 4.3; itu-t-h-222-0: 2.4.4		
-pair.ac3.configuration-boxes.mp4-sample-entry	active	0.1.0		etsi-ts-102366: F.4; etsi-ts-102366: F.6; iso-iec-14496-12.md: 3		
-pair.ac3.sync-frame.avi-chunks	active	0.1.0		etsi-ts-102366: 4.3; etsi-ts-102366: E.1.2; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.ac3.sync-frame.matroska-frames	active	0.1.0		etsi-ts-102366: 4.3; etsi-ts-102366: E.1.2; ietf-draft-cellar-codec: Codec Mappings		
-pair.ac3.sync-frame.raw-file	active	0.4.0		etsi-ts-102366: 4.3; etsi-ts-102366: E.1.2		
-pair.ac3.sync-frame.ts-ps	active	0.3.0		etsi-ts-102366: 4.3; etsi-ts-102366: E.1.2; itu-t-h-222-0: 2.4.4		
+pair.ac3.configuration-boxes.mp4-sample-entry	active	0.1.0		etsi-ts-102366: F.4; etsi-ts-102366: F.6; iso-iec-14496-12.md: 3		2026-11-21
+pair.ac3.sync-frame.avi-chunks	active	0.1.0		etsi-ts-102366: 4.3; etsi-ts-102366: 4.4; etsi-ts-102366: E.1.2; etsi-ts-102366: E.1.3; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.ac3.sync-frame.matroska-frames	active	0.1.0		etsi-ts-102366: 4.3; etsi-ts-102366: 4.4; etsi-ts-102366: E.1.2; etsi-ts-102366: E.1.3; ietf-draft-cellar-codec: A_AC3; ietf-draft-cellar-codec: A_EAC3		2026-11-21
+pair.ac3.sync-frame.raw-file	active	0.4.0		etsi-ts-102366: 4.3; etsi-ts-102366: 4.4; etsi-ts-102366: E.1.2; etsi-ts-102366: E.1.3		
+pair.ac3.sync-frame.ts-ps	active	0.3.0		etsi-ts-102366: 4.3; etsi-ts-102366: 4.4; etsi-ts-102366: E.1.2; etsi-ts-102366: E.1.3; itu-t-h-222-0: 2.4.4		
 pair.alac.magic-cookie.caf-chunk	active	0.4.0		apple-alac-magic-cookie: ALACSpecificConfig; apple-caf-specification: Magic Cookie Chunk		
-pair.alac.magic-cookie.matroska-private-data	active	0.1.0		apple-alac-magic-cookie: ALACSpecificConfig; ietf-draft-cellar-codec: Codec Mappings		
-pair.alac.magic-cookie.mp4-mov-sample-entry	active	0.1.0		apple-alac-magic-cookie: ALACSpecificConfig; iso-iec-14496-12.md: 3		
-pair.amr.configuration-box.3gp-sample-entry	active	0.1.0		3gpp-ts-26244: 6.7; iso-iec-14496-12.md: 3		
+pair.alac.magic-cookie.matroska-private-data	active	0.1.0		apple-alac-magic-cookie: ALACSpecificConfig; ietf-draft-cellar-codec: A_ALAC		2026-11-21
+pair.alac.magic-cookie.mp4-mov-sample-entry	active	0.1.0		apple-alac-magic-cookie: ALACSpecificConfig; iso-iec-14496-12.md: 3		2026-11-21
+pair.amr.configuration-box.3gp-sample-entry	active	0.1.0		3gpp-ts-26244: 6.7; iso-iec-14496-12.md: 3		2026-11-21
 pair.av1.configuration-record.flv-sequence-header	active	0.6.0		aom-av1-isobmff: 2.3; adobe-flv-f4v-10-1: Annex E		
-pair.av1.configuration-record.matroska-private-data	active	0.1.0		aom-av1-isobmff: 2.3; ietf-draft-cellar-codec: Codec Mappings		
-pair.av1.configuration-record.mp4-sample-entry	active	0.1.0		aom-av1-isobmff: 2.3; iso-iec-14496-12.md: 3		
+pair.av1.configuration-record.matroska-private-data	active	0.1.0		aom-av1-isobmff: 2.3; ietf-draft-cellar-codec: V_AV1		2026-11-21
+pair.av1.configuration-record.mp4-sample-entry	active	0.1.0		aom-av1-isobmff: 2.3; iso-iec-14496-12.md: 3		2026-11-21
 pair.av1.length-delimited.raw-file	active	0.5.0		aom-av1-specification: Annex B		
 pair.av1.low-overhead.flv-packets	active	0.6.0		aom-av1-specification: 5.3; adobe-flv-f4v-10-1: Annex E		
 pair.av1.low-overhead.ivf-frames	active	0.5.0		aom-av1-specification: 5.3; multimedia-wiki-ivf: Frame header		
-pair.av1.low-overhead.matroska-frames	active	0.1.0		aom-av1-specification: 5.3; ietf-draft-cellar-codec: Codec Mappings		
-pair.av1.low-overhead.mp4-samples	active	0.1.0		aom-av1-specification: 5.3; iso-iec-14496-12.md: 3		
+pair.av1.low-overhead.matroska-frames	active	0.1.0		aom-av1-specification: 5.3; ietf-draft-cellar-codec: V_AV1		2026-11-21
+pair.av1.low-overhead.mp4-samples	active	0.1.0		aom-av1-specification: 5.3; iso-iec-14496-12.md: 3		2026-11-21
 pair.av1.low-overhead.raw-file	active	0.5.0		aom-av1-specification: 5.3		
 pair.av1.start-code.ts	active	0.3.0		aom-av1-mpeg2-ts: Start code based format; itu-t-h-222-0: 2.4.4		
-pair.dirac.sequence-header.matroska-frames	active	0.5.0		smpte-st-2042-1: 10; ietf-draft-cellar-codec: Codec Mappings		
+pair.dirac.sequence-header.matroska-frames	active	0.5.0		smpte-st-2042-1: 10; ietf-draft-cellar-codec: V_DIRAC		
 pair.dirac.sequence-header.ogg-packets	active	0.5.0		smpte-st-2042-1: 10; rfc3533: 6		
 pair.dirac.sequence-header.raw-file	active	0.5.0		smpte-st-2042-1: 10		
-pair.dts.configuration-box.mp4-sample-entry	active	0.1.0		etsi-ts-102114: Annex E; iso-iec-14496-12.md: 3		
-pair.dts.core-frame-header.matroska-frames	active	0.1.0		etsi-ts-102114: 5.3; ietf-draft-cellar-codec: Codec Mappings		
-pair.dts.core-frame-header.raw-file	active	0.4.0		etsi-ts-102114: 5.3		
-pair.dts.core-frame-header.ts-ps	active	0.3.0		etsi-ts-102114: 5.3; itu-t-h-222-0: 2.4.4		
-pair.dts.extension-substream.matroska-frames	active	0.1.0		etsi-ts-102114: 7.4; ietf-draft-cellar-codec: Codec Mappings		
-pair.dts.extension-substream.raw-file	active	0.4.0		etsi-ts-102114: 7.4		
-pair.dts.extension-substream.ts-ps	active	0.3.0		etsi-ts-102114: 7.4; itu-t-h-222-0: 2.4.4		
+pair.dts.configuration-box.mp4-sample-entry	active	0.1.0		etsi-ts-102114: E.2.2; iso-iec-14496-12.md: 3		2026-11-21
+pair.dts.core-frame-header.matroska-frames	active	0.1.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4; ietf-draft-cellar-codec: A_DTS		2026-11-21
+pair.dts.core-frame-header.raw-file	active	0.4.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4		
+pair.dts.core-frame-header.ts-ps	active	0.3.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4; itu-t-h-222-0: 2.4.4		
+pair.dts.extension-substream.matroska-frames	active	0.1.0		etsi-ts-102114: 7.4; etsi-ts-102114: 7.5.2; ietf-draft-cellar-codec: A_DTS; ietf-draft-cellar-codec: A_DTS/EXPRESS; ietf-draft-cellar-codec: A_DTS/LOSSLESS		2026-11-21
+pair.dts.extension-substream.raw-file	active	0.4.0		etsi-ts-102114: 7.4; etsi-ts-102114: 7.5.2		
+pair.dts.extension-substream.ts-ps	active	0.3.0		etsi-ts-102114: 7.4; etsi-ts-102114: 7.5.2; itu-t-h-222-0: 2.4.4		
 pair.dts.stream-variants.raw-file	active	0.4.0		etsi-ts-102114: 5.4		
 pair.dts.stream-variants.wave-data	active	0.4.0		etsi-ts-102114: 5.4; microsoft-riff-mci-1-0: 3		
-pair.dv.dif-header.avi-types-1-and-2	active	0.1.0		iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; rfc6469: 2.1; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.dv.dif-header.mov-samples	active	0.1.0		iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; rfc6469: 2.1; apple-quicktime-file-format: Sample description atoms		
-pair.dv.dif-header.raw-file	active	0.5.0		iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; rfc6469: 2.1		
-pair.dvb-subtitles.first-segment-headers.matroska-frames	active	0.1.0		etsi-en-300743: 7.2; ietf-draft-cellar-codec: Codec Mappings		
+pair.dv.dif-header.avi-types-1-and-2	active	0.1.0		iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; iec-61834-2.md: 7; uspto-us-5907444: FIGS. 31, 37 and 38; rfc6469: 2.1; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.dv.dif-header.mov-samples	active	0.1.0		iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; iec-61834-2.md: 7; uspto-us-5907444: FIGS. 31, 37 and 38; rfc6469: 2.1; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
+pair.dv.dif-header.raw-file	active	0.5.0		iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; iec-61834-2.md: 7; uspto-us-5907444: FIGS. 31, 37 and 38; rfc6469: 2.1		
+pair.dvb-subtitles.first-segment-headers.matroska-frames	active	0.1.0		etsi-en-300743: 7.2; ietf-draft-cellar-codec: S_DVBSUB		2026-11-21
 pair.dvb-subtitles.first-segment-headers.ts	active	0.3.0		etsi-en-300743: 7.2; itu-t-h-222-0: 2.4.4		
-pair.dvb-subtitles.page-identifiers.matroska-private-data	active	0.1.0		ietf-draft-cellar-codec: S_DVBSUB; ietf-draft-cellar-codec: Codec Mappings		
+pair.dvb-subtitles.page-identifiers.matroska-private-data	active	0.1.0		ietf-draft-cellar-codec: S_DVBSUB		2026-11-21
 pair.dvb-subtitles.subtitling-descriptor.ts	active	0.3.0		etsi-en-300468: 6.2.41; itu-t-h-222-0: 2.4.4		
 pair.dvb-teletext.teletext-descriptor.ts	active	0.3.0		etsi-en-300468: 6.2.43; itu-t-h-222-0: 2.4.4		
-pair.ffv1.version-0-1-parameters.avi-chunks	active	0.1.0		rfc9043: 4.2; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.ffv1.version-0-1-parameters.matroska-frames	active	0.1.0		rfc9043: 4.2; ietf-draft-cellar-codec: Codec Mappings		
-pair.ffv1.version-0-1-parameters.mov-samples	active	0.1.0		rfc9043: 4.2; apple-quicktime-file-format: Sample description atoms		
-pair.ffv1.version-3-configuration.avi-stream-format	active	0.1.0		rfc9043: 4.3; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.ffv1.version-3-configuration.matroska-private-data	active	0.1.0		rfc9043: 4.3; ietf-draft-cellar-codec: Codec Mappings		
-pair.ffv1.version-3-configuration.mov-sample-entry	active	0.1.0		rfc9043: 4.3; apple-quicktime-file-format: Sample description atoms		
-pair.flac.configuration-box.mp4-sample-entry	active	0.1.0		xiph-flac-in-isobmff: 3.3.2; iso-iec-14496-12.md: 3		
-pair.flac.streaminfo.matroska-private-data	active	0.1.0		rfc9639: 8.2; ietf-draft-cellar-codec: Codec Mappings		
+pair.ffv1.version-0-1-parameters.avi-chunks	active	0.1.0		rfc9043: 4.2; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.ffv1.version-0-1-parameters.matroska-frames	active	0.1.0		rfc9043: 4.2; ietf-draft-cellar-codec: V_FFV1		2026-11-21
+pair.ffv1.version-0-1-parameters.mov-samples	active	0.1.0		rfc9043: 4.2; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
+pair.ffv1.version-3-configuration.avi-stream-format	active	0.1.0		rfc9043: 4.3; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.ffv1.version-3-configuration.matroska-private-data	active	0.1.0		rfc9043: 4.3; ietf-draft-cellar-codec: V_FFV1		2026-11-21
+pair.ffv1.version-3-configuration.mov-sample-entry	active	0.1.0		rfc9043: 4.3; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
+pair.flac.configuration-box.mp4-sample-entry	active	0.1.0		xiph-flac-in-isobmff: 3.3.2; iso-iec-14496-12.md: 3		2026-11-21
+pair.flac.streaminfo.matroska-private-data	active	0.1.0		rfc9639: 8.2; ietf-draft-cellar-codec: A_FLAC		2026-11-21
 pair.flac.streaminfo.native-file	active	0.2.0		rfc9639: 8.2		
 pair.flac.streaminfo.ogg-mapping-header	active	0.2.0		rfc9639: 8.2; rfc3533: 6		
-pair.h-263.configuration-box.3gp-sample-entry	active	0.1.0		3gpp-ts-26244: 6.8; iso-iec-14496-12.md: 3		
+pair.h-263.configuration-box.3gp-sample-entry	active	0.1.0		3gpp-ts-26244: 6.8; iso-iec-14496-12.md: 3		2026-11-21
 pair.h-263.flash-picture-header.flv-packets	active	0.6.0		adobe-flv-f4v-10-1: Annex E; adobe-flv-f4v-10-1: Annex E		
-pair.h-263.picture-header.3gp-samples	active	0.1.0		itu-t-h-263: 5.1; iso-iec-14496-12.md: 3		
-pair.h264.annex-b.avi-chunks	active	0.1.0		itu-t-h-264: Annex B; microsoft-avi-riff-reference: AVI Stream Headers		
+pair.h-263.picture-header.3gp-samples	active	0.1.0		itu-t-h-263: 5.1; iso-iec-14496-12.md: 3		2026-11-21
+pair.h264.annex-b.avi-chunks	active	0.1.0		itu-t-h-264: Annex B; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
 pair.h264.annex-b.raw-file	active	0.5.0		itu-t-h-264: Annex B		
-pair.h264.annex-b.ts-ps	active	0.3.0		itu-t-h-264: Annex B; itu-t-h-222-0: 2.4.4		
+pair.h264.annex-b.ts-ps	active	0.3.0		itu-t-h-264: Annex B; itu-t-h-222-0: 2.4.4; itu-t-h-222-0: 2.14		
 pair.h264.configuration-record.flv-sequence-header	active	0.6.0		iso-iec-14496-15.md: 2; adobe-flv-f4v-10-1: Annex E		
-pair.h264.configuration-record.matroska-private-data	active	0.1.0		iso-iec-14496-15.md: 2; ietf-draft-cellar-codec: Codec Mappings		
-pair.h264.configuration-record.mp4-mov-sample-entry	active	0.1.0		iso-iec-14496-15.md: 2; iso-iec-14496-12.md: 3		
+pair.h264.configuration-record.matroska-private-data	active	0.1.0		iso-iec-14496-15.md: 2; ietf-draft-cellar-codec: V_MPEG4/ISO/AVC		2026-11-21
+pair.h264.configuration-record.mp4-mov-sample-entry	active	0.1.0		iso-iec-14496-15.md: 2; iso-iec-14496-12.md: 3		2026-11-21
 pair.h264.length-prefixed.flv-packets	active	0.6.0		iso-iec-14496-15.md: 4; itu-t-h-264: 7.3.1; adobe-flv-f4v-10-1: Annex E		
-pair.h264.length-prefixed.matroska-frames	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-264: 7.3.1; ietf-draft-cellar-codec: Codec Mappings		
-pair.h264.length-prefixed.mp4-mov-samples	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-264: 7.3.1; iso-iec-14496-12.md: 3		
-pair.hdmv-textst.dialog-style-segment.file	deferred		G1.5			
-pair.hdmv-textst.dialog-style-segment.matroska-private-data	deferred		G1.5			
-pair.hdmv-textst.dialog-style-segment.ts	deferred		G1.5			
+pair.h264.length-prefixed.matroska-frames	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-264: 7.3.1; ietf-draft-cellar-codec: V_MPEG4/ISO/AVC		2026-11-21
+pair.h264.length-prefixed.mp4-mov-samples	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-264: 7.3.1; iso-iec-14496-12.md: 3		2026-11-21
+pair.hdmv-textst.dialog-style-segment.file	active	0.7.0		jpo-jp-5339002: Figures 11 to 17; uspto-us-8326118: FIGS. 8 to 9D		
+pair.hdmv-textst.dialog-style-segment.matroska-private-data	active	0.7.0		jpo-jp-5339002: Figures 11 to 17; uspto-us-8326118: FIGS. 8 to 9D; ietf-draft-cellar-codec: S_HDMV/TEXTST		
+pair.hdmv-textst.dialog-style-segment.ts	active	0.7.0		jpo-jp-5339002: Figures 11 to 17; uspto-us-8326118: FIGS. 8 to 9D; itu-t-h-222-0: 2.4.4		
 pair.hevc.annex-b.raw-file	active	0.5.0		itu-t-h-265: Annex B		
-pair.hevc.annex-b.ts	active	0.3.0		itu-t-h-265: Annex B; itu-t-h-222-0: 2.4.4		
+pair.hevc.annex-b.ts	active	0.3.0		itu-t-h-265: Annex B; itu-t-h-222-0: 2.4.4; itu-t-h-222-0: 2.17		
 pair.hevc.configuration-record.flv-sequence-header	active	0.6.0		iso-iec-14496-15.md: 3; veovera-enhanced-rtmp-v2: ExVideoTagBody (SequenceStart)		
-pair.hevc.configuration-record.matroska-private-data	active	0.1.0		iso-iec-14496-15.md: 3; ietf-draft-cellar-codec: Codec Mappings		
-pair.hevc.configuration-record.mp4-sample-entry	active	0.1.0		iso-iec-14496-15.md: 3; iso-iec-14496-12.md: 3		
+pair.hevc.configuration-record.matroska-private-data	active	0.1.0		iso-iec-14496-15.md: 3; ietf-draft-cellar-codec: V_MPEGH/ISO/HEVC		2026-11-21
+pair.hevc.configuration-record.mp4-sample-entry	active	0.1.0		iso-iec-14496-15.md: 3; iso-iec-14496-12.md: 3		2026-11-21
 pair.hevc.length-prefixed.flv-packets	active	0.6.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; veovera-enhanced-rtmp-v2: ExVideoTagBody (CodedFrames and CodedFramesX)		
-pair.hevc.length-prefixed.matroska-frames	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; ietf-draft-cellar-codec: Codec Mappings		
-pair.hevc.length-prefixed.mp4-samples	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; iso-iec-14496-12.md: 3		
-pair.kate.identification-header.matroska-laced-private-data	active	0.2.0		xiph-wiki-kate: Format specification; ietf-draft-cellar-codec: Codec Mappings		
-pair.kate.identification-header.ogg-packets	active	0.2.0		xiph-wiki-kate: Format specification; rfc3533: 6		
-pair.motion-jpeg.frame-header.avi-chunks	active	0.1.0		itu-t-t-81: B.2.2; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.motion-jpeg.frame-header.matroska-frames	active	0.1.0		itu-t-t-81: B.2.2; ietf-draft-cellar-codec: Codec Mappings		
-pair.motion-jpeg.frame-header.mov-samples	active	0.1.0		itu-t-t-81: B.2.2; apple-quicktime-file-format: Sample description atoms		
-pair.mpeg-audio.frame-header.avi-chunks	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.mpeg-audio.frame-header.flv-packets	active	0.6.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2; adobe-flv-f4v-10-1: Annex E		
-pair.mpeg-audio.frame-header.matroska-frames	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2; ietf-draft-cellar-codec: Codec Mappings		
-pair.mpeg-audio.frame-header.mp4-samples	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2; iso-iec-14496-12.md: 3		
-pair.mpeg-audio.frame-header.raw-file	active	0.4.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2		
-pair.mpeg-audio.frame-header.ts-ps	active	0.3.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2; itu-t-h-222-0: 2.4.4		
-pair.mpeg-audio.vbr-headers.raw-file	active	0.4.0		mp3-tech-info-tag: Info tag		
-pair.mpeg-video.sequence-header.avi-chunks	active	0.1.0		itu-t-h-262: 6.2.2.1; iso-iec-11172-2.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.mpeg-video.sequence-header.matroska-private-data-and-frames	active	0.1.0		itu-t-h-262: 6.2.2.1; iso-iec-11172-2.md: 2; ietf-draft-cellar-codec: Codec Mappings		
-pair.mpeg-video.sequence-header.mp4-mov-decoder-specific-information-and-samples	active	0.1.0		itu-t-h-262: 6.2.2.1; iso-iec-11172-2.md: 2; iso-iec-14496-1.md: 4; iso-iec-14496-14.md: 2; iso-iec-14496-12.md: 3		
-pair.mpeg-video.sequence-header.raw-file	active	0.5.0		itu-t-h-262: 6.2.2.1; iso-iec-11172-2.md: 2		
-pair.mpeg-video.sequence-header.ts-ps	active	0.3.0		itu-t-h-262: 6.2.2.1; iso-iec-11172-2.md: 2; itu-t-h-222-0: 2.4.4		
-pair.mpeg4-visual.object-layer-headers.avi-chunks	active	0.1.0		iso-iec-14496-2.md: Gaps; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.mpeg4-visual.object-layer-headers.matroska-frames	active	0.1.0		iso-iec-14496-2.md: Gaps; ietf-draft-cellar-codec: Codec Mappings		
-pair.mpeg4-visual.object-layer-headers.mp4-decoder-specific-information	active	0.1.0		iso-iec-14496-2.md: Gaps; iso-iec-14496-1.md: 4; iso-iec-14496-14.md: 2; iso-iec-14496-12.md: 3		
-pair.mpeg4-visual.object-layer-headers.raw-file	active	0.5.0		iso-iec-14496-2.md: Gaps		
-pair.mpeg4-visual.object-layer-headers.ts-ps	active	0.3.0		iso-iec-14496-2.md: Gaps; itu-t-h-222-0: 2.4.4		
-pair.opus.configuration-box.mp4-sample-entry	active	0.1.0		xiph-opus-in-isobmff: 4.3.2; iso-iec-14496-12.md: 3		
-pair.opus.identification-header.matroska-private-data	active	0.1.0		rfc7845: 5.1; ietf-draft-cellar-codec: Codec Mappings		
+pair.hevc.length-prefixed.matroska-frames	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; ietf-draft-cellar-codec: V_MPEGH/ISO/HEVC		2026-11-21
+pair.hevc.length-prefixed.mp4-samples	active	0.1.0		iso-iec-14496-15.md: 4; itu-t-h-265: 7.3.1; iso-iec-14496-12.md: 3		2026-11-21
+pair.kate.identification-header.matroska-laced-private-data	deferred		G17.n			
+pair.kate.identification-header.ogg-packets	deferred		G17.n			
+pair.motion-jpeg.frame-header.avi-chunks	active	0.1.0		itu-t-t-81: B.2.2; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.motion-jpeg.frame-header.matroska-frames	active	0.1.0		itu-t-t-81: B.2.2; ietf-draft-cellar-codec: V_MJPEG		2026-11-21
+pair.motion-jpeg.frame-header.mov-samples	active	0.1.0		itu-t-t-81: B.2.2; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
+pair.mpeg-audio.frame-header.avi-chunks	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.mpeg-audio.frame-header.flv-packets	active	0.6.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2; adobe-flv-f4v-10-1: Annex E		
+pair.mpeg-audio.frame-header.matroska-frames	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2; ietf-draft-cellar-codec: A_MPEG/L1; ietf-draft-cellar-codec: A_MPEG/L2; ietf-draft-cellar-codec: A_MPEG/L3		2026-11-21
+pair.mpeg-audio.frame-header.mp4-samples	active	0.1.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2; iso-iec-14496-12.md: 3		2026-11-21
+pair.mpeg-audio.frame-header.raw-file	active	0.4.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2		
+pair.mpeg-audio.frame-header.ts-ps	active	0.3.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2; itu-t-h-222-0: 2.4.4		
+pair.mpeg-audio.vbr-headers.raw-file	active	0.4.0		mp3-tech-info-tag: Info tag; codeproject-mpeg-audio-frame-header: 2.3.2		
+pair.mpeg-video.sequence-header.avi-chunks	active	0.1.0		itu-t-h-262: 6.2.2.1; itu-t-h-262: 6.3.3; iso-iec-11172-2.md: 2; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.mpeg-video.sequence-header.matroska-private-data-and-frames	active	0.1.0		itu-t-h-262: 6.2.2.1; itu-t-h-262: 6.3.3; iso-iec-11172-2.md: 2; ietf-draft-cellar-codec: V_MPEG1; ietf-draft-cellar-codec: V_MPEG2		2026-11-21
+pair.mpeg-video.sequence-header.mp4-mov-decoder-specific-information-and-samples	active	0.1.0		itu-t-h-262: 6.2.2.1; itu-t-h-262: 6.3.3; iso-iec-11172-2.md: 2; iso-iec-14496-1.md: 3; iso-iec-14496-1.md: 4; iso-iec-14496-14.md: 2; iso-iec-14496-12.md: 3		2026-11-21
+pair.mpeg-video.sequence-header.raw-file	active	0.5.0		itu-t-h-262: 6.2.2.1; itu-t-h-262: 6.3.3; iso-iec-11172-2.md: 2		
+pair.mpeg-video.sequence-header.ts-ps	active	0.3.0		itu-t-h-262: 6.2.2.1; itu-t-h-262: 6.3.3; iso-iec-11172-2.md: 2; itu-t-h-222-0: 2.4.4		
+pair.mpeg4-visual.object-layer-headers.avi-chunks	deferred		G17.n			
+pair.mpeg4-visual.object-layer-headers.matroska-frames	deferred		G17.n			
+pair.mpeg4-visual.object-layer-headers.mp4-decoder-specific-information	deferred		G17.n			
+pair.mpeg4-visual.object-layer-headers.raw-file	deferred		G17.n			
+pair.mpeg4-visual.object-layer-headers.ts-ps	deferred		G17.n			
+pair.opus.configuration-box.mp4-sample-entry	active	0.1.0		xiph-opus-in-isobmff: 4.3.2; iso-iec-14496-12.md: 3		2026-11-21
+pair.opus.identification-header.matroska-private-data	active	0.1.0		rfc7845: 5.1; ietf-draft-cellar-codec: A_OPUS		2026-11-21
 pair.opus.identification-header.ogg-packets	active	0.2.0		rfc7845: 5.1; rfc3533: 6		
 pair.opus.transport-stream-descriptor.ts	active	0.3.0		xiph-opus-in-mpeg-ts: 6; itu-t-h-222-0: 2.4.4		
-pair.pcm.configuration-box.mp4-sample-entry	active	0.1.0		iso-iec-23003-5.md: 2; iso-iec-14496-12.md: 3		
-pair.pcm.disc-lpcm.ps	active	0.3.0		dvdinfo-lpcm: Audio Pack for LPCM; itu-t-h-222-0: 2.4.4		
-pair.pcm.disc-lpcm.ts	active	0.3.0		dvdinfo-lpcm: Audio Pack for LPCM; itu-t-h-222-0: 2.4.4		
-pair.pcm.sound-description.mov-sample-entry	active	0.1.0		apple-quicktime-file-format: Sound sample descriptions; apple-quicktime-file-format: Sample description atoms		
+pair.pcm.configuration-box.mp4-sample-entry	active	0.1.0		iso-iec-23003-5.md: 2; iso-iec-14496-12.md: 3		2026-11-21
+pair.pcm.disc-lpcm.ps	active	0.3.0		dvdinfo-lpcm: Audio Pack for LPCM; itu-t-h-222-0: 2.4.4; dvdinfo-dvdmpeg: Extensions		
+pair.pcm.disc-lpcm.ts	deferred		G17.n			
+pair.pcm.sound-description.mov-sample-entry	active	0.1.0		apple-quicktime-file-format: Sound sample descriptions; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
 pair.pcm.wave-format.asf-stream-format	active	0.6.0		microsoft-waveformatex: Members; microsoft-waveformatextensible: Members; microsoft-asf-specification: 3.3		
-pair.pcm.wave-format.avi-stream-format	active	0.1.0		microsoft-waveformatex: Members; microsoft-waveformatextensible: Members; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.pcm.wave-format.matroska-wave-format-private-data	active	0.1.0		microsoft-waveformatex: Members; microsoft-waveformatextensible: Members; ietf-draft-cellar-codec: Codec Mappings		
+pair.pcm.wave-format.avi-stream-format	active	0.1.0		microsoft-waveformatex: Members; microsoft-waveformatextensible: Members; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+pair.pcm.wave-format.matroska-wave-format-private-data	active	0.1.0		microsoft-waveformatex: Members; microsoft-waveformatextensible: Members; ietf-draft-cellar-codec: A_MS/ACM; ietf-draft-cellar-codec: A_PCM/INT/LIT; ietf-draft-cellar-codec: A_PCM/INT/BIG; ietf-draft-cellar-codec: A_PCM/FLOAT/IEEE		2026-11-21
 pair.pcm.wave-format.wave-format-chunk	active	0.4.0		microsoft-waveformatex: Members; microsoft-waveformatextensible: Members; microsoft-riff-mci-1-0: 3		
-pair.pgs.first-display-set.file	active	0.7.0		thescorpius-pgs: Segments		
-pair.pgs.first-display-set.matroska-frames	active	0.1.0		thescorpius-pgs: Segments; ietf-draft-cellar-codec: Codec Mappings		
-pair.pgs.first-display-set.ts	active	0.3.0		thescorpius-pgs: Segments; itu-t-h-222-0: 2.4.4		
-pair.prores.frame-header.matroska-frames	active	0.1.0		smpte-rdd-36: Frame header; ietf-draft-cellar-codec: Codec Mappings		
-pair.prores.frame-header.mov-samples	active	0.1.0		smpte-rdd-36: Frame header; apple-quicktime-file-format: Sample description atoms		
-pair.quicktime-text.sample-description.mov-sample-entry	active	0.1.0		apple-quicktime-file-format: Text sample description; apple-quicktime-file-format: Sample description atoms		
-pair.realaudio.file-headers.standalone-file	active	0.6.0		multimedia-wiki-realmedia: RealAudio file format		
-pair.realaudio.type-specific-data.matroska-private-data	active	0.6.0		multimedia-wiki-realmedia: Type specific data; ietf-draft-cellar-codec: Codec Mappings		
-pair.realaudio.type-specific-data.realmedia-stream-properties	active	0.6.0		multimedia-wiki-realmedia: Type specific data; realnetworks-rmff: Media Properties Header		
-pair.realvideo.type-specific-data.matroska-private-data	deferred		G1.5			
-pair.realvideo.type-specific-data.realmedia-stream-properties	deferred		G1.5			
+pair.pgs.first-display-set.file	active	0.7.0		thescorpius-pgs: Introduction; thescorpius-pgs: Presentation Composition Segment		
+pair.pgs.first-display-set.matroska-frames	active	0.1.0		thescorpius-pgs: Introduction; thescorpius-pgs: Presentation Composition Segment; ietf-draft-cellar-codec: S_HDMV/PGS		2026-11-21
+pair.pgs.first-display-set.ts	active	0.3.0		thescorpius-pgs: Introduction; thescorpius-pgs: Presentation Composition Segment; itu-t-h-222-0: 2.4.4		
+pair.prores.frame-header.matroska-frames	active	0.1.0		smpte-rdd-36: 5.1.1; smpte-rdd-36: 6.1.1; ietf-draft-cellar-codec: V_PRORES		2026-11-21
+pair.prores.frame-header.mov-samples	active	0.1.0		smpte-rdd-36: 5.1.1; smpte-rdd-36: 6.1.1; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
+pair.quicktime-text.sample-description.mov-sample-entry	active	0.1.0		apple-quicktime-file-format: Text sample description; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
+pair.realaudio.file-headers.standalone-file	active	0.6.0		multimedia-wiki-realmedia: RA Format		
+pair.realaudio.type-specific-data.matroska-private-data	active	0.6.0		multimedia-wiki-realmedia: audio/x-pn-realaudio and audio/x-pn-multirate-realaudio; ietf-draft-cellar-codec: A_REAL/14_4; ietf-draft-cellar-codec: A_REAL/28_8; ietf-draft-cellar-codec: A_REAL/ATRC; ietf-draft-cellar-codec: A_REAL/COOK; ietf-draft-cellar-codec: A_REAL/RALF; ietf-draft-cellar-codec: A_REAL/SIPR		
+pair.realaudio.type-specific-data.realmedia-stream-properties	active	0.6.0		multimedia-wiki-realmedia: audio/x-pn-realaudio and audio/x-pn-multirate-realaudio; realnetworks-rmff: Media Properties Header		
+pair.realvideo.type-specific-data.matroska-private-data	deferred		G17.n			
+pair.realvideo.type-specific-data.realmedia-stream-properties	deferred		G17.n			
 pair.speex.header-packet.ogg-packets	active	0.2.0		xiph-speex-manual: Ogg file format; rfc3533: 6		
-pair.ssa.file-header.file	active	0.7.0		kotus-ssa-v4-plus: Sections		
-pair.ssa.private-data-header.matroska-private-data	active	0.1.0		kotus-ssa-v4-plus: Sections; ietf-draft-cellar-codec: S_TEXT/ASS; ietf-draft-cellar-codec: Codec Mappings		
+pair.ssa.file-header.file	active	0.7.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section		
+pair.ssa.private-data-header.matroska-private-data	active	0.1.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section; ietf-draft-cellar-codec: S_TEXT/ASS; ietf-draft-cellar-codec: S_TEXT/SSA		2026-11-21
 pair.subrip.cue-scan.file	active	0.7.0		loc-subrip: Description		
-pair.theora.identification-header.matroska-laced-private-data	active	0.2.0		xiph-theora-specification: 6.2; ietf-draft-cellar-codec: Codec Mappings		
+pair.theora.identification-header.matroska-laced-private-data	active	0.2.0		xiph-theora-specification: 6.2; ietf-draft-cellar-codec: V_THEORA		
 pair.theora.identification-header.ogg-packets	active	0.2.0		xiph-theora-specification: 6.2; rfc3533: 6		
-pair.truehd.configuration-box.mp4-sample-entry	active	0.1.0		dolby-truehd-isobmff: MLPSpecificBox; iso-iec-14496-12.md: 3		
-pair.truehd.major-sync.matroska-frames	active	0.1.0		dolby-truehd-bitstream: Major sync; ietf-draft-cellar-codec: Codec Mappings		
-pair.truehd.major-sync.raw-file	active	0.4.0		dolby-truehd-bitstream: Major sync		
-pair.truehd.major-sync.ts	active	0.3.0		dolby-truehd-bitstream: Major sync; itu-t-h-222-0: 2.4.4		
-pair.tta.file-header.matroska-private-data	active	0.4.0		tausoft-tta: TTA Header Structure; ietf-draft-cellar-codec: Codec Mappings		
+pair.truehd.configuration-box.mp4-sample-entry	active	0.1.0		dolby-truehd-isobmff: 2.5; iso-iec-14496-12.md: 3		2026-11-21
+pair.truehd.major-sync.matroska-frames	active	0.1.0		dolby-truehd-bitstream: 4.2; ietf-draft-cellar-codec: A_TRUEHD; ietf-draft-cellar-codec: A_MLP		2026-11-21
+pair.truehd.major-sync.raw-file	active	0.4.0		dolby-truehd-bitstream: 4.2		
+pair.truehd.major-sync.ts	active	0.3.0		dolby-truehd-bitstream: 4.2; itu-t-h-222-0: 2.4.4		
+pair.tta.file-header.matroska-private-data	active	0.4.0		tausoft-tta: TTA Header Structure; ietf-draft-cellar-codec: A_TTA1		
 pair.tta.file-header.native-file	active	0.4.0		tausoft-tta: TTA Header Structure		
-pair.usf.document-header.file	active	0.7.0		titlevision-usf: Specification		
-pair.usf.private-data-header.matroska-private-data	active	0.7.0		titlevision-usf: Specification; ietf-draft-cellar-codec: S_TEXT/USF; ietf-draft-cellar-codec: Codec Mappings		
+pair.usf.document-header.file	active	0.7.0		titlevision-usf: Universal Subtitle Format (USF) Specification v1.1		
+pair.usf.private-data-header.matroska-private-data	active	0.7.0		titlevision-usf: Universal Subtitle Format (USF) Specification v1.1; ietf-draft-cellar-codec: S_TEXT/USF		
 pair.vc-1.advanced-sequence-header.asf-stream-format-and-payloads	active	0.6.0		smpte-st-421: 6.1; microsoft-asf-specification: 3.3		
 pair.vc-1.advanced-sequence-header.raw-file	active	0.5.0		smpte-st-421: 6.1		
-pair.vc-1.advanced-sequence-header.ts-ps	active	0.3.0		smpte-st-421: 6.1; itu-t-h-222-0: 2.4.4		
-pair.vc-1.configuration-structure.matroska-private-data	active	0.3.0		smpte-rp-2025: 4; ietf-draft-cellar-codec: Codec Mappings		
+pair.vc-1.advanced-sequence-header.ts-ps	active	0.3.0		smpte-st-421: 6.1; smpte-rp-227: 5.1; smpte-rp-227: 6.1; itu-t-h-222-0: 2.4.4		
+pair.vc-1.configuration-structure.matroska-private-data	active	0.3.0		smpte-rp-2025: 4; ietf-draft-cellar-codec: V_VC1		
 pair.vc-1.configuration-structure.mp4-sample-entry	active	0.3.0		smpte-rp-2025: 4; iso-iec-14496-12.md: 3		
 pair.vc-1.simple-main-sequence.asf-stream-format	active	0.6.0		smpte-st-421: Annex J; microsoft-asf-specification: 3.3		
 pair.vc-1.simple-main-sequence.avi-stream-format	active	0.6.0		smpte-st-421: Annex J; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.vc-1.simple-main-sequence.matroska-bitmap-format-private-data	active	0.6.0		smpte-st-421: Annex J; ietf-draft-cellar-codec: Codec Mappings		
+pair.vc-1.simple-main-sequence.matroska-bitmap-format-private-data	active	0.6.0		smpte-st-421: Annex J; ietf-draft-cellar-codec: V_MS/VFW/FOURCC		
 pair.vobsub.index-file.file	active	0.7.0		ietf-draft-cellar-codec: S_VOBSUB		
-pair.vobsub.index-private-data.matroska-private-data	active	0.1.0		ietf-draft-cellar-codec: S_VOBSUB; ietf-draft-cellar-codec: Codec Mappings		
-pair.vobsub.mp4-palette.mp4-sample-entry	deferred		G1.5			
-pair.vobsub.sub-picture-packets.ps	active	0.3.0		dvdinfo-spu: Sub-Picture Unit; itu-t-h-222-0: 2.4.4		
-pair.vorbis.identification-header.matroska-laced-private-data	active	0.1.0		xiph-vorbis-specification: 4.2.2; ietf-draft-cellar-codec: Codec Mappings		
+pair.vobsub.index-private-data.matroska-private-data	active	0.1.0		ietf-draft-cellar-codec: S_VOBSUB		2026-11-21
+pair.vobsub.mp4-palette.mp4-sample-entry	deferred		G17.n			
+pair.vobsub.sub-picture-packets.ps	active	0.3.0		dvdinfo-spu: Sub-Pictures; itu-t-h-222-0: 2.4.4; dvdinfo-dvdmpeg: Extensions		
+pair.vorbis.identification-header.matroska-laced-private-data	active	0.1.0		xiph-vorbis-specification: 4.2.2; ietf-draft-cellar-codec: A_VORBIS		2026-11-21
 pair.vorbis.identification-header.ogg-packets	active	0.2.0		xiph-vorbis-specification: 4.2.2; rfc3533: 6		
-pair.vp8-vp9.configuration-box.mp4-sample-entry	active	0.1.0		webm-vp-codec-isobmff: VP Codec Configuration Box; iso-iec-14496-12.md: 3		
-pair.vp8.frame-header.avi-chunks	active	0.1.0		rfc6386: 9.1; microsoft-avi-riff-reference: AVI Stream Headers		
+pair.vp8-vp9.configuration-box.mp4-sample-entry	active	0.1.0		webm-vp-codec-isobmff: VP Codec Configuration Box; iso-iec-14496-12.md: 3		2026-11-21
+pair.vp8.frame-header.avi-chunks	active	0.1.0		rfc6386: 9.1; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
 pair.vp8.frame-header.ivf-frames	active	0.5.0		rfc6386: 9.1; multimedia-wiki-ivf: Frame header		
-pair.vp8.frame-header.matroska-frames	active	0.1.0		rfc6386: 9.1; ietf-draft-cellar-codec: Codec Mappings		
+pair.vp8.frame-header.matroska-frames	active	0.1.0		rfc6386: 9.1; ietf-draft-cellar-codec: V_VP8		2026-11-21
 pair.vp9.frame-header.ivf-frames	active	0.5.0		webm-vp9-bitstream-0-7: 6.2; multimedia-wiki-ivf: Frame header		
-pair.vp9.frame-header.matroska-frames	active	0.1.0		webm-vp9-bitstream-0-7: 6.2; ietf-draft-cellar-codec: Codec Mappings		
-pair.vp9.frame-header.mp4-samples	active	0.1.0		webm-vp9-bitstream-0-7: 6.2; iso-iec-14496-12.md: 3		
+pair.vp9.frame-header.matroska-frames	active	0.1.0		webm-vp9-bitstream-0-7: 6.2; ietf-draft-cellar-codec: V_VP9		2026-11-21
+pair.vp9.frame-header.mp4-samples	active	0.1.0		webm-vp9-bitstream-0-7: 6.2; iso-iec-14496-12.md: 3		2026-11-21
 pair.vvc.annex-b.raw-file	active	0.5.0		itu-t-h-266: Annex B		
-pair.vvc.annex-b.ts	active	0.3.0		itu-t-h-266: Annex B; itu-t-h-222-0: 2.4.4		
-pair.vvc.configuration-record.matroska-private-data	active	0.1.0		iso-iec-14496-15.md: Gaps; ietf-draft-cellar-codec: Codec Mappings		
-pair.vvc.configuration-record.mp4-sample-entry	active	0.1.0		iso-iec-14496-15.md: Gaps; iso-iec-14496-12.md: 3		
-pair.vvc.length-prefixed.matroska-frames	active	0.1.0		iso-iec-14496-15.md: 4; iso-iec-14496-15.md: Gaps; itu-t-h-266: 7.3.1; ietf-draft-cellar-codec: Codec Mappings		
-pair.vvc.length-prefixed.mp4-samples	active	0.1.0		iso-iec-14496-15.md: 4; iso-iec-14496-15.md: Gaps; itu-t-h-266: 7.3.1; iso-iec-14496-12.md: 3		
-pair.wavpack.block-header.native-file	active	0.4.0		wavpack-5-file-format: Block Header		
-pair.wavpack.matroska-form.matroska-private-data-and-frames	active	0.4.0		ietf-draft-cellar-codec: A_WAVPACK4; ietf-draft-cellar-codec: Codec Mappings		
-pair.webvtt.container-header.matroska-private-data	active	0.1.0		iso-iec-14496-30.md: 2; ietf-draft-cellar-codec: S_TEXT/WEBVTT; ietf-draft-cellar-codec: Codec Mappings		
-pair.webvtt.container-header.mp4-configuration-box	active	0.1.0		iso-iec-14496-30.md: 2; ietf-draft-cellar-codec: S_TEXT/WEBVTT; iso-iec-14496-12.md: 3		
+pair.vvc.annex-b.ts	active	0.3.0		itu-t-h-266: Annex B; itu-t-h-222-0: 2.4.4; itu-t-h-222-0: 2.23		
+pair.vvc.configuration-record.matroska-private-data	deferred		G17.n			
+pair.vvc.configuration-record.mp4-sample-entry	deferred		G17.n			
+pair.vvc.length-prefixed.matroska-frames	deferred		G17.n			
+pair.vvc.length-prefixed.mp4-samples	deferred		G17.n			
+pair.wavpack.block-header.native-file	active	0.4.0		wavpack-5-file-format: 2.0		
+pair.wavpack.matroska-form.matroska-private-data-and-frames	active	0.4.0		ietf-draft-cellar-codec: A_WAVPACK4		
+pair.webvtt.container-header.matroska-private-data	active	0.1.0		iso-iec-14496-30.md: 2; ietf-draft-cellar-codec: S_TEXT/WEBVTT		2026-11-21
+pair.webvtt.container-header.mp4-configuration-box	active	0.1.0		iso-iec-14496-30.md: 2; ietf-draft-cellar-codec: S_TEXT/WEBVTT; iso-iec-14496-12.md: 3		2026-11-21
 pair.webvtt.file-header.file	active	0.7.0		w3c-webvtt: 4.1; rfc8216: 3.5		
 pair.wma.wave-format.asf-stream-format	active	0.6.0		microsoft-waveformatex: Members; microsoft-asf-specification: 3.3		
 pair.wma.wave-format.avi-stream-format	active	0.6.0		microsoft-waveformatex: Members; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.wma.wave-format.matroska-wave-format-private-data	active	0.6.0		microsoft-waveformatex: Members; ietf-draft-cellar-codec: Codec Mappings		
+pair.wma.wave-format.matroska-wave-format-private-data	active	0.6.0		microsoft-waveformatex: Members; ietf-draft-cellar-codec: A_MS/ACM		
 pair.wmv.bitmap-header.asf-stream-format	active	0.6.0		microsoft-bitmapinfoheader: Members; microsoft-asf-specification: 3.3		
 pair.wmv.bitmap-header.avi-stream-format	active	0.6.0		microsoft-bitmapinfoheader: Members; microsoft-avi-riff-reference: AVI Stream Headers		
-pair.xsub.packet-header.avi-chunks	active	0.1.0		multimedia-wiki-xsub: Format; microsoft-avi-riff-reference: AVI Stream Headers		
-probe.3gp-3g2	active	0.1.0		3gpp-ts-26244: 5; 3gpp2-c-s0050-b: 8		
+pair.xsub.packet-header.avi-chunks	active	0.1.0		multimedia-wiki-xsub: Introduction; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
+probe.3gp-3g2	active	0.1.0		3gpp-ts-26244: 5; 3gpp2-c-s0050-b: 8		2026-11-21
 probe.aac	active	0.4.0		iso-iec-13818-7.md: 2; iso-iec-14496-3.md: 3; iso-iec-14496-3.md: 4		
-probe.ac3	active	0.4.0		etsi-ts-102366: 4.3; etsi-ts-102366: E.1.2		
+probe.aac-loas	deferred		G17.n			
+probe.ac3	active	0.4.0		etsi-ts-102366: 4.3; etsi-ts-102366: 4.4; etsi-ts-102366: E.1.2; etsi-ts-102366: E.1.3		
 probe.aiff-aifc	deferred		G17.n			
 probe.amr	deferred		G17.n			
 probe.asf	active	0.6.0		microsoft-asf-specification: 3		
 probe.au	deferred		G17.n			
 probe.av1-obu	active	0.5.0		aom-av1-specification: 5.3; aom-av1-specification: Annex B		
-probe.avi	active	0.1.0		microsoft-avi-riff-reference: AVI RIFF File Reference; opendml-avi-1-02: 1; microsoft-dv-in-avi: DV Data in the AVI File Format		
-probe.blu-ray-playlists	deferred		G1.5			
-probe.caf	active	0.4.0		apple-caf-specification: CAF File Overview		
-probe.dirac	active	0.5.0		smpte-st-2042-1: 9		
+probe.avi	active	0.1.0		microsoft-avi-riff-reference: AVI RIFF Form; opendml-avi-1-02: 2.0; opendml-avi-1-02: 3.0; microsoft-dv-in-avi: DV Data in the AVI File Format		2026-11-21
+probe.blu-ray-playlists	deferred		G17.n			
+probe.caf	active	0.4.0		apple-caf-specification: CAF File Header		
+probe.dirac	active	0.5.0		smpte-st-2042-1: 10.5.1		
 probe.dsd-dsf-dsdiff	deferred		G17.n			
-probe.dts	active	0.4.0		etsi-ts-102114: 5.3		
+probe.dts	active	0.4.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4		
 probe.dv	active	0.5.0		iec-61834-2.md: 2; iec-61834-2.md: 3		
-probe.dvd-video	active	0.8.0		dvdinfo-ifo: IFO		
-probe.f4v	active	0.1.0		adobe-flv-f4v-10-1: F4V file format		
+probe.dvd-video	active	0.8.0		dvdinfo-ifo: IFO file		
+probe.f4v	active	0.1.0		adobe-flv-f4v-10-1: 1		2026-11-21
 probe.flac	active	0.2.0		rfc9639: 6		
 probe.flv	active	0.6.0		adobe-flv-f4v-10-1: Annex E		
-probe.fragmented-mp4	active	0.1.0		iso-iec-14496-12.md: 3; iso-iec-14496-12.md: Gaps		
+probe.fragmented-mp4	active	0.1.0		iso-iec-14496-12.md: 3; iso-iec-14496-12-2015: 8.8		2026-11-21
 probe.h264	active	0.5.0		itu-t-h-264: Annex B		
-probe.hdmv-textst	deferred		G1.5			
+probe.hdmv-textst	active	0.7.0		jpo-jp-5339002: Figures 11 to 17; uspto-us-8326118: FIGS. 8 to 9D		
 probe.hevc	active	0.5.0		itu-t-h-265: Annex B		
-probe.ivf	active	0.5.0		multimedia-wiki-ivf: File header		
-probe.matroska	active	0.1.0		rfc8794: 11; rfc9559: 5		
+probe.ivf	active	0.5.0		multimedia-wiki-ivf: Introduction		
+probe.matroska	active	0.1.0		rfc8794: 11; rfc9559: 5		2026-11-21
 probe.monkey-s-audio	deferred		G17.n			
-probe.mov	active	0.1.0		apple-quicktime-file-format: Movie atoms		
-probe.mp4	active	0.1.0		iso-iec-14496-12.md: 2; iso-iec-14496-12.md: 3; iso-iec-14496-14.md: 2		
-probe.mpeg-audio	active	0.4.0		iso-iec-11172-3.md: 2; iso-iec-13818-3.md: 2		
+probe.mov	active	0.1.0		apple-quicktime-file-format: Movie atoms		2026-11-21
+probe.mp4	active	0.1.0		iso-iec-14496-12.md: 2; iso-iec-14496-12.md: 3; iso-iec-14496-14.md: 2		2026-11-21
+probe.mpeg-audio	active	0.4.0		iso-iec-11172-3.md: 2; iso-iec-11172-3.md: 3; iso-iec-11172-3.md: 4; iso-iec-11172-3.md: 5; iso-iec-13818-3.md: 2		
 probe.mpeg-video	active	0.5.0		itu-t-h-262: 6.2.2; iso-iec-11172-2.md: 2		
-probe.mpeg4-visual	active	0.5.0		iso-iec-14496-2.md: Gaps		
+probe.mpeg4-visual	deferred		G17.n			
 probe.musepack	deferred		G17.n			
 probe.mxf	deferred		G17.n			
 probe.ogg	active	0.2.0		rfc3533: 6		
-probe.ogm	active	0.2.0		rfc3533: 6		
-probe.pgs	active	0.7.0		thescorpius-pgs: Segments		
-probe.program-stream	active	0.3.0		itu-t-h-222-0: 2.5; iso-iec-11172-1.md: 2		
-probe.realaudio	active	0.6.0		multimedia-wiki-realmedia: RealAudio file format		
+probe.ogm	deferred		G17.n			
+probe.pgs	active	0.7.0		thescorpius-pgs: Introduction; thescorpius-pgs: Presentation Composition Segment		
+probe.program-stream	active	0.3.0		itu-t-h-222-0: 2.5; iso-iec-11172-1.md: 2; dvdinfo-dvdmpeg: Extensions		
+probe.realaudio	active	0.6.0		multimedia-wiki-realmedia: RA Format		
 probe.realmedia	active	0.6.0		realnetworks-rmff: Header Section		
 probe.rf64-bw64	active	0.4.0		ebu-tech-3306: 3; itu-r-bs-2088-2: 3		
-probe.ssa-ass	active	0.7.0		kotus-ssa-v4-plus: Sections		
+probe.ssa-ass	active	0.7.0		kotus-ssa-v4-plus: The [sections] of a Sub Station Alpha script; kotus-ssa-v4-plus: Header lines, [Script Info] section		
 probe.subrip	active	0.7.0		loc-subrip: Description		
 probe.transport-stream	active	0.3.0		itu-t-h-222-0: 2.4		
-probe.truehd	active	0.4.0		dolby-truehd-bitstream: Major sync		
+probe.truehd	active	0.4.0		dolby-truehd-bitstream: 4.2		
 probe.tta	active	0.4.0		tausoft-tta: TTA Header Structure		
-probe.usf	active	0.7.0		titlevision-usf: Specification		
+probe.usf	active	0.7.0		titlevision-usf: Universal Subtitle Format (USF) Specification v1.1		
 probe.vc-1	active	0.5.0		smpte-st-421: Annex E		
-probe.vobsub	active	0.7.0		dvdinfo-spu: Sub-Picture Unit		
+probe.vobsub	active	0.7.0		dvdinfo-spu: Sub-Pictures		
 probe.vvc	active	0.5.0		itu-t-h-266: Annex B		
 probe.wave	active	0.4.0		microsoft-riff-mci-1-0: 3; microsoft-waveformatex: Remarks		
-probe.wave64	active	0.4.0		multimedia-wiki-wave64: Format		
-probe.wavpack	active	0.4.0		wavpack-5-file-format: Block Header		
-probe.webm	active	0.1.0		webm-container-guidelines: Guidelines; rfc9559: 22		
+probe.wave64	active	0.4.0		multimedia-wiki-wave64: Introduction		
+probe.wavpack	active	0.4.0		wavpack-5-file-format: 2.0		
+probe.webm	active	0.1.0		webm-container-guidelines: Demuxer Guidelines; rfc9559: 5		2026-11-21
 probe.webvtt	active	0.7.0		w3c-webvtt: 4		
 probe.wma	active	0.6.0		microsoft-asf-specification: 3		
 probe.wmv	active	0.6.0		microsoft-asf-specification: 3		
 registry.asf-identifiers	active	0.6.0		microsoft-asf-specification: 10		
 registry.flv-codec-ids	active	0.6.0		adobe-flv-f4v-10-1: Annex E; veovera-enhanced-rtmp-v2: Enhanced codecs		
-registry.iso-sample-entries	active	0.1.0		mp4ra-sample-entries: Sample entries		
-registry.matroska-codec-ids	active	0.1.0		ietf-draft-cellar-codec: Codec Mappings		
-registry.mpeg4-object-types	active	0.1.0		mp4ra-oti: Object types		
-registry.quicktime-codes	active	0.1.0		mp4ra-sample-entries-qt: Sample entries; apple-quicktime-file-format: Sample description atoms		
+registry.iso-sample-entries	active	0.1.0		mp4ra-sample-entries: Sample entries		2026-11-21
+registry.matroska-codec-ids	active	0.1.0		ietf-draft-cellar-codec: Codec Mapping		2026-11-21
+registry.mpeg4-object-types	active	0.1.0		mp4ra-oti: Object types		2026-11-21
+registry.quicktime-codes	active	0.1.0		mp4ra-sample-entries-qt: Sample entries; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
 registry.realmedia-fourcc	active	0.6.0		multimedia-wiki-realmedia: Codecs		
 registry.registration-descriptors	active	0.3.0		itu-t-h-222-0: 2.6.8		
-registry.riff-video-fourcc	active	0.1.0		microsoft-fourcc-codes: FOURCC Codes; rfc2361: Appendix B		
+registry.riff-video-fourcc	active	0.1.0		microsoft-fourcc-codes: FOURCC Codes; rfc2361: Appendix B		2026-11-21
 registry.transport-stream-types	active	0.3.0		itu-t-h-222-0: 2.4.4.9; etsi-ts-101154: 4		
-registry.wave-format-tags	active	0.1.0		rfc2361: Appendix A; iana-wave-avi-codec-registry: Registry		
-rule.codec-strings	active	0.1.0		rfc6381: 3		
-rule.language-tags	active	0.1.0		rfc5646: 2; iana-language-subtag-registry: Registry; loc-iso-639-2: Code list		
-rule.media-types	active	0.1.0		rfc6838: 4.2; iana-media-types: Registry		
+registry.wave-format-tags	active	0.1.0		rfc2361: Appendix A; iana-wave-avi-codec-registry: Registry		2026-11-21
+rule.codec-strings	active	0.1.0		rfc6381: 3		2026-11-21
+rule.language-tags	active	0.1.0		rfc5646: 2; iana-language-subtag-registry: Registry; loc-iso-639-2: Code list		2026-11-21
+rule.media-types	active	0.1.0		rfc6838: 4.2; iana-media-types: Registry		2026-11-21
 rule.vorbis-chapter-comments	active	0.2.0		xiph-wiki-chapter-extension: Format		
 tags.apev2	active	0.4.0		hydrogenaudio-apev2: Specification		
 tags.id3v1	active	0.4.0		id3-v1: ID3v1		
 tags.id3v2-2	active	0.4.0		id3-v2-2: 3		
 tags.id3v2-3	active	0.4.0		id3-v2-3: 3		
 tags.id3v2-4	active	0.4.0		id3-v2-4-structure: 3; id3-v2-4-frames: 4		
-tags.itunes	active	0.1.0		apple-quicktime-file-format: Metadata atoms and types		
-tags.matroska	active	0.1.0		rfc9559: 5.1.8; ietf-draft-cellar-tags: 5		
-tags.riff-information	active	0.1.0		microsoft-riff-mci-1-0: 2		
+tags.itunes	active	0.1.0		apple-quicktime-file-format: Metadata atoms and types		2026-11-21
+tags.matroska	active	0.1.0		rfc9559: 5.1.8; ietf-draft-cellar-tags: 3; ietf-draft-cellar-tags: 4		2026-11-21
+tags.riff-information	active	0.1.0		microsoft-riff-mci-1-0: 2		2026-11-21
 tags.vorbis-comment	active	0.2.0		xiph-vorbis-comment: Comment field and header specification		

@@ -474,3 +474,154 @@ Statements written from memory that no stored source supported were removed or t
   - VVC's length-prefixed samples need the length size that the configuration record gives, so they depend on that gap too.
 
 **Verification:** `node scripts/check.ts` passes every step on 2026-11-21.
+
+## 2026-11-21 — G1.4 Specification set [CONFIRM]
+
+The agent presented the review of the specification set: the RFC list and the RFC Editor's metadata, the errata table, the pinned drafts rechecked on the IETF datatracker on 2026-11-21 (codec -21 in IESG evaluation, tags -25 in the RFC Editor queue, chapter codecs -05 expired, all unchanged), the non-RFC manifest, the deliverables against plan section 4, and the coverage table's mapping. The maintainer approved the set and decided the open points.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| The specification set | Approved. The 114 normative and secondary rows of `docs/specs/manifest.tsv` that form the set have `G1.4` in their `approved` column. Still open: the 23 candidates of the source dossier (G1.5), and the 16 paid standards with the 9 rows that only serve their descriptions (G1.6): `etsi-ts-102428`, `iteh-iso-iec-23003-5-preview`, `mp3-tech-frame-header`, `multimedia-wiki-adts`, `multimedia-wiki-mpeg-4-audio`, `smpte-st-314`, `w3c-breakouts-2025-mse-text-tracks`, `yohhoy-isobmff-notes` and the link `iso-publicly-available-standards`. The RFC manifest has no `approved` column; this entry approves its rows. | Each row is approved by the gate that decides its kind of source (plan section 4.4). |
+| RFCs that update listed ones | Added: the 8 RFCs in force that update a listed RFC (5147, 6657 and 8098 update RFC 2046; 5761, 7007 and 8860 update RFC 3551; 4788 updates RFC 3558; 8820 updates RFC 3986) and the 3 that update those in turn (8035 and 8858 update RFC 5761; 5188 updates RFC 4788). Nothing updates these 3. Left out: the obsoleted RFCs 2646 (by RFC 3676), 3798 (by RFC 8098) and 7320 (by RFC 8820), which the refresh keeps reporting as notes. | The maintainer chose to list the updates rather than only review them. With the second level, no listed RFC is updated by an unlisted RFC in force; an obsoleted RFC is never listed (Appendix A). |
+| VC-1 in MPEG-2 streams | SMPTE RP 227, "VC-1 Bitstream Transport Encodings", the publication of 2010-08-12, is a new `fetch` row, `smpte-rp-227`, approved through GS.2 (`approved` is `GS.2`), and a row of Appendix B.2. The coverage row `pair.vc-1.advanced-sequence-header.ts-ps` cites its sections 5.1 (transport streams) and 6.1 (program streams). | The row cited only H.222.0 section 2.4.4, which does not define VC-1. RP 227 assigns the stream type 0xEA and the registration descriptor, and ETSI TS 101 154 refers to it. SMPTE's catalog is free. |
+| Carriage sections of H.222.0 | The transport-stream rows of H.264, HEVC, VVC and MPEG-4 Visual also cite the carriage sections of the stored H.222.0 (06/2021): 2.14, 2.17, 2.23 and 2.11.2. | They cited only section 2.4.4, the program-specific information. |
+| Committing the RFC texts | Confirmed. The texts stay committed verbatim, with the IETF Trust's license notice in the generated index. | The Trust Legal Provisions, section 3.c, allow copying and distributing IETF documents in full and without modification. |
+
+## 2026-11-21 — Progress: Phase 1, task 12
+
+**RFCs.** Appendix A lists the 11 new RFCs in sections A.2, A.3 and A.4, each with the phase of the RFC it updates. `node scripts/fetch-rfcs.ts` stored their texts (348 KB; the 85 texts are 7.0 MB), rewrote `docs/specs/rfc/manifest.tsv` and the index, and compared the set with the RFC Editor:
+
+- No listed RFC is obsoleted, and every title and status matches.
+- The notes name only the three obsoleted RFCs above as unlisted updates, and the same 36 held errata as on the first run; the new RFCs have none held.
+- One verified erratum was new: RFC 5761 erratum 3380 corrects, in section 4, the RTP payload type that conflicts with receiver summary information packets from 80 to 81. It concerns RTP sessions and is classified `none`. The errata table has 74 rows.
+
+**The other specifications.** `smpte-rp-227` is stored from SMPTE, with its checksum recorded; its sections were read for the citations above. The manifest has 163 rows: 114 approved at G1.4, 1 through GS.2, 48 open for G1.5 and G1.6.
+
+**Plan.** Revision 12: Appendix A's introduction, A.8, Appendix B.2, the specifications of Phase 10, the progress of Phase 1 and the research of Appendix D record the outcome.
+
+**Verification:** `node scripts/check.ts` passes every step on 2026-11-21.
+
+**Open:** G1.5, the sources for formats without a normative specification, then G1.6.
+
+## 2026-11-21 — G1.5 Sources for formats without a normative specification [CONFIRM]
+
+The agent presented the proposals of the [source dossier](../design/source-dossier.md). The maintainer accepted them and asked for more research on the two entries whose sources had not been read; the results were presented and approved the same day.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Descriptions approved | The 18 entries that the dossier proposed to approve: IVF, the RealMedia container, RealAudio headers, Wave64, TTA, the ALAC configuration, SubRip, SSA/ASS, USF, VobSub sub-pictures, DVD LPCM, the DVD information files, PGS, XSUB, Vorbis chapter comments, Dirac in Ogg, the Xing/Info header and ID3v1. Their 20 manifest rows, and the 3 that serve the reductions below (`dvdinfo-pci`, `multimedia-wiki-microdvd`, `xiph-wiki-kate`), have `G1.5` in `approved`, each for what the dossier says it covers. | Each was read and covers what its deliverables need; behavior taken from it is labeled descriptive (plan section 5.4). |
+| Reductions | As proposed. Detection only: OGM, read as Ogg; MicroDVD, kept instead of dropped. Identification only: RealVideo and AAC in RealMedia, the VobSub palette in MP4, Kate. Standard structure only, extra data as raw bytes: Windows Media Audio, Windows Media Video 7/8. Container-declared values only: Blu-ray LPCM. VobButtons: Matroska identification, `btn` files a hint only (R22). Dropped from the inventory: RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording, RealAudio metafiles. Deferred: the Blu-ray part of Phase 15. | No public description of these was found, or none that covers more. |
+| HDMV TextST | Approved: Sony's patent JP 5339002 B2 (`jpo-jp-5339002`), whose figures 11 to 17 give every field with its size, and LG's US 8,326,118 B2 (`uspto-us-8326118`), the same fields by name in English, as corroboration. Both are new rows approved through GS.2. TextST keeps its parser in Phase 14; the parser checks the fields against `segment_length`, and a segment whose fields do not add up gives a partial result. | Published patents are public documents, not implementations. They describe the applicants' proposals, and the two differ in detail; Sony shades its outline fields as its own invention. The length check keeps a difference from the disc format from producing wrong values. |
+| VBRI header | Approved for the identifier, version, byte count and frame count: the 2012 capture of the CodeProject article "MPEG Audio Frame Header" (`codeproject-mpeg-audio-frame-header`), a new row through GS.2. Its prose and tables only; the article's code is not opened. | The byte and frame counts give the declared duration and are described consistently; two other rows of its table contradict themselves and are not read. |
+| DVD private streams | Approved through GS.2: the dvdinfo page on how DVD differs from MPEG (`dvdinfo-dvdmpeg`), which gives the sub-stream ranges 0x20 to 0x3F (sub-pictures), 0x80 to 0x87 (AC-3, DTS, SDDS) and 0xA0 to 0xA7 (LPCM). An audio sub-stream's codec is identified by its sync word, from the approved ETSI specifications of AC-3 and DTS, whatever its number. | The dossier's open question. Other pages put DTS at 0x88 to 0x8F, outside the range the page gives; the sync word decides regardless. |
+| Companion lookup | Unchanged: VobSub is still a consumer, so lookup ships in 0.7.0 (R18). | VobSub was approved. |
+
+## 2026-11-21 — Progress: Phase 1, task 13
+
+**The manifest** has 167 rows. `approved` holds G1.4 for 114, G1.5 for 23 and GS.2 for 5 (SMPTE RP 227 and the four sources found at G1.5); the 16 paid standards and the 9 rows that serve their descriptions wait for G1.6. The three new candidates and the DVD page were stored by `node scripts/fetch-specs.ts`, with their checksums.
+
+**Reading the patents.** Both patents are PDFs with a text layer, read with `pdftotext`. The syntax figures of the Sony patent and figure 9B of the LG patent were rendered as images to be read and deleted afterwards; nothing but the PDFs is stored.
+
+**Documents.** The source dossier records the decisions and what task 16 changes. Plan revision 12: Appendix B.6 names the sources found at G1.5, and Phase 1 reports the progress.
+
+**Open:** G1.6, the paid standards. Task 16 then applies the outcomes of G1.5 and G1.6 to section 4, the detection candidates, the deliverables and coverage tables and the affected phases.
+
+## 2026-11-21 — G1.6 Paywalled standards [CONFIRM]
+
+The agent presented the descriptions of `docs/specs/iso-iec/` with their current gaps and the sources they cite. The maintainer decided:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| The 16 paid standards | Substitute, each by its description. The 16 rows are now `link` rows, listed by their catalog page only, with `G1.6` in `approved` and the description named in `applies_to`. The 9 rows that serve the descriptions (`etsi-ts-102428`, `iteh-iso-iec-23003-5-preview`, `mp3-tech-frame-header`, `multimedia-wiki-adts`, `multimedia-wiki-mpeg-4-audio`, `smpte-st-314`, `w3c-breakouts-2025-mse-text-tracks`, `yohhoy-isobmff-notes` and the link `iso-publicly-available-standards`) are approved at G1.6. | The maintainer buys none of them (log, 2026-11-21). A `link` row is not stored, so the fetch script no longer reports them as missing. |
+| ISO/IEC 14496-12:2015 | The free 5th edition, on ISO's list of publicly available standards, is a new `manual` row, `iso-iec-14496-12-2015`, approved through GS.2. ISO serves it only after a license page in a browser, so the maintainer places it (G1.7). | It is the official text, older than the 2026 edition, and covers the movie fragments and compact sample sizes that the description leaves as gaps. |
+| Documents the descriptions cite | The 14 documents that the descriptions cited by address only are new rows, approved through GS.2 and stored: iTeh samples of ISO/IEC 11172-1 Cor 2, 14496-3 Amd 3 (2005) and Amd 1 (2009), 14496-12:2008 FDAmd 3, 14496-14:2020, 14496-15 Amd 1, 14496-30 Amd 1 and 23000-19 Amd 2; the NTHU course slides with the MPEG-1 aspect ratio table; Microsoft's AAC media types; the Library of Congress page on ADIF; SMPTE ST 381-4, from SMPTE's own site rather than the mirror the description cited; MPEG input document m29240 from Télécom ParisTech; and Unified Streaming's timed-text notes. GOST R 54713-2011 is not added. Other addresses in the descriptions are other forms of existing rows: H.222.0, the MP4RA registries, the codec draft, Apple's QuickTime pages, the AV1 binding, ETSI's transposition of 3GPP TS 26.244, and SMPTE ST 314. | Task 17 confirms sections only in stored documents. The GOST page answered with a challenge page, and the rights of that copy are unclear. |
+| Rows that rest on a gap | The 18 rows (ADIF 2, LATM/LOAS 3, MPEG-4 Visual 7, the VVC configuration record and length-prefixed samples 4, movie fragments 2) are reduced to what the free sources cover: signatures, identification, container-declared values, and a partial result where a structure is not read. The full parsers are deferred to G17.n and come back through GS.2 when a source is approved. The movie-fragment rows are reviewed again when the 2015 edition is in hand. | Deferring them entirely would remove the identification and container values that the free sources do support. |
+| DV consumer packs | Sony's patent US 5,907,444 (`uspto-us-5907444`) is approved through GS.2 for the consumer pack headers and positions: the audio source pack 0x50 with its frame size, channel mode, 50/60 flag, signal type, sampling frequency (`SMP`: 0 = 48 kHz, 1 = 44.1 kHz, 2 = 32 kHz) and quantization (`QU`: 0 = 16-bit linear, 1 = 12-bit nonlinear), the audio source control 0x51, the video source 0x60 and the video source control 0x61. It gives the position of the display field but not its values, so the consumer aspect ratio stays absent and is deferred to G17.n. US 6,101,070, of the same family, adds nothing and was removed. | The patent's prose and its figures 31, 37 and 38 give the layout; it is a 1993 proposal, earlier than the 1998 standard, which the code comments state. |
+
+Searches for a free source of the VVC configuration record found only implementations' code, which was not used (plan section 1.3), and a patent application that reproduces a draft of the record; nothing was proposed.
+
+## 2026-11-21 — Progress: Phase 1, task 14
+
+**The manifest** has 183 rows, every one approved: 114 at G1.4, 23 at G1.5, 25 at G1.6 and 21 through GS.2. `node scripts/fetch-specs.ts` stored the 14 new documents and the DV patent with their checksums; the 2015 edition of ISO/IEC 14496-12 is noted as missing until it is placed. The rendered figure pages of the patents were read and deleted; only the PDFs are stored.
+
+**Documents.** Plan revision 12: section 5.2, Appendix B and task 15 record the outcome. The specification READMEs describe `link` rows for the paid standards and a manual file named by its media type.
+
+**Verification:** `node scripts/check.ts` passes every step on 2026-11-21.
+
+**Open:** G1.7, placing the 2015 edition by hand; then task 16, which applies the outcomes of G1.5 and G1.6 to plan section 4, the detection candidates, both tables and the affected phases, and updates the descriptions of IEC 61834-2 and ISO/IEC 14496-12 with their new sources; then task 17.
+
+## 2026-11-21 — G1.7 Purchases [MANUAL]
+
+Nothing was bought. The maintainer downloaded ISO/IEC 14496-12:2015, the 5th edition of 2015-12-15 from ISO's list of publicly available standards, 248 pages, as a PDF. It is stored as `iso-iec-14496-12-2015` with its checksum recorded. The row names no artifact address, because the PDF is the document inside ISO's free ZIP and has no address of its own; its edition cell names the ZIP. It holds the compact sample size box (8.7.3.3) and the movie fragment boxes (8.8.1 to 8.8.17), the two gaps it was chosen for.
+
+## 2026-11-21 — Progress: Phase 1, task 16
+
+**Section 4.** The outcomes of G1.5 and G1.6 are applied, in the plan's words that the deliverables check compares:
+
+- *Formats (4.1).* OGM, raw LOAS streams, raw MPEG-4 Visual streams and the Blu-ray structures joined the post-1.0 candidates; an OGM file is read as Ogg, and `ogm` became an Ogg extension. RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording and RealAudio metafiles stay in the detect-only row, marked "dropped at G1.5". Disc structures hold DVD-Video only.
+- *Pairs (4.3).* A carriage without an approved source is marked "deferred to G17.n": the VVC configuration record and length-prefixed NAL units, every MPEG-4 Visual carriage, RealVideo, AAC in RealMedia, LATM/LOAS, Blu-ray LPCM in transport streams, the VobSub palette in MP4 and Kate. The identification table gained their codecs, each naming its gate: VVC in Matroska and MP4, MPEG-4 Visual in four carriages, RealVideo, AAC in LATM and in RealMedia, VobSub in MP4, and Kate. The ADIF pair reads its header up to the program configuration elements; the VBRI pair reads the byte and frame counts; the Windows Media extra data is kept as raw bytes.
+- *Sections 4.2, 4.4, 4.5, 7.7 and 8.6* and the scope baseline say the same; lookup ships in 0.7.0 with VobSub.
+- *Phases.* Phase 4 (the VVC record, MPEG-4 Visual, the DV aspect ratio, the AAC program config element), 6 (sample entries), 9 (Kate and OGM), 10 (LATM, disc LPCM, DVD sub-streams), 11 (VBR headers, raw AAC), 12 (MPEG-4 Visual, the DV and Dirac sources), 13 (RealVideo, Windows Media, metafiles), 14 (lookup, TextST), 15 (DVD-Video only, now "DVD-Video and multi-file inputs", size M) and 17 (the deferred items).
+
+**The tables.** 353 keys, 14 more than before: 13 identification rows and the probe entry of raw LOAS streams. Coverage: 308 active, 40 deferred to G17.n, 5 dropped at G1.5, none waiting for G1.5 or G1.6, and none citing a `Gaps` section. TextST is active from its patents, ADIF from the Library of Congress description, the fragment rows from the 2015 edition (clause 8.8), and the DV rows add the patent's pack figures. The VBRI row cites the article, and the program-stream rows the DVD sub-stream ranges.
+
+**The descriptions.** `iec-61834-2.md` gained a section on the consumer packs from US 5,907,444, and its gaps now name only the display codes, the pack positions and two unread codes. `iso-iec-14496-12.md` cites the 2015 edition for the fragment boxes and `stz2`. Five descriptions that still called G1.6 pending now state its outcome.
+
+**The check.** With every manifest row approved, the deliverables check gained the rule of plan section 5.2 that task 11 left for later: an active row must name at least one approved source, which is an RFC, a manifest row with a gate in `approved`, or a description of a paid standard. A test covers it.
+
+**Verification:** `node scripts/check.ts` passes every step on 2026-11-21.
+
+**Open:** task 17, the verification of every cited section against the stored documents; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.1.0
+
+The maintainer chose to verify the cited sections release by release, with a report after each, and to have wrong or vague citations corrected to the exact section of the same document, every correction listed here; only a row that no approved document supports goes back to the maintainer.
+
+**Confirmed.** 160 of the 162 active rows of 0.1.0 have their `confirmed` date, 2026-11-21: each cited section was opened in the stored document and holds what the row needs. Two rows stay provisional; see below.
+
+**Corrected** (157 changes; a correction of a citation that recurs was applied to every row that cites it, in every release):
+
+| Citation | Now | Why |
+|---|---|---|
+| `rfc9559: 22` (WebM rows), `rfc9559: 5` (Matroska detection) | `rfc9559: 4.3`, and `webm-container-guidelines: Demuxer Guidelines` | Section 22 is Cues; the DocType rules are in 4.3 and in the WebM guidelines' demuxer section |
+| `ietf-draft-cellar-codec: Codec Mappings` (45 rows) | The codec's own subsection, such as `V_MPEG4/ISO/AVC`, `A_AAC` or `S_HDMV/PGS`; `Codec Mapping` for the registry | The draft has no heading "Codec Mappings"; its section 3 is "Codec Mapping", with a subsection per codec ID |
+| `itu-t-h-262: 6.2.2.1` | adds `6.3.3` | The sequence header's semantics |
+| `etsi-ts-102366: 4.3`, `E.1.2` | add `4.4`, `E.1.3` | The semantics of the AC-3 and E-AC-3 elements |
+| `etsi-ts-102114: 5.3`, `7.4`, `Annex E` | add `5.4`, `7.5.2`; `E.2.2` | The core frame header, the extension substream header, and the sample entry |
+| `apple-quicktime-file-format: Sample description atoms`, `Video sample description`, `Closed captioning` | `Sample description atom ('stsd')`, `Video sample description ('stsd')`, `Closed captioning sample description` | The pages' exact titles |
+| `apple-caf-specification: CAF File Overview` | `CAF File Header` | The overview is a separate document |
+| `dolby-truehd-bitstream: Major sync`, `dolby-truehd-isobmff: MLPSpecificBox` | `4.2`, `2.5` | Section numbers |
+| `iso-iec-11172-3.md: 2`, `iso-iec-14496-3.md: 2`, `iso-iec-14496-1.md: 4` | add sections 3 to 5, 3 and 4, and 3 | Rates, sample counts, sampling index, channel configuration, and the ES descriptor are in those sections |
+| DV rows | add `iec-61834-2.md: 7` | The consumer packs |
+| `smpte-rdd-36: Frame header`, `smpte-st-2042-1: 9`, `opendml-avi-1-02: 1` | `5.1.1` and `6.1.1`; `10.5.1`; `2.0` and `3.0` | Syntax and semantics of the ProRes frame header; the Dirac parse info header; the OpenDML extensions rather than the introduction |
+| `ietf-draft-cellar-tags: 5` | `3` and `4` | Section 5 is Security Considerations |
+| `3gpp-ts-26244: 5`, `3gpp2-c-s0050-b: 8` (detection and the speech codecs) | `5.3.4` and `8.1.1`; `8.4.3` to `8.4.7` | The brands, the file identification, and each speech codec |
+| Page-level citations of descriptive sources | The pages' own headings, such as `IFO file`, `Sub-Pictures`, `Presentation Control Information (PCI) Packet Layout`, `RA Format`, `Universal Subtitle Format (USF) Specification v1.1`, `2.0` (WavPack), and the SSA document's section headings; `Introduction` for the lead text of a wiki page or article that has no heading before the layout (IVF, MicroDVD, Wave64, XSUB, PGS) | Every citation names a heading that exists |
+| `microsoft-avi-riff-reference: AVI RIFF File Reference`, `adobe-flv-f4v-10-1: F4V file format` | `AVI RIFF Form`, `1` | The section that holds the form and its signature; the F4V section number |
+
+**Not supported** (raised with the maintainer):
+
+- `identify.vobsub.mp4`: the MP4 registration authority lists no VobSub object type; 0xE0 lies in the user-private range 0xC0 to 0xE0. The source dossier said the type was registered, which is corrected.
+- `detect.rf64-bw64`: the stored EBU Tech 3306 is version 2 (2018), a three-page notice that refers to ITU-R BS.2088; it has no section 3, and neither document gives the RF64 chunk identifier. BS.2088-2 covers BW64. The earlier version 1.1 of Tech 3306 is still served by EBU as `tech3306v1_1.pdf`. EBU's publications page answered 403 to the agent, so that site is not asked again in this run.
+
+**Decided by the maintainer** for the two rows:
+
+| Row | Decision | Reasoning |
+|---|---|---|
+| `identify.vobsub.mp4` | Deferred to G17.n. Section 4.3 marks its carriage "deferred to G17.n", and Phase 6 no longer identifies VobSub in MP4. Such a track is reported as a private object type with its container values. | No registered object type and no public description identify it. |
+| `detect.rf64-bw64` | EBU Tech 3306 version 1.1, the RF64 specification, is a new `fetch` row, `ebu-tech-3306-v1-1`, approved through GS.2 and added to Appendix B.3. It is downloaded in a later run, because EBU's site answered 403; the row stays provisional until then. | Version 2 refers to BS.2088, which covers BW64 only. |
+
+**Open:** downloading `ebu-tech-3306-v1-1` and confirming the RF64 rows; task 17 for releases 0.2.0 to 0.8.0.
+
+## 2026-11-21 — VobSub in MP4: a community source (GS.2)
+
+The maintainer changed the decision above and asked for online research on VobSub in MP4.
+
+**What exists.** No specification: neither the vendor that introduced the track nor ISO nor the MP4 registration authority describes it. The authority lists stream type 0x38 and object type 0xE0 only within user-private ranges, does not register the handler `subp`, and registers `mp4s` only as generic MPEG-4 Systems. The Library of Congress and MultimediaWiki pages on VobSub only say that it can be embedded in MP4. A forum thread of 2006 on Doom9 reports, from files its posters examined, the handler `subp`, the sample entry `mp4s`, stream type 0x38, object type 0xE0, a 90 kHz timescale and samples that are DVD sub-picture bitmaps. A layout of the palette in the decoder-specific information appears only on an implementation project's issue tracker, with two accounts that disagree on the byte order; it is not a source here (plan section 1.3), and implementation code that the searches pointed to was not opened.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Source | Page 4 of the thread (posts 61 to 80), stored from an archive capture of 2026-01-13 as `doom9-vobsub-in-mp4`, a `descriptive` row approved through GS.2. | It holds posts 71, 77 and 80, which give the codes and the sample contents. Page 1 of the capture lacked them and was replaced. |
+| Scope | Identification only: a track is VobSub when its handler, sample entry, stream type and object type all match those codes. It is reported with its timescale and the dimensions of its track header; the palette stays raw bytes, and the palette pair stays deferred to G17.n. | The codes are private, so only their combination identifies the track; nothing public describes the palette. |
+
+`identify.vobsub.mp4` is active again for 0.1.0, confirmed against the stored page. Section 4.3, Phase 6, Appendix B.6 and the source dossier say so.

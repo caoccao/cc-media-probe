@@ -42,6 +42,8 @@ export const NO_DELIVERABLE = 'coverage row without a deliverable';
 export const UNKNOWN_SOURCE = 'source names no document of the manifests:';
 /** A malformed source. */
 export const MALFORMED_SOURCE = 'a source is a document identifier, then a colon and the section:';
+/** An active row whose sources are all documents that no gate approved. */
+export const NO_APPROVED_SOURCE = 'an active row names at least one approved source';
 /** A promise of section 4 without its deliverable. */
 export const MISSING_DELIVERABLE = 'section 4 lists this, but no deliverable has its words:';
 /** A deliverable that section 4 does not list. */
