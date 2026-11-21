@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 15; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
+| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 16; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
 | **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
@@ -1636,7 +1636,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 to 0.4.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 to 0.5.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -2106,13 +2106,13 @@ flowchart TD
 
 ### Phase 12 — Raw video streams and IVF (0.5.0)
 
-**Specifications.** ITU-T H.264, H.265, H.266, H.262; AV1 bitstream specification; SMPTE ST 421 and ST 2042-1; the description of IEC 61834-2 with SMPTE ST 314 and US 5,907,444, its substitute from G1.6; the IVF description and the Ogg mapping of Dirac, approved at G1.5; RFC 6184, RFC 7798, RFC 9328, RFC 4425, RFC 6469 as secondary references.
+**Specifications.** ITU-T H.264, H.265, H.266, H.262; AV1 bitstream specification; SMPTE ST 421 and ST 2042-1; the description of IEC 61834-2 with SMPTE ST 314 and US 5,907,444, its substitute from G1.6; the IVF description and the Ogg mapping of Dirac, approved at G1.5; the published patent US 10,462,491 B2 for Dolby Vision metadata in HEVC byte streams, approved through GS.2 in task 17 of Phase 1; RFC 6184, RFC 7798, RFC 9328, RFC 4425, RFC 6469 as secondary references.
 
 **Tasks**
 
-1. **Byte-stream formats** for H.264, HEVC and VVC: start-code scanning, parameter set discovery through the header assembler, frame rate from timing information, detection of dynamic-range enhancement units.
+1. **Byte-stream formats** for H.264, HEVC and VVC: start-code scanning, parameter set discovery through the header assembler, frame rate from timing information, detection of dynamic-range enhancement units. In HEVC, a NAL unit whose two header bytes are 0x7C01 reports Dolby Vision metadata as present: Table 1 of the patent gives these bytes for the metadata units of an HEVC enhancement-layer stream, and reading them in any HEVC byte stream was decided in task 17 of Phase 1. No approved source identifies such units in H.264 or H.266, or enhancement-layer units carried in the same stream; their detection is deferred to G17.n.
 2. **AV1** in both the low-overhead and the length-delimited stream formats.
-3. **IVF†.** Header: codec, dimensions, time base, frame count ("declared").
+3. **IVF†.** Header: codec, dimensions, time base, frame count ("declared"). The description names the codec code `VP80`, for VP8, and no other. Any other code is reported as found, and the codec is identified only when the first frame matches exactly one of these: a VP8 key frame (RFC 6386, section 9.1); a VP9 key frame with its frame marker and sync code (VP9 sections 6.2 and 7.2); or an AV1 temporal unit in the low-overhead format that starts with a temporal delimiter (AV1 sections 5.2, 5.3 and 7.5). This was decided in task 17 of Phase 1, because no document other than implementation code gives the codes for VP9 and AV1.
 4. **MPEG-1/2 video, VC-1, Dirac** elementary streams; raw MPEG-4 Visual streams were deferred at G1.6. Dirac gets its parser here. Its retrofit pairs are those of section 4.3: Dirac in Ogg†, whose mapping G1.5 approved, and Dirac in Matroska, each with its own fixture.
 5. **Raw DV.**
 6. **Detection hardening** with multi-unit validation.
@@ -2666,7 +2666,7 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | Disc LPCM headers; DVD private-stream identifiers | [LPCM pack description](https://dvd.sourceforge.net/dvdinfo/lpcm.html) · [stream identifiers](https://dvd.sourceforge.net/dvdinfo/mpeghdrs.html); the [sub-stream ranges](https://dvd.sourceforge.net/dvdinfo/dvdmpeg.html), found at G1.5; none located for Blu-ray LPCM | mixed | Container-declared values only |
 | Kate | [Format description on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/OggKate), which also describes the Matroska mapping; the [original page](https://wiki.xiph.org/OggKate) did not respond on 2026-11-20 | ✓ | Identification only |
 | Chapter comments in Vorbis comment blocks | [Convention on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/Chapter_Extension); the [original page](https://wiki.xiph.org/Chapter_Extension) did not respond on 2026-11-20 | ✓ | Chapter comments stay ordinary tags |
-| Dirac in Ogg | [Mapping on the container project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/OggDirac) | ✓ | Identified only in Ogg |
+| Dirac in Ogg | [Mapping by the Dirac project](https://web.archive.org/web/20120727072609/http://diracvideo.org/download/mapping-specs/dirac-mapping-ogg-1.0.pdf), archived copy of 2012, to which the [container project's wiki](https://web.archive.org/web/2024/https://wiki.xiph.org/OggDirac) points | ✓ | Identified only in Ogg |
 | MPEG audio VBR headers (the Xing/Info and VBRI layouts) | [Description of the Info tag and its extension](http://gabriel.mp3-tech.org/mp3infotag.html); [article that describes both layouts](https://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header), readable in a capture of 2012, which in task 17 was also approved through GS.2 for where the Xing/Info header starts. No document from the originator of either layout was located | ✓ | No VBR header is read; duration absent, estimate only |
 | Windows Media Video 7/8 extra data | None located | ○ | Bitmap header fields only |
 | VobSub in MP4: palette in decoder-specific information | None located for the palette. A [forum thread of 2006](https://forum.doom9.org/showthread.php?t=110419&page=4) reports the private codes of the track from files, which identify it (task 17) | ✓ | Identified only in MP4 |
@@ -2675,6 +2675,8 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | TrueHD interleaved with AC-3 | Found in task 17 and approved through GS.2: the published patent [US 8,086,331 B2](https://patents.google.com/patent/US8086331B2/en) (Panasonic), whose description of FIG. 7 multiplexes AC-3 and MLP audio frames in one stream ("DD/MLP"), with the AC-3 frames as the base data | ✓ | Pure TrueHD and MLP files only |
 | WavPack standard sample rates | None located: the format document gives a 4-bit index into 15 standard rates without listing them (task 17) | ○ | The rate from the WAVE header that a native file stores; otherwise not available |
 | ID3v2 tags embedded in WAVE | None located for the chunk identifier (task 17) | ○ | A chunk is recognized by the ID3v2 header at the start of its data |
+| Dolby Vision metadata in raw video byte streams | Found in task 17 and approved through GS.2: the published patent [US 10,462,491 B2](https://patents.google.com/patent/US10462491B2/en) (Dolby), whose Table 1 marks the metadata NAL units of an HEVC enhancement-layer stream by the two bytes 0x7C01 after the start code. None located for H.264, H.266, or enhancement-layer units carried in the same stream | ✓ | Not detected in raw streams |
+| IVF codec codes for VP9 and AV1 | None located: the IVF description names only `VP80`, and only implementation code gives the others (task 17) | ○ | The codec is identified from the content of the first frame |
 | DVD-Video information files | [Community description](https://dvd.sourceforge.net/dvdinfo/ifo.html) | ✓ | Defer |
 | VobButtons | [Presentation-control packet layout](https://dvd.sourceforge.net/dvdinfo/pci_pkt.html) and the pinned Matroska codec draft for the track type; none located for the `btn` file signature | mixed | Matroska identification only; `btn` files by extension hint |
 | MicroDVD | [Community description](https://wiki.multimedia.cx/index.php/MicroDVD) | ✓ | Dropped from the inventory |
@@ -3100,6 +3102,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 13 | 2026-11-21 | Amended in task 17, the verification of the cited sections. |
 | 14 | 2026-11-21 | Amended in task 17, for release 0.3.0. |
 | 15 | 2026-11-21 | Amended in task 17, for release 0.4.0. |
+| 16 | 2026-11-21 | Amended in task 17, for release 0.5.0. |
 
 What changed in draft 2, by theme:
 
@@ -3211,3 +3214,7 @@ What changed in revision 14, by theme:
 What changed in revision 15, by theme:
 
 - **Task 17, release 0.4.0.** Appendix B.3 adds version 1.2.1 of ETSI TS 102 114, the only version that describes the byte-swapped and 14-bit DTS variants; Appendix B.5 the five APEv2 pages that the specification page links; and Appendix B.6 a published patent for TrueHD interleaved with AC-3, all approved through GS.2. Phase 11, tasks 8 and 9, says how they are read. No source was found for the chunk identifier of ID3v2 tags in WAVE, which task 3 now recognizes by content, or for the 15 standard WavPack sample rates; task 10 reads the rate from the WAVE header that a native file stores and otherwise leaves it unavailable (B.6). The article on the VBRI layout is also approved for where the Xing/Info header starts (task 5, B.6).
+
+What changed in revision 16, by theme:
+
+- **Task 17, release 0.5.0.** Appendix B.6 adds a published patent that marks Dolby Vision metadata units in HEVC byte streams, approved through GS.2; Phase 12, task 1, reads them in HEVC and defers H.264, H.266 and enhancement-layer units. No source other than implementation code gives the IVF codes for VP9 and AV1, so task 3 identifies an IVF codec other than VP8 from the content of the first frame (B.6). The Dirac in Ogg row of Appendix B.6 now links the approved mapping instead of the wiki page that points to it.

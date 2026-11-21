@@ -767,3 +767,46 @@ Kate in Ogg (the wiki's format specification), the Vorbis chapter comments (the 
 **Verification:** `node scripts/check.ts` passes on 2026-11-21.
 
 **Open:** task 17 for releases 0.5.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.5.0
+
+**Decided by the maintainer** (GS.2 for the source):
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Dolby Vision metadata in raw byte streams | The published patent US 10,462,491 B2 (Dolby, 2019) is a new `fetch` row, `uspto-us-10462491`, class `descriptive`. Its Table 1 marks the metadata units of an HEVC enhancement-layer stream by the two bytes 0x7C01 after the start code (HEVC type 62). Such a unit in any HEVC byte stream reports Dolby Vision metadata as present. H.264, H.266, and enhancement-layer units carried in the same stream are deferred to G17.n. | Phase 12 task 1 asks for these units. The stored Dolby Vision documents say only that the metadata unit is "a special NAL unit", and Dolby's profiles document, read in an archive capture, says "unspecified NAL units". The patent's table describes the enhancement-layer stream of a dual-layer stream. |
+| IVF codec codes | `VP80` is VP8, as the IVF description gives it. Any other code is reported as found, and the codec is identified only when the first frame matches exactly one of these: a VP8 key frame (RFC 6386, 9.1); a VP9 key frame with its frame marker and sync code (VP9 6.2, 7.2); or an AV1 temporal unit in the low-overhead format that starts with a temporal delimiter (AV1 5.2, 5.3, 7.5). | The description names only `VP80`, as an example. No document other than implementation code gives the codes for VP9 and AV1, or says that AV1 frames in IVF use the low-overhead format. |
+
+**Confirmed.** All 23 active rows of 0.5.0 have their `confirmed` date, 2026-11-21. The rows of 0.1.0 and 0.3.0 that the corrections below changed were checked again against the stored documents and keep their dates. `pair.av1.low-overhead.flv-packets` (0.6.0) will be confirmed in its own release.
+
+**Corrected.** A correction that recurs was applied to every row that cites it, in every release:
+
+| Citation | Now | Why |
+|---|---|---|
+| `multimedia-wiki-ivf: Frame header` (three IVF pairs) | `Introduction` | The page has no such heading. The frame header is in its lead text, so it follows the 0.1.0 convention |
+| `smpte-st-2042-1: 10` (Dirac pairs), `10.5.1` (`probe.dirac`) | `10`, `11`, `Annex A`, `Annex B` | Clause 10 covers the stream and its parse info headers. The sequence header is clause 11, its values are coded as Annex A gives, and the base video formats that it overrides are in Annex B |
+| `itu-t-h-262: 6.2.2.1`, `6.3.3` (five MPEG video pairs, 0.1.0 to 0.5.0) | adds `6.2.2.3`, `6.2.2.4`, `6.3.5`, `6.3.6` | The representation is "Sequence header and extensions", which includes the sequence extension and the sequence display extension, with their semantics |
+| `aom-av1-specification: 5.3` for the low-overhead format (five pairs, `detect.av1-obu`, `probe.av1-obu`) | adds `5.2` | Section 5.2 defines the low-overhead format; section 5.3 defines only the OBU |
+
+**Completed** (sections that the rows needed and did not cite):
+
+| Row | Adds | For |
+|---|---|---|
+| `pair.dirac.sequence-header.ogg-packets` | `dirac-ogg-mapping: 4`, `6.1` | The mapping approved at G1.5, which no row cited: the first packet starts with a sequence header, and section 6.1 says what a packet holds |
+| `pair.av1.length-delimited.raw-file` | `aom-av1-specification: 5.3` | Annex B wraps the OBUs of section 5.3 |
+| `detect.h264`, `detect.hevc`, `detect.vvc` (0.1.0) and the matching probes | H.264 `7.3.1`, `7.4.1`; H.265 and H.266 `7.3.1`, `7.4.2` | The NAL unit header, which tells parameter sets apart and which multi-unit validation checks (Phase 12 tasks 1 and 6) |
+| `probe.h264`, `probe.hevc`, `probe.vvc`, `probe.av1-obu` | H.264 `E.1.1`, `E.2.1`; H.265 `E.2.1`, `E.3.1`; H.266 `7.3.5.1`, `7.3.5.2`, `7.4.6.1`, `7.4.6.2`; AV1 `5.5.3`, `6.4.3`; the new patent for HEVC | The timing information that gives a raw stream its frame rate (Phase 12 task 1), and Dolby Vision metadata units |
+| `probe.ivf` | `rfc6386: 9.1`; `webm-vp9-bitstream-0-7: 6.2`, `7.2`; `aom-av1-specification: 5.2`, `5.3`, `7.5` | The identification by content decided above. The VP9 and AV1 IVF pairs add the same sections |
+| `probe.dv`, `probe.mpeg-video`, `probe.vc-1`, `probe.dirac` | The sections of their raw-file pairs | A raw stream's probe reports what its pair reads, as the audio probes of 0.4.0 do |
+
+No change was needed for the Annex B pairs of H.264, HEVC and VVC, the VP8 and VP9 frame headers, or the DV and VC-1 pairs.
+
+**Found for a later release.** The stored Dolby Vision document for ISO base media files is version 2.8 (9 July 2026), but its manifest row and Appendix B.1 name v2.5. No row of 0.5.0 cites it; the verification of 0.6.0 takes it up.
+
+**Fetching.** The patent was stored in one request. The stored copy is a scan without a text layer, so its front page and Table 1 were read as page images.
+
+**Plan and dossier.** Revision 16 of the plan adds the patent to the Phase 12 specifications, and Phase 12 tasks 1 and 3 apply the decisions above. Appendix B.6 adds the two topics and now links the Dirac mapping itself. The source dossier adds a Video section with the Dolby Vision entry, and adds the IVF codes to the IVF entry.
+
+**Verification:** `node scripts/check.ts` passes on 2026-11-21.
+
+**Open:** task 17 for releases 0.6.0 to 0.8.0; then tasks 18 and 19, G1.8 and G1.9.

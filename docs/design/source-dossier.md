@@ -44,6 +44,8 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | TrueHD interleaved with AC-3 (task 17) | `uspto-us-8086331` | Approved through GS.2; each frame read by its own sync word and length | Pure TrueHD and MLP files only |
 | WavPack standard sample rates (task 17) | None located | Rate from the stored WAVE header, otherwise not available | Not available |
 | ID3v2 tags in WAVE (task 17) | None located for the chunk identifier | Recognized by the ID3v2 header at the start of a chunk's data | Reported as an unknown chunk |
+| Dolby Vision metadata in raw video byte streams (task 17) | `uspto-us-10462491` for HEVC; none located for H.264, H.266 or enhancement-layer units | Approved through GS.2; in HEVC, a NAL unit whose header bytes are 0x7C01 reports Dolby Vision metadata | Not detected in raw streams |
+| IVF codec codes for VP9 and AV1 (task 17) | None located | Codec identified from the content of the first frame | Code reported raw, codec unidentified |
 | Windows Media Video 7/8 extra data | None located | Bitmap header fields only | Bitmap header fields only |
 | VobSub palette in MP4 | None located | Identification only | Identified only in MP4 |
 | ID3v1 | `id3-v1` | Approve | Presence reported, content not read |
@@ -59,6 +61,8 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 **OGM.** The only candidate, a MultimediaWiki page last edited in 2006, is a one-sentence stub: it says that OGM is an incompatible variant of Ogg and documents no structure. No other public description of the OGM stream headers was found. *Proposed:* detection only. An OGM file is read as Ogg; its streams whose headers are OGM's own are reported as of unknown codec, and the `ogm` extension orders the candidates as a hint (plan section 4.4).
 
 **IVF.** `multimedia-wiki-ivf` (revision 15981, 2025) gives the 32-byte file header (signature, version, header length, FourCC, width, height, time base, frame count) and the 12-byte frame header (size and 64-bit timestamp), little-endian. It leaves open what values other than 0 mean in the version field, and does not constrain the header length. The page links to sample files and test vectors, which this project does not use (R8). *Proposed:* approve.
+
+*Added in task 17:* the page names the codec code only by its example `VP80`, for VP8. No document gives the codes of VP9 and AV1, or says that AV1 frames in IVF are temporal units in the low-overhead format; only implementations do, and they are not sources (plan section 1.3). The maintainer decided that any other code is reported as found, and that the codec is identified only when the first frame matches exactly one of a VP8 key frame (RFC 6386, section 9.1), a VP9 key frame with its frame marker and sync code (VP9 sections 6.2 and 7.2), or an AV1 temporal unit that starts with a temporal delimiter (AV1 sections 5.2, 5.3 and 7.5).
 
 **RealMedia.** Two sources together cover the container:
 
@@ -79,6 +83,10 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 - `uspto-us-8208795`, a published patent (Panasonic, 2012). Its description of FIGS. 9A to 9E gives the stream coding types of a playlist's stream table: 0x80 LPCM, 0x81 AC-3 and 0x82 DTS for audio, 0x90 presentation graphics, 0x91 interactive graphics and 0x92 text subtitles. No source found says that the program map uses the same values; the maintainer decided that these values are read as stream types in 192-byte streams only.
 
 No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page that lists them is an anonymous programming site that names no sources and gives a text-subtitle value that contradicts the patent; the other lists come from implementations, which are not sources (plan section 1.3). TrueHD in transport streams is deferred to G17.n.
+
+### Video
+
+**Dolby Vision metadata in raw video byte streams** (*added in task 17*). Phase 12 asks raw H.264, HEVC and VVC streams to detect dynamic-range enhancement units. The approved Dolby Vision documents for ISO base media files and transport streams say only that the metadata unit (RPU) is "a special NAL unit" of AVC and HEVC streams; Dolby's profiles document says "unspecified NAL units". The published patent `uspto-us-10462491` (Dolby, 2019) describes the HEVC enhancement-layer stream of a dual-layer stream, a byte stream of NAL units, in its Table 1: a unit whose first two bytes after the start code are 0x7C01 (HEVC type 62, which H.265 leaves unspecified) is Dolby Vision metadata, and every other unit is enhancement-layer video. The maintainer approved it through GS.2, and decided that such a unit in any HEVC byte stream reports Dolby Vision metadata as present. No source was found for H.264, H.266, or enhancement-layer units carried in the same stream as the base layer. Only implementations give those, and they are not sources (plan section 1.3). Their detection is deferred to G17.n.
 
 ### Audio
 
