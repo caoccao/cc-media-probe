@@ -28,10 +28,10 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | ALAC configuration | `apple-alac-magic-cookie` | Approve | Container-declared values only |
 | SubRip | `loc-subrip`, with the Matroska subtitle mapping | Approve | Detect-only |
 | SSA/ASS | `kotus-ssa-v4-plus`, with the Matroska subtitle mapping | Approve | Detect-only |
-| USF | `titlevision-usf` | Approve | Detect-only |
+| USF | `titlevision-usf`; for the XML syntax, `w3c-xml-1-0` (task 17) | Approve | Detect-only |
 | VobSub index and DVD sub-pictures | `dvdinfo-spu`, with the Matroska subtitle mapping | Approve | Detect-only |
-| PGS | `thescorpius-pgs` | Approve | Detect-only |
-| HDMV TextST | `jpo-jp-5339002`, with `uspto-us-8326118` | Approve; the fields are checked against the segment length | Detect-only, or defer |
+| PGS | `thescorpius-pgs` | Approve; no frame rate (task 17) | Detect-only |
+| HDMV TextST | `jpo-jp-5339002`, with `uspto-us-8326118` | Approve; the fields are checked against the segment length; an event count and no time range (task 17) | Detect-only, or defer |
 | XSUB | `multimedia-wiki-xsub` | Approve | Identification only |
 | Blu-ray playlists and clip information | Partial notes only | Defer the Blu-ray part of Phase 15 | Defer Phase 15 |
 | Blu-ray transport streams: 192-byte packets and stream types (task 17) | `bda-bd-j-baseline-application`, `uspto-us-8208795` | Approved through GS.2; TrueHD, E-AC-3 and DTS-HD types not covered | 188-byte packets only; Blu-ray types reported as user private |
@@ -121,9 +121,15 @@ No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page tha
 
 **USF.** `titlevision-usf` is the USF specification with its DTD, as now hosted by Titlevision. The pinned Matroska codec draft cites version 1.1 of 2010 as its reference for USF. *Proposed:* approve.
 
+*Added in task 17:* the specification describes the elements of a USF document, not the XML syntax they are written in. W3C XML 1.0 (Fifth Edition) of 2008, still the current edition, is a new `snapshot` row, `w3c-xml-1-0`, approved through GS.2 for that syntax and for the contract of G14.1: the prolog, comments, tags, references, the predefined entities and the encoding of a document.
+
 **VobSub.** `dvdinfo-spu` gives the sub-picture unit: sizes, control sequences and display commands. It does not give the palette, which the Matroska subtitle mapping carries in its index-style private data, nor the index file. *Proposed:* approve; the index file is read only as far as the mapping describes the same text.
 
+*Added in task 17:* that description is section 5.1 of the pinned codec draft. Its example index file starts with the line that names version 7, and gives the `size`, `palette`, `langidx`, `id`, `timestamp` and `filepos` lines.
+
 **PGS.** `thescorpius-pgs` (2017, updated 2019) gives the segment header and the five segment types with their fields, and names the two patents it is based on. *Proposed:* approve. Its worked example comes from a real file and is not used as a fixture (R8).
+
+*Added in task 17:* the article says that the frame-rate byte of the presentation composition segment is "Always 0x10. Can be ignored." and gives no meaning to its values, so no frame rate is reported.
 
 **HDMV TextST.** Appendix B.6 found nothing, and the pinned Matroska codec draft cites the section of the Blu-ray specification, which is not public. Two published patents describe the stream:
 
@@ -131,6 +137,8 @@ No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page tha
 - `uspto-us-8326118`, LG's US 8,326,118 B2 (granted 2012), in English. Its figures 9A to 9D give the same structures by field name, without sizes, and its text explains each field.
 
 *Decided at G1.5:* approve both, Sony's for the layout and LG's as corroboration. The parser checks the fields it reads against `segment_length`, and a segment whose fields do not add up gives a partial result.
+
+*Added in task 17:* in a transport stream, the first PES packet of the stream is the style segment and the others are presentation segments (Sony's figure 10, LG's FIG. 6). LG's FIG. 8 lets the presentation segments run to the end of the file, where Sony's figure 11 puts a 16-bit count before them; Sony's layout applies. LG's FIG. 10 names the start and end timestamps of a presentation segment without their size, and Sony's patent does not describe that segment, so the probe reports the number of presentation segments and no time range.
 
 **XSUB.** `multimedia-wiki-xsub` (revision 10542, 2008) gives the packet header: timestamp string, dimensions, coordinates, palette and the length of the run-length data. It links to an implementation's source, which was not opened. *Proposed:* approve.
 

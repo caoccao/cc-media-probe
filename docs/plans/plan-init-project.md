@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 17; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
+| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 18; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
 | **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
@@ -1636,7 +1636,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 to 0.6.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 to 0.7.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -2149,7 +2149,7 @@ flowchart TD
 
 ### Phase 14 — Subtitle files and companion lookup (0.7.0)
 
-**Specifications.** W3C WebVTT; RFC 8216 section 3.5 for the timestamp-map header; ETSI EN 300 743; the pinned Matroska codec mapping for the USF and TextST private data; the descriptions approved at G1.5 for the other formats.
+**Specifications.** W3C WebVTT; RFC 8216 section 3.5 for the timestamp-map header; W3C XML 1.0 (Fifth Edition) for the syntax of USF, approved through GS.2 in task 17; ETSI EN 300 743; the pinned Matroska codec mapping for the USF and TextST private data and for the VobSub index file (its section 5.1); the descriptions approved at G1.5 for the other formats.
 
 **Tasks**
 
@@ -2166,7 +2166,7 @@ flowchart TD
 4. **SSA/ASS†.** Script information, play resolution, styles and fonts referenced, event count and time range, embedded fonts and graphics as attachments.
 5. **WebVTT.** Header, regions, styles, cue count and time range. The timestamp-map header that HTTP Live Streaming adds to a WebVTT header (RFC 8216 section 3.5) is read and reported in the details. A file with a header and no cue is valid: one stream, an event count of zero.
 6. **[CONFIRM] G14.1 — XML for USF,** before the USF task: a minimal in-house pull parser limited to what USF needs, or a general-purpose XML crate behind an optional feature (through GS.1). Whichever is chosen has to meet one written contract, which is presented at this gate:
-   - *Subset.* Elements, attributes, character data, comments, the XML declaration and the five predefined entities. Nothing else is interpreted.
+   - *Subset.* Elements, attributes, character data, comments, the XML declaration and the five predefined entities, with the syntax of XML 1.0 (Fifth Edition). Nothing else is interpreted.
    - *No document type processing.* A document type declaration is skipped as a whole: no internal or external subset is read, and no entity is declared. A reference to any entity other than the five predefined ones is reported and left unexpanded, so no input can grow into more text than it contains.
    - *No external access.* The parser opens no file and no network resource, and offers no callback through which something else could. Nothing in the document leads to another source (R18).
    - *Shared budgets.* Element nesting counts against the nesting limit, every element and attribute is a work unit, and all text that is kept is charged like any other retained data.
@@ -2174,8 +2174,8 @@ flowchart TD
    - Skipped if USF was reduced at G1.5.
 7. **USF†.** Metadata, languages, styles: from a file, and from the stream-wide header that a Matroska track may carry in its private data. The second is the retrofit pair of section 4.3.
 8. **VobSub†.** Index file: canvas size, palette, one stream per language index, entry counts. Probed alone, an index yields all of that; the data file is named under external references and the completeness states that companions were not consulted or not available. With lookup enabled, the data file is opened through the resolver and the first sub-picture packet of each stream is checked.
-9. **PGS†.** Segment walk within the budget: canvas size, frame rate, display-set count, time range.
-10. **HDMV TextST†.** Style segment: regions and fonts, from the patent texts approved at G1.5; the fields read are checked against the segment length, and a segment whose fields do not add up gives a partial result. Two retrofit pairs: transport-stream carriage, where such streams have been identified without a parser since Phase 10, and Matroska, whose private data holds the same style segment.
+9. **PGS†.** Segment walk within the budget: canvas size, display-set count, time range. The frame-rate byte of the presentation composition segment is not reported: the approved description says that it is always 0x10 and gives no meaning to its values (task 17).
+10. **HDMV TextST†.** Style segment: regions and fonts, from the patent texts approved at G1.5; the fields read are checked against the segment length, and a segment whose fields do not add up gives a partial result. The event count is the number of presentation segments, which Sony's figure 11 gives after the style segment and the walk by segment length confirms. There is no time range: neither patent gives the size of the presentation timestamps (task 17). Two retrofit pairs: transport-stream carriage, where such streams have been identified without a parser since Phase 10, and Matroska, whose private data holds the same style segment.
 11. **Totals.** Event counts, display-set counts and time ranges describe the whole file. They are reported only when the file was read to its end within the budget and that end was observed (section 7.5); otherwise they are absent and the observed values are in the details. Each of these files is a single-stream format: its inventory is reached once its signature or first structure was validated.
 
 **Tests.** Section 11 checklist per format. An encoding matrix with a stated expected outcome in every cell: each text format in UTF-8, UTF-16 and UTF-32, with and without byte-order mark, in a legacy encoding, and with each line-ending convention. Among its cells: a UTF-16 file that spells `WEBVTT`, which is not detected as WebVTT; and a SubRip file in a legacy encoding without a byte-order mark, which is decoded with the default and raises the diagnostic. A WebVTT file with no cue. A WebVTT header with a timestamp map. For the XML contract: nesting up to and beyond the nesting limit; a document type declaration with entity declarations; a reference to an undeclared entity; an entity-expansion attack, which must not grow; and an external identifier, which must not be opened. A subtitle file larger than the read budget, and one exactly as long as it. A USF track and a TextST track in Matroska. The same VobSub pair through a path with lookup enabled, through a reader with a supplied resolver, and as an isolated index with no companion; a VobSub index whose data file cannot be found, asserting `is_complete()` false; every companion test of section 7.7.
@@ -2629,6 +2629,7 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 |---|---|---|---|---|---|
 | WebVTT: The Web Video Text Tracks Format (Candidate Recommendation Draft of 2026-05-20) | The WebVTT text format, which must be UTF-8. Its carriage in MP4 is defined by ISO/IEC 14496-30 (B.1); the timestamp-map header is defined by RFC 8216 (Appendix A.1) | Free | snapshot | [w3.org](https://www.w3.org/TR/webvtt1/) · [dated version](https://www.w3.org/TR/2026/CRD-webvtt1-20260520/) | ✓ |
 | Timed Text Markup Language 2 | TTML identification in MP4 | Free | snapshot | [w3.org](https://www.w3.org/TR/ttml2/) | ✓ |
+| Extensible Markup Language (XML) 1.0 (Fifth Edition) | The XML syntax of USF documents, and the contract of G14.1. Added through GS.2 in task 17 | Free | snapshot | [w3.org](https://www.w3.org/TR/xml/) · [dated version](https://www.w3.org/TR/2008/REC-xml-20081126/) | ✓ |
 | 3GPP TS 26.245 V19.0.0 | Timed text | Free | fetch | [3gpp.org](https://www.3gpp.org/dynareport/26245.htm) · [archive](https://www.3gpp.org/ftp/Specs/archive/26_series/26.245/26245-j00.zip) | ✓ |
 | ETSI EN 300 743 V1.6.1 | DVB subtitles | Free | fetch | [PDF](https://www.etsi.org/deliver/etsi_en/300700_300799/300743/01.06.01_60/en_300743v010601p.pdf) | ✓ |
 | ETSI EN 300 472 V1.4.1; ETSI EN 300 706 V1.2.1 | Teletext in DVB; enhanced teletext | Free | fetch | [472](https://www.etsi.org/deliver/etsi_en/300400_300499/300472/01.04.01_60/en_300472v010401p.pdf) · [706](https://www.etsi.org/deliver/etsi_en/300700_300799/300706/01.02.01_60/en_300706v010201p.pdf) | ✓ |
@@ -2683,6 +2684,8 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | Windows Media Audio version 1 format tag (0x0160) | Found in task 17 and approved through GS.2: the [list of format tags](https://wiki.multimedia.cx/index.php/TwoCC) on the community wiki. No Microsoft document gives the value | ✓ | Reported as an unknown format tag |
 | RealVideo in RealMedia: where the codec code is | None located: the RealMedia description lists the codes RV10 to RV40 without their place in the type-specific data, and names no video MIME type (task 17) | ○ | Container-level reporting |
 | ASF pictures: the stored layout of `WM/Picture` | None located: Microsoft documents its structure only in memory, with pointers (task 17) | ○ | Kept as a binary tag |
+| PGS frame rate | None located: the approved article says that the byte is always 0x10 and can be ignored (task 17) | ○ | Not reported |
+| HDMV TextST presentation timestamps | None located: LG's patent names the start and end timestamps of a presentation segment without their size, and Sony's does not describe that segment (task 17) | ○ | Event count only; no time range |
 | DVD-Video information files | [Community description](https://dvd.sourceforge.net/dvdinfo/ifo.html) | ✓ | Defer |
 | VobButtons | [Presentation-control packet layout](https://dvd.sourceforge.net/dvdinfo/pci_pkt.html) and the pinned Matroska codec draft for the track type; none located for the `btn` file signature | mixed | Matroska identification only; `btn` files by extension hint |
 | MicroDVD | [Community description](https://wiki.multimedia.cx/index.php/MicroDVD) | ✓ | Dropped from the inventory |
@@ -3110,6 +3113,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 15 | 2026-11-21 | Amended in task 17, for release 0.4.0. |
 | 16 | 2026-11-21 | Amended in task 17, for release 0.5.0. |
 | 17 | 2026-11-21 | Amended in task 17, for release 0.6.0. |
+| 18 | 2026-11-21 | Amended in task 17, for release 0.7.0. |
 
 What changed in draft 2, by theme:
 
@@ -3229,3 +3233,7 @@ What changed in revision 16, by theme:
 What changed in revision 17, by theme:
 
 - **Task 17, release 0.6.0.** Appendix B.1 adds Adobe's SWF File Format Specification, version 19, whose chapter 14 gives the Sorenson H.263 picture header that the FLV specification refers to, and Microsoft's pages that give the codes of Windows Media Video, VC-1 and Windows Media Audio; Appendix B.5 adds Microsoft's list of ASF attributes for tags; and Appendix B.6 adds the community list of format tags for 0x0160. All were approved through GS.2, and Phase 13, tasks 1 to 3, says how they are read. The approved ASF specification describes the extra data of format tag 0x0161 (section 11.1.1), which section 4.3 had kept as raw bytes; task 3 now reads its three fields. No document gives the stored layout of ASF pictures, which stay binary tags, or where the code of a RealVideo stream is, so task 4 reports such a stream at container level (B.6). Appendix B.1 records the stored edition of the Dolby Vision document for ISO base media files, version 2.8, adopted through GS.2, and Phase 6 reads its configuration boxes.
+
+What changed in revision 18, by theme:
+
+- **Task 17, release 0.7.0.** Appendix B.4 adds W3C XML 1.0 (Fifth Edition), approved through GS.2, for the syntax of USF and the contract of G14.1, which names it. The specifications of Phase 14 name it, and section 5.1 of the pinned Matroska codec draft for the VobSub index file. No document gives the meaning of the PGS frame-rate byte, so task 9 no longer reports a frame rate, or the size of the TextST presentation timestamps, so task 10 reports an event count and no time range (B.6).

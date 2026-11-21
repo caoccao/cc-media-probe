@@ -863,3 +863,43 @@ No change was needed for `registry.asf-identifiers`, `registry.realmedia-fourcc`
 **Verification:** `node scripts/check.ts` passes on 2026-11-21.
 
 **Open:** task 17 for releases 0.7.0 and 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.7.0
+
+**Decided by the maintainer** (GS.2 for the source):
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| XML for USF | W3C XML 1.0 (Fifth Edition), the Recommendation of 2008-11-26, is a new `snapshot` row, `w3c-xml-1-0`, class `normative`. The USF rows cite the sections their parser reads, and the contract of G14.1 names it. | The USF specification describes its elements, not the XML syntax they are written in, and no approved document defined that syntax: the declaration and its encoding, comments, references and the predefined entities. The Fifth Edition is still the current one. |
+| PGS frame rate | Not reported. Phase 14 task 9 reads canvas size, display-set count and time range. | The approved article says that the byte is "Always 0x10. Can be ignored." and gives no meaning to its values. |
+| HDMV TextST totals | The event count is the number of presentation segments; there is no time range. | LG's FIG. 10 names the start and end timestamps of a presentation segment without their size, and Sony's patent does not describe that segment. Sony's figure 11 gives the count, and the walk by segment length confirms it. |
+
+**Confirmed.** All 17 active rows of 0.7.0 have their `confirmed` date, 2026-11-21. The rows of earlier releases that the corrections below changed were checked again against the stored documents and keep their dates.
+
+**Corrected.** A correction that recurs was applied to every row that cites it, in every release:
+
+| Citation | Now | Why |
+|---|---|---|
+| `w3c-webvtt: 4` (`detect.webvtt` of 0.1.0, `probe.webvtt`) | `4.1`; for the probe also `4.3` and `rfc8216: 3.5` | Section 4 is the whole syntax; 4.1 gives the file structure, 4.3 the region settings, and the probe reports the timestamp map |
+| `titlevision-usf: Universal Subtitle Format (USF) Specification v1.1` (four rows, `detect.usf` of 0.1.0 among them) | The numbered sections: `3` for detection; `3`, `3.1`, `3.2` for the headers; `3.4` for the languages of the probe; `3.5` for the prolog of a file | The text is numbered, and its title names the whole document |
+| `ietf-draft-cellar-codec: S_VOBSUB` alone (the index pairs of a file, 0.7.0, and of Matroska, 0.1.0) | adds `5.1`; `detect.vobsub` of 0.1.0 cites both instead of `dvdinfo-spu: Sub-Pictures` | Section 5.1 lays out the index file and its first line, which detection reads; the sub-picture page does not describe the index |
+| A codec subsection of the Matroska draft that defers to section 5 (six rows of 0.1.0 and 0.7.0) | adds `5.3` (SSA/ASS), `5.4.1` (WebVTT), `5.5.2` (PGS), `5.6.1` (TextST), `5.7.1` and `5.7.2` (DVB subtitles) | The private data or block layout is given there; for DVB, `5.7.1` holds the five bytes of page identifiers, whose meaning is `etsi-en-300468: 6.2.41` |
+| `pair.webvtt.container-header.*` (two rows of 0.1.0) | `w3c-webvtt: 4.1` for the header text; Matroska keeps the codec draft, MP4 keeps `iso-iec-14496-30.md: 2` and `iso-iec-14496-12.md: 3` | The Matroska row cited the MP4 description and the MP4 row the Matroska draft |
+| TextST in Matroska and in transport streams | `jpo-jp-5339002: Figures 12 to 17`, `uspto-us-8326118: FIGS. 9A to 9D`; for transport streams also Sony's `Figure 10` and LG's `FIG. 6` | The private data and a PES packet hold a segment, not the file of figure 11; figures 10 and 6 say that the first PES packet is the style segment |
+
+**Completed** (sections that the rows needed and did not cite):
+
+| Row | Adds | For |
+|---|---|---|
+| `pair.ssa.file-header.file`, `pair.ssa.private-data-header.matroska-private-data` (0.1.0), `probe.ssa-ass` | `General information`, `Style lines, [v4 Styles] section`; for the probe also `Dialogue event lines, [Events] section` and `Appendix B: Embedded font/picture encoding` | The line syntax, the styles that the header holds, the event times, and the encoding of embedded fonts and graphics |
+| `pair.subrip.cue-scan.file`, `probe.subrip` | `loc-subrip: Notes` | The three line terminators that separate cues |
+| The USF rows | The XML sections: the prolog (`2.8`), comments, processing instructions, tags, references, the predefined entities and end-of-line handling; for a file also the document (`2.1`) and its encoding (`4.3.3`, `F.1`) | The decision above |
+| `probe.vobsub` | `dvdinfo-dvdmpeg: Extensions`, `itu-t-h-222-0: 2.4.3.6`, `2.4.3.7`, `2.5.3.3`, `2.5.3.4` | The first sub-picture packet of each stream, which the probe checks in the data file at the index's file position: a pack, a PES packet and its sub-stream number |
+
+No change was needed for the TextST and PGS file pairs, `probe.hdmv-textst`, `probe.pgs` or `pair.webvtt.file-header.file`.
+
+**Fetching.** The XML specification was read from w3.org to standard output before the decision, then stored from its dated address; three requests went to w3.org, several seconds apart.
+
+**Plan and dossier.** Revision 18 of the plan changes the specifications of Phase 14 and its tasks 6, 9 and 10, Appendix B.4 (XML 1.0) and B.6 (the PGS frame rate and the TextST timestamps). The source dossier adds task-17 notes for USF, VobSub, PGS and TextST.
+
+**Open:** task 17 for release 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
