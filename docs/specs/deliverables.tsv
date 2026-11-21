@@ -1,0 +1,340 @@
+key	kind	section	subject	item	carriage	phase
+detect.3gp-3g2	detect	4.4	ISO base media	3GP/3G2		
+detect.aac-adif	detect	4.4	Raw audio streams	AAC as ADTS or ADIF (`aac`) and as LATM/LOAS (`loas`, `latm`)		
+detect.aac-adts	detect	4.4	Raw audio streams	AAC as ADTS or ADIF (`aac`) and as LATM/LOAS (`loas`, `latm`)		
+detect.aac-loas	detect	4.4	Raw audio streams	AAC as ADTS or ADIF (`aac`) and as LATM/LOAS (`loas`, `latm`)		
+detect.ac3	detect	4.4	Raw audio streams	AC-3 / E-AC-3 (`ac3`, `eac3`, `ec3`, `eb3`)		
+detect.aiff-aifc	detect	4.4	Post-1.0 candidates	AIFF/AIFC		
+detect.amr	detect	4.4	Post-1.0 candidates	AMR		
+detect.asf	detect	4.4	ASF	ASF (`asf`)		
+detect.au	detect	4.4	Post-1.0 candidates	AU		
+detect.av1-obu	detect	4.4	Raw video streams	AV1 OBU (`obu`, `av1`)		
+detect.avi	detect	4.4	RIFF video	AVI including OpenDML and DV type 1 / type 2		
+detect.blu-ray-playlists	detect	4.4	Disc structures	Blu-ray playlists and clip info† (`mpls`, `clpi`)		
+detect.caf	detect	4.4	PCM containers	Core Audio Format (`caf`)		
+detect.dirac	detect	4.4	Raw video streams	Dirac (`drc`)		
+detect.dsd-dsf-dsdiff	detect	4.4	Post-1.0 candidates	DSD (DSF/DSDIFF)		
+detect.dts	detect	4.4	Raw audio streams	DTS / DTS-HD (`dts`, `dtshd`, `dtsma`)		
+detect.dv	detect	4.4	Raw video streams	DV (`dv`)		
+detect.dvd-video	detect	4.4	Disc structures	DVD-Video title sets† (`ifo` + `vob`)		
+detect.f4v	detect	4.4	ISO base media	F4V (`f4v`, `f4a`, `f4b`)		
+detect.flac	detect	4.4	FLAC	Native FLAC (`flac`)		
+detect.flv	detect	4.4	Flash	FLV (`flv`; tag-based files only)		
+detect.fragmented-mp4	detect	4.4	ISO base media	fragmented MP4		
+detect.h264	detect	4.4	Raw video streams	H.264 (`264`, `h264`, `avc`)		
+detect.hd-dvd-subtitles	detect	4.4	Detect-only	HD-DVD subtitles†		
+detect.hdmv-textst	detect	4.4	Subtitle files	HDMV TextST† (`textst`)		
+detect.hevc	detect	4.4	Raw video streams	HEVC (`265`, `h265`, `hevc`)		
+detect.internet-video-recording	detect	4.4	Detect-only	Internet Video Recording†		
+detect.ivf	detect	4.4	Simple video containers	IVF† (`ivf`)		
+detect.matroska	detect	4.4	Matroska	Matroska (`mkv`, `mka`, `mks`, `mk3d`)		
+detect.microdvd	detect	4.4	Detect-only	MicroDVD†		
+detect.monkey-s-audio	detect	4.4	Post-1.0 candidates	Monkey's Audio		
+detect.mov	detect	4.4	QuickTime	MOV (`mov`, `qt`)		
+detect.mp4	detect	4.4	ISO base media	MP4 (`mp4`, `m4v`, `m4a`)		
+detect.mpeg-audio	detect	4.4	Raw audio streams	MPEG audio layers I–III (`mp2`, `mp3`)		
+detect.mpeg-video	detect	4.4	Raw video streams	MPEG-1/2 video (`m1v`, `m2v`, `mpv`)		
+detect.mpeg4-visual	detect	4.4	Raw video streams	MPEG-4 Visual elementary streams		
+detect.musepack	detect	4.4	Post-1.0 candidates	Musepack		
+detect.mxf	detect	4.4	Post-1.0 candidates	MXF		
+detect.ogg	detect	4.4	Ogg	Ogg (`ogg`, `oga`, `ogv`, `opus`)		
+detect.ogm	detect	4.4	Ogg	OGM† (`ogm`)		
+detect.pgs	detect	4.4	Subtitle files	PGS† (`sup`)		
+detect.program-stream	detect	4.4	MPEG systems	program stream (`mpg`, `mpeg`, `vob`, `evo`, `evob`)		
+detect.realaudio	detect	4.4	RealMedia	RealAudio† (`ra`)		
+detect.realaudio-metafile	detect	4.4	Detect-only	RealAudio metafiles† (`ram`)		
+detect.realmedia	detect	4.4	RealMedia	RealMedia† (`rm`, `rmvb`, `rv`)		
+detect.rf64-bw64	detect	4.4	PCM containers	RF64/BW64		
+detect.riff-cd-xa	detect	4.4	Detect-only	RIFF CD-XA†		
+detect.ssa-ass	detect	4.4	Subtitle files	SSA/ASS† (`ssa`, `ass`)		
+detect.subrip	detect	4.4	Subtitle files	SubRip† (`srt`)		
+detect.transport-stream	detect	4.4	MPEG systems	Transport stream (`ts`, `m2ts`, `mts`)		
+detect.truehd	detect	4.4	Raw audio streams	TrueHD / MLP (`thd`, `mlp`, `thd+ac3`)		
+detect.tta	detect	4.4	Raw audio streams	TTA† (`tta`)		
+detect.usf	detect	4.4	Subtitle files	USF† (`usf`)		
+detect.vc-1	detect	4.4	Raw video streams	VC-1 (`vc1`)		
+detect.vobbuttons	detect	4.4	Detect-only	VobButtons† (`btn`)		
+detect.vobsub	detect	4.4	Subtitle files	VobSub† (`idx` + `sub`)		
+detect.vvc	detect	4.4	Raw video streams	VVC (`266`, `vvc`)		
+detect.wave	detect	4.4	PCM containers	WAVE (`wav`)		
+detect.wave64	detect	4.4	PCM containers	Wave64† (`w64`)		
+detect.wavpack	detect	4.4	Raw audio streams	WavPack (`wv`)		
+detect.webm	detect	4.4	Matroska	WebM (`webm`, `weba`)		
+detect.webvtt	detect	4.4	Subtitle files	WebVTT (`vtt`)		
+detect.windows-television	detect	4.4	Detect-only	Windows Television recordings†		
+detect.wma	detect	4.4	ASF	WMA (`wma`)		
+detect.wmv	detect	4.4	ASF	WMV (`wmv`)		
+identify.cea-608-708.mp4-mov	identify	4.3	CEA-608/708 captions		MP4/MOV	6
+identify.evrc-qcelp-smv.3g2	identify	4.3	EVRC, QCELP, SMV		3G2	6
+identify.legacy-fourcc-video.avi	identify	4.3	Legacy FourCC video codecs		AVI	7
+identify.legacy-fourcc-video.matroska	identify	4.3	Legacy FourCC video codecs		Matroska	5
+identify.legacy-fourcc-video.mov	identify	4.3	Legacy FourCC video codecs		MOV	6
+identify.subrip-plain-text.matroska	identify	4.3	SubRip and plain text carried in a container		Matroska	5
+identify.ttml.mp4	identify	4.3	TTML		MP4	6
+identify.uncompressed-video.avi	identify	4.3	Uncompressed video		AVI	7
+identify.uncompressed-video.matroska	identify	4.3	Uncompressed video		Matroska	5
+identify.uncompressed-video.mov	identify	4.3	Uncompressed video		MOV	6
+identify.vobbuttons.matroska	identify	4.3	VobButtons		Matroska	5
+pair.3gpp-timed-text.sample-description.mp4-and-3gp-sample-entry	pair	4.3	3GPP timed text	Sample description	MP4 and 3GP sample entry	6
+pair.aac.adif.raw-file	pair	4.3	AAC	ADIF header	Raw file	11
+pair.aac.adts.avi-chunks	pair	4.3	AAC	ADTS header	AVI chunks	7
+pair.aac.adts.raw-file	pair	4.3	AAC	ADTS header	raw file	11
+pair.aac.adts.ts-ps	pair	4.3	AAC	ADTS header	TS/PS	10
+pair.aac.audio-specific-config.avi-wave-format-extra-data	pair	4.3	AAC	AudioSpecificConfig	AVI wave-format extra data	7
+pair.aac.audio-specific-config.flv-sequence-header	pair	4.3	AAC	AudioSpecificConfig	FLV sequence header	13
+pair.aac.audio-specific-config.matroska-private-data	pair	4.3	AAC	AudioSpecificConfig	Matroska private data	5
+pair.aac.audio-specific-config.mp4-decoder-specific-information	pair	4.3	AAC	AudioSpecificConfig	MP4 decoder-specific information	6
+pair.aac.audio-specific-config.realmedia-type-specific-data	pair	4.3	AAC	AudioSpecificConfig	RealMedia type-specific data†	13
+pair.aac.latm-loas.raw-file	pair	4.3	AAC	LATM/LOAS configuration	raw file	11
+pair.aac.latm-loas.ts	pair	4.3	AAC	LATM/LOAS configuration	TS	10
+pair.ac-4.configuration-box.mp4-sample-entry	pair	4.3	AC-4	Configuration box	MP4 sample entry	6
+pair.ac-4.sync-frame.ts	pair	4.3	AC-4	Sync frame with its table of contents	TS	10
+pair.ac3.configuration-boxes.mp4-sample-entry	pair	4.3	AC-3, E-AC-3	Configuration boxes	MP4 sample entry	6
+pair.ac3.sync-frame.avi-chunks	pair	4.3	AC-3, E-AC-3	Sync frame and bitstream information	AVI chunks	7
+pair.ac3.sync-frame.matroska-frames	pair	4.3	AC-3, E-AC-3	Sync frame and bitstream information	Matroska frames	5
+pair.ac3.sync-frame.raw-file	pair	4.3	AC-3, E-AC-3	Sync frame and bitstream information	raw file	11
+pair.ac3.sync-frame.ts-ps	pair	4.3	AC-3, E-AC-3	Sync frame and bitstream information	TS/PS	10
+pair.alac.magic-cookie.caf-chunk	pair	4.3	ALAC†	Codec configuration ("magic cookie")	CAF chunk	11
+pair.alac.magic-cookie.matroska-private-data	pair	4.3	ALAC†	Codec configuration ("magic cookie")	Matroska private data	5
+pair.alac.magic-cookie.mp4-mov-sample-entry	pair	4.3	ALAC†	Codec configuration ("magic cookie")	MP4/MOV sample entry	6
+pair.amr.configuration-box.3gp-sample-entry	pair	4.3	AMR, AMR-WB	3GPP configuration box	3GP sample entry	6
+pair.av1.configuration-record.flv-sequence-header	pair	4.3	AV1	Configuration record	FLV sequence header	13
+pair.av1.configuration-record.matroska-private-data	pair	4.3	AV1	Configuration record	Matroska private data	5
+pair.av1.configuration-record.mp4-sample-entry	pair	4.3	AV1	Configuration record	MP4 sample entry	6
+pair.av1.length-delimited.raw-file	pair	4.3	AV1	Length-delimited OBU stream	Raw file	12
+pair.av1.low-overhead.flv-packets	pair	4.3	AV1	Low-overhead OBU stream	FLV packets	13
+pair.av1.low-overhead.ivf-frames	pair	4.3	AV1	Low-overhead OBU stream	IVF frames	12
+pair.av1.low-overhead.matroska-frames	pair	4.3	AV1	Low-overhead OBU stream	Matroska frames	5
+pair.av1.low-overhead.mp4-samples	pair	4.3	AV1	Low-overhead OBU stream	MP4 samples	6
+pair.av1.low-overhead.raw-file	pair	4.3	AV1	Low-overhead OBU stream	raw file	12
+pair.av1.start-code.ts	pair	4.3	AV1	Start-code OBU format and AV1 video descriptor of transport streams	TS	10
+pair.dirac.sequence-header.matroska-frames	pair	4.3	Dirac/VC-2	Parse info and sequence header	Matroska frames	retrofit in 12
+pair.dirac.sequence-header.ogg-packets	pair	4.3	Dirac/VC-2	Parse info and sequence header	Ogg packets†	retrofit in 12
+pair.dirac.sequence-header.raw-file	pair	4.3	Dirac/VC-2	Parse info and sequence header	Raw file	12
+pair.dts.configuration-box.mp4-sample-entry	pair	4.3	DTS family	Configuration box	MP4 sample entry	6
+pair.dts.core-frame-header.matroska-frames	pair	4.3	DTS family	Core frame header	Matroska frames	5
+pair.dts.core-frame-header.raw-file	pair	4.3	DTS family	Core frame header	raw file	11
+pair.dts.core-frame-header.ts-ps	pair	4.3	DTS family	Core frame header	TS/PS	10
+pair.dts.extension-substream.matroska-frames	pair	4.3	DTS family	Extension substream header	Matroska frames	5
+pair.dts.extension-substream.raw-file	pair	4.3	DTS family	Extension substream header	raw file	11
+pair.dts.extension-substream.ts-ps	pair	4.3	DTS family	Extension substream header	TS/PS	10
+pair.dts.stream-variants.raw-file	pair	4.3	DTS family	14-bit and byte-swapped stream variants	Raw file	11
+pair.dts.stream-variants.wave-data	pair	4.3	DTS family	14-bit and byte-swapped stream variants	WAVE data	11
+pair.dv.dif-header.avi-types-1-and-2	pair	4.3	DV	DIF header plus the video and audio auxiliary packs of the first DIF sequence	AVI types 1 and 2	7
+pair.dv.dif-header.mov-samples	pair	4.3	DV	DIF header plus the video and audio auxiliary packs of the first DIF sequence	MOV samples	6
+pair.dv.dif-header.raw-file	pair	4.3	DV	DIF header plus the video and audio auxiliary packs of the first DIF sequence	raw file	12
+pair.dvb-subtitles.first-segment-headers.matroska-frames	pair	4.3	DVB subtitles	First segment headers	Matroska frames	5
+pair.dvb-subtitles.first-segment-headers.ts	pair	4.3	DVB subtitles	First segment headers	TS	10
+pair.dvb-subtitles.page-identifiers.matroska-private-data	pair	4.3	DVB subtitles	Page identifiers in private data	Matroska private data	5
+pair.dvb-subtitles.subtitling-descriptor.ts	pair	4.3	DVB subtitles	Subtitling descriptor	TS	10
+pair.dvb-teletext.teletext-descriptor.ts	pair	4.3	DVB teletext	Teletext descriptor	TS	10
+pair.ffv1.version-0-1-parameters.avi-chunks	pair	4.3	FFV1	Version 0 and 1 parameters in the first key frame	AVI chunks	7
+pair.ffv1.version-0-1-parameters.matroska-frames	pair	4.3	FFV1	Version 0 and 1 parameters in the first key frame	Matroska frames	5
+pair.ffv1.version-0-1-parameters.mov-samples	pair	4.3	FFV1	Version 0 and 1 parameters in the first key frame	MOV samples	6
+pair.ffv1.version-3-configuration.avi-stream-format	pair	4.3	FFV1	Version 3 configuration record	AVI stream format	7
+pair.ffv1.version-3-configuration.matroska-private-data	pair	4.3	FFV1	Version 3 configuration record	Matroska private data	5
+pair.ffv1.version-3-configuration.mov-sample-entry	pair	4.3	FFV1	Version 3 configuration record	MOV sample entry	6
+pair.flac.configuration-box.mp4-sample-entry	pair	4.3	FLAC	Configuration box	MP4 sample entry	6
+pair.flac.streaminfo.matroska-private-data	pair	4.3	FLAC	STREAMINFO block	Matroska private data	5
+pair.flac.streaminfo.native-file	pair	4.3	FLAC	STREAMINFO block	native file	9
+pair.flac.streaminfo.ogg-mapping-header	pair	4.3	FLAC	STREAMINFO block	Ogg mapping header	9
+pair.h-263.configuration-box.3gp-sample-entry	pair	4.3	H.263	3GPP configuration box	3GP sample entry	6
+pair.h-263.flash-picture-header.flv-packets	pair	4.3	H.263	Variant picture header used in Flash video	FLV packets	13
+pair.h-263.picture-header.3gp-samples	pair	4.3	H.263	Picture header	3GP samples	6
+pair.h264.annex-b.avi-chunks	pair	4.3	H.264/AVC	Annex B byte stream	AVI chunks	7
+pair.h264.annex-b.raw-file	pair	4.3	H.264/AVC	Annex B byte stream	raw file	12
+pair.h264.annex-b.ts-ps	pair	4.3	H.264/AVC	Annex B byte stream	TS/PS	10
+pair.h264.configuration-record.flv-sequence-header	pair	4.3	H.264/AVC	Decoder configuration record	FLV sequence header	13
+pair.h264.configuration-record.matroska-private-data	pair	4.3	H.264/AVC	Decoder configuration record	Matroska private data	5
+pair.h264.configuration-record.mp4-mov-sample-entry	pair	4.3	H.264/AVC	Decoder configuration record	MP4/MOV sample entry	6
+pair.h264.length-prefixed.flv-packets	pair	4.3	H.264/AVC	Length-prefixed NAL units	FLV packets	13
+pair.h264.length-prefixed.matroska-frames	pair	4.3	H.264/AVC	Length-prefixed NAL units	Matroska frames	5
+pair.h264.length-prefixed.mp4-mov-samples	pair	4.3	H.264/AVC	Length-prefixed NAL units	MP4/MOV samples	6
+pair.hdmv-textst.dialog-style-segment.file	pair	4.3	HDMV TextST†	Dialog style segment	File	14
+pair.hdmv-textst.dialog-style-segment.matroska-private-data	pair	4.3	HDMV TextST†	Dialog style segment	Matroska private data	retrofit in 14
+pair.hdmv-textst.dialog-style-segment.ts	pair	4.3	HDMV TextST†	Dialog style segment	TS	retrofit in 14
+pair.hevc.annex-b.raw-file	pair	4.3	H.265/HEVC	Annex B byte stream	raw file	12
+pair.hevc.annex-b.ts	pair	4.3	H.265/HEVC	Annex B byte stream	TS	10
+pair.hevc.configuration-record.flv-sequence-header	pair	4.3	H.265/HEVC	Decoder configuration record	FLV sequence header	13
+pair.hevc.configuration-record.matroska-private-data	pair	4.3	H.265/HEVC	Decoder configuration record	Matroska private data	5
+pair.hevc.configuration-record.mp4-sample-entry	pair	4.3	H.265/HEVC	Decoder configuration record	MP4 sample entry	6
+pair.hevc.length-prefixed.flv-packets	pair	4.3	H.265/HEVC	Length-prefixed NAL units	FLV packets	13
+pair.hevc.length-prefixed.matroska-frames	pair	4.3	H.265/HEVC	Length-prefixed NAL units	Matroska frames	5
+pair.hevc.length-prefixed.mp4-samples	pair	4.3	H.265/HEVC	Length-prefixed NAL units	MP4 samples	6
+pair.kate.identification-header.matroska-laced-private-data	pair	4.3	Kate†	Identification header	Matroska laced private data	retrofit in 9
+pair.kate.identification-header.ogg-packets	pair	4.3	Kate†	Identification header	Ogg packets	9
+pair.motion-jpeg.frame-header.avi-chunks	pair	4.3	Motion JPEG	JPEG frame header	AVI chunks	7
+pair.motion-jpeg.frame-header.matroska-frames	pair	4.3	Motion JPEG	JPEG frame header	Matroska frames	5
+pair.motion-jpeg.frame-header.mov-samples	pair	4.3	Motion JPEG	JPEG frame header	MOV samples	6
+pair.mpeg-audio.frame-header.avi-chunks	pair	4.3	MPEG audio	Frame header	AVI chunks	7
+pair.mpeg-audio.frame-header.flv-packets	pair	4.3	MPEG audio	Frame header	FLV packets	13
+pair.mpeg-audio.frame-header.matroska-frames	pair	4.3	MPEG audio	Frame header	Matroska frames	5
+pair.mpeg-audio.frame-header.mp4-samples	pair	4.3	MPEG audio	Frame header	MP4 samples	6
+pair.mpeg-audio.frame-header.raw-file	pair	4.3	MPEG audio	Frame header	raw file	11
+pair.mpeg-audio.frame-header.ts-ps	pair	4.3	MPEG audio	Frame header	TS/PS	10
+pair.mpeg-audio.vbr-headers.raw-file	pair	4.3	MPEG audio	VBR headers† (the Xing/Info and VBRI layouts)	Raw file	11
+pair.mpeg-video.sequence-header.avi-chunks	pair	4.3	MPEG-1/2 video	Sequence header and extensions	AVI chunks	7
+pair.mpeg-video.sequence-header.matroska-private-data-and-frames	pair	4.3	MPEG-1/2 video	Sequence header and extensions	Matroska private data and frames	5
+pair.mpeg-video.sequence-header.mp4-mov-decoder-specific-information-and-samples	pair	4.3	MPEG-1/2 video	Sequence header and extensions	MP4/MOV decoder-specific information and samples	6
+pair.mpeg-video.sequence-header.raw-file	pair	4.3	MPEG-1/2 video	Sequence header and extensions	raw file	12
+pair.mpeg-video.sequence-header.ts-ps	pair	4.3	MPEG-1/2 video	Sequence header and extensions	TS/PS	10
+pair.mpeg4-visual.object-layer-headers.avi-chunks	pair	4.3	MPEG-4 Visual	Visual object sequence and video object layer headers	AVI chunks	7
+pair.mpeg4-visual.object-layer-headers.matroska-frames	pair	4.3	MPEG-4 Visual	Visual object sequence and video object layer headers	Matroska frames	5
+pair.mpeg4-visual.object-layer-headers.mp4-decoder-specific-information	pair	4.3	MPEG-4 Visual	Visual object sequence and video object layer headers	MP4 decoder-specific information	6
+pair.mpeg4-visual.object-layer-headers.raw-file	pair	4.3	MPEG-4 Visual	Visual object sequence and video object layer headers	raw file	12
+pair.mpeg4-visual.object-layer-headers.ts-ps	pair	4.3	MPEG-4 Visual	Visual object sequence and video object layer headers	TS/PS	10
+pair.opus.configuration-box.mp4-sample-entry	pair	4.3	Opus	Configuration box	MP4 sample entry	6
+pair.opus.identification-header.matroska-private-data	pair	4.3	Opus	Identification header	Matroska private data	5
+pair.opus.identification-header.ogg-packets	pair	4.3	Opus	Identification header	Ogg packets	9
+pair.opus.transport-stream-descriptor.ts	pair	4.3	Opus	Transport-stream descriptor and control header	TS	10
+pair.pcm.configuration-box.mp4-sample-entry	pair	4.3	PCM	PCM configuration box	MP4 sample entry	6
+pair.pcm.disc-lpcm.ps	pair	4.3	PCM	Disc LPCM headers†	PS	10
+pair.pcm.disc-lpcm.ts	pair	4.3	PCM	Disc LPCM headers†	TS	10
+pair.pcm.sound-description.mov-sample-entry	pair	4.3	PCM	QuickTime sound descriptions	MOV sample entry	6
+pair.pcm.wave-format.asf-stream-format	pair	4.3	PCM	Wave format structures	ASF stream format	13
+pair.pcm.wave-format.avi-stream-format	pair	4.3	PCM	Wave format structures	AVI stream format	7
+pair.pcm.wave-format.matroska-wave-format-private-data	pair	4.3	PCM	Wave format structures	Matroska wave-format private data	5
+pair.pcm.wave-format.wave-format-chunk	pair	4.3	PCM	Wave format structures	WAVE format chunk	11
+pair.pgs.first-display-set.file	pair	4.3	PGS†	First display set, starting with its presentation composition segment	file	14
+pair.pgs.first-display-set.matroska-frames	pair	4.3	PGS†	First display set, starting with its presentation composition segment	Matroska frames	5
+pair.pgs.first-display-set.ts	pair	4.3	PGS†	First display set, starting with its presentation composition segment	TS	10
+pair.prores.frame-header.matroska-frames	pair	4.3	ProRes	Frame header	Matroska frames	5
+pair.prores.frame-header.mov-samples	pair	4.3	ProRes	Frame header	MOV samples	6
+pair.quicktime-text.sample-description.mov-sample-entry	pair	4.3	QuickTime text	Text sample description	MOV sample entry	6
+pair.realaudio.file-headers.standalone-file	pair	4.3	RealAudio†	File headers of versions 3, 4 and 5	Standalone file	13
+pair.realaudio.type-specific-data.matroska-private-data	pair	4.3	RealAudio†	Stream type-specific data naming the codec (14.4, 28.8, AC-3 based, Sipro, Cook, ATRAC3, AAC, lossless)	Matroska private data	retrofit in 13
+pair.realaudio.type-specific-data.realmedia-stream-properties	pair	4.3	RealAudio†	Stream type-specific data naming the codec (14.4, 28.8, AC-3 based, Sipro, Cook, ATRAC3, AAC, lossless)	RealMedia stream properties	13
+pair.realvideo.type-specific-data.matroska-private-data	pair	4.3	RealVideo†	Type-specific data for RV10 to RV40	Matroska private data	retrofit in 13
+pair.realvideo.type-specific-data.realmedia-stream-properties	pair	4.3	RealVideo†	Type-specific data for RV10 to RV40	RealMedia stream properties	13
+pair.speex.header-packet.ogg-packets	pair	4.3	Speex	Header packet	Ogg packets	9
+pair.ssa.file-header.file	pair	4.3	SSA/ASS†	Script header at the start of a file	File	14
+pair.ssa.private-data-header.matroska-private-data	pair	4.3	SSA/ASS†	Script header carried as private data	Matroska private data	5
+pair.subrip.cue-scan.file	pair	4.3	SubRip†	Cue scan of a file	File	14
+pair.theora.identification-header.matroska-laced-private-data	pair	4.3	Theora	Identification header	Matroska laced private data	retrofit in 9
+pair.theora.identification-header.ogg-packets	pair	4.3	Theora	Identification header	Ogg packets	9
+pair.truehd.configuration-box.mp4-sample-entry	pair	4.3	TrueHD	Configuration box	MP4 sample entry	6
+pair.truehd.major-sync.matroska-frames	pair	4.3	TrueHD, MLP	Major sync	Matroska frames	5
+pair.truehd.major-sync.raw-file	pair	4.3	TrueHD, MLP	Major sync	raw file	11
+pair.truehd.major-sync.ts	pair	4.3	TrueHD, MLP	Major sync	TS	10
+pair.tta.file-header.matroska-private-data	pair	4.3	TTA†	File header structure	Matroska private data	retrofit in 11
+pair.tta.file-header.native-file	pair	4.3	TTA†	File header structure	Native file	11
+pair.usf.document-header.file	pair	4.3	USF†	Document header	File	14
+pair.usf.private-data-header.matroska-private-data	pair	4.3	USF†	Stream-wide header in private data (metadata, styles, effects)	Matroska private data	retrofit in 14
+pair.vc-1.advanced-sequence-header.asf-stream-format-and-payloads	pair	4.3	VC-1	Advanced-profile sequence header in a start-code stream	ASF stream format and payloads	13
+pair.vc-1.advanced-sequence-header.raw-file	pair	4.3	VC-1	Advanced-profile sequence header in a start-code stream	raw file	12
+pair.vc-1.advanced-sequence-header.ts-ps	pair	4.3	VC-1	Advanced-profile sequence header in a start-code stream	TS/PS	10
+pair.vc-1.configuration-structure.matroska-private-data	pair	4.3	VC-1	Decoder configuration structure	Matroska private data	retrofit in 10
+pair.vc-1.configuration-structure.mp4-sample-entry	pair	4.3	VC-1	Decoder configuration structure	MP4 sample entry	retrofit in 10
+pair.vc-1.simple-main-sequence.asf-stream-format	pair	4.3	VC-1	Simple- and main-profile sequence structure in stream-format extra data	ASF stream format	13
+pair.vc-1.simple-main-sequence.avi-stream-format	pair	4.3	VC-1	Simple- and main-profile sequence structure in stream-format extra data	AVI stream format	retrofit in 13
+pair.vc-1.simple-main-sequence.matroska-bitmap-format-private-data	pair	4.3	VC-1	Simple- and main-profile sequence structure in stream-format extra data	Matroska bitmap-format private data	retrofit in 13
+pair.vobsub.index-file.file	pair	4.3	VobSub†	Index file	File	14
+pair.vobsub.index-private-data.matroska-private-data	pair	4.3	VobSub†	Index-style private data	Matroska private data	5
+pair.vobsub.mp4-palette.mp4-sample-entry	pair	4.3	VobSub†	Palette in decoder-specific information	MP4 sample entry	6
+pair.vobsub.sub-picture-packets.ps	pair	4.3	VobSub†	Sub-picture stream packets	PS	10
+pair.vorbis.identification-header.matroska-laced-private-data	pair	4.3	Vorbis	Identification header	Matroska laced private data	5
+pair.vorbis.identification-header.ogg-packets	pair	4.3	Vorbis	Identification header	Ogg packets	9
+pair.vp8-vp9.configuration-box.mp4-sample-entry	pair	4.3	VP8, VP9	Codec configuration box	MP4 sample entry	6
+pair.vp8.frame-header.avi-chunks	pair	4.3	VP8	Frame tag and key-frame header	AVI chunks	7
+pair.vp8.frame-header.ivf-frames	pair	4.3	VP8	Frame tag and key-frame header	IVF frames	12
+pair.vp8.frame-header.matroska-frames	pair	4.3	VP8	Frame tag and key-frame header	Matroska frames	5
+pair.vp9.frame-header.ivf-frames	pair	4.3	VP9	Uncompressed frame header	IVF frames	12
+pair.vp9.frame-header.matroska-frames	pair	4.3	VP9	Uncompressed frame header	Matroska frames	5
+pair.vp9.frame-header.mp4-samples	pair	4.3	VP9	Uncompressed frame header	MP4 samples	6
+pair.vvc.annex-b.raw-file	pair	4.3	H.266/VVC	Annex B byte stream	raw file	12
+pair.vvc.annex-b.ts	pair	4.3	H.266/VVC	Annex B byte stream	TS	10
+pair.vvc.configuration-record.matroska-private-data	pair	4.3	H.266/VVC	Decoder configuration record	Matroska private data	5
+pair.vvc.configuration-record.mp4-sample-entry	pair	4.3	H.266/VVC	Decoder configuration record	MP4 sample entry	6
+pair.vvc.length-prefixed.matroska-frames	pair	4.3	H.266/VVC	Length-prefixed NAL units	Matroska frames	5
+pair.vvc.length-prefixed.mp4-samples	pair	4.3	H.266/VVC	Length-prefixed NAL units	MP4 samples	6
+pair.wavpack.block-header.native-file	pair	4.3	WavPack	Native block header and metadata sub-blocks	Native file	11
+pair.wavpack.matroska-form.matroska-private-data-and-frames	pair	4.3	WavPack	Matroska form: version in codec private data and the reduced block header that starts each payload	Matroska private data and frames	retrofit in 11
+pair.webvtt.container-header.matroska-private-data	pair	4.3	WebVTT	Header text carried by the container	Matroska private data	5
+pair.webvtt.container-header.mp4-configuration-box	pair	4.3	WebVTT	Header text carried by the container	MP4 configuration box	6
+pair.webvtt.file-header.file	pair	4.3	WebVTT	Header block of a file, including the timestamp-map header of RFC 8216	File	14
+pair.wma.wave-format.asf-stream-format	pair	4.3	Windows Media Audio†	Wave format structure for format tags 0x0160, 0x0161 (versions 1 and 2), 0x0162 (Professional), 0x0163 (Lossless) and 0x000A (Voice). Codec-specific extra data is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes	ASF stream format	13
+pair.wma.wave-format.avi-stream-format	pair	4.3	Windows Media Audio†	Wave format structure for format tags 0x0160, 0x0161 (versions 1 and 2), 0x0162 (Professional), 0x0163 (Lossless) and 0x000A (Voice). Codec-specific extra data is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes	AVI stream format	retrofit in 13
+pair.wma.wave-format.matroska-wave-format-private-data	pair	4.3	Windows Media Audio†	Wave format structure for format tags 0x0160, 0x0161 (versions 1 and 2), 0x0162 (Professional), 0x0163 (Lossless) and 0x000A (Voice). Codec-specific extra data is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes	Matroska wave-format private data	retrofit in 13
+pair.wmv.bitmap-header.asf-stream-format	pair	4.3	Windows Media Video 7/8	Bitmap header. Codec-specific extra data† is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes	ASF stream format	13
+pair.wmv.bitmap-header.avi-stream-format	pair	4.3	Windows Media Video 7/8	Bitmap header. Codec-specific extra data† is parsed only where G1.5 approves a public description; otherwise it is kept as raw bytes	AVI stream format	retrofit in 13
+pair.xsub.packet-header.avi-chunks	pair	4.3	XSUB†	Subtitle packet header	AVI chunks	7
+probe.3gp-3g2	probe	4.1	ISO base media	3GP/3G2		6
+probe.aac	probe	4.1	Raw audio streams	AAC as ADTS or ADIF (`aac`) and as LATM/LOAS (`loas`, `latm`)		11
+probe.ac3	probe	4.1	Raw audio streams	AC-3 / E-AC-3 (`ac3`, `eac3`, `ec3`, `eb3`)		11
+probe.aiff-aifc	probe	4.1	Post-1.0 candidates	AIFF/AIFC		17
+probe.amr	probe	4.1	Post-1.0 candidates	AMR		17
+probe.asf	probe	4.1	ASF	ASF (`asf`)		13
+probe.au	probe	4.1	Post-1.0 candidates	AU		17
+probe.av1-obu	probe	4.1	Raw video streams	AV1 OBU (`obu`, `av1`)		12
+probe.avi	probe	4.1	RIFF video	AVI including OpenDML and DV type 1 / type 2		7
+probe.blu-ray-playlists	probe	4.1	Disc structures	Blu-ray playlists and clip info† (`mpls`, `clpi`)		15
+probe.caf	probe	4.1	PCM containers	Core Audio Format (`caf`)		11
+probe.dirac	probe	4.1	Raw video streams	Dirac (`drc`)		12
+probe.dsd-dsf-dsdiff	probe	4.1	Post-1.0 candidates	DSD (DSF/DSDIFF)		17
+probe.dts	probe	4.1	Raw audio streams	DTS / DTS-HD (`dts`, `dtshd`, `dtsma`)		11
+probe.dv	probe	4.1	Raw video streams	DV (`dv`)		12
+probe.dvd-video	probe	4.1	Disc structures	DVD-Video title sets† (`ifo` + `vob`)		15
+probe.f4v	probe	4.1	ISO base media	F4V (`f4v`, `f4a`, `f4b`)		6
+probe.flac	probe	4.1	FLAC	Native FLAC (`flac`)		9
+probe.flv	probe	4.1	Flash	FLV (`flv`; tag-based files only)		13
+probe.fragmented-mp4	probe	4.1	ISO base media	fragmented MP4		6
+probe.h264	probe	4.1	Raw video streams	H.264 (`264`, `h264`, `avc`)		12
+probe.hdmv-textst	probe	4.1	Subtitle files	HDMV TextST† (`textst`)		14
+probe.hevc	probe	4.1	Raw video streams	HEVC (`265`, `h265`, `hevc`)		12
+probe.ivf	probe	4.1	Simple video containers	IVF† (`ivf`)		12
+probe.matroska	probe	4.1	Matroska	Matroska (`mkv`, `mka`, `mks`, `mk3d`)		5
+probe.monkey-s-audio	probe	4.1	Post-1.0 candidates	Monkey's Audio		17
+probe.mov	probe	4.1	QuickTime	MOV (`mov`, `qt`)		6
+probe.mp4	probe	4.1	ISO base media	MP4 (`mp4`, `m4v`, `m4a`)		6
+probe.mpeg-audio	probe	4.1	Raw audio streams	MPEG audio layers I–III (`mp2`, `mp3`)		11
+probe.mpeg-video	probe	4.1	Raw video streams	MPEG-1/2 video (`m1v`, `m2v`, `mpv`)		12
+probe.mpeg4-visual	probe	4.1	Raw video streams	MPEG-4 Visual elementary streams		12
+probe.musepack	probe	4.1	Post-1.0 candidates	Musepack		17
+probe.mxf	probe	4.1	Post-1.0 candidates	MXF		17
+probe.ogg	probe	4.1	Ogg	Ogg (`ogg`, `oga`, `ogv`, `opus`)		9
+probe.ogm	probe	4.1	Ogg	OGM† (`ogm`)		9
+probe.pgs	probe	4.1	Subtitle files	PGS† (`sup`)		14
+probe.program-stream	probe	4.1	MPEG systems	program stream (`mpg`, `mpeg`, `vob`, `evo`, `evob`)		10
+probe.realaudio	probe	4.1	RealMedia	RealAudio† (`ra`)		13
+probe.realmedia	probe	4.1	RealMedia	RealMedia† (`rm`, `rmvb`, `rv`)		13
+probe.rf64-bw64	probe	4.1	PCM containers	RF64/BW64		11
+probe.ssa-ass	probe	4.1	Subtitle files	SSA/ASS† (`ssa`, `ass`)		14
+probe.subrip	probe	4.1	Subtitle files	SubRip† (`srt`)		14
+probe.transport-stream	probe	4.1	MPEG systems	Transport stream (`ts`, `m2ts`, `mts`)		10
+probe.truehd	probe	4.1	Raw audio streams	TrueHD / MLP (`thd`, `mlp`, `thd+ac3`)		11
+probe.tta	probe	4.1	Raw audio streams	TTA† (`tta`)		11
+probe.usf	probe	4.1	Subtitle files	USF† (`usf`)		14
+probe.vc-1	probe	4.1	Raw video streams	VC-1 (`vc1`)		12
+probe.vobsub	probe	4.1	Subtitle files	VobSub† (`idx` + `sub`)		14
+probe.vvc	probe	4.1	Raw video streams	VVC (`266`, `vvc`)		12
+probe.wave	probe	4.1	PCM containers	WAVE (`wav`)		11
+probe.wave64	probe	4.1	PCM containers	Wave64† (`w64`)		11
+probe.wavpack	probe	4.1	Raw audio streams	WavPack (`wv`)		11
+probe.webm	probe	4.1	Matroska	WebM (`webm`, `weba`)		5
+probe.webvtt	probe	4.1	Subtitle files	WebVTT (`vtt`)		14
+probe.wma	probe	4.1	ASF	WMA (`wma`)		13
+probe.wmv	probe	4.1	ASF	WMV (`wmv`)		13
+registry.asf-identifiers	registry	Phase 13	ASF identifiers			13
+registry.flv-codec-ids	registry	Phase 13	FLV codec identifiers			13
+registry.iso-sample-entries	registry	Phase 4	ISO sample entry codes			4
+registry.matroska-codec-ids	registry	Phase 4	Matroska codec IDs			4
+registry.mpeg4-object-types	registry	Phase 4	MPEG-4 object type indications			4
+registry.quicktime-codes	registry	Phase 4	QuickTime codes			4
+registry.realmedia-fourcc	registry	Phase 13	RealMedia four-character codes			13
+registry.registration-descriptors	registry	Phase 10	Registration descriptors			10
+registry.riff-video-fourcc	registry	Phase 4	RIFF video four-character codes			4
+registry.transport-stream-types	registry	Phase 10	Transport stream types			10
+registry.wave-format-tags	registry	Phase 4	WAVE format tags			4
+rule.codec-strings	rule	Phase 4	RFC 6381 codec strings			4
+rule.language-tags	rule	Phase 3	BCP 47 language tags and ISO 639 codes			3
+rule.media-types	rule	Phase 3	Media type names			3
+rule.vorbis-chapter-comments	rule	Phase 9	Chapter comments in Vorbis comment blocks			9
+tags.apev2	tags	7.2	APEv2			11
+tags.id3v1	tags	7.2	ID3v1 and ID3v1.1			11
+tags.id3v2-2	tags	7.2	ID3v2.2			11
+tags.id3v2-3	tags	7.2	ID3v2.3			11
+tags.id3v2-4	tags	7.2	ID3v2.4			11
+tags.itunes	tags	7.2	MP4 and QuickTime metadata items			6
+tags.matroska	tags	8.5	Matroska tags			5
+tags.riff-information	tags	7.2	RIFF INFO list			7
+tags.vorbis-comment	tags	7.2	Vorbis comments			9

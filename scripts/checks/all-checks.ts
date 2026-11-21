@@ -43,6 +43,7 @@ import {
   SCRIPT_STRUCTURE_STEP,
   SCRIPT_TESTS_STEP,
   SCRIPT_TYPES_STEP,
+  SPECIFICATIONS_STEP,
   STEP_PREFIX,
   TARGETS_STEP,
   TYPE_CHECKER_MISSING,
@@ -52,6 +53,7 @@ import { checkPackages } from './packages/packages.ts';
 import { verifyPureRust } from './pure-rust/pure-rust.ts';
 import { repositoryFiles } from './repository-files.ts';
 import { checkScriptStructure } from './script-structure/structure.ts';
+import { checkSpecifications } from './specifications/specifications.ts';
 import {
   COVERAGE_ARGUMENTS,
   COVERAGE_COMMAND,
@@ -112,6 +114,7 @@ const STEPS: readonly Step[] = [
   { description: NODE_VERSION_STEP, run: () => passes(checkNodeVersion(process.version, process.release.lts)) },
   { description: HYGIENE_STEP, run: (root) => passes(checkHygiene(root, repositoryFiles(root))) },
   { description: MARKDOWN_LINKS_STEP, run: (root) => passes(checkMarkdownLinks(root, repositoryFiles(root))) },
+  { description: SPECIFICATIONS_STEP, run: (root) => passes(checkSpecifications(root, repositoryFiles(root))) },
   { description: SCRIPT_STRUCTURE_STEP, run: (root) => passes(checkScriptStructure(root, repositoryFiles(root))) },
   { description: SCRIPT_TYPES_STEP, run: (root) => typeCheck(root) },
   {

@@ -27,6 +27,8 @@ const encoder = new TextEncoder();
 test('accepts clean text and tab-separated data', () => {
   assert.deepEqual(checkFile('docs/notes.md', encoder.encode('# Notes\n\nText.\n')), []);
   assert.deepEqual(checkFile('data/list.tsv', encoder.encode('name\tvalue\n')), []);
+  assert.deepEqual(checkFile('data/list.tsv', encoder.encode('name\tvalue\tnote\none\t\t\n')), []);
+  assert.deepEqual(checkFile('data/list.tsv', encoder.encode('name\tvalue\none \t\n')), ['data/list.tsv:2: trailing whitespace']);
   assert.deepEqual(checkFile('empty.txt', encoder.encode('')), []);
 });
 

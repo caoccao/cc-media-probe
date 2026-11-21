@@ -16,7 +16,7 @@
 */
 
 // File hygiene: TypeScript scripts only, UTF-8, LF line endings, a final newline, no trailing whitespace and no
-// tabs outside tab-separated data. Verbatim third-party texts are exempt.
+// tabs outside tab-separated data, whose rows may end in tabs that close empty cells. Verbatim third-party texts are exempt.
 
 import { readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -25,6 +25,7 @@ import {
   BINARY_FILE,
   CARRIAGE_RETURN,
   CARRIAGE_RETURN_FOUND,
+  EMPTY,
   LINE_FEED,
   NO_FINAL_NEWLINE,
   NOT_UTF8,
@@ -33,6 +34,7 @@ import {
   TAB,
   TAB_FOUND,
   TAB_SEPARATED_EXTENSION,
+  TRAILING_TABS_PATTERN,
   TRAILING_WHITESPACE,
   TRAILING_WHITESPACE_PATTERN,
   UTF8_LABEL,
@@ -71,7 +73,7 @@ export function checkFile(file: string, content: Uint8Array): string[] {
   const allowsTabs = extname(file) === TAB_SEPARATED_EXTENSION;
   text.split(LINE_FEED).forEach((line, offset) => {
     const location = `${file}:${offset + 1}`;
-    if (TRAILING_WHITESPACE_PATTERN.test(line)) {
+    if (TRAILING_WHITESPACE_PATTERN.test(allowsTabs ? line.replace(TRAILING_TABS_PATTERN, EMPTY) : line)) {
       findings.push(`${location}: ${TRAILING_WHITESPACE}`);
     }
     if (!allowsTabs && line.includes(TAB)) {

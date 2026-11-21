@@ -32,6 +32,8 @@ export const NODE_VERSION_STEP = 'Node.js version';
 export const HYGIENE_STEP = 'file hygiene';
 /** Markdown links. */
 export const MARKDOWN_LINKS_STEP = 'Markdown links';
+/** The specification tables. */
+export const SPECIFICATIONS_STEP = 'specification tables (section 5.2)';
 /** Script structure. */
 export const SCRIPT_STRUCTURE_STEP = 'script structure (R34)';
 /** Script types. */

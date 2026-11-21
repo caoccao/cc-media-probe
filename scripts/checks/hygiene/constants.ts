@@ -33,6 +33,10 @@ export const CARRIAGE_RETURN = '\r';
 export const LINE_FEED = '\n';
 /** A tab. */
 export const TAB = '\t';
+/** Tabs at the end of a row of tab-separated data, which close its empty last cells. */
+export const TRAILING_TABS_PATTERN = /\t+$/u;
+/** Nothing. */
+export const EMPTY = '';
 /** Whitespace at the end of a line. */
 export const TRAILING_WHITESPACE_PATTERN = /[ \t\f\v]+\r?$/u;
 /** A script in another language. */

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 10; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
+| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 11; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
 | **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
@@ -213,9 +213,9 @@ These are fixed inputs, not proposals. "Brief" means settled before draft 1; "Re
 | Raw audio streams | MPEG audio layers I–III (`mp2`, `mp3`), AAC as ADTS or ADIF (`aac`) and as LATM/LOAS (`loas`, `latm`), AC-3 / E-AC-3 (`ac3`, `eac3`, `ec3`, `eb3`), DTS / DTS-HD (`dts`, `dtshd`, `dtsma`), TrueHD / MLP (`thd`, `mlp`, `thd+ac3`), TTA† (`tta`), WavPack (`wv`) | 11 | 0.4.0 |
 | Raw video streams | H.264 (`264`, `h264`, `avc`), HEVC (`265`, `h265`, `hevc`), VVC (`266`, `vvc`), AV1 OBU (`obu`, `av1`), MPEG-1/2 video (`m1v`, `m2v`, `mpv`), MPEG-4 Visual elementary streams, VC-1 (`vc1`), Dirac (`drc`), DV (`dv`) | 12 | 0.5.0 |
 | Simple video containers | IVF† (`ivf`) | 12 | 0.5.0 |
-| Flash | FLV (`flv`), tag-based files only | 13 | 0.6.0 |
+| Flash | FLV (`flv`; tag-based files only) | 13 | 0.6.0 |
 | RealMedia | RealMedia† (`rm`, `rmvb`, `rv`), RealAudio† (`ra`) | 13 | 0.6.0 |
-| ASF | ASF, WMV, WMA (`asf`, `wmv`, `wma`) | 13 | 0.6.0 |
+| ASF | ASF (`asf`), WMV (`wmv`), WMA (`wma`) | 13 | 0.6.0 |
 | Subtitle files | SubRip† (`srt`), SSA/ASS† (`ssa`, `ass`), WebVTT (`vtt`), USF† (`usf`), VobSub† (`idx` + `sub`), PGS† (`sup`), HDMV TextST† (`textst`) | 14 | 0.7.0 |
 | Disc structures | Blu-ray playlists and clip info† (`mpls`, `clpi`), DVD-Video title sets† (`ifo` + `vob`) | 15 | 0.8.0 |
 | Detect-only | RIFF CD-XA†, HD-DVD subtitles†, Windows Television recordings†, Internet Video Recording†, MicroDVD†, VobButtons† (`btn`), RealAudio metafiles† (`ram`) | 3 | 0.1.0 |
@@ -453,14 +453,14 @@ docs/
 ├── rfc/
 │   ├── README.md          index: number, title, status, role, license notice
 │   ├── manifest.tsv       one row per RFC                              (committed)
-│   ├── errata.tsv         verified errata that affect parsing          (committed)
+│   ├── errata.tsv         verified errata, classified by relevance     (committed)
 │   └── rfcNNNN.txt        verbatim RFC text                            (committed)
 └── specs/
     ├── README.md          how to fetch; why the files are not committed
     ├── manifest.tsv       one row per non-RFC document and draft       (committed)
     ├── deliverables.tsv   everything sections 4.1 to 4.4 promise       (committed)
     ├── coverage.tsv       deliverable → source document and section    (committed)
-    └── files/             downloaded documents                          (git-ignored)
+    └── files/             downloaded documents, by topic and publisher  (git-ignored)
 ```
 
 **`docs/rfc/manifest.tsv`** columns: number, title, status, URL, SHA-256, retrieval date, role. It is generated from Appendix A. The manifest check compares the set of RFC numbers in the manifest with the set in Appendix A and with the files present. It never compares against a typed figure. Any count that appears in prose, in this plan or elsewhere, is a dated snapshot and is labeled as one.
@@ -469,15 +469,16 @@ docs/
 
 | Column | Content |
 |---|---|
-| `identifier` | Stable short identifier, for example `itu-h264` or `etsi-ts-102366`. |
+| `identifier` | Stable short identifier, for example `itu-t-h-264` or `etsi-ts-102366`. |
+| `folder` | The topic of Appendix B (`containers`, `video`, `audio`, `subtitles`, `tags-and-registries`) and the publisher, as `<topic>/<publisher>`. The stored file is `files/<folder>/<identifier>` with the extension of its source. |
 | `title`, `publisher` | As printed on the document. |
 | `edition` | Exact edition, version or draft revision. "Living" for documentation that has no versions. |
 | `landing_url` | The publisher's page for the document. |
 | `artifact_url` | The document file itself, not a landing page, when one exists. Empty for paywalled documents. |
-| `immutable_reference` | A location that keeps returning the same bytes, where the publisher offers one: a dated version, a revision-pinned address, or an archived copy with its capture time. |
+| `immutable_reference` | For a `snapshot` row, a location that keeps returning the same bytes: a dated version, a file at a pinned commit of a public repository, or an Internet Archive capture with its capture time. `none` marks a living page that has none (see Living pages below). |
 | `content_type` | The media type the stored file must have. It is checked on retrieval, so an error page or a landing page is never stored as the document. |
 | `availability` | `free`, `paid`, or `none` (no normative specification exists). |
-| `retrieval` | `fetch` (the script downloads the artifact), `snapshot` (the script saves a dated copy of a living page), `manual` (you place a purchased or hand-downloaded file), `link` (not stored). |
+| `retrieval` | `fetch` (the script downloads the artifact, whose address names its edition), `snapshot` (the script saves a copy of a living page from its immutable reference), `tree` (the script walks a documentation tree from the artifact and stores its pages as one file), `manual` (you place a purchased or hand-downloaded file), `link` (not stored). |
 | `applies_to` | Components that rely on it. |
 | `class` | `normative`, `secondary`, or `descriptive` (a community description approved at G1.5). |
 | `sha256`, `retrieved` | Filled in when the file is stored. |
@@ -487,7 +488,7 @@ The manifest is built from Appendix A.7 (Internet-Drafts) and Appendix B togethe
 
 **`docs/specs/deliverables.tsv`** is the list of what must be built. It has one key per deliverable of sections 4.1 to 4.4: a detector entry, a container prober, one pair of section 4.3 (a codec representation in one carriage), one tag version or frame group, one registry table, and each rule that has a source of its own, such as a chapter convention or a timestamp header. It is transcribed from section 4, changes only together with it, and is reviewed against it at G1.4. Because this list exists on its own, a deliverable without a coverage row is visible: its key has no partner.
 
-**`docs/specs/coverage.tsv`** has one row per deliverable key. Each row names the document and section the deliverable is built from, the fixture that accepts it, a `status`, a `release`, and whether the cited section has been confirmed in the stored document.
+**`docs/specs/coverage.tsv`** has one row per deliverable key. Each row names the document and section the deliverable is built from, the fixture that accepts it, a `status`, a `release`, and whether the cited section has been confirmed in the stored document. A source is written `<document>: <section>`, where the document is `rfcNNNN` or an identifier of the non-RFC manifest; a row can name several, separated by semicolons. Keys start with their kind: `detect.`, `probe.`, `pair.<codec>.<representation>.<carriage>`, `identify.<codec>.<carriage>`, `tags.`, `registry.` and `rule.`.
 
 - `active`: scheduled for the named release. The check fails if an active row has no source that is present in a manifest and approved, or if its only source was declined.
 - `deferred`: not scheduled, with the gate that will decide it. Post-1.0 candidates start as deferred rows, so they do not block Phase 1. A deferred row becomes active only through its gate (G17.n, or GS.2 when a source becomes available), which sets its release and its source.
@@ -496,7 +497,7 @@ The manifest is built from Appendix A.7 (Internet-Drafts) and Appendix B togethe
 
 Three comparisons tie the tables to each other and to the code:
 
-1. *Deliverables against coverage.* The two sets of keys must be equal, in both directions.
+1. *Deliverables against coverage.* The two sets of keys must be equal, in both directions. The deliverables of sections 4.1, 4.3 and 4.4 keep the plan's own words, and the check compares them with those tables in both directions too.
 2. *Coverage against the manifests,* as described for `active` rows.
 3. *Code against deliverables.* From Phase 3 on, a library test lists what the code registers (detector entries, probers, the pairs known to the header assembler, tag parsers, registry tables) and compares it with the deliverables whose release has been reached. Code without a key fails, and so does a due key without code.
 
@@ -506,12 +507,12 @@ Policies:
 
 - RFC text is committed. The IETF Trust Legal Provisions permit copying and distributing RFCs in full and without modification. Each file is byte-identical to the RFC Editor's copy and is verified by checksum.
 - Non-RFC documents are copyrighted by their publishers and are **not** redistributed. Only the manifests are committed; `scripts/fetch-specs.ts` reproduces the local copies.
-- **Living pages.** A checksum of a page that can change does not make the copy reproducible. For each `snapshot` row the manifest records an `immutable_reference` wherever one exists, and the fetch script retrieves that. Where none exists, the row is marked as not reproducible upstream: the approved copy exists only locally. If that copy is lost, or the page has changed, the fetch script reports the difference and stops. The new content is adopted only by superseding the row through GS.2, after the changed parts were reviewed against the code that cites them. Nothing restricted is redistributed to work around this.
+- **Living pages.** A checksum of a page that can change does not make the copy reproducible. For each `snapshot` row the manifest records an `immutable_reference` wherever one exists, and the fetch script retrieves that. Where a page is built from files in a public repository, the row stores the documentation file at a pinned commit, and only that file is opened (section 1.3). Otherwise the reference is an existing Internet Archive capture; none is requested. Where none exists, the row is marked as not reproducible upstream: the approved copy exists only locally. If that copy is lost, or the page has changed, the fetch script reports the difference and stops. The new content is adopted only by superseding the row through GS.2, after the changed parts were reviewed against the code that cites them. Nothing restricted is redistributed to work around this.
 - Paywalled standards are listed with their catalog page only. For each one, G1.6 records one of three outcomes: purchased, replaced by a named substitute, or the dependent feature deferred.
 
 ### 5.3 Errata and Internet-Drafts
 
-- **Errata.** RFC files stay verbatim. `docs/rfc/errata.tsv` records every verified erratum that affects parsing: RFC number, erratum ID, section, a one-line summary and the components it affects. Code and fixtures that depend on a corrected rule cite the erratum ID. Verified errata known on 2026-11-20 are listed in Appendix A.8. The table is refreshed at every phase gate.
+- **Errata.** RFC files stay verbatim. `docs/rfc/errata.tsv` records every verified erratum of every listed RFC, and every erratum held for document update that affects parsing: RFC number, erratum ID, status, type, section, relevance (`parsing`, `output` or `none`), the components it affects and a one-line summary. Code and fixtures that depend on a corrected rule cite the erratum ID. Verified errata known on 2026-11-20 are listed in Appendix A.8. The table is refreshed at every phase gate by `node scripts/fetch-rfcs.ts`, which compares it with the RFC Editor's list of errata, and each RFC with its metadata: it fails on a verified erratum missing from the table, a changed status or type, an obsoleted RFC and a changed title or status, and it notes an updating RFC that Appendix A does not list and a held erratum that is not in the table.
 - **Drafts.** Each Internet-Draft is pinned to an exact revision and a concrete archive URL (Appendix A.7), stored like a non-RFC document, and never committed. At every phase gate the pinned revisions are compared with the current ones; a newer revision is adopted only through GS.2. When a draft is published as an RFC it moves to `docs/rfc/` and Appendix A.
 
 ### 5.4 Formats without a normative specification
@@ -632,7 +633,8 @@ cc-media-probe/
 ├── docs/                         plans, rfc, specs, guide, design, releases
 ├── scripts/                      TypeScript run by Node.js (R34): check.ts, verify-pure-rust.ts,
 │                                 fetch-rfcs.ts, fetch-specs.ts, rehearsal-registry.ts (Phase 8);
-│                                 checks/ holds their modules; package.json, package-lock.json,
+│                                 checks/ holds their modules, the offline checks of the
+│                                 specification tables included; package.json, package-lock.json,
 │                                 .npmrc and tsconfig.json hold the type check (D24, from G1.3)
 └── .github/workflows/            ci.yml, release.yml, fuzz.yml
 ```
@@ -1618,7 +1620,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1, G1.2 and G1.3 are passed, and tasks 3 to 6 are done; `node scripts/check.ts` passes locally, with the type check of the scripts and the coverage check. The scripts were rewritten in TypeScript for R34. Tasks 7 to 11, the specification set, are next. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1, G1.2 and G1.3 are passed, and tasks 3 to 11 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. G1.4 to G1.6, the reviews of the specification set and of the sources, are next. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -2021,7 +2023,7 @@ flowchart TD
 
 ### Phase 10 — MPEG transport and program streams (0.3.0)
 
-**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; carriage of AV1 and of Opus in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421 and RP 2025 or their substitutes; RFC 2250, RFC 4425, RFC 6416.
+**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; carriage of AV1 and of Opus in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421 and RP 2025; RFC 2250, RFC 4425, RFC 6416.
 
 **Tasks**
 
@@ -2089,7 +2091,7 @@ flowchart TD
 
 ### Phase 12 — Raw video streams and IVF (0.5.0)
 
-**Specifications.** ITU-T H.264, H.265, H.266, H.262; AV1 bitstream specification; SMPTE ST 421 and ST 2042-1, IEC 61834 and ISO/IEC 14496-2, or their substitutes from G1.6; the IVF description and the Ogg mapping of Dirac if approved at G1.5; RFC 6184, RFC 7798, RFC 9328, RFC 4425, RFC 6469 as secondary references.
+**Specifications.** ITU-T H.264, H.265, H.266, H.262; AV1 bitstream specification; SMPTE ST 421 and ST 2042-1; IEC 61834 and ISO/IEC 14496-2, or their substitutes from G1.6; the IVF description and the Ogg mapping of Dirac if approved at G1.5; RFC 6184, RFC 7798, RFC 9328, RFC 4425, RFC 6469 as secondary references.
 
 **Tasks**
 
@@ -2238,7 +2240,7 @@ Each addition is a minor release that follows the section 11 checklist and the r
 |---|---|---|
 | The crate name is taken before Phase 8. | Rename of crates and repository references. | Availability is re-checked at every phase gate. If it is at risk, gate GS.3 asks you whether to amend R9 and publish early; nothing is published without that amendment. |
 | Formats without a public normative specification. | Lower accuracy; contested behavior; a format reduced or deferred. | One early gate (G1.5) decides every such format before the API is designed. Descriptive sources are labeled as such. GS.2 covers later changes. |
-| Paywalled ISO/IEC, SMPTE and IEC standards. | Cost, or reliance on secondary sources, or deferred features. | G1.6 records one outcome per document. Free ITU-T twins exist for the MPEG-2 systems, H.262, H.264, H.265 and H.266 texts; ETSI documents are free. |
+| Paywalled ISO/IEC and IEC standards. | Cost, or reliance on secondary sources, or deferred features. | G1.6 records one outcome per document. Free ITU-T twins exist for the MPEG-2 systems, H.262, H.264, H.265 and H.266 texts; ETSI documents are free, and SMPTE documents are free since 2026-06-17. |
 | A bounded probe cannot see everything. | Late-starting streams, unreachable chain links or unknown durations. | R3 separates discovery from header parsing; every stream has a header status; the report states when discovery is incomplete; totals are never guessed from partial scans, and estimates are kept in separate accessors. A transport stream probed with default windows is reported as incompletely discovered; whole-file windows are available. |
 | Synthetic-only fixtures miss real-world deviations. | Bugs surface only in use. | Two independent fixture sources; optional acceptance at every format gate; every field report becomes a fixture. |
 | The single-code-base sync/async design underperforms, or the parser contract does not fit a codec. | Rework of container walkers. | Spike and gate G3.1 before any format is built. |
@@ -2443,13 +2445,13 @@ Status: PS = Proposed Standard, IS = Internet Standard, DS = Draft Standard, BCP
 | RFC | Title | Status | Role | Phase |
 |---|---|---|---|---|
 | [1950](https://www.rfc-editor.org/info/rfc1950) | ZLIB Compressed Data Format Specification version 3.3 | Info | Compressed headers in Matroska and QuickTime | 3 |
-| [1951](https://www.rfc-editor.org/info/rfc1951) | DEFLATE Compressed Data Format Specification version 1.3 | Info | As above | 3 |
+| [1951](https://www.rfc-editor.org/info/rfc1951) | DEFLATE Compressed Data Format Specification version 1.3 | Info | Compressed headers in Matroska and QuickTime | 3 |
 
 ### A.6 Conventions
 
 | RFC | Title | Status | Role |
 |---|---|---|---|
-| [2119](https://www.rfc-editor.org/info/rfc2119) | Key words for use in RFCs to Indicate Requirement Levels | BCP | Reading requirement language in all the above |
+| [2119](https://www.rfc-editor.org/info/rfc2119) | Key words for use in RFCs to Indicate Requirement Levels | BCP | Reading requirement language in the listed RFCs |
 | [8174](https://www.rfc-editor.org/info/rfc8174) | Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words | BCP | Updates RFC 2119 |
 
 ### A.7 Internet-Drafts (not RFCs; pinned by revision, fetched locally, not committed)
@@ -2477,6 +2479,12 @@ RFC files are committed verbatim. Verified errata are recorded in `docs/rfc/erra
 | 8216 (HTTP Live Streaming) | [5158](https://www.rfc-editor.org/errata/eid5158), [5263](https://www.rfc-editor.org/errata/eid5263), [6430](https://www.rfc-editor.org/errata/eid6430), [7283](https://www.rfc-editor.org/errata/eid7283) | To be classified in Phase 1; only section 3.5 of this RFC is used |
 | 8259, 2046, 3339, 3986, 4648, 9562 | Several each | General-purpose RFCs; reviewed in Phase 1 for anything that affects output formats |
 
+**Classified on 2026-11-21** (Phase 1 task 7). The query found 70 verified errata in 25 of the listed RFCs, and 39 held for document update; `docs/rfc/errata.tsv` classifies each verified one and the three held ones that affect parsing. Those that matter here:
+
+- *Parsing:* RFC 8794 errata 7189 and 7191 (held), the ranges of valid element IDs: 0x80 is a valid one-octet ID and 0x4000 is no longer reserved. RFC 3533 erratum 8825, what the page CRC covers. RFC 2361 errata 5122, 5123, 5126, 1255 (held) and 5125 (held), registry numbers and names. RFC 6190 erratum 3711, the meaning of `no_inter_layer_pred_flag`.
+- *Output:* RFC 8259 erratum 5318, verified on 2026-05-28, removes the solidus from the characters that a JSON string may hold unescaped. Section 8.8 takes a position on it in Phase 2. RFC 3003 erratum 355 names the media type `audio/MPA`.
+- The errata of RFC 9639, 6716, 6386 and 8486 that A.8 left to be classified concern decoding, encoding, the attached reference decoder, which is never read, or the IANA section. None changes what this project parses.
+
 ---
 
 ## Appendix B — Non-RFC specifications
@@ -2490,6 +2498,13 @@ This appendix is the input for `docs/specs/manifest.tsv` (section 5.2). Each row
 **Document files and living pages.** A `fetch` row must end up with the document file itself in the manifest, not its landing page, and the content type is checked on retrieval. For the ITU rows the landing page is given here and the file link is resolved in Phase 1: on 2026-11-20 the publisher's direct download returned the document for H.264, H.265, H.266, H.263, H.273, T.871 and T.35, and a web page instead for H.222.0 (04/2025), H.262 and T.81. A `snapshot` row is stored from an immutable reference where the publisher offers one; dated versions exist for the W3C documents, for example. Otherwise the manifest marks the row as not reproducible upstream (section 5.2).
 
 **Check:** ✓ = the link responded on 2026-11-20; ◇ = the site blocks automated requests, and the page was confirmed through a web search; ○ = not confirmed, to be resolved in Phase 1 task 8.
+
+**Resolved on 2026-11-21** (Phase 1 task 8). `docs/specs/manifest.tsv` holds one row per stored document, so the rows below that bundle several documents are split there. Its README describes the columns. What the resolution found:
+
+- *SMPTE* made its whole catalog free on 2026-06-17. Each SMPTE row is a free `fetch` of its latest publication and no longer goes to G1.6.
+- *ITU:* H.222.0 (04/2025), H.262 (02/2012), T.81, BT.2100-3 and BS.2088-2 lead an automated client to a login form. At the maintainer's choice, H.222.0 is stored at its 06/2021 edition with Amendment 1 (12/2022), and H.262 as its 02/2012 text published as Amendment 4; both download directly. T.81, BT.2100-3 and BS.2088-2 are `manual` rows downloaded in a browser. H.264, H.265, H.266, H.263, H.273, T.871 and T.35 are `fetch` rows.
+- *Living pages:* MP4RA's registries, the Microsoft Learn pages, the Matroska pages, the Ogg and Vorbis documentation, the FLAC and AV1 bindings, Enhanced RTMP, the ID3v2.4 frame list and the WavPack format are files at pinned commits. The Matroska pages are generated from the CELLAR working group's specification sources, which are stored instead. The other living pages, the AV1 and Theora PDFs and the Speex manual are archive captures. Apple's QuickTime documentation is a `tree` row.
+- *Other:* the 3GPP2 original of C.S0050-B no longer answers and is stored from an archive capture, beside ARIB's transposition. The APEv2 page's wiki answers automated clients with a challenge page, so it is an archive capture too. The full ASF specification downloads as a Word document. The maintainer placed the two Dolby documents on ISO base media by hand; the TrueHD bitstream description is stored from an archive capture of the vendor's own address. ISO's free 2015 edition of ISO/IEC 14496-12 is served only after a license page in a browser; it is a substitute for G1.6 to consider.
 
 Where a row shows an edition, that edition was the one in force on 2026-11-20. Phase 1 records the edition actually stored.
 
@@ -2515,6 +2530,7 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 | Encapsulation of Opus in ISO Base Media File Format (living) | Opus in MP4 | Free | snapshot | [opus-codec.org](https://opus-codec.org/docs/opus_in_isobmff.html) | ✓ |
 | Encapsulation of FLAC in ISO Base Media File Format | FLAC in MP4. The text is hosted in an implementation's repository; only this file is opened (section 1.3) | Free | snapshot | [text](https://github.com/xiph/flac/blob/master/doc/isoflac.txt) | ✓ |
 | Dolby Vision Streams Within the ISO Base Media File Format v2.5 | Dynamic-range configuration boxes | Free | manual | [vendor support article](https://professionalsupport.dolby.com/s/article/How-to-signal-Dolby-Vision-in-ISOBMFF-format-AKA-mp4-container) | ✓ |
+| Dolby Vision Streams Within the MPEG-2 Transport Stream Format v1.2 | Dolby Vision in transport streams: stream carriage and the video stream descriptor. Added on 2026-11-21, when the maintainer supplied it | Free | manual | [PDF](https://professional.dolby.com/siteassets/pdfs/dolby-vision-bitstreams-in-mpeg-2-transport-stream-multiplex-v1.2.pdf) | ◇ |
 | Matroska element, codec, tag, subtitle, chapter references (living) | Matroska; secondary to RFC 9559 and the pinned drafts | Free | snapshot | [elements](https://www.matroska.org/technical/elements.html) · [codecs](https://www.matroska.org/technical/codec_specs.html) · [tags](https://www.matroska.org/technical/tagging.html) · [subtitles](https://www.matroska.org/technical/subtitles.html) · [chapters](https://www.matroska.org/technical/chapters.html) · [notes](https://www.matroska.org/technical/notes.html) | ✓ |
 | IANA Matroska and EBML registries (living) | Element IDs | Free | snapshot | [matroska](https://www.iana.org/assignments/matroska/matroska.xhtml) · [ebml](https://www.iana.org/assignments/ebml/ebml.xhtml) | ✓ |
 | WebM Container Guidelines (living) | WebM | Free | snapshot | [webmproject.org](https://www.webmproject.org/docs/container/) | ✓ |
@@ -2554,11 +2570,11 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 | AV1 Bitstream & Decoding Process Specification | AV1 | Free | fetch | [PDF](https://aomediacodec.github.io/av1-spec/av1-spec.pdf) | ✓ |
 | VP9 Bitstream & Decoding Process Specification v0.7 | VP9 | Free | fetch | [PDF](https://storage.googleapis.com/downloads.webmproject.org/docs/vp9/vp9-bitstream-specification-v0.7-20170222-draft.pdf) | ✓ |
 | Theora Specification | Theora | Free | fetch | [PDF](https://www.theora.org/doc/Theora.pdf) | ✓ |
-| SMPTE ST 421 | VC-1 | Terms to be confirmed at G1.6 | manual | [pub.smpte.org](https://pub.smpte.org/doc/st421/) | ✓ |
-| SMPTE RP 2025 | VC-1 in ISO base media: the decoder configuration structure, which Matroska uses as well | Terms to be confirmed at G1.6 | manual | [pub.smpte.org](https://pub.smpte.org/doc/rp2025/) | ✓ |
-| SMPTE ST 2042-1 | VC-2 / Dirac | Terms to be confirmed at G1.6 | manual | [pub.smpte.org](https://pub.smpte.org/doc/st2042-1/) | ✓ |
-| SMPTE RDD 36 | ProRes | Terms to be confirmed at G1.6 | manual | [pub.smpte.org](https://pub.smpte.org/doc/rdd36/) | ✓ |
-| SMPTE ST 2086 | Mastering display color volume | Terms to be confirmed at G1.6 | manual | [pub.smpte.org](https://pub.smpte.org/doc/st2086/) | ✓ |
+| SMPTE ST 421 | VC-1 | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/st421/) | ✓ |
+| SMPTE RP 2025 | VC-1 in ISO base media: the decoder configuration structure, which Matroska uses as well | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/rp2025/) | ✓ |
+| SMPTE ST 2042-1 | VC-2 / Dirac | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/st2042-1/) | ✓ |
+| SMPTE RDD 36 | ProRes | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/rdd36/) | ✓ |
+| SMPTE ST 2086 | Mastering display color volume | Free | fetch | [pub.smpte.org](https://pub.smpte.org/doc/st2086/) | ✓ |
 | IEC 61834-2:1998 | DV | Paid | manual | [webstore.iec.ch](https://webstore.iec.ch/en/publication/5984) | ✓ |
 | GIF89a | GIF cover art | Free | fetch | [text](https://www.w3.org/Graphics/GIF/spec-gif89a.txt) | ✓ |
 | PNG Specification (Third Edition) | PNG cover art; current successor of RFC 2083 | Free | snapshot | [w3.org](https://www.w3.org/TR/png-3/) | ✓ |
@@ -2575,7 +2591,7 @@ Where a row shows an edition, that edition was the one in force on 2026-11-20. P
 | ETSI TS 103 190-1 V1.4.1; TS 103 190-2 V1.3.1 | AC-4 and its MP4 carriage | Free | fetch | [part 1](https://www.etsi.org/deliver/etsi_ts/103100_103199/10319001/01.04.01_60/ts_10319001v010401p.pdf) · [part 2](https://www.etsi.org/deliver/etsi_ts/103100_103199/10319002/01.03.01_60/ts_10319002v010301p.pdf) | ✓ |
 | ETSI TS 102 114 V1.6.1 | DTS core and extensions, and MP4 carriage | Free | fetch | [PDF](https://www.etsi.org/deliver/etsi_ts/102100_102199/102114/01.06.01_60/ts_102114v010601p.pdf) | ✓ |
 | ETSI TS 103 491 V1.2.1 | DTS-UHD | Free | fetch | [PDF](https://www.etsi.org/deliver/etsi_ts/103400_103499/103491/01.02.01_60/ts_103491v010201p.pdf) | ✓ |
-| Dolby TrueHD (MLP) high-level bitstream description | TrueHD, MLP | Free | manual | [developer.dolby.com](https://developer.dolby.com/globalassets/technology/dolby-truehd/dolbytruehdhighlevelbitstreamdescription.pdf) | ◇ |
+| Dolby TrueHD (MLP) high-level bitstream description | TrueHD, MLP | Free | snapshot, from an archive capture of the vendor's address | [developer.dolby.com](https://developer.dolby.com/globalassets/technology/dolby-truehd/dolbytruehdhighlevelbitstreamdescription.pdf) | ◇ |
 | MLP (Dolby TrueHD) Streams within the ISO Base Media File Format, version 1.0 (2009), or its later edition | TrueHD in MP4: the configuration box | Free | manual | Listed by the [MP4 registration authority](https://mp4ra.org/references) ✓; the publisher's [technology page](https://developer.dolby.com/technology/dolby-audio/dolby-truehd/) did not respond on 2026-11-20 ○ | mixed |
 | Vorbis I Specification; Vorbis comment field | Vorbis; comment tags | Free | snapshot | [spec](https://xiph.org/vorbis/doc/Vorbis_I_spec.html) · [comments](https://xiph.org/vorbis/doc/v-comment.html) | ✓ |
 | Speex Codec Manual | Speex | Free | snapshot | [speex.org](https://speex.org/docs/manual/speex-manual/) | ✓ |
@@ -3018,6 +3034,17 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | Local registries | `cargo-http-registry` 0.1.8 is GPL-3.0-or-later, serves a git index and records no publication time. Cargo's index format has an optional `pubtime` field, and the cooldown settings apply to every registry. | [Registry index](https://doc.rust-lang.org/cargo/reference/registry-index.html) · [Cargo configuration](https://doc.rust-lang.org/cargo/reference/config.html) |
 | TypeScript releases | `typescript` 7.0.2, npm's `latest` since 2026-07-08, is the compiler rewritten in Go and ships it in one optional package per platform. 6.0.3 is the last release written in JavaScript. Both type-check the scripts with `strict` and `erasableSyntaxOnly`, in 0.09 and 0.54 seconds. | npm registry; reproduced |
 | Advisories | The OSV database listed no vulnerability for the 78 crate versions of the spike's lock file or for the three npm packages, on 2026-11-21. | [OSV](https://osv.dev/) |
+| **Phase 1, the specification set (revision 11)** | | |
+| RFC Editor records | Each RFC has a metadata document at `https://www.rfc-editor.org/rfc/rfcNNNN.json` with its title, status, and the RFCs that obsolete and update it. Every erratum is in one list, `https://www.rfc-editor.org/api/v1/errata.json`, with its status, type and section. On 2026-11-21 no RFC of Appendix A was obsoleted, and every title and status matched. | [RFC 8794 metadata](https://www.rfc-editor.org/rfc/rfc8794.json) · [errata list](https://www.rfc-editor.org/api/v1/errata.json) |
+| RFC texts | The plain-text copies are served as `text/plain` and total 6.7 MB for the 74 RFCs. 63 contain form feeds, and the newer ones start with a byte-order mark, so they are exempt from hygiene and stored without line-ending conversion. Each names its own number in a `Request for Comments:` line near the top. | RFC Editor downloads |
+| Redistributing RFCs | Trust Legal Provisions 5.0, section 3.c.i, permits anyone to copy and distribute IETF documents in full and without modification. For the Independent Submission, IAB and IRTF streams, section 8.c.iii extends the license of section 3.a beyond the standards process instead. Earlier RFCs carry the notice of the Internet Society or the IETF Trust; RFC 1950 and 1951 carry their authors' copyright with permission to copy. | [TLP 5.0](https://trustee.ietf.org/documents/trust-legal-provisions/tlp-5/) · [TLP FAQ](https://trustee.ietf.org/documents/trust-legal-provisions/copyright-policy-and-tlp-faq/) |
+| JSON strings | RFC 8259 erratum 5318, verified on 2026-05-28, removes U+002F from the `unescaped` rule of section 7. | [Erratum 5318](https://www.rfc-editor.org/errata/eid5318) |
+| SMPTE documents | SMPTE made its whole catalog of standards, recommended practices, engineering guidelines and registered disclosure documents free on 2026-06-17. Each publication is a ZIP archive on its document library. | [TV Technology](https://www.tvtechnology.com/standards/smpte-makes-its-standards-freely-accessible-to-the-global-media-technology-community) · [IBC](https://www.ibc.org/connective-tech/news/smpte-opens-up-standards-catalogue-for-free/22794) |
+| ITU downloads | The download address of H.264, H.265, H.266, H.263, H.273, T.871 and T.35 returns the PDF. For H.222.0 (04/2025), H.262, T.81, BT.2100-3 and BS.2088-2 it redirects an automated client to a login form. | Requests of 2026-11-21 |
+| Internet Archive | Raw captures (`id_`) come back with the original media type, compressed in transfer, which Node.js's fetch undoes. The index refused connections after 16 queries 4 seconds apart. | Requests of 2026-11-21 |
+| Pinned repository files | `raw.githubusercontent.com` serves a file at a commit as `text/plain`, or `application/octet-stream` for large and binary files, whatever its extension. | Requests of 2026-11-21 |
+| Apple's QuickTime documentation | The page is a script application; its content is a tree of JSON documents under `tutorials/data/documentation/quicktime-file-format`, each naming its children in its topic sections. | Requests of 2026-11-21 |
+| ISO's free standards | The list of publicly available standards is built by script, and the free 2015 edition of ISO/IEC 14496-12 is served only after a license page. | Requests of 2026-11-21 |
 
 ---
 
@@ -3035,6 +3062,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 8 | 2026-11-21 | Amended for the scripts rule (R34, D24) and the formatter settings. |
 | 9 | 2026-11-21 | Amended for the language rule (R35). |
 | 10 | 2026-11-21 | Amended for the choices of G1.3 and the dependency dossier. |
+| 11 | 2026-11-21 | Amended for the specification set of Phase 1. |
 
 What changed in draft 2, by theme:
 
@@ -3116,3 +3144,12 @@ What changed in revision 10, by theme:
 - **Rehearsal registry.** Appendix C.2.3 and Phase 8 use an in-house script, `scripts/rehearsal-registry.ts`, instead of a registry tool. It records publication times, so the rehearsal exercises the cooldown as well.
 - **The dossier.** Task 5 identifies each reviewed build script by the checksum of its package instead of copying its text. It leaves the targets that the local toolchain cannot build, and the fourth layer on Linux and Windows, to the first CI run. The documentation table and the layout list the dossier and the npm files of the type check.
 - **After the approval.** The reviewed build scripts, `deny.toml`, the npm files in `scripts/` with `.npmrc`, the type check and the coverage step are in place. `.npmrc` sets npm's `min-release-age` to the Cargo cooldown, an addition of the agent's that is open to change at G1.9.
+
+What changed in revision 11, by theme:
+
+- **Errata.** Section 5.3 and Appendix A.8: the errata table lists every verified erratum of the listed RFCs, and the held ones that affect parsing, each classified by its relevance. `node scripts/fetch-rfcs.ts` refreshes it against the RFC Editor's records. A.8 records the classification of 2026-11-21, including RFC 8259 erratum 5318, on which section 8.8 takes a position in Phase 2.
+- **Table checks.** The offline checks of the specification tables are TypeScript in `scripts/checks/specifications/`, beside the fetch scripts (section 7.1), instead of being in `cc-media-probe-checks` as the G1.2 note had it.
+- **Appendix A.** The roles of RFC 1951 and RFC 2119 no longer refer to the rows around them, so that they read correctly in the generated index.
+- **The non-RFC manifest.** Section 5.2 adds a `folder` column, which stores each document under its topic and publisher, and a fifth retrieval, `tree`, for Apple's QuickTime documentation. A living page built from a public repository is stored as the file at a pinned commit; other living pages as an Internet Archive capture. Appendix B records how its open rows were resolved: SMPTE is free and leaves G1.6, five ITU documents need a browser, and several sources moved to archive captures.
+- **Deliverables and coverage.** Section 5.2 names the form of keys and of sources, and the deliverables of sections 4.1, 4.3 and 4.4 are compared with those tables in the plan's own words. Two cells of section 4.1, Flash and ASF, were reworded so that each comma separates one format.
+- **Fetching politely.** The fetch scripts pace their requests per site and back off when a site shows signs of blocking (the development log has the rule).

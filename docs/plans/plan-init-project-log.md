@@ -257,3 +257,164 @@ The maintainer approved the [dependency dossier](../design/dependency-dossier.md
 - **Width:** three lines of the check runner were wider than 120 characters, and are now wrapped. Two of them predate this change.
 
 **Serena.** At the maintainer's request, `.serena/project.yml` lists `typescript` after `rust` as a language server.
+
+## 2026-11-21 — Choices for the specification set (tasks 7 and 8)
+
+The maintainer answered these before tasks 7 and 8 were written. Gate G1.4 reviews the result.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Where the table checks live | The offline checks of the specification tables are TypeScript in `scripts/checks/specifications/`, run by `node scripts/check.ts`: the RFC manifest against Appendix A and the stored files with their SHA-256, the errata table, the non-RFC manifest, and deliverables against coverage. This amends the note of G1.2 that put the table comparisons in `cc-media-probe-checks`. | The fetch scripts and the checks share one reader of the tables, and `node:crypto` provides SHA-256, so nothing is hand-written twice. |
+| What the errata table holds | Every verified erratum of every listed RFC, each classified by relevance (`parsing`, `output` or `none`) with the components it affects. An erratum held for document update is reviewed too and listed only when it affects parsing, marked as held. | The fresh query found 70 verified errata in 25 of the 74 RFCs, and 13 of those RFCs have errata that Appendix A.8 does not list. A complete table turns the refresh at each gate into a comparison, and the classification shows that every erratum was read. |
+| Refreshing RFC metadata and errata | `node scripts/fetch-rfcs.ts` also reads the RFC Editor's metadata for each listed RFC and its errata dump, neither of which is stored. It reports an RFC that was obsoleted or whose title or status changed, an updating RFC that Appendix A does not list, and a verified erratum missing from the table. It needs the network, so it never runs in `check.ts` or CI. | Plan section 5.3 refreshes the table at every phase gate; a script makes that repeatable. |
+| Immutable references of living pages | An existing Internet Archive capture, fetched as raw bytes at a pinned capture time. Where no suitable capture exists, the row is marked as not reproducible upstream and the local copy is the approved one. Texts hosted on GitHub are pinned to a commit, and W3C documents to their dated versions. No new captures are requested. | It needs no request to an outside service beyond reading, and a pinned capture keeps returning the same bytes. |
+
+## 2026-11-21 — Progress: Phase 1, task 7
+
+**The RFC set.** `node scripts/fetch-rfcs.ts` writes `docs/rfc/manifest.tsv` from Appendix A, stores each RFC as `docs/rfc/rfcNNNN.txt` from the RFC Editor's plain-text copy, and generates `docs/rfc/README.md` with the index and the license notice. On 2026-11-21 it stored all 74 RFCs, 6.7 MB, each checked for the media type `text/plain` and for its own number in the `Request for Comments:` line before it was written. A second run downloads no text and verifies each against its recorded SHA-256.
+
+**The comparison with the RFC Editor.** The same run reads the metadata of each RFC and the RFC Editor's list of every erratum:
+
+- No RFC of Appendix A is obsoleted, and every title and status matches.
+- Four RFCs are updated by RFCs that Appendix A does not list: RFC 2046 by 2646, 3798, 5147, 6657 and 8098 (mail and text formats); RFC 3551 by 5761, 7007 and 8860 (RTP sessions); RFC 3558 by 4788 (EVRC-B in RTP); RFC 3986 by 7320 and 8820 (URI design). None changes what this project reads, so none was added; G1.4 reviews this.
+- The run prints these as notes on every refresh, together with the 36 held errata that are not in the table: 4609 and 6776 (RFC 2046), 2969 and 5206 (2119), 782 (2250), 5624, 5783 and 6533 (3339), 5135 (3625), 2033, 2624, 2933, 4547, 4789, 4942 and 5428 (3986), 121 (4337), 96 (4425), 8253 (4647), 1659 to 1667 (5215), 8711 and 8712 (5646), 8717 (6386), 4392 and 4829 (6716), 5022 (8174), 7650 and 8438 (8259). Each was read on 2026-11-21 and found not to affect parsing. A later refresh reports a new held erratum as a note that is not in this list.
+
+**The errata table.** `docs/rfc/errata.tsv` has 73 rows: the 70 verified errata of 25 RFCs, and three held errata that affect parsing (RFC 2361 errata 1255 and 5125, RFC 8794 erratum 7191). Eleven rows are relevant, nine to parsing and two to output; Appendix A.8 names them. One needs a decision later: RFC 8259 erratum 5318, verified on 2026-05-28, removes the solidus from the characters that a JSON string may hold unescaped, while `serde_json` writes it unescaped. Phase 2 settles it for the serialization contract (plan section 8.8).
+
+**The offline check.** The new step "specification tables (section 5.2)" of `node scripts/check.ts` needs no network. It compares the manifest with Appendix A, the stored texts with the manifest and their checksums, the index with the one generated from the manifest, and checks the errata table's vocabulary and order. The modules are in `scripts/checks/specifications/`, with 31 tests that replace the RFC Editor with a table of responses.
+
+**Plan.** Revision 11 amends section 5.3, Appendix A.8, the layout of section 7.1, and the roles of RFC 1951 and RFC 2119 in Appendix A, which referred to neighboring rows and read wrongly in the generated index.
+
+**Verification:** `node scripts/check.ts` passes every step on 2026-11-21.
+
+**Open:** tasks 8 to 11. G1.4 reviews the RFC list, the errata table and the four unlisted updating RFCs.
+
+## 2026-11-21 — Choices for the living pages of task 8
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Pages built from a public repository | Where a living page is built from files in a public Git repository, the manifest stores the documentation file at a pinned commit, and the rendered page becomes the landing page: MP4RA's registry files, the Markdown sources of Microsoft Learn, the Matroska site's sources, Xiph's documentation. Only that file is opened, never code in the repository (plan section 1.3). | The same bytes come back on every fetch, the files are small and structured, and no page chrome is stored. |
+| Apple's QuickTime documentation | The fetch script walks the documentation tree of Apple's QuickTime File Format, more than 800 JSON pages (the count stopped at 800), and stores them as one combined file, marked as not reproducible upstream. The 2001 PDF is not stored. | The pages are what Apple maintains; the PDF lacks what was added later. Every section that Phase 6 cites is then in hand for task 17. |
+
+## 2026-11-21 — Requests to other sites
+
+The maintainer's instructions while task 8 was written: send requests slowly, so that no site blocks this machine, and back off when a site shows signs of blocking, with a longer interval for that site. The maintainer also approved downloading the specifications without a further confirmation.
+
+- **Pacing.** The fetch scripts send one request at a time, at least 2 seconds apart for each host, and 6 seconds for the Internet Archive. The archive refused connections after 16 index queries 4 seconds apart, during the research for task 8.
+- **Back-off.** A response of 403, 429 or 503, a passing server failure (500, 502, 504) or a refused connection doubles that host's interval, or sets it to what the host asks for in `Retry-After` when that is longer, up to 5 minutes. The request is retried up to 4 times, and the longer interval stays for the rest of the run.
+- **Sites left alone.** The Hydrogenaudio wiki answered with a challenge page and was not asked again; its APEv2 page is stored from an archive capture.
+
+## 2026-11-21 — Choices for tasks 10 and 11
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Deliverable keys | Kind-prefixed slugs built from the plan's own words: `detect.<format>`, `probe.<format>`, `pair.<codec>.<representation>.<carriage>`, `identify.<codec>.<carriage>`, `tags.<family>`, `registry.<table>`, `rule.<name>`. | Readable in code and in reviews. From Phase 3 on, code registers against these keys. |
+| Comparing with section 4 | The check also compares `deliverables.tsv` with the tables of plan sections 4.1, 4.3 and 4.4 mechanically. Each deliverable keeps the plan's wording, and a row of those tables without a deliverable, or a deliverable without a row, fails. | Transcription errors cannot slip through; the review at G1.4 then concerns the content, not the copying. |
+| Depth of the source dossier | Each candidate description of Appendix B.6 is read, prose only and slowly paced, to state what it covers and leaves open and whether it is hosted in an implementation's repository, and better sources are searched for. | G1.5 then decides on facts. |
+
+## 2026-11-21 — Where the specifications are stored
+
+The maintainer's instructions: the specifications go to `docs/specs/`, never to a scratch directory, and are organized in folders instead of one directory. Asked how, the maintainer chose topic, then publisher.
+
+- **Layout.** Each stored document is `docs/specs/files/<topic>/<publisher>/<identifier>.<extension>`. The topics follow Appendix B: `containers` (with the pinned Matroska drafts), `video`, `audio`, `subtitles` and `tags-and-registries`. The manifest's new `folder` column gives the topic and publisher of each row, and the community descriptions proposed for G1.5 sit under their topics, classed `descriptive`.
+- **Scratch copies.** The research copies of RFCs and candidate descriptions that had been kept in a scratch directory were deleted; every candidate is now a manifest row, stored by the fetch script like any other document.
+
+## 2026-11-21 — Progress: Phase 1, task 8
+
+**The manifest.** `docs/specs/manifest.tsv` has 152 rows, one per stored document or link:
+
+- the 3 pinned drafts of Appendix A.7 and 126 documents of Appendix B.1 to B.5, split where a row of Appendix B bundles several documents;
+- 23 candidate descriptions for G1.5, with their `approved` cells empty.
+
+**Retrieval.** `node scripts/fetch-specs.ts` stored 127 documents, 103 MB, each checked for its media type before it was written:
+
+- 39 `fetch` rows, whose addresses name their editions: ETSI, ITU, 3GPP, EBU, SMPTE, W3C and vendor PDFs.
+- 87 `snapshot` rows, of four kinds:
+  - 37 files at pinned commits of public repositories;
+  - 41 Internet Archive captures;
+  - 5 wiki pages at a pinned revision of their source;
+  - 4 dated W3C versions.
+- 1 `tree` row: Apple's QuickTime documentation, 1,152 pages in one 12 MB JSON file, walked in about 40 minutes at one page every 2 seconds.
+
+**Manual rows.** 24 rows wait for a file placed by hand:
+
+- 15 paid ISO/IEC standards and 1 IEC standard, which G1.6 decides on;
+- the 5 ITU documents whose download asks an automated client to log in: H.222.0 (04/2025), H.262, T.81, BT.2100-3 and BS.2088-2;
+- 3 Dolby documents.
+
+One link row points to ISO's list of free standards.
+
+**Resolved from Appendix B.** Plan Appendix B now records these:
+
+- SMPTE's whole catalog is free since 2026-06-17.
+- The 3GPP2 original of C.S0050-B no longer answers and is stored from a capture beside ARIB's transposition.
+- The ID3v2.4 structure document is not in the ID3 repository and is a capture.
+- The full ASF specification downloads as a Word document.
+- ISO's free 2015 edition of ISO/IEC 14496-12 needs a browser.
+
+**Code.** The modules are in `scripts/checks/specifications/documents/`, with the shared pacing in `throttle.ts` and the downloads in `downloads.ts`. The offline check verifies the rules of each retrieval, the pinned drafts of Appendix A.7, and the checksum of every document stored locally, in any folder. The hygiene check now accepts tabs that close the empty last cells of a tab-separated row.
+
+**Open:** the 24 manual documents; G1.4 reviews the manifest.
+
+## 2026-11-21 — Progress: Phase 1, tasks 9 and 10
+
+**Task 9.** `docs/design/scope-baseline.md` copies the cross-check of plan section 4.5 with the baseline's revision `a8d5c34d4` of 2026-11-18, and a table of the comparisons made before each release.
+
+**Task 10.** `docs/design/source-dossier.md` covers every † entry. Each candidate of Appendix B.6 was read, prose only, and better sources were searched for. Found beyond Appendix B.6:
+
+- the vendor's own RealMedia file format reference, from its 2003 SDK documentation;
+- the TTA authors' own format description;
+- the official mapping of Dirac into Ogg;
+- the SSA/ASS v4.00+ script format document;
+- the USF specification as now hosted;
+- the Library of Congress description of SubRip;
+- the patents that the PGS description is based on, and published patents that describe HDMV TextST.
+
+The dossier proposes a disposition for each entry. Where none is approved, it changes plan section 4.3 for RealVideo and the Blu-ray part of Phase 15.
+
+## 2026-11-21 — Progress: Phase 1, task 11
+
+**The tables.** `docs/specs/deliverables.tsv` has 339 keys:
+
+| Kind | Keys |
+|---|---|
+| Detector entries | 65 |
+| Container probers | 56 |
+| Codec-by-carriage pairs | 183 |
+| Codecs identified only | 11 |
+| Tag families | 9 |
+| Registry tables | 11 |
+| Rules | 4 |
+
+`docs/specs/coverage.tsv` gives each key a status and its sources:
+
+- 309 active rows, each with at least one source of the two manifests;
+- 16 deferred to G1.5, where no source was located;
+- 14 deferred to G17.n, the detection and probing of the 7 post-1.0 candidates.
+
+Every cited section is provisional until task 17 opens the stored document.
+
+**The check.** The modules are in `scripts/checks/specifications/deliverables/`. The check compares the deliverables with the tables of plan sections 4.1 and 4.3 in the plan's own words, in both directions. It also compares the keys of the two tables and checks that every source names a document of a manifest. Two cells of section 4.1, Flash and ASF, were reworded so that each comma separates one format.
+
+**Open:**
+
+- Approval of sources. Nothing is approved before G1.4, G1.5 and G1.6, so the check does not yet require an approved source for an active row. The exit criteria of G1.9 require it, and the check gains that rule once the gates have filled the `approved` column.
+- Fixtures are named in the phases that write them.
+
+**Verification:** `node scripts/check.ts` passes every step on 2026-11-21, with 85 script tests.
+
+## 2026-11-21 — Documents placed by the maintainer
+
+| Document | What was done | Reasoning |
+|---|---|---|
+| Dolby Vision streams within ISO base media | The maintainer downloaded the PDF; it is stored as `dolby-vision-isobmff` and its checksum recorded. Its version could not be read from the file and is to be confirmed from its title page. | The vendor serves it only to a browser. |
+| ITU-T H.222.0 | The maintainer chose an older edition: `itu-t-h-222-0` is now the 06/2021 edition, and a new row, `itu-t-h-222-0-amd-1`, holds its Amendment 1 (12/2022), the file the maintainer downloaded. Both download directly, so both are `fetch` rows. The 04/2025 edition is not stored. | The current edition needs a login. The amendment alone holds only the changes (20 pages), so the 2021 text it amends is stored as well. |
+| ITU-T H.262 | `itu-t-h-262` is now the 02/2012 text published as Amendment 4 (2012-02-29), the file the maintainer downloaded, 238 pages. It downloads directly and is a `fetch` row. | The text in force needs a login; this one is the complete recommendation. |
+| Dolby Vision in MPEG-2 transport streams | The maintainer supplied "Dolby Vision Streams Within the MPEG-2 Transport Stream Format", version 1.2, as a file for `dolby-vision-isobmff`. It is a different document, the carriage in transport streams, so it got a row of its own, `dolby-vision-mpeg-2-ts`, and a row in Appendix B.1; G1.4 reviews it with the rest. The ISO base media row keeps the document placed earlier. | Phase 10 needs it for Dolby Vision in transport streams; the MP4 document does not cover them. |
+| Dolby TrueHD bitstream description | The maintainer could not find the document on the vendor's site and pointed to a copy in a third-party implementation's repository. That copy was not used: the row became a `snapshot` of the Internet Archive's capture of the vendor's own address (2025-09-08), the PDF of 2018-02-07, 36 pages. | The vendor's own bytes, without opening an implementation's repository or naming it here (plan section 1.3). |
+| ITU-T T.81 | The maintainer downloaded the 09/1992 edition, 186 pages; it is stored as `itu-t-t-81` and its checksum recorded. | ITU serves it only to a browser. |
+| ITU-R BT.2100-3 | The maintainer downloaded the 02/2025 edition, 15 pages; it is stored as `itu-r-bt-2100-3` and its checksum recorded. | ITU serves it only to a browser. |
+| ITU-R BS.2088-2 | The maintainer downloaded the 11/2025 edition, 30 pages; it is stored as `itu-r-bs-2088-2` and its checksum recorded. | ITU serves it only to a browser. |
+| Dolby TrueHD in ISO base media | The maintainer downloaded "MLP (Dolby TrueHD) streams within the ISO base media file format", the edition of 2019 (its PDF metadata calls it "Dolby TrueHD (MLP) bitstreams within the ISO base media file format"). It is the MP4-carriage document, so it is stored as `dolby-truehd-isobmff`, with the printed title and the 2019 edition, and not as the bitstream description. | The vendor serves it only to a browser. |
+
+Still manual: the 16 paid ISO/IEC and IEC standards, for G1.6.
