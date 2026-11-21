@@ -903,3 +903,42 @@ No change was needed for the TextST and PGS file pairs, `probe.hdmv-textst`, `pr
 **Plan and dossier.** Revision 18 of the plan changes the specifications of Phase 14 and its tasks 6, 9 and 10, Appendix B.4 (XML 1.0) and B.6 (the PGS frame rate and the TextST timestamps). The source dossier adds task-17 notes for USF, VobSub, PGS and TextST.
 
 **Open:** task 17 for release 0.8.0; then tasks 18 and 19, G1.8 and G1.9.
+
+## 2026-11-21 — Progress: Phase 1, task 17, release 0.8.0
+
+**Found.** The one row, `probe.dvd-video`, cited only `dvdinfo-ifo: IFO file`, the title of the page. Phase 15 also reads the title-set tables and the program chains, and with lookup enabled the object files. The stored pages were compared with the pages on the author's current site, read to standard output:
+
+| Page | Difference | Outcome |
+|---|---|---|
+| `ifo.html` | The audio sample rate is "0 = 48Ksps, 1 = 96Ksps" where the stored copy read "0 = 48Kbps". The offset of a reserved field is 0x0244, not 0x0144. The aspect value 1 is "not specified", and the reserved resolutions are marked. The title and menu attribute tables are separate. The quantization field reads "0 = 16bps, 1 = 20bps, 2 = 24bps, 3 = DRC" for every coding mode. | Replaced (decision below) |
+| `dvdmpeg.html` | Sub-streams 0x80 to 0x87 are AC-3 and 0x88 to 0x8F DTS, where the stored copy gave 0x80 to 0x87 for "AC3, DTS, SDDS" | Replaced |
+| `pgc.html`, `ifo_vts.html` | Navigation rules, the karaoke cell types, the meaning of the time map, and the playback mode and still time of the chain header, which trade offsets | Kept: Phase 15 reads none of these |
+| `spu.html`, `pci_pkt.html` | Constraints on color and contrast changes, the labels of the button group types | Kept: no row reads them |
+| `lpcm.html` | Not on the author's site (404) | Kept |
+
+**Decided by the maintainer** (GS.2 for the source):
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| DVD source | `dvdinfo-ifo` and `dvdinfo-dvdmpeg` keep their identifiers and now point to the author's current pages, stored from archive captures of 2026-08-07 and 2026-08-06. | The older copies have a wrong unit, a wrong offset and no DTS range. The rows of earlier releases keep their headings, and an audio sub-stream's codec is still identified by its sync word (G1.5). |
+| Matching attribute entries to object-file streams | Through the stream control tables of the first program chain that marks the stream available. An audio entry gives sub-stream 0x80 + *n* (AC-3), 0x88 + *n* (DTS) or 0xA0 + *n* (LPCM), or MPEG audio stream *n*. A sub-picture entry gives 0x20 + *n*, from its number for 4:3 or for wide, according to the video's aspect. The video stream is matched directly. A codec that disagrees, or a chain that maps the stream to another number, raises a diagnostic and leaves the stream unmatched. | Phase 15 makes the attribute tables the report's streams but did not say how they find their streams. The control entry holds the number (3 bits for audio, 5 for sub-pictures); the ranges come from `dvdinfo-dvdmpeg`, and the MPEG audio stream numbers from H.222.0 Table 2-22. Logical and physical order can differ, so the entry's position is not used. |
+| Angle blocks in chapter times | Only the first cell of an angle block counts. If the sum over all cells differs from the chain's playback time, a diagnostic is raised, and the chain keeps its own time. | The cells of a block are alternative angles of the same stretch of time; adding them all would overcount. |
+
+Read from the pages without a further decision: the program chains are the title chains of `VTS_PGCI`, not the menu chains; the frames of a playback time count at the 30 or 25 frames per second that the frame byte gives, and its two illegal values give no time; a language is read when the language type is 1 and becomes a BCP 47 tag through `rule.language-tags`.
+
+**Confirmed.** `probe.dvd-video` has its `confirmed` date, 2026-11-21. With it, all 307 active rows of releases 0.1.0 to 0.8.0 are confirmed, and task 17 is done.
+
+**Corrected:**
+
+| Row | Was | Now | Why |
+|---|---|---|---|
+| `probe.dvd-video` | `dvdinfo-ifo: IFO file` | `dvdinfo-ifo: Video Manager and Video Title Set IFO file headers`, `Video Attributes`, `Title Audio Attributes`, `Title Subpicture Attributes`; `dvdinfo-ifo-vts: VTS_PGCI`; `dvdinfo-pgc: PGC header`, `program map entry (one per program, pad to word boundary with zero)`, `cell playback information table entry (one per cell)`; `dvdinfo-dvdmpeg: Extensions`; `itu-t-h-222-0: 2.4.3.6`, `2.4.3.7`, `2.5.3` | The header table, with the sector pointers, the stream counts and the file structure; the three title attribute tables; the program chain table; the chain header with its playback time and stream control; the programs; the cell times and angle-block marks; and the object files, read as program streams with their sub-streams |
+| `detect.dvd-video` (0.1.0; keeps its date) | `dvdinfo-ifo: IFO file` | `dvdinfo-ifo: Video Manager and Video Title Set IFO file headers` | The identifiers that detection reads are in that table; the page's title names the whole page |
+
+Every row that cites `dvdinfo-dvdmpeg: Extensions` was checked again against the new page: it still holds the sub-picture, AC-3 and LPCM ranges, and gives DTS its own range, which the sync-word rule does not need. No other change was needed.
+
+**Fetching.** Before the decision, seven requests went to mpucoder.com, at least six seconds apart, one for each page compared; `lpcm.html` answered 404 and the others 200. Two went to the Internet Archive's availability service, eight seconds apart. After the decision, the fetch script stored the two captures from the Internet Archive.
+
+**Plan and dossier.** Revision 19 of the plan gives Phase 15 its specifications and says, in tasks 1 and 2, what is read. Phase 10 and Appendix B.6 name the new pages. The source dossier adds task-17 notes on the information files and the sub-stream numbers.
+
+**Open:** tasks 18 and 19, G1.8 and G1.9.

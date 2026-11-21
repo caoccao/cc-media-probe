@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 18; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
+| **Status** | Approved on 2026-11-21 at draft 6, and amended in Phase 1 (revision 19; see [Appendix E](#appendix-e--revision-history)). Phase 1 is in progress. The [development log](plan-init-project-log.md) records every gate decision and the progress of each task. |
 | **Date** | 2026-11-21 |
 | **Crates** | `cc-media-probe` (library), `cc-media-probe-cli` (command-line tool) |
 | **Repository** | `github.com/caoccao/cc-media-probe` |
@@ -1636,7 +1636,7 @@ flowchart TD
 
 **Goal.** A building, linted, CI-checked empty workspace; every specification in place; every source decision that later phases depend on already made.
 
-**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is under way: releases 0.1.0 to 0.7.0 are confirmed. The [development log](plan-init-project-log.md) has the details.
+**Progress on 2026-11-21.** G1.1 to G1.7 are passed, and tasks 3 to 16 are done; `node scripts/check.ts` passes locally, with the type check of the scripts, the coverage check and the offline checks of the specification tables. The scripts were rewritten in TypeScript for R34. The 16 paid standards are not bought; `docs/specs/iso-iec/` describes them from free sources, and the coverage table cites those descriptions. G1.4 approved the specification set, added the 11 RFCs in force that update listed ones and, through GS.2, SMPTE RP 227 for VC-1 in MPEG-2 streams. G1.5 accepted every proposal of the source dossier and approved sources for HDMV TextST, the VBRI header and the DVD sub-stream numbers. G1.6 substituted the 16 paid standards with their descriptions, added the documents they cite, a DV patent for the consumer packs and the free 2015 edition of ISO/IEC 14496-12, and reduced the rows that rest on a gap. The maintainer placed that edition (G1.7), and task 16 applied the outcomes of G1.5 and G1.6 to section 4, the tables and the phases. Task 17, the verification of every cited section, is done: all 307 active rows, of releases 0.1.0 to 0.8.0, are confirmed against the stored documents. The [development log](plan-init-project-log.md) has the details.
 
 ```mermaid
 flowchart TD
@@ -2038,7 +2038,7 @@ flowchart TD
 
 ### Phase 10 — MPEG transport and program streams (0.3.0)
 
-**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; ETSI EN 300 421 for 204-byte packets; the Blu-ray Disc Association's BD-J application definition for 192-byte packets, and the published patent US 8,208,795 B2 for the Blu-ray stream types, both approved through GS.2 in task 17 of Phase 1; carriage of AV1 and of Opus in MPEG-2 TS; Dolby Vision in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421, RP 2025 and RP 227; the DVD descriptions approved at G1.5 (LPCM, sub-pictures, sub-stream numbers); RFC 2250, RFC 4425, RFC 6416.
+**Specifications.** ITU-T H.222.0; ETSI EN 300 468, EN 300 743, EN 300 472, TS 101 154, TS 103 190; ETSI EN 300 421 for 204-byte packets; the Blu-ray Disc Association's BD-J application definition for 192-byte packets, and the published patent US 8,208,795 B2 for the Blu-ray stream types, both approved through GS.2 in task 17 of Phase 1; carriage of AV1 and of Opus in MPEG-2 TS; Dolby Vision in MPEG-2 TS; ITU-T H.262; ISO/IEC 11172 or its substitute from G1.6; SMPTE ST 421, RP 2025 and RP 227; the DVD descriptions approved at G1.5 (LPCM, sub-pictures, sub-stream numbers), the last from the author's current page since task 17 of Phase 1 (GS.2); RFC 2250, RFC 4425, RFC 6416.
 
 **Tasks**
 
@@ -2188,10 +2188,20 @@ flowchart TD
 
 **Goal.** Probe DVD-Video title sets, which span several files, through the companion lookup of Phase 14. G1.5 approved the DVD descriptions and deferred the Blu-ray structures (playlists and clip information) to G17.n, so this phase covers DVD-Video only.
 
+**Specifications.** The DVD-Video descriptions approved at G1.5: the information files, the title-set tables and the program chains. For the information files and the sub-stream ranges, the author's current pages replaced older copies through GS.2 in task 17 of Phase 1. ITU-T H.222.0 for the object files, which are program streams (Phase 10).
+
 **Tasks**
 
-1. **DVD-Video†.** Title-set information files: video, audio and sub-picture attributes with languages; program chains with their programs and cells.
-2. **DVD aggregation rules.** A title set can contain several program chains with different playback paths. Each chain is one chapter edition with its own duration and chapters. The report's streams are the title set's attribute tables. The report's duration is set only when the title set has exactly one program chain; otherwise it is absent and each edition carries its own. With lookup enabled, the title set's object files are probed as one logical concatenated source for stream headers, within the limits.
+1. **DVD-Video†.** Title-set information files: video, audio and sub-picture attributes with languages; program chains with their programs and cells. Task 17 of Phase 1 fixed what is read:
+   - *Streams.* The title attribute tables of the title set's header: one video stream; up to 8 audio streams with their coding mode, sample rate (48 or 96 kilosamples per second), channel count and, for LPCM, bits per sample; up to 32 sub-picture streams. A language is read when the language type is 1, from its two characters, and is reported as the original code and as a BCP 47 tag (section 8). Reserved values are not reported.
+   - *Program chains.* The title chains of `VTS_PGCI`; menu chains are not reported. A playback time is BCD `hh:mm:ss:ff`, whose frames count at the 30 or 25 frames per second that the top two bits of the frame byte give. The two illegal values give no time and raise a diagnostic.
+   - *Chapters.* A chapter is a program. It starts at the sum of the playback times of the cells before its entry cell. An angle block counts only its first cell, because the cells of a block are alternative angles of the same stretch of time. If the sum over all cells differs from the chain's playback time, a diagnostic is raised, and the chain keeps its own time as its duration.
+2. **DVD aggregation rules.** A title set can contain several program chains with different playback paths. Each chain is one chapter edition with its own duration and chapters. The report's streams are the title set's attribute tables. The report's duration is set only when the title set has exactly one program chain; otherwise it is absent and each edition carries its own. With lookup enabled, the title set's object files are probed as one logical concatenated source for stream headers, within the limits. These are the numbered object files 1 to 9 that the header page's file structure gives; the menu object file is not read. Each attribute entry is matched to its stream there through the stream control tables of the first program chain that marks the stream available (task 17 of Phase 1):
+   - audio entry *i* takes the number *n* of control entry *i*: sub-stream 0x80 + *n* of private stream 1 for AC-3, 0x88 + *n* for DTS and 0xA0 + *n* for LPCM, or MPEG audio stream *n* (H.222.0, Table 2-22);
+   - a sub-picture entry takes sub-stream 0x20 + *n* from its number for 4:3 when the video is 4:3, and from its number for wide when the video is 16:9;
+   - the one video stream is matched directly.
+
+   The codec found there must agree with the entry's coding mode; for AC-3, DTS and MPEG audio the sync word decides (Phase 10). A stream whose codec disagrees, or which another chain maps to a different number, raises a diagnostic and stays unmatched.
 3. **External references** are listed on every result, whether lookup is on or off. Diagnostics and errors name the file they concern through its source ID.
 
 **Tests.** Section 11 checklist; directory-shaped fixtures built by the test kit; a title set with two program chains; a diagnostic raised in the second object file; missing companions; an in-memory resolver; lookup off.
@@ -2667,7 +2677,7 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | XSUB | [Community description](https://wiki.multimedia.cx/index.php/XSUB) | ✓ | Identification only |
 | Blu-ray playlists and clip information | [Community notes on playlists](https://en.wikibooks.org/wiki/User:Bdinfo/mpls); a [published patent description](https://patents.google.com/patent/US9530455B2/en) of the mark types; none located for clip information | mixed | Defer Phase 15 |
 | Blu-ray transport streams: 192-byte packets and stream types | Found in task 17 and approved through GS.2: the Blu-ray Disc Association's [BD-J application definition](https://us.blu-raydisc.com/wp-content/uploads/sites/2/2019/09/bdj_gem_application_definition-15496.pdf) (March 2005), section 4.1, for the source packet; the published patent [US 8,208,795 B2](https://patents.google.com/patent/US8208795B2/en) (Panasonic) for the stream coding types of LPCM, AC-3, DTS, presentation graphics, interactive graphics and text subtitles; none located for TrueHD, E-AC-3 or DTS-HD | ✓ | 188-byte packets only; Blu-ray types reported as user private |
-| Disc LPCM headers; DVD private-stream identifiers | [LPCM pack description](https://dvd.sourceforge.net/dvdinfo/lpcm.html) · [stream identifiers](https://dvd.sourceforge.net/dvdinfo/mpeghdrs.html); the [sub-stream ranges](https://dvd.sourceforge.net/dvdinfo/dvdmpeg.html), found at G1.5; none located for Blu-ray LPCM | mixed | Container-declared values only |
+| Disc LPCM headers; DVD private-stream identifiers | [LPCM pack description](https://dvd.sourceforge.net/dvdinfo/lpcm.html) · [stream identifiers](https://dvd.sourceforge.net/dvdinfo/mpeghdrs.html); the [sub-stream ranges](http://www.mpucoder.com/DVD/dvdmpeg.html), found at G1.5 and replaced in task 17 through GS.2 by the author's current page, which gives AC-3 and DTS separate ranges; none located for Blu-ray LPCM | mixed | Container-declared values only |
 | Kate | [Format description on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/OggKate), which also describes the Matroska mapping; the [original page](https://wiki.xiph.org/OggKate) did not respond on 2026-11-20 | ✓ | Identification only |
 | Chapter comments in Vorbis comment blocks | [Convention on the codec project's wiki, archived copy](https://web.archive.org/web/2024/https://wiki.xiph.org/Chapter_Extension); the [original page](https://wiki.xiph.org/Chapter_Extension) did not respond on 2026-11-20 | ✓ | Chapter comments stay ordinary tags |
 | Dirac in Ogg | [Mapping by the Dirac project](https://web.archive.org/web/20120727072609/http://diracvideo.org/download/mapping-specs/dirac-mapping-ogg-1.0.pdf), archived copy of 2012, to which the [container project's wiki](https://web.archive.org/web/2024/https://wiki.xiph.org/OggDirac) points | ✓ | Identified only in Ogg |
@@ -2686,7 +2696,7 @@ Input to the source dossier and gate G1.5 (section 5.4). None of these is normat
 | ASF pictures: the stored layout of `WM/Picture` | None located: Microsoft documents its structure only in memory, with pointers (task 17) | ○ | Kept as a binary tag |
 | PGS frame rate | None located: the approved article says that the byte is always 0x10 and can be ignored (task 17) | ○ | Not reported |
 | HDMV TextST presentation timestamps | None located: LG's patent names the start and end timestamps of a presentation segment without their size, and Sony's does not describe that segment (task 17) | ○ | Event count only; no time range |
-| DVD-Video information files | [Community description](https://dvd.sourceforge.net/dvdinfo/ifo.html) | ✓ | Defer |
+| DVD-Video information files | [Community description](http://www.mpucoder.com/DVD/ifo.html), the author's current page, which in task 17 replaced an older copy through GS.2; the [title-set tables](https://dvd.sourceforge.net/dvdinfo/ifo_vts.html) and [program chains](https://dvd.sourceforge.net/dvdinfo/pgc.html) of the same site | ✓ | Defer |
 | VobButtons | [Presentation-control packet layout](https://dvd.sourceforge.net/dvdinfo/pci_pkt.html) and the pinned Matroska codec draft for the track type; none located for the `btn` file signature | mixed | Matroska identification only; `btn` files by extension hint |
 | MicroDVD | [Community description](https://wiki.multimedia.cx/index.php/MicroDVD) | ✓ | Dropped from the inventory |
 | RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording, RealAudio metafiles | None located | ○ | Dropped from the inventory |
@@ -3114,6 +3124,7 @@ Research performed on 2026-11-20 to support the decisions in this plan. The late
 | 16 | 2026-11-21 | Amended in task 17, for release 0.5.0. |
 | 17 | 2026-11-21 | Amended in task 17, for release 0.6.0. |
 | 18 | 2026-11-21 | Amended in task 17, for release 0.7.0. |
+| 19 | 2026-11-21 | Amended in task 17, for release 0.8.0, which completes the task. |
 
 What changed in draft 2, by theme:
 
@@ -3237,3 +3248,7 @@ What changed in revision 17, by theme:
 What changed in revision 18, by theme:
 
 - **Task 17, release 0.7.0.** Appendix B.4 adds W3C XML 1.0 (Fifth Edition), approved through GS.2, for the syntax of USF and the contract of G14.1, which names it. The specifications of Phase 14 name it, and section 5.1 of the pinned Matroska codec draft for the VobSub index file. No document gives the meaning of the PGS frame-rate byte, so task 9 no longer reports a frame rate, or the size of the TextST presentation timestamps, so task 10 reports an event count and no time range (B.6).
+
+What changed in revision 19, by theme:
+
+- **Task 17, release 0.8.0.** The pages on DVD information files and on how DVD differs from MPEG now come from the author's current site, approved through GS.2 (B.6). They correct the audio sample rate, an offset and the aspect values, and give DTS its own sub-stream range, 0x88 to 0x8F. Phase 15 gains its specifications and, in tasks 1 and 2, what is read: the title attribute tables, the title program chains, chapters with an angle block counted by its first cell, and the match of each attribute entry to its stream in the object files through the program chain's stream control. Phase 10 and Appendix B.6 name the new pages. With this release, task 17 is done.

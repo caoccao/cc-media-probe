@@ -16,7 +16,7 @@ detect.dirac	active	0.1.0		smpte-st-2042-1: 10.5.1		2026-11-21
 detect.dsd-dsf-dsdiff	deferred		G17.n			
 detect.dts	active	0.1.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4		2026-11-21
 detect.dv	active	0.1.0		iec-61834-2.md: 2; iec-61834-2.md: 3		2026-11-21
-detect.dvd-video	active	0.1.0		dvdinfo-ifo: IFO file		2026-11-21
+detect.dvd-video	active	0.1.0		dvdinfo-ifo: Video Manager and Video Title Set IFO file headers		2026-11-21
 detect.f4v	active	0.1.0		adobe-flv-f4v-10-1: 1		2026-11-21
 detect.flac	active	0.1.0		rfc9639: 6		2026-11-21
 detect.flv	active	0.1.0		adobe-flv-f4v-10-1: E.2		2026-11-21
@@ -288,7 +288,7 @@ probe.dirac	active	0.5.0		smpte-st-2042-1: 10; smpte-st-2042-1: 11; smpte-st-204
 probe.dsd-dsf-dsdiff	deferred		G17.n			
 probe.dts	active	0.4.0		etsi-ts-102114: 5.3; etsi-ts-102114: 5.4; etsi-ts-102114: 7.4; etsi-ts-102114: 7.5.2; etsi-ts-102114-v1-2-1: 5.3		2026-11-21
 probe.dv	active	0.5.0		iec-61834-2.md: 2; iec-61834-2.md: 3; iec-61834-2.md: 4; iec-61834-2.md: 5; iec-61834-2.md: 7; uspto-us-5907444: FIGS. 31, 37 and 38; rfc6469: 2.1		2026-11-21
-probe.dvd-video	active	0.8.0		dvdinfo-ifo: IFO file		
+probe.dvd-video	active	0.8.0		dvdinfo-ifo: Video Manager and Video Title Set IFO file headers; dvdinfo-ifo: Video Attributes; dvdinfo-ifo: Title Audio Attributes; dvdinfo-ifo: Title Subpicture Attributes; dvdinfo-ifo-vts: VTS_PGCI; dvdinfo-pgc: PGC header; dvdinfo-pgc: program map entry (one per program, pad to word boundary with zero); dvdinfo-pgc: cell playback information table entry (one per cell); dvdinfo-dvdmpeg: Extensions; itu-t-h-222-0: 2.4.3.6; itu-t-h-222-0: 2.4.3.7; itu-t-h-222-0: 2.5.3		2026-11-21
 probe.f4v	active	0.1.0		adobe-flv-f4v-10-1: 1		2026-11-21
 probe.flac	active	0.2.0		rfc9639: 6; rfc9639: 8		2026-11-21
 probe.flv	active	0.6.0		adobe-flv-f4v-10-1: E.2; adobe-flv-f4v-10-1: E.3; adobe-flv-f4v-10-1: E.4.1; adobe-flv-f4v-10-1: E.4.2.1; adobe-flv-f4v-10-1: E.4.3.1; adobe-flv-f4v-10-1: E.4.4; adobe-flv-f4v-10-1: E.5; veovera-enhanced-rtmp-v2: Enhanced Audio; veovera-enhanced-rtmp-v2: Enhanced Video; veovera-enhanced-rtmp-v2: Enhancing onMetaData; veovera-enhanced-rtmp-v2: Multitrack Streaming via Enhanced RTMP		2026-11-21

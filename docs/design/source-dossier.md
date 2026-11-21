@@ -37,7 +37,7 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | Blu-ray transport streams: 192-byte packets and stream types (task 17) | `bda-bd-j-baseline-application`, `uspto-us-8208795` | Approved through GS.2; TrueHD, E-AC-3 and DTS-HD types not covered | 188-byte packets only; Blu-ray types reported as user private |
 | DVD LPCM headers | `dvdinfo-lpcm` | Approve | Container-declared values only |
 | Blu-ray LPCM headers | None located | Container-declared values only | Container-declared values only |
-| DVD private-stream sub-stream numbers | `dvdinfo-dvdmpeg` | Approve for the ranges; an audio sub-stream's codec is identified by its sync word | Container-declared values only |
+| DVD private-stream sub-stream numbers | `dvdinfo-dvdmpeg`, since task 17 the author's current page | Approve for the ranges, which give DTS its own since task 17; an audio sub-stream's codec is identified by its sync word | Container-declared values only |
 | Kate | `xiph-wiki-kate` | Identification only | Identification only |
 | Chapter comments in Vorbis comments | `xiph-wiki-chapter-extension` | Approve | Chapter comments stay ordinary tags |
 | Dirac in Ogg | `dirac-ogg-mapping` | Approve | Identified only in Ogg |
@@ -50,7 +50,7 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 | Windows Media Video 7/8 extra data | None located | Bitmap header fields only | Bitmap header fields only |
 | VobSub palette in MP4 | None located | Identification only | Identified only in MP4 |
 | ID3v1 | `id3-v1` | Approve | Presence reported, content not read |
-| DVD-Video information files | `dvdinfo-ifo`, `dvdinfo-ifo-vts`, `dvdinfo-pgc` | Approve | Defer |
+| DVD-Video information files | `dvdinfo-ifo` (since task 17 the author's current page), `dvdinfo-ifo-vts`, `dvdinfo-pgc` | Approve | Defer |
 | VobButtons | `dvdinfo-pci`, with the pinned Matroska codec draft | Matroska identification; `btn` files hint only | Matroska identification only |
 | MicroDVD | `multimedia-wiki-microdvd` | Detection only | Dropped from the inventory |
 | RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording, RealAudio metafiles | None located | Drop from the inventory | Dropped from the inventory |
@@ -77,6 +77,8 @@ The input to gate G1.5 (plan sections 5.4 and 14): for every entry of plan secti
 **Wave64.** `multimedia-wiki-wave64` (revision 15287, 2017) gives the chunk header (a 128-bit GUID and a 64-bit size that includes the header) and the GUIDs of the known chunks. The vendor's white paper it links to no longer answers and has no archive capture. The payload of the format chunk is a wave format structure, which the approved Microsoft documents describe. *Proposed:* approve.
 
 **DVD-Video information files.** `dvdinfo-ifo`, `dvdinfo-ifo-vts` and `dvdinfo-pgc` give the byte layouts of the video manager and title set headers, their attributes, and program chains. The cell and time tables are only partly described. *Proposed:* approve for Phase 15, where the title-set reader is limited to what they describe.
+
+*Added in task 17:* the stored `dvdinfo-ifo` was an older copy on dvd.sourceforge.net. The author's current page on mpucoder.com, stored from an archive capture of 2026-08-07, replaced it through GS.2. It gives the sample rate as 48 or 96 kilosamples per second where the older copy read "48Kbps", corrects the offset of a reserved field to 0x0244, adds "not specified" to the aspect values and the reserved resolutions, and separates the title attribute tables from the menu ones. The program-chain and title-set pages of the author's site differ from the stored copies only in fields that Phase 15 does not read, so they stay. The maintainer also decided two readings that the pages leave open. Chapters count an angle block by its first cell, because the cells of a block are alternative angles. Each attribute entry is matched to its stream in the object files through the stream control tables of the program chain, with the sub-stream ranges of `dvdinfo-dvdmpeg`.
 
 **Blu-ray playlists and clip information.** A wiki user page documents the playlist header and marks but omits the play items and the stream number table, and marks the extension data as unknown. A published patent describes the mark types. Nothing was found for clip information files. *Proposed:* defer the Blu-ray part of Phase 15, as the plan's fallback says.
 
@@ -162,7 +164,7 @@ No source was found for the types of TrueHD, E-AC-3 or DTS-HD. The only page tha
 
 - **Windows Media Video 7/8 extra data:** bitmap header fields only.
 - **VobSub palette in MP4:** the layout of its decoder-specific information is not described; identification only. No registry identifies the track: the MP4 registration authority lists stream type 0x38 and object type 0xE0 only within user-private ranges, does not register the handler `subp`, and registers `mp4s` only as generic MPEG-4 Systems. *Added in task 17:* `doom9-vobsub-in-mp4`, page 4 of a forum thread of 2006 whose posters examined such files, reports the handler `subp`, the sample entry `mp4s`, stream type 0x38, object type 0xE0, a 90 kHz timescale and samples that are DVD sub-picture bitmaps (posts 71, 77 and 80). The maintainer approved it through GS.2 for identification only: a track is VobSub when all four codes agree. A layout of the palette was found only on an implementation project's issue tracker, which is not a source here (plan section 1.3).
-- **DVD private-stream sub-stream numbers:** the pages read first say that the first payload byte is a sub-stream number but list no values. During G1.5, the same site's page on how DVD differs from MPEG, `dvdinfo-dvdmpeg`, was found: 0x20 to 0x3F are sub-pictures, 0x80 to 0x87 audio (AC-3, DTS, SDDS) and 0xA0 to 0xA7 LPCM. *Decided at G1.5:* approve it for these ranges; an audio sub-stream's codec is identified by its sync word, which the approved ETSI specifications of AC-3 and DTS define, whatever its number.
+- **DVD private-stream sub-stream numbers:** the pages read first say that the first payload byte is a sub-stream number but list no values. During G1.5, the same site's page on how DVD differs from MPEG, `dvdinfo-dvdmpeg`, was found: 0x20 to 0x3F are sub-pictures, 0x80 to 0x87 audio (AC-3, DTS, SDDS) and 0xA0 to 0xA7 LPCM. *Decided at G1.5:* approve it for these ranges; an audio sub-stream's codec is identified by its sync word, which the approved ETSI specifications of AC-3 and DTS define, whatever its number. *Added in task 17:* the stored page was an older copy. The author's current page, stored from an archive capture of 2026-08-06, replaced it through GS.2: 0x80 to 0x87 are AC-3, 0x88 to 0x8F DTS, and SDDS is no longer listed. Identification by sync word stays; Phase 15 uses the ranges to find the stream of each attribute entry of a title set.
 - **RIFF CD-XA, HD-DVD subtitles, Windows Television, Internet Video Recording, RealAudio metafiles:** no public description; drop from the inventory, as the fallback says.
 
 ## What G1.5 changes in the plan
