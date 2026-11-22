@@ -1057,3 +1057,28 @@ The commit with tasks 18 and 19 starts the first CI run.
 
 - The results of that run, with the allow-list entries of Linux and Windows that it measures.
 - G1.9.
+
+## 2026-11-22 — Progress: the first CI run
+
+The first run, on commit `dc07ac1`, failed.
+
+**Passed:**
+
+- the audit: advisories, bans, licenses and sources ok;
+- the tests on the declared `rust-version`, on Linux;
+- the feature combinations;
+- the tests on current stable, on the three runners.
+
+**Failed:** the check script, on all three runners, at the coverage step. Every earlier step passed. The coverage tool writes the file given with `--output-path` but does not create its directory, and a fresh checkout has no `target/coverage`. Locally the directory was left over from earlier runs, so the local check passed. The tool's README and other projects that hit the same error confirm it: only `--output-dir` creates its directory, and the LCOV report takes `--output-path`.
+
+**Fix:** the coverage step of `scripts/checks/all-checks.ts` creates the report's directory before it runs the tool.
+
+**Verification, on macOS on 2026-11-22:** with `target/coverage` removed, `node scripts/check.ts` passes every step.
+
+**Not measured yet:** the steps after coverage did not run in CI: documentation, targets, packaging, joint packaging and the three pure-Rust layers. The next run measures the fourth layer on Linux and Windows. Each library outside the allow-list is reported as a finding of its own, so one run gives both lists.
+
+**Open:**
+
+- A commit and push, on the maintainer's request, so that CI runs again.
+- The allow-list entries of Linux and Windows from that run.
+- G1.9, which needs CI green on the three runners (the exit criteria of Phase 1).

@@ -19,8 +19,8 @@
 // that fails. Warnings are denied by the workspace lint table, never through RUSTFLAGS, which would drop the
 // repository marker.
 
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { runCommand } from './command.ts';
 import { CARGO, CHECKS_ARGUMENTS, TEST_FILE_SUFFIX } from './constants.ts';
@@ -96,9 +96,13 @@ function typeCheck(root: string): boolean {
   return runCommand(process.execPath, [typeChecker, TYPE_CHECK_OPTION, join(root, ...TYPE_CHECK_CONFIGURATION)], root);
 }
 
-/** Measures coverage and applies the bar of R28 to the report (D23). */
+/**
+ * Measures coverage and applies the bar of R28 to the report (D23). The report's directory is created first, because
+ * the coverage tool writes the file of `--output-path` without creating its directory, which a fresh checkout lacks.
+ */
 function coverage(root: string): boolean {
   const report = join(root, ...COVERAGE_REPORT);
+  mkdirSync(dirname(report), { recursive: true });
   return (
     runCommand(CARGO, [...COVERAGE_ARGUMENTS, report], root) &&
     runCommand(CARGO, [...CHECKS_ARGUMENTS, COVERAGE_COMMAND, report], root)
