@@ -18,7 +18,7 @@ futures-io = ["dep:futures-io"]
 futures-io = { version = "0.3.34", default-features = false, features = ["std"], optional = true }
 miniz_oxide = { version = "0.9.1", default-features = false, features = ["with-alloc"], optional = true }
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"], optional = true }
-tokio = { version = "1.54.1", default-features = false, optional = true }
+tokio = { version = "1.54.1", default-features = false, features = ["fs"], optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.8.2", default-features = false }

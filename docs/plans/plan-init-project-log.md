@@ -1815,3 +1815,64 @@ The normalized tag keys of F4 come with their source names in Matroska, QuickTim
 **Verification.** `node scripts/check.ts` passes.
 
 **Open:** the maintainer's confirmation of the wider naming list; the CI steps with the first recipes; the review of `api.md`, and GS.1 for Tokio's `fs` feature.
+
+## 2026-11-22 — GS.1 Tokio's `fs` feature, the naming list and Linux CI [CONFIRM]
+
+The agent asked four questions on the points the previous entries left open. The maintainer took every recommended option.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Tokio's `fs` feature (GS.1) | Approved for `asynchronous::tokio::probe_file` and `detect_file`. G2.2 still confirms the functions with the rest of the API. | The spike `spikes/tokio-file-access/` showed that the feature adds no crate and enables no other feature, and that the opened file meets the bounds of `probe_reader`. The functions must run inside a Tokio runtime, as every operation of `tokio::fs` must. |
+| Naming list of R8 | The wider list is confirmed: the plan, the dependency dossier and this log may name ffmpeg and mkvmerge. | They record the decision and the approved tool versions. The library, its rustdoc, the other guides, the changelog and commit messages still never name them. |
+| Test-file tools in Linux CI | Ubuntu's own packages. On `ubuntu-26.04` these are ffmpeg 8.0.1 (`7:8.0.1-3ubuntu2`) and mkvtoolnix 97.0 (`97.0-1build1`), both in `universe`, as Launchpad, UbuntuUpdates and Repology listed them on 2026-11-22. | Each platform records the version it ran. A test asserts only what its recipe fixes, so an older version changes no expected value. MKVToolNix's own repository has 104.0 for amd64 only, and ffmpeg has no upstream package repository, so taking a third-party source would bring the Linux versions into line for one tool at most. |
+| Order of the Phase 2 documents | Task 3 starts now, and `api.md` is reviewed together with its scenarios. | Awkward scenarios can still revise the draft before the review, rather than after it. |
+
+MKVToolNix 104.0 was released on 2026-11-22, the day of the request, so the requested versions are still the current releases.
+
+**Plan, revision 33:** D5, section 8.2's table of entry points, section 8.7 (the path input of `asynchronous::tokio`), section 9.8 (the Linux versions), the status line, the Phase 2 progress line, and Appendix E. **Dossier:** the `tokio` row of section 1.1 now has `fs`, and section 1.8 gives the Linux versions. **Graph spike:** `spikes/dependency-graph/` asks for `fs` too, so it still copies the approved settings; `cargo tree -e normal` still lists only `tokio` and `pin-project-lite`, and the lock file is unchanged. **Testing guide:** section 8 gives the Linux versions.
+
+## 2026-11-22 — Progress: Phase 2, task 3
+
+**Written:** section 15 of `docs/design/api.md`, the usage scenarios. It has eleven subsections that follow the list of task 3 and contain 13 programs:
+
+- listing streams, which is the rendering half of the quick start;
+- video size and frame rate, with absent values handled;
+- the default audio language;
+- tags with their targets;
+- chapters on both timelines;
+- JSON, on its own and as a document;
+- async probing with Tokio, with futures-io and with a custom async source;
+- bytes, standard input and a custom blocking source;
+- a directory scan on several threads, with the partial data of errors;
+- format and codec details;
+- an estimated duration.
+
+**Checked by a spike.** `spikes/api-scenarios/` is a stub of the specified surface, named `cc_media_probe`, with the scenarios as its examples. The code in `api.md` is generated from those files, so the two cannot differ.
+
+- Clippy passes with warnings denied, with no feature, with each feature alone and with all features.
+- Five tests pass. They check at compile time that the model, the error and the prober are `Send`, `Sync` and `'static`. They check that the Tokio futures and the probe of a boxed `Send` source are `Send`, and that patterns match enums returned by reference. They also check that a source answering `Pending` is asked again with the same request.
+- All 13 programs end with an ordinary error, and none panics. The Tokio program's path convenience ran inside its runtime.
+- The structure check of D23 reports 0 findings for the spike.
+- The two diagrams of `api.md` that changed render without error in mermaid.js.
+
+**What the scenarios changed in the specification** (its section 15.12, to be confirmed at G2.1 and G2.2):
+
+- **Enums by reference.** The catch-all of an open enum holds text, so no such enum is `Copy`. The draft returned `Option<Provenance>`, `FrameRateMode`, `InventoryClass`, `Option<Rotation>`, `FloatingPointWidth`, `StoredValue<…>` and `Option<Estimate<…>>` by value. Each would have needed a clone, so all are now references (rule 7).
+- **Stable names.** Every enum with a catch-all has `as_str()`, its serialized name. A program can then print a kind without relying on `Debug`.
+- **A codec's display.** `CodecInformation` displays the codec's name, or else its first raw identifier. `Codec::name()` returns `Option<&str>`.
+- **Tags.** `TagSet::targets_whole_file()` is new. `EntityLocation` has `index()` and `chapter_path()`, and `ChapterEdition::chapter_at()` turns a path into a chapter. `BinaryValue` has `size()` and `data()`, `IntegerValue` displays itself, and `TagValue` has a catch-all.
+- **What a catch-all implies.** `Limits::get()` returns `Option<u64>`. `Rotation::degrees()` returns `Option<u16>`, and `Format::support()` returns `Option<SupportLevel>`. Limits are passed as `&Limit`.
+- **Repeated requests.** After `Pending`, the library repeats the same request to an async positional source, so the source can keep one request in flight. The Phase 3 I/O spike confirms that the block cache keeps this promise (G3.1).
+- **Building a document.** `Generator::new(name, version)`, `PortablePath::from_path(&Path)` and `DocumentEntry::error(index, input, ErrorRecord)`; `push` takes `&mut self`, and the index is a `usize`.
+- **Whole words (R32).** The structure check rejected `Io`, `io` and `Id` in names that the draft specified. `ErrorKind::Io` becomes `ErrorKind::SourceFailed`, and `io_error()` becomes `source_failure()`. `io_error_kind()` becomes `source_failure_kind()`, and `os_error_code()` becomes `operating_system_error_code()`. The namespace `MatroskaCodecId` becomes `MatroskaCodecIdentifier`. `Feature` keeps only `Zlib`, the one feature that can make information unavailable, so `FuturesIo` is gone. The same scan of every identifier in `api.md` found no other abbreviation of the project's own: the remaining hits are names that the specifications or the standard library fix, such as `DocType`, `MuxingApp` and `PathBuf`.
+
+**Choices made without asking,** each open at the gate named:
+
+- The scenarios use `futures-lite`'s `AssertAsync` over a blocking file for futures-io, as the dossier planned for the shipped example (G2.2).
+- `Error`'s `Debug` stays derived. A `main` that returns the error prints that form (G2.2).
+
+**Open:**
+
+- the maintainer's review of `api.md` with its scenarios;
+- the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
+- task 4, the CLI contract, after the review.

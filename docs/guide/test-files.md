@@ -222,7 +222,7 @@ Generated files replace hex fixtures wherever a tool can produce the case. Hand-
 
 CI follows the same rules on each of its three platforms. The job starts in the phase that adds the first recipes, as plan section 9.8 starts every job when it first has something to check:
 
-1. Install the tools with the platform's package manager: `apt` on Linux, Homebrew on macOS, Chocolatey on Windows. Where a manager can install an exact version, CI asks for the current releases, ffmpeg 9.1 and mkvtoolnix 104.0. Where it cannot, CI uses the version it gets, and the generator records it.
+1. Install the tools with the platform's package manager: `apt` on Linux, Homebrew on macOS, Chocolatey on Windows. Where a manager can install an exact version, CI asks for the current releases, ffmpeg 9.1 and mkvtoolnix 104.0. Where it cannot, CI uses the version it gets, and the generator records it. On Linux these are the packages of Ubuntu's own archive, which are older: ffmpeg 8.0.1 and mkvtoolnix 97.0 on `ubuntu-26.04`. The Linux files therefore have identities of their own, and the tests expect the same values from them (section 6).
 2. Restore `target/test-files/` from the cache of `actions/cache`. The key is made of the platform, the hash of the recipe files and the tools' version lines. A partial match restores the newest earlier cache, so only what changed is made.
 3. Run `node scripts/generate-test-files.ts`. On a cache hit it makes nothing.
 4. Run the tests, which read the files.

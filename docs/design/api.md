@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, task 2, written on 2026-11-22. Presented for review before the usage scenarios of task 3 are added. Names are working names until G2.1; the API is confirmed at G2.2. |
+| **Status** | Draft of Phase 2, tasks 2 and 3, written on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says. Names are working names until G2.1; the API is confirmed at G2.2. |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -14,7 +14,7 @@ On 2026-11-22 the maintainer chose the baseline that this draft follows:
 - **Async sources.** The async positional source trait is poll-based, like `AsyncRead` (section 9.3).
 - **Thoroughness.** The builder has no thoroughness option in `0.1.0` (section 4.3).
 - **Usage summary.** It is public (section 6.14).
-- **Path-based async convenience.** Tokio gets `probe_file` and `detect_file`. They need Tokio's `fs` feature, which goes through GS.1 (section 9.2).
+- **Path-based async convenience.** Tokio gets `probe_file` and `detect_file`. They need Tokio's `fs` feature, which the maintainer approved through GS.1 on 2026-11-22 (section 9.2).
 
 ## Contents
 
@@ -32,11 +32,12 @@ On 2026-11-22 the maintainer chose the baseline that this draft follows:
 12. [Serialization](#12-serialization)
 13. [Companion lookup](#13-companion-lookup)
 14. [Compatibility](#14-compatibility)
-15. [Decisions for the gates](#15-decisions-for-the-gates)
+15. [Usage scenarios](#15-usage-scenarios)
+16. [Decisions for the gates](#16-decisions-for-the-gates)
 
 ## 1. Principles
 
-The nine principles of plan section 8.1 hold. Six design rules make them concrete:
+The nine principles of plan section 8.1 hold. Seven design rules make them concrete:
 
 1. **Accessors only.** Every public struct has private fields. A caller reads it through methods and builds it only through constructors and builders (plan section 8.10).
 2. **Absent is `None`.** Every accessor of a value that a file may not state, or that may not be established, returns `Option`. A zero, an empty string or an empty list never stands for "unknown". A list accessor returns a slice. An empty slice means that no such item was found; the completeness record says whether the search was complete (section 5.3).
@@ -44,6 +45,7 @@ The nine principles of plan section 8.1 hold. Six design rules make them concret
 4. **Wide types from the start.** Counts, sizes and byte quantities are `u64`. Signed quantities are `i64`. Fractions, rates and times are exact rationals. A later format with a larger value therefore never forces a new return type.
 5. **Open sets everywhere.** Every public enum is `#[non_exhaustive]`. Every enum that is serialized has a catch-all variant `Unrecognized`, which keeps the text that a newer version wrote (section 14).
 6. **No fields in variants.** An enum variant carries at most one value: a struct with private fields, or a value that is complete by its nature, such as a tag's text or the catch-all's text. A later release adds data as a new accessor of that struct, never as a new field of a variant.
+7. **Enums by reference, with stable names.** The catch-all of rule 5 holds text, so no enum that has one is `Copy`. An accessor therefore returns a stored enum by reference: `&StreamKind`, `Option<&Provenance>`. A pattern matches through the reference without `*` or `&`, as in `matches!(stream.kind(), StreamKind::Audio)` or `Some(Provenance::Declared)`. A value that the library computes rather than stores, such as `Format::family()`, is returned by value. Every enum with a catch-all has `as_str() -> &str`: its serialized name, which is stable, or the text the catch-all keeps.
 
 Indexes into the report's own lists, such as a stream's index, are `usize`. Fields of the typed details keep their coded width (section 11.2).
 
@@ -64,6 +66,7 @@ The names follow the Rust API Guidelines and the code rules of the repository (R
 | Detail types | The format or codec's name with `Details`; a part of it adds the part's name. | `MatroskaDetails`, `MatroskaTrackDetails`, `H264Details` |
 | Detail accessors | The specification's field name, spelled out in American English (R32, R35); the specification's spelling goes in the rustdoc. | `pic_width_in_mbs_minus1` becomes `picture_width_in_macroblocks_minus_one()` |
 | Serialized names | `snake_case` member names; enum values as `snake_case` strings; a detail's `kind` as the lowercase format or codec name. | `"coded_size"`, `"top_field_first"`, `"kind": "matroska"` |
+| Stable text of an enum | `as_str()`, the serialized name (rule 7) | `stream.kind().as_str()` is `"video"` |
 
 ## 3. Crate surface
 
@@ -102,7 +105,7 @@ The internal module tree of plan section 7.2 may differ from these paths; the pu
 - Every public type implements `Debug`, with a representation that is never empty (C-DEBUG, C-DEBUG-NONEMPTY).
 - Every model type implements `Clone`, `PartialEq`, `Eq` and `Hash`. A floating-point value is stored by its bits (section 6.1), so equality is exact everywhere.
 - Every model type, `Prober`, `Limits`, `Detection` and `ErrorRecord` is `Send` and `Sync`. `Error` is `Send`, `Sync` and `'static` (C-GOOD-ERR).
-- `Display` exists where a single line of text is useful: `Format`, `Codec`, `Rational`, `Seconds`, `Size`, `MediaType`, `Language`, `Identifier`, `Profile`, `Level`, `Timecode`, `Guid`, `HeaderStatus`, `Completeness`, `DiagnosticCode`, `Error` and `ErrorRecord`. Display text is for people. It is not part of the stability contract, except where its documentation says so.
+- `Display` exists where a single line of text is useful: `Format`, `Codec`, `CodecInformation`, `IntegerValue`, `Rational`, `Seconds`, `Size`, `MediaType`, `Language`, `Identifier`, `Profile`, `Level`, `Timecode`, `Guid`, `HeaderStatus`, `Completeness`, `DiagnosticCode`, `Error` and `ErrorRecord`. Display text is for people. It is not part of the stability contract, except where its documentation says so. Stable text comes from `as_str()` (rule 7).
 - With the `serde` feature, every model type implements `Serialize` and `Deserialize` (C-SERDE).
 
 ## 4. Entry points, options and limits
@@ -113,7 +116,7 @@ Ten functions at the crate root probe or detect with the default options. Each h
 
 | Function | Input | Notes |
 |---|---|---|
-| `probe_file(path: impl AsRef<Path>) -> Result<MediaReport, Error>` | A path | Opens only that file (R18). Its final component is the file-name hint unless the builder sets one. A file that cannot be opened is the error of kind I/O. |
+| `probe_file(path: impl AsRef<Path>) -> Result<MediaReport, Error>` | A path | Opens only that file (R18). Its final component is the file-name hint unless the builder sets one. A file that cannot be opened is the error of kind `SourceFailed`. |
 | `probe_reader<Reader: Read + Seek>(reader: Reader) -> Result<MediaReport, Error>` | Any `Read + Seek` | Taken by value (C-RW-VALUE); pass `&mut reader` to keep it. |
 | `probe_stream<Reader: Read>(reader: Reader) -> Result<MediaReport, Error>` | Any `Read`, forward only | The sliding window of D9. Standard input uses this. |
 | `probe_bytes(bytes: &[u8]) -> Result<MediaReport, Error>` | In-memory data | The report owns copies of what it keeps; it does not borrow `bytes`. |
@@ -146,7 +149,7 @@ let report = prober.probe_file("movie.mkv")?;
 | Option | Type | Default | Effect |
 |---|---|---|---|
 | Format hint | `Format` | none | Orders the candidates that the bytes allow, ahead of the file-name hint. It never overrides a conclusive signature and never selects a prober for bytes that matched nothing: with no candidate it gives the "hint only" outcome (plan section 8.6). |
-| File-name hint | `OsString` | none; the path's final component for `probe_file` | Orders candidates as plan section 8.6 says. The name is never opened. |
+| File-name hint | `OsString`, set from any `impl Into<OsString>` | none; the path's final component for `probe_file` | Orders candidates as plan section 8.6 says. The name is never opened. |
 | Limits | `Limits` | `Limits::default()` | Section 4.5. |
 | Tags | `SectionRequest`: `Read` or `Skip` | `Read` | `Skip` leaves the tags section "not requested" (section 5.3). |
 | Chapters | `SectionRequest` | `Read` | As tags. |
@@ -174,14 +177,14 @@ pub trait PositionalSource {
 ```
 
 - A short read is allowed. The library asks again for the rest, and retries `ErrorKind::Interrupted` as the standard library's `read_exact` does.
-- Any other error ends the probe with the error of kind I/O, which keeps it as its cause (R19).
+- Any other error ends the probe with the error of kind `SourceFailed`, which keeps it as its cause (R19).
 - A source of unknown length has ended only when a read returned no bytes (plan section 7.5).
 - The library implements the trait for `&mut Source` and `Box<Source>` where `Source: PositionalSource + ?Sized`. So a caller can keep the source, or pass a `Box<dyn PositionalSource + Send>`.
 - Every read is charged to the shared budget and clamped to the remaining read allowance before it is issued (plan section 7.5).
 
 ### 4.5 Limits
 
-`Limits` is `#[non_exhaustive]` and has one counter per row of plan section 7.5. `Limits::default()` holds the proposed defaults; G3.3 confirms them. Each counter has a getter (`bytes_read()`) and a setter (`with_bytes_read(value)`). `Limits::get(limit: Limit) -> u64` and `Limits::with(limit: Limit, value: u64) -> Limits` reach a counter by name.
+`Limits` is `#[non_exhaustive]` and has one counter per row of plan section 7.5. `Limits::default()` holds the proposed defaults; G3.3 confirms them. Each counter has a getter (`bytes_read()`) and a setter (`with_bytes_read(value)`). `Limits::get(limit: &Limit) -> Option<u64>` and `Limits::with(limit: &Limit, value: u64) -> Limits` reach a counter by name. `Limit` has a catch-all (rule 5), so `get` returns `None` for a limit that a newer version wrote, and `with` leaves the limits unchanged for it.
 
 | `Limit` | Getter | Unit | Proposed default |
 |---|---|---|---|
@@ -209,7 +212,7 @@ One procedure decides between an error and a report; the first rule that applies
 ```mermaid
 flowchart TD
   START(["probe_*"]) --> S1{"Did any source fail<br/>with an I/O error?"}
-  S1 -->|yes| EIO["ErrorKind::Io"]
+  S1 -->|yes| EIO["ErrorKind::SourceFailed"]
   S1 -->|no| S2{"Detection outcome"}
   S2 -->|"unknown, hint only,<br/>every candidate rejected"| EUNK["ErrorKind::UnknownFormat"]
   S2 -->|"insufficient data,<br/>candidates not checkable"| ENDET["ErrorKind::FormatNotDetermined"]
@@ -222,7 +225,7 @@ flowchart TD
 
 | Ending | Result | What it carries |
 |---|---|---|
-| A source failed | `ErrorKind::Io` | The `std::io::Error` as its source; the source's identifier; the partial report or observations (R19) |
+| A source failed | `ErrorKind::SourceFailed` | The `std::io::Error` as its source; the source's identifier; the partial report or observations (R19) |
 | Nothing matched, a hint only, or every candidate rejected | `ErrorKind::UnknownFormat` | The hint, or the rejected candidates |
 | Too few bytes, or no candidate could be checked | `ErrorKind::FormatNotDetermined` | Whether the input ended or which limit was reached; the surviving candidates and why each could not be checked |
 | A detect-only format, or a family whose walker depends on the specific type | `ErrorKind::UnsupportedFormat` | The format or family (R20) |
@@ -234,7 +237,7 @@ With several validated candidates, the one with the highest confidence is used, 
 
 ### 5.2 Stream inventory
 
-The three classes of plan section 8.3 decide when the inventory is reached: a declared structure that lists the streams, a single-stream file whose primary structure was validated, or the first stream-carrying unit of an observed format. Each format's class and threshold are part of its entry in `formats.md`. The API exposes the class as `MediaReport::inventory_class() -> InventoryClass`, with the values `Declared`, `SingleStream` and `Observed`. A report can list zero streams when a declared inventory was reached and declares none.
+The three classes of plan section 8.3 decide when the inventory is reached: a declared structure that lists the streams, a single-stream file whose primary structure was validated, or the first stream-carrying unit of an observed format. Each format's class and threshold are part of its entry in `formats.md`. The API exposes the class as `MediaReport::inventory_class() -> &InventoryClass`, with the values `Declared`, `SingleStream` and `Observed`. A report can list zero streams when a declared inventory was reached and declares none.
 
 ### 5.3 Completeness
 
@@ -255,8 +258,8 @@ The three classes of plan section 8.3 decide when the inventory is reached: a de
 **The fixed-size record.** `LimitRecord` exists under any limits and is never charged to a counter (plan section 7.5). It holds:
 
 - the status of each part;
-- `exhausted(limit: Limit) -> bool` for every counter;
-- `first_stopped(limit: Limit) -> Option<Part>`, the part that a counter stopped first;
+- `exhausted(limit: &Limit) -> bool` for every counter;
+- `first_stopped(limit: &Limit) -> Option<&Part>`, the part that a counter stopped first;
 - `omitted_diagnostics() -> u64`, the diagnostics counted but not stored;
 - `omitted_declarations() -> u64`, the stream declarations seen but not retained.
 
@@ -289,7 +292,7 @@ An error carries the same record (section 10).
 - `UnsupportedStructure`, `DamagedStructure`;
 - `FurtherSegmentsNotExamined`, `MediaSegmentWithoutInitializationData`.
 
-A format phase adds the reasons it needs; adding a variant is compatible. `Feature` names a Cargo feature: `Zlib`, `Serde`, `Tokio`, `FuturesIo`.
+A format phase adds the reasons it needs; adding a variant is compatible. `Feature` names a Cargo feature that gates parsing. In `0.1.0` that is only `Zlib`: the serialization and async features never make information unavailable. A later feature that gates parsing adds its variant.
 
 ## 6. The report model
 
@@ -307,9 +310,9 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `Language` | A language as the file writes it, and its BCP 47 form | `tag() -> Option<&str>`, the BCP 47 tag. It is absent for `und`, while `mis`, `mul` and `zxx` stay as written (field guide section 2). `as_written() -> &str`. `code_system() -> &LanguageCodeSystem`: `Bcp47`, `Iso639Alpha3`, `MatroskaLegacy`, `QuickTimePacked` and the others that formats define. |
 | `LocalizedText` | A text with the languages and countries it applies to | `text() -> &str`, `languages() -> &[Language]`, `countries() -> &[String]` (ISO 3166 codes as written) |
 | `Provenance` | Where a value came from | `Declared`, `Bitstream`, `Derived` (plan section 8.4). A default that a specification states is `Declared` (F1). |
-| `Estimate<Value>` | An estimated value and how it was made | `value() -> Value`, `method() -> &EstimateMethod`: `ConstantBitRateOverSize`, `DeliveryClockSpan`, `EndpointTimestamps`, `LastUnitStart`, `IndexSizeTotals` (plan section 8.4, R25) |
+| `Estimate<Value>` | An estimated value and how it was made | `value() -> Value`, for the `Copy` types it holds (`Seconds`, `Rational`); `method() -> &EstimateMethod`: `ConstantBitRateOverSize`, `DeliveryClockSpan`, `EndpointTimestamps`, `LastUnitStart`, `IndexSizeTotals` (plan section 8.4, R25) |
 | `UtcTime` | An instant in UTC | `seconds_since_unix_epoch() -> i64`, `nanoseconds() -> u32`, `to_system_time() -> Option<SystemTime>`. Serialized as RFC 3339 text with the suffix `Z`. |
-| `FloatingPointValue` | A floating-point number exactly as stored | `bits() -> u64`, `width() -> FloatingPointWidth` (`Single`, `Double`), `to_f64()`, `to_rational() -> Option<Rational>` (`None` when not finite or out of range). Used in the details and in tag values; normalized fields never hold one (F2). |
+| `FloatingPointValue` | A floating-point number exactly as stored | `bits() -> u64`, `width() -> &FloatingPointWidth` (`Single`, `Double`), `to_f64()`, `to_rational() -> Option<Rational>` (`None` when not finite or out of range). Used in the details and in tag values; normalized fields never hold one (F2). |
 | `Guid` | A 16-byte GUID | `bytes() -> [u8; 16]`; `Display` in the registry form with hyphens |
 | `TimeRange` | A start and an end | `start() -> Seconds`, `end() -> Seconds` |
 
@@ -320,10 +323,10 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `format()` | `&Format` | `format`; the family for a family-only detection (section 6.4) |
 | `media_type()` | `Option<&MediaType>` | `media_type`. F3 lets an approved specification of the format name a type that the IANA registry lacks, which amends plan section 8.2 at G2.2. |
 | `size()` | `Option<u64>` | `size`, in bytes, from the source |
-| `duration()`, `duration_provenance()` | `Option<Seconds>`, `Option<Provenance>` | `duration` |
-| `bit_rate()`, `bit_rate_provenance()` | `Option<Rational>`, `Option<Provenance>` | `bit_rate`, in bits per second |
-| `estimated_duration()` | `Option<Estimate<Seconds>>` | R25 |
-| `estimated_bit_rate()` | `Option<Estimate<Rational>>` | R25 |
+| `duration()`, `duration_provenance()` | `Option<Seconds>`, `Option<&Provenance>` | `duration` |
+| `bit_rate()`, `bit_rate_provenance()` | `Option<Rational>`, `Option<&Provenance>` | `bit_rate`, in bits per second |
+| `estimated_duration()` | `Option<&Estimate<Seconds>>` | R25 |
+| `estimated_bit_rate()` | `Option<&Estimate<Rational>>` | R25 |
 | `creation_time()` | `Option<UtcTime>` | `creation_time`, only from a source that states UTC (F4) |
 | `streams()`, `stream(index)` | `&[Stream]`, `Option<&Stream>` | In index order |
 | `programs()` | `&[Program]` | Section 6.11 |
@@ -333,7 +336,7 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `external_references()` | `&[ExternalReference]` | Section 6.12 |
 | `diagnostics()` | `&[Diagnostic]` | Section 6.13 |
 | `completeness()` | `&Completeness` | Section 5.3 |
-| `inventory_class()` | `InventoryClass` | Section 5.2 |
+| `inventory_class()` | `&InventoryClass` | Section 5.2 |
 | `usage()` | `&Usage` | Section 6.14 |
 | `sources()` | `&[SourceEntry]` | Section 6.15 |
 | `format_details()` | `Option<&FormatDetails>` | Section 11 |
@@ -352,10 +355,10 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `language()` | `Option<&Language>` | `language`, the primary language |
 | `languages()` | `&[StreamLanguage]` | `languages` (F24): each with `language() -> &Language` and `roles() -> &[LanguageRole]` (`CleanEffects`, `HearingImpaired`, `VisuallyImpairedCommentary` and the roles that formats define) |
 | `title()`, `titles()` | `Option<&str>`, `&[LocalizedText]` | `title`, `titles` |
-| `duration()`, `duration_provenance()` | `Option<Seconds>`, `Option<Provenance>` | `duration` |
-| `start_time()`, `start_time_provenance()` | `Option<Seconds>`, `Option<Provenance>` | `start_time`, an offset from the report's zero |
-| `bit_rate()`, `bit_rate_provenance()` | `Option<Rational>`, `Option<Provenance>` | `bit_rate` |
-| `estimated_duration()`, `estimated_bit_rate()` | `Option<Estimate<…>>` | R25 |
+| `duration()`, `duration_provenance()` | `Option<Seconds>`, `Option<&Provenance>` | `duration` |
+| `start_time()`, `start_time_provenance()` | `Option<Seconds>`, `Option<&Provenance>` | `start_time`, an offset from the report's zero |
+| `bit_rate()`, `bit_rate_provenance()` | `Option<Rational>`, `Option<&Provenance>` | `bit_rate` |
+| `estimated_duration()`, `estimated_bit_rate()` | `Option<&Estimate<…>>` | R25 |
 | `packet_count()`, `frame_count()`, `sample_count()` | `Option<u64>` | With `_provenance()` each |
 | `disposition()` | `&Disposition` | `is_default()`, `is_enabled()`, `is_forced()`, `is_hearing_impaired()`, `is_visually_impaired()`, `has_text_descriptions()`, `is_original_language()`, `is_commentary()`, each `Option<bool>`: absent when the format states nothing, never assumed false |
 | `declaration_range()` | `Option<&DeclarationRange>` | `declaration_range`: `first_offset()`, `last_offset()`, `start()`, `end()`, each optional. No format of `0.1.0` uses it. |
@@ -376,10 +379,10 @@ These types hold the values of the normalized fields. They are in `model`, excep
 |---|---|---|
 | `codec()` | `&Codec` | `codec` |
 | `name()` | `Option<&str>` | `name`: the library's name for a known codec; absent for an unknown one |
-| `raw_identifiers()` | `&[RawCodecIdentifier]` | `raw_identifiers`: each with `namespace() -> &CodecNamespace` (`MatroskaCodecId`, `RiffFourCharacterCode`, `WaveFormatTag`, `IsoSampleEntry`, `Mpeg4ObjectType`, `QuickTimeCode` and the namespaces of later phases) and `value() -> &str` as written |
-| `profile()`, `profile_provenance()` | `Option<&Profile>`, `Option<Provenance>` | `profile` |
-| `level()`, `level_provenance()` | `Option<&Level>`, `Option<Provenance>` | `level` |
-| `tier()`, `tier_provenance()` | `Option<&Tier>`, `Option<Provenance>` | `tier` |
+| `raw_identifiers()` | `&[RawCodecIdentifier]` | `raw_identifiers`: each with `namespace() -> &CodecNamespace` (`MatroskaCodecIdentifier`, `RiffFourCharacterCode`, `WaveFormatTag`, `IsoSampleEntry`, `Mpeg4ObjectType`, `QuickTimeCode` and the namespaces of later phases) and `value() -> &str` as written |
+| `profile()`, `profile_provenance()` | `Option<&Profile>`, `Option<&Provenance>` | `profile` |
+| `level()`, `level_provenance()` | `Option<&Level>`, `Option<&Provenance>` | `level` |
+| `tier()`, `tier_provenance()` | `Option<&Tier>`, `Option<&Provenance>` | `tier` |
 | `codec_string()` | `Option<&str>` | `codec_string` (F5) |
 
 `Profile`, `Level` and `Tier` are the same shape for every codec: `name() -> Option<&str>`, the specification's name such as "High", "3.1" or "1b"; and `code() -> Option<&str>`, the coded value as written, such as `100`. `Display` writes the name, or the code without one. The codec-specific values stay in the codec details.
@@ -389,13 +392,13 @@ These types hold the values of the normalized fields. They are in `model`, excep
 - `Codec::Unknown`: the file names a codec that this version does not know. `raw_identifiers()` keeps what it wrote.
 - `Codec::Unrecognized(UnrecognizedValue)`: a serialized name that a newer version wrote. The library never produces it itself.
 
-`Codec` has `name() -> &str` for its known variants and `kind() -> Option<StreamKind>`, the kind a codec implies when the container states none.
+`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1).
 
 **`Format`** has one variant per entry of the detection inventory frozen at G3.5, and one per family: `Matroska`, `WebM`, `Mp4`, `ThreeGpp`, `ThreeGpp2`, `F4v`, `QuickTime`, `Avi`, and the formats of the later phases. The families `IsoBaseMedia` and `Riff` are reported when detection is certain of the family only (plan section 8.6). `Format::Unrecognized` is the catch-all. Its accessors:
 
 - `name() -> &str`;
-- `support() -> SupportLevel`, which is `Probed` or `DetectOnly`;
-- `is_family() -> bool`;
+- `support() -> Option<SupportLevel>`, which is `Probed` or `DetectOnly`, and absent for a format that a newer version wrote;
+- `is_family() -> bool`, false for such a format;
 - `family() -> Option<Format>`, such as `IsoBaseMedia` for `Mp4`.
 
 ### 6.5 `VideoInformation`
@@ -405,7 +408,7 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `coded_size()`, `visible_size()`, `display_size()` | `Option<Size>` | With `_provenance()` each. For single-track stereo, `display_size` describes one view. |
 | `pixel_aspect_ratio()` | `Option<Rational>` | The shape of a visible pixel as presented (F26), with `_provenance()` |
 | `display_aspect_ratio()` | `Option<Rational>` | With `_provenance()`; never from a rounded size |
-| `frame_rate()`, `frame_rate_mode()`, `frame_rate_provenance()` | `Option<Rational>`, `FrameRateMode`, `Option<Provenance>` | Frames per second. `FrameRateMode` is `Constant`, `Variable` or `Unknown`. |
+| `frame_rate()`, `frame_rate_mode()`, `frame_rate_provenance()` | `Option<Rational>`, `&FrameRateMode`, `Option<&Provenance>` | Frames per second. `FrameRateMode` is `Constant`, `Variable` or `Unknown`. |
 | `bit_depth()` | `Option<&BitDepth>` | `common() -> Option<u64>`, the shared precision; `components() -> &[ComponentDepth]`, each with `component() -> &Component` (`Luma`, `Chroma`, `Red`, `Green`, `Blue`, `Alpha`) and `bits() -> u64` |
 | `chroma_format()` | `Option<&ChromaFormat>` | `Monochrome`, `Chroma420`, `Chroma422`, `Chroma444`, `Chroma411`, and `Other(ChromaSubsampling)` for a subsampling kept as written |
 | `scan_type()`, `field_order()` | `Option<&ScanType>`, `Option<&FieldOrder>` | `Progressive` or `Interlaced`; `TopFieldFirst` or `BottomFieldFirst` |
@@ -413,7 +416,7 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `mastering_display()` | `Option<&MasteringDisplay>` | `red()`, `green()`, `blue()` and `white_point()`, each a `Chromaticity` with `x()` and `y()` as `Rational`; `maximum_luminance()` and `minimum_luminance()` as `Option<Rational>` candelas per square meter |
 | `content_light_level()` | `Option<&ContentLightLevel>` | `maximum_content() -> Option<u64>`, `maximum_frame_average() -> Option<u64>`, candelas per square meter |
 | `dynamic_range()` | `Option<&DynamicRange>` | F6: `transfer() -> Option<&DynamicRangeTransfer>` (`Standard`, `PerceptualQuantizer`, `HybridLogGamma`); `marks() -> &[DynamicRangeMark]` (`DolbyVision` and later marks), whose profile and level stay in the details |
-| `rotation()` | `Option<Rotation>` | F7: `Upright`, `Clockwise90`, `Clockwise180`, `Clockwise270`, with `degrees() -> u16`; reported, never applied |
+| `rotation()` | `Option<&Rotation>` | F7: `Upright`, `Clockwise90`, `Clockwise180`, `Clockwise270`, with `degrees() -> Option<u16>`, absent for a value that a newer version wrote; reported, never applied |
 | `stereo_mode()` | `Option<&StereoMode>` | `layout() -> &StereoLayout`, one variant per value of the Matroska stereo table, and `code() -> &str` as written |
 | `projection()` | `Option<&Projection>` | `kind() -> &ProjectionKind` (`Rectangular`, `Equirectangular`, `Cubemap`, `Mesh`); `yaw()`, `pitch()` and `roll()` in degrees as `Option<Rational>` |
 | `embedded_alpha()`, `supplemental_alpha()` | `Option<bool>` | `alpha`: the two carriages, side by side |
@@ -466,8 +469,9 @@ The report's `duration()` is the segment's and is never replaced by an edition's
 | `origin()` | `&ChapterOrigin` | F18: the structure the edition came from: `MatroskaEdition`, `QuickTimeChapterTrack`, and from later phases `FlacCueSheet`, `VorbisChapterComments`, `AsfMarkers`, `DvdProgramChain` |
 | `is_default()`, `is_ordered()`, `is_hidden()` | `Option<bool>` | |
 | `has_linked_chapters()` | `Option<bool>` | `None` is "unknown" in the field guide's sense |
-| `playback_duration()`, `playback_duration_provenance()` | `Option<Seconds>`, `Option<Provenance>` | |
+| `playback_duration()`, `playback_duration_provenance()` | `Option<Seconds>`, `Option<&Provenance>` | |
 | `chapters()` | `&[Chapter]` | The top level, in stored order |
+| `chapter_at(path: &[usize])` | `Option<&Chapter>` | The chapter that a path of child indexes names, from the top level down; a tag target's location gives such a path (section 6.9) |
 
 **`Chapter`**:
 
@@ -489,12 +493,13 @@ The report's `duration()` is the segment's and is never replaced by an edition's
 |---|---|---|
 | `target_level()` | `Option<&TargetLevel>` | `value() -> Option<u64>`, `type_name() -> Option<&str>` |
 | `stream_targets()`, `edition_targets()`, `chapter_targets()`, `attachment_targets()` | `&[TargetReference]` | |
+| `targets_whole_file()` | `bool` | True when all four target lists are empty |
 | `native_scope()` | `Option<&NativeScope>` | The ISO family's scope (`File`, `Movie`, `Track`, `Media`) with its owner and its `meta` or `udta` source |
 | `tags()` | `&[Tag]` | The top level, in stored order |
 
 A `TargetReference` is one of three things, told apart by `kind() -> &TargetReferenceKind`:
 
-- `Resolved`: a specific identifier that matches an entity of the report. `location()` gives the entity: an index, and for a chapter, the edition's index and the path of child indexes.
+- `Resolved`: a specific identifier that matches an entity of the report. `location() -> Option<&EntityLocation>` gives the entity. `index()` is the index of the stream, edition or attachment, or for a chapter the index of its edition. `chapter_path() -> &[usize]` is, for a chapter, the path that `ChapterEdition::chapter_at` takes, and empty otherwise.
 - `Unmatched`: a specific identifier that matches no entity, kept as written.
 - `Wildcard`: every entity of the kind, which Matroska writes as the identifier zero. It never resolves to a single entity.
 
@@ -506,7 +511,7 @@ A `TargetReference` is one of three things, told apart by `kind() -> &TargetRefe
 | `key()` | `Option<&TagKey>` | The normalized key, below |
 | `languages()`, `countries()` | `&[Language]`, `&[String]` | Sets that may be empty |
 | `is_default()` | `Option<bool>` | |
-| `value()` | `Option<&TagValue>` | F25: `Text(String)`, `Binary(BinaryValue)`, `Integer(IntegerValue)`, `FloatingPoint(FloatingPointValue)`, `Boolean(bool)`, `Guid(Guid)`. `IntegerValue` holds any 64-bit signed or unsigned value, with `to_i64()` and `to_u64()`. |
+| `value()` | `Option<&TagValue>` | F25: `Text(String)`, `Binary(BinaryValue)`, `Integer(IntegerValue)`, `FloatingPoint(FloatingPointValue)`, `Boolean(bool)`, `Guid(Guid)`, and the catch-all `Unrecognized` of rule 5. `BinaryValue` has `size() -> u64` and `data() -> Option<&[u8]>`, the bytes when they were kept within the retained-data limit. `IntegerValue` holds any 64-bit signed or unsigned value, with `to_i64()` and `to_u64()`, each an `Option`. |
 | `native_type()` | `Option<&str>` | The value's type name as written |
 | `children()` | `&[Tag]` | A node may have children and no value |
 
@@ -540,7 +545,7 @@ The QuickTime names are those of QT "Metadata atoms and types" and "Atoms for us
 |---|---|---|
 | `unique_identifier()` | `Option<&Identifier>` | |
 | `name()`, `description()` | `Option<&str>` | |
-| `media_type()`, `media_type_provenance()` | `Option<&MediaType>`, `Option<Provenance>` | |
+| `media_type()`, `media_type_provenance()` | `Option<&MediaType>`, `Option<&Provenance>` | |
 | `size()` | `Option<u64>` | Embedded data only |
 | `link()` | `Option<&str>` | A linked picture's URI as written, never fetched; also listed as an external reference |
 | `data()` | `Option<&[u8]>` | Only with `AttachmentHandling::WithData`, within the retained-payload limit |
@@ -600,7 +605,7 @@ No format of `0.1.0` has programs.
 - `work_units()`;
 - `companion_requests()` and `sources_opened()`.
 
-`Usage::get(limit: Limit) -> Option<u64>` reaches a counter by name. It returns `None` for the counters that have no usage value, such as the nesting depth. In JSON each counter has an `_exact` twin (section 12).
+`Usage::get(limit: &Limit) -> Option<u64>` reaches a counter by name. It returns `None` for the counters that have no usage value, such as the nesting depth. In JSON each counter has an `_exact` twin (section 12).
 
 ### 6.15 Source table and portable paths
 
@@ -676,7 +681,7 @@ Tokio and futures-io define different `AsyncRead` and `AsyncSeek` traits, so eac
 
 ### 9.2 Opening a file with Tokio
 
-`asynchronous::tokio::probe_file(path: impl AsRef<Path>)` and `detect_file` open the file with `tokio::fs::File` and hand it to `probe_reader`. The maintainer chose them on 2026-11-22. They need Tokio's `fs` feature, so they go through GS.1: the dossier approved Tokio with no features.
+`asynchronous::tokio::probe_file(path: impl AsRef<Path>)` and `detect_file` open the file with `tokio::fs::File` and hand it to `probe_reader`. The maintainer chose them on 2026-11-22 and approved Tokio's `fs` feature for them through GS.1 the same day; the dependency dossier lists it.
 
 The spike [`spikes/tokio-file-access/`](../../spikes/tokio-file-access/README.md) shows what the feature costs. It adds no crate and enables no other feature, and no runtime is pulled in. The opened file meets the bounds of `probe_reader`. The function must run inside a Tokio runtime, because Tokio runs file operations on the runtime's blocking pool; outside one, Tokio itself panics on the first poll. The rustdoc states this under "Panics".
 
@@ -701,7 +706,11 @@ pub trait AsyncPositionalSource {
 }
 ```
 
-The rules of section 4.4 apply unchanged. The library implements the trait for `&mut Source` and `Pin<Box<Source>>`. A caller with an `async` read function can keep its future in the source and poll it from `poll_read_at`. The trait needs neither runtime feature. Its companion-resolver counterpart arrives with lookup (section 13).
+The rules of section 4.4 apply unchanged.
+
+**Repeated requests.** After a call returns `Poll::Pending`, the library's next call to the same method repeats the request: the same `position` and a buffer of the same length. It makes no other request in between, and it gives up a pending request only by dropping the probe. A source can therefore keep one request in flight without remembering which range it asked for (section 15.7). The I/O spike of Phase 3 confirms that the block cache and the forward-only window keep this promise (G3.1).
+
+The library implements the trait for `&mut Source` and `Pin<Box<Source>>`. A caller with an `async` read function can keep its future in the source and poll it from `poll_read_at`. The trait needs neither runtime feature. Its companion-resolver counterpart arrives with lookup (section 13).
 
 ## 10. Errors
 
@@ -711,13 +720,13 @@ The rules of section 4.4 apply unchanged. The library implements the trait for `
 
 | Accessor | Returns | Notes |
 |---|---|---|
-| `kind()` | `&ErrorKind` | Section 5.1: `Io`, `UnknownFormat`, `FormatNotDetermined`, `UnsupportedFormat`, `FeatureDisabled`, `NoStreamInventory` |
+| `kind()` | `&ErrorKind` | Section 5.1: `SourceFailed`, `UnknownFormat`, `FormatNotDetermined`, `UnsupportedFormat`, `FeatureDisabled`, `NoStreamInventory` |
 | `format()` | `Option<&Format>` | The detected format or family |
 | `candidates()` | `&[CandidateCheck]` | Each with `format()`, `confidence()`, `state() -> &CheckState` (`Validated`, `Rejected`, `NotCheckable`) and `reason() -> Option<&Reason>` |
 | `hint()` | `Option<&Hint>` | For an unknown format with a hint |
 | `reason()` | `Option<&Reason>` | Including a named limit or a disabled feature |
 | `source_identifier()`, `attempted_identity()` | `Option<SourceIdentifier>`, `Option<&AttemptedIdentity>` | The source concerned |
-| `io_error()` | `Option<&std::io::Error>` | Also returned by `source()` of `std::error::Error`, so the cause chain is preserved (R19) |
+| `source_failure()` | `Option<&std::io::Error>` | The I/O error with which the source failed. Also returned by `source()` of `std::error::Error`, so the cause chain is preserved (R19) |
 | `partial_report()`, `into_partial_report()` | `Option<&MediaReport>`, `Option<MediaReport>` | When the inventory was reached before a source failed |
 | `observations()` | `Option<&Observations>` | What was seen before an inventory: `format_details()`, `diagnostics()` and `sources()`. The track identifiers and raw ticks of an ISO media segment are in its format details. |
 | `usage()`, `record()` | `&Usage`, `&LimitRecord` | Always present and fixed-size (plan section 7.5) |
@@ -725,11 +734,11 @@ The rules of section 4.4 apply unchanged. The library implements the trait for `
 
 ### 10.2 The error record
 
-`ErrorRecord` is the serializable description of an error, and a root record. It has every accessor of `Error` except `io_error()`, `into_partial_report()` and `to_record()`. In their place it has:
+`ErrorRecord` is the serializable description of an error, and a root record. It has every accessor of `Error` except `source_failure()`, `into_partial_report()` and `to_record()`. In their place it has:
 
 - `message() -> &str`;
-- `io_error_kind() -> Option<&str>`, the `std::io::ErrorKind` as a stable string such as `permission_denied`;
-- `os_error_code() -> Option<i32>`;
+- `source_failure_kind() -> Option<&str>`, the `std::io::ErrorKind` as a stable string such as `permission_denied`;
+- `operating_system_error_code() -> Option<i32>`, the code that `std::io::Error::raw_os_error()` gives;
 - `cause_messages() -> &[String]`, the messages of the cause chain in order.
 
 Reading an `ErrorRecord` gives an `ErrorRecord`. No API offers to turn it back into an `Error`. The CLI and the archives use only the record.
@@ -765,7 +774,7 @@ Each phase designs its own detail type within these conventions and has it revie
 
 - A detail type is named after its format or codec with `Details`, in the submodule of that name: `details::matroska::MatroskaDetails`, `details::h264::H264Details`. A part adds the part's name: `MatroskaTrackDetails`, `H264SequenceParameterSetDetails`.
 - Accessors are named after the specification's fields, spelled out in American English (R32, R35), with the specification's own spelling and section in the rustdoc. A detail keeps every field the library read, at its stored type: integers at their coded width, strings as decoded, floating-point values as `FloatingPointValue`. A value derived from a field goes to the normalized model, not here.
-- An element that a specification gives a default is returned as `StoredValue<Value>`: `value() -> &Value` and `is_stored() -> bool`. So a caller can tell a stored `FlagDefault` from the effective default (F1).
+- An element that a specification gives a default is returned as `&StoredValue<Value>`: `value() -> &Value` and `is_stored() -> bool`. So a caller can tell a stored `FlagDefault` from the effective default (F1).
 - Serialized, a detail is a map with a `kind` member, the lowercase name: `"kind": "matroska"`, `"kind": "h264"`. The same rules as every other model type apply (section 12).
 
 ### 11.3 Where the other values go
@@ -791,7 +800,7 @@ The format-specific fields that the conflict compared also stay in their detail 
 | `segment_unique_identifier()` | `Option<&Identifier>` | `SegmentUUID`, 16 bytes in hexadecimal |
 | `previous_segment()`, `next_segment()` | `Option<&LinkedSegment>` | `PrevUUID` with `PrevFilename`; `NextUUID` with `NextFilename` |
 | `segment_families()` | `&[Identifier]` | `SegmentFamily` |
-| `timestamp_scale()` | `StoredValue<u64>` | `TimestampScale`, default 1,000,000 |
+| `timestamp_scale()` | `&StoredValue<u64>` | `TimestampScale`, default 1,000,000 |
 | `stored_duration()` | `Option<FloatingPointValue>` | `Duration` as stored (F2) |
 | `date_utc()` | `Option<i64>` | `DateUTC`, nanoseconds since 2001-01-01, as stored |
 | `title()`, `muxing_application()`, `writing_application()` | `Option<&str>` | `Title`, `MuxingApp`, `WritingApp`; header elements, so not tags (F4) |
@@ -803,7 +812,7 @@ The format-specific fields that the conflict compared also stay in their detail 
 - `codec_identifier() -> &str` and `codec_name() -> Option<&str>`;
 - `codec_private_data() -> Option<&[u8]>`, charged to the retained data;
 - `codec_delay()`, `seek_pre_roll()` and `default_duration()` in nanoseconds as stored;
-- `flag_default()` and `flag_enabled()` as `StoredValue<bool>`;
+- `flag_default()` and `flag_enabled()` as `&StoredValue<bool>`;
 - `content_encodings() -> &[MatroskaContentEncoding]`, each with its order, scope, type and algorithm;
 - `video() -> Option<&MatroskaVideoDetails>`, with the pixel, crop and display elements, `DisplayUnit`, the stereo, alpha and color elements, and a discarded `OldStereoMode`;
 - `audio() -> Option<&MatroskaAudioDetails>`, with `SamplingFrequency` and `OutputSamplingFrequency` as `FloatingPointValue`, and `Channels`, `BitDepth` and `Emphasis`;
@@ -846,7 +855,7 @@ With the `serde` feature, every model type implements `Serialize` and `Deseriali
 - **Shape.** A struct is a map. A field that is absent is omitted, and reads as `None`. A unit-like enum value is a `snake_case` string. A catch-all reads any unknown string and writes it back unchanged. A typed detail is a map with `kind`.
 - **Numbers.** Identifiers are strings (R24). Quantities are numbers within 2^53 − 1. A `Rational` is a map of `numerator` and `denominator`, and so is `Seconds`. The quantities that a record cannot omit have an `_exact` twin: offsets in diagnostics and errors, the usage counters and the bytes read in the source table. A tag's integer value is data, not a measured quantity, so it gets the same twin when it lies beyond the range.
 - **Unknown members** are ignored on input. No type denies unknown fields.
-- **`Document`** is what the CLI writes and what a library user can write too. `Document::new(generator: Generator)` builds one. `with_usage_error(message)` adds a usage error, and `push(entry: DocumentEntry)` adds an entry. An entry is built by `DocumentEntry::report(index, input: PortablePath, report)`, `DocumentEntry::detection(…)` or `DocumentEntry::error(…)`. The entry's `outcome` (`ok`, `partial` or `error`) follows from what it holds (plan section 8.9).
+- **`Document`** is what the CLI writes and what a library user can write too. `Document::new(generator: Generator)` builds one, with `Generator::new(name, version)`. `with_usage_error(message)` adds a usage error, and `push(&mut self, entry: DocumentEntry)` adds an entry. An entry is built by `DocumentEntry::report(index: usize, input: PortablePath, report: MediaReport)`, `DocumentEntry::detection(index, input, detection: Detection)` or `DocumentEntry::error(index, input, record: ErrorRecord)`. `PortablePath::from_path(path: &Path)` gives the input. The entry's `outcome` (`ok`, `partial` or `error`) follows from what it holds (plan section 8.9).
 
 ## 13. Companion lookup
 
@@ -860,8 +869,8 @@ Lookup ships in the release of its first consumer, `0.7.0` with VobSub (R18, pla
   - `Resolution::not_found()`;
   - `Resolution::declined(reason)`;
   - `Resolution::limit_reached()`;
-  - `Resolution::failed(io_error)`.
-- **Results in the report.** Each request becomes a `SourceEntry` (section 6.15). Its outcome sets the companions status (section 5.3), or the error of kind I/O for a failure (R19).
+  - `Resolution::failed(failure)`, with the `std::io::Error`.
+- **Results in the report.** Each request becomes a `SourceEntry` (section 6.15). Its outcome sets the companions status (section 5.3), or the error of kind `SourceFailed` for a failure (R19).
 
 ```mermaid
 flowchart TD
@@ -875,7 +884,7 @@ flowchart TD
   REQ --> RES{"Resolution"}
   RES -->|found| READ["Read under the shared budget"]
   RES -->|"not found, declined,<br/>limit reached"| INC["Report incomplete, with the reason"]
-  RES -->|failed| ERR["ErrorKind::Io with the aggregate report"]
+  RES -->|failed| ERR["ErrorKind::SourceFailed with the aggregate report"]
 ```
 
 The built-in resolver's containment holds on one condition: nobody else changes the folder tree while the probe runs. Its rustdoc states the condition, as do the README and the vulnerability section of `CONTRIBUTING.md` (plan section 7.7).
@@ -905,7 +914,679 @@ Traits the library does not intend callers to implement are sealed. Compile-fail
 
 **Public dependencies.** The public API names only the standard library and, behind their features, Serde's traits, Tokio's I/O traits and futures-io's I/O traits. futures-io is at version 0.3. If a later futures-io release changes its traits, a new module beside `asynchronous::futures` will serve it, and the existing module stays as it is.
 
-## 15. Decisions for the gates
+## 15. Usage scenarios
+
+Each scenario below is a program that a caller would write. Together they cover the list of plan Phase 2, task 3. The spike [`spikes/api-scenarios/`](../../spikes/api-scenarios/README.md) type-checks them against a stub of this specification. The stub has the signatures of sections 3 to 13 and parses nothing. The code here is the spike's, without its file headers. Clippy passes with warnings denied, with no feature, with each feature alone and with all of them. Each program also runs to an ordinary error, since the stub parses nothing. Task 12 turns the approved scenarios into the shipped examples.
+
+Where a scenario read awkwardly, the specification was revised, and section 15.12 lists each change. The comments in the code are the annotations: they say which rule of this specification a line relies on.
+
+### 15.1 List the streams
+
+The rendering half of the quick start is `print_report`, a function of its own, which a test calls with a complete and an incomplete report (plan section 9.7). A kind prints by its stable name, and a codec by its name, or by the identifier the file wrote when the library does not know it.
+
+```rust
+use cc_media_probe::{Error, MediaReport, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("movie.mkv")?;
+  print_report(&report);
+  Ok(())
+}
+
+fn print_report(report: &MediaReport) {
+  println!("{}", report.format());
+  if let Some(media_type) = report.media_type() {
+    println!("media type: {media_type}");
+  }
+  match report.duration() {
+    Some(duration) => println!("duration: {duration}"),
+    None => println!("duration: unknown"),
+  }
+  for stream in report.streams() {
+    // The codec displays its name, or for an unknown codec the identifier that the file wrote.
+    print!("#{} {} {}", stream.index(), stream.kind().as_str(), stream.codec());
+    if let Some(tag) = stream.language().and_then(|language| language.tag()) {
+      print!(" [{tag}]");
+    }
+    if let Some(title) = stream.title() {
+      print!(" \"{title}\"");
+    }
+    println!();
+    // A header that was not parsed says why.
+    if !stream.header_status().is_parsed() {
+      println!("    headers: {}", stream.header_status());
+    }
+  }
+  // An incomplete report names what stopped it.
+  if !report.completeness().is_complete() {
+    println!("note: {}", report.completeness());
+  }
+}
+```
+
+### 15.2 Video size and frame rate, with absent values
+
+`video()` is present for every video stream, and any field inside it may be absent. The frame-rate mode is returned by reference, and the tuple pattern matches through it.
+
+```rust
+use cc_media_probe::model::{FrameRateMode, VideoInformation};
+use cc_media_probe::{Error, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("movie.mkv")?;
+  for stream in report.streams() {
+    // `video()` is present exactly for a video stream, but every field inside it may still be absent.
+    let Some(video) = stream.video() else {
+      continue;
+    };
+    println!("#{}: {}, {}", stream.index(), size(video), frame_rate(video));
+  }
+  Ok(())
+}
+
+fn size(video: &VideoInformation) -> String {
+  match (video.display_size(), video.visible_size()) {
+    (Some(display), _) => format!("{display} as displayed"),
+    (None, Some(visible)) => format!("{visible} visible, display size not stated"),
+    (None, None) => "size unknown".to_owned(),
+  }
+}
+
+fn frame_rate(video: &VideoInformation) -> String {
+  // A rate and its mode are separate: a declared rate can stand while the mode stays unknown.
+  match (video.frame_rate(), video.frame_rate_mode()) {
+    (Some(rate), FrameRateMode::Constant) => format!("{rate} fps ({:.3})", rate.to_f64()),
+    (Some(rate), _) => format!("{rate} fps, constancy not shown"),
+    (None, FrameRateMode::Variable) => "variable frame rate".to_owned(),
+    (None, _) => "frame rate unknown".to_owned(),
+  }
+}
+```
+
+### 15.3 The default audio language
+
+A disposition flag is `Option<bool>`. `None` means that the format states nothing, so the search asks for `Some(true)` and falls back to the first audio stream.
+
+```rust
+use cc_media_probe::{Error, MediaReport, Stream, StreamKind, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("movie.mkv")?;
+  let Some(stream) = default_audio(&report) else {
+    println!("no audio stream");
+    return Ok(());
+  };
+  match stream.language() {
+    Some(language) => match language.tag() {
+      Some(tag) => println!("default audio: #{} in {tag}", stream.index()),
+      // `und` has no BCP 47 tag; `as_written()` still gives what the file stored.
+      None => println!("default audio: #{}, language {}", stream.index(), language.as_written()),
+    },
+    None => println!("default audio: #{}, language not stated", stream.index()),
+  }
+  Ok(())
+}
+
+/// The audio stream marked as the default, or else the first audio stream. A format that states no default leaves
+/// `is_default()` absent, which is not the same as "not the default".
+fn default_audio(report: &MediaReport) -> Option<&Stream> {
+  let audio = || {
+    report
+      .streams()
+      .iter()
+      .filter(|stream| matches!(stream.kind(), StreamKind::Audio))
+  };
+  audio()
+    .find(|stream| stream.disposition().is_default() == Some(true))
+    .or_else(|| audio().next())
+}
+```
+
+### 15.4 Tags with their targets
+
+A tag set describes the whole file, or the entities its four target lists name. A resolved reference gives a location in the report. For a chapter, `ChapterEdition::chapter_at` turns that location into the chapter itself. The flat lookup `tag()` serves the common case of one file-level value.
+
+```rust
+use cc_media_probe::model::{Tag, TagKey, TagSet, TagValue, TargetReference, TargetReferenceKind};
+use cc_media_probe::{Error, MediaReport, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("concert.mka")?;
+  for tag_set in report.tag_sets() {
+    println!("{}", describe_targets(&report, tag_set));
+    for tag in tag_set.tags() {
+      print_tag(tag, 1);
+    }
+  }
+  // The flat view: the file-level title, whatever name the format gives it.
+  if let Some(TagValue::Text(title)) = report.tag(&TagKey::Title).and_then(Tag::value) {
+    println!("title: {title}");
+  }
+  Ok(())
+}
+
+fn describe_targets(report: &MediaReport, tag_set: &TagSet) -> String {
+  let level = tag_set
+    .target_level()
+    .and_then(|level| level.type_name())
+    .unwrap_or("no level");
+  if tag_set.targets_whole_file() {
+    return format!("the whole file ({level})");
+  }
+  let mut targets = Vec::new();
+  for reference in tag_set.stream_targets() {
+    targets.push(describe(reference, "stream", |index, _| {
+      report.stream(index).map(|stream| stream.codec().to_string())
+    }));
+  }
+  for reference in tag_set.chapter_targets() {
+    targets.push(describe(reference, "chapter", |edition, path| {
+      let chapter = report.chapter_editions().get(edition)?.chapter_at(path)?;
+      chapter.titles().first().map(|title| title.text().to_owned())
+    }));
+  }
+  // Editions and attachments are described the same way.
+  format!("{} ({level})", targets.join(", "))
+}
+
+/// One reference: resolved to an entity of the report, a wildcard, or an identifier that names nothing here.
+fn describe(reference: &TargetReference, entity: &str, name: impl Fn(usize, &[usize]) -> Option<String>) -> String {
+  match (reference.kind(), reference.location()) {
+    (TargetReferenceKind::Resolved, Some(location)) => {
+      let name = name(location.index(), location.chapter_path()).unwrap_or_default();
+      format!("{entity} {} {name}", location.index())
+    }
+    (TargetReferenceKind::Wildcard, _) => format!("every {entity}"),
+    _ => {
+      let written = reference.identifier().map_or("?", |identifier| identifier.as_str());
+      format!("{entity} {written}, not in this file")
+    }
+  }
+}
+
+fn print_tag(tag: &Tag, depth: usize) {
+  let value = match tag.value() {
+    Some(TagValue::Text(text)) => text.clone(),
+    Some(TagValue::Integer(integer)) => integer.to_string(),
+    Some(TagValue::Binary(binary)) => format!("{} bytes", binary.size()),
+    Some(other) => format!("{other:?}"),
+    // A node that only groups its children.
+    None => String::new(),
+  };
+  let key = tag.key().map(|key| format!(" ({})", key.as_str())).unwrap_or_default();
+  println!(
+    "{:indent$}{}{key} = {value}",
+    "",
+    tag.name().as_written(),
+    indent = depth * 2
+  );
+  for child in tag.children() {
+    print_tag(child, depth + 1);
+  }
+}
+```
+
+### 15.5 Chapters and their two timelines
+
+Every chapter has its segment time. An ordered edition adds a playback duration, and each of its chapters a playback position. The report's duration is never replaced by either.
+
+```rust
+use cc_media_probe::completeness::SectionStatus;
+use cc_media_probe::model::Chapter;
+use cc_media_probe::{Error, Seconds, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("movie.mkv")?;
+  for (index, edition) in report.chapter_editions().iter().enumerate() {
+    let ordered = edition.is_ordered() == Some(true);
+    print!("edition {index}");
+    // Playback time exists only for an ordered edition. The report's duration stays the segment's.
+    if ordered {
+      match edition.playback_duration() {
+        Some(duration) => print!(", ordered, plays for {duration}"),
+        None => print!(", ordered, playback length unknown"),
+      }
+    }
+    println!();
+    print_chapters(edition.chapters(), ordered, 1);
+  }
+  if !matches!(report.completeness().chapters(), SectionStatus::Complete) {
+    println!("chapters: {}", report.completeness().chapters().as_str());
+  }
+  Ok(())
+}
+
+fn print_chapters(chapters: &[Chapter], ordered: bool, depth: usize) {
+  for chapter in chapters {
+    let title = chapter.titles().first().map_or("(untitled)", |title| title.text());
+    // Segment time, as written; a chapter that marks a point has no end.
+    print!(
+      "{:indent$}{title}: {} to {}",
+      "",
+      time(chapter.start()),
+      time(chapter.end()),
+      indent = depth * 2
+    );
+    if ordered && let Some(position) = chapter.playback_position() {
+      print!(", at {position} of playback");
+    }
+    if chapter.is_hidden() == Some(true) {
+      print!(" (hidden)");
+    }
+    println!();
+    print_chapters(chapter.children(), ordered, depth + 1);
+  }
+}
+
+fn time(value: Option<Seconds>) -> String {
+  value.map_or_else(|| "?".to_owned(), |seconds| seconds.to_string())
+}
+```
+
+### 15.6 JSON
+
+A report is a root record on its own. The document form is the one the CLI writes, and a library caller can build it entry by entry. An error enters a document as its record.
+
+```rust
+use std::path::Path;
+
+use cc_media_probe::document::{Document, DocumentEntry, Generator};
+use cc_media_probe::source::PortablePath;
+use cc_media_probe::{MediaReport, probe_file};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+  // A report is a root record: it carries `schema_version`.
+  let report = probe_file("movie.mkv")?;
+  let text = serde_json::to_string_pretty(&report)?;
+  // Reading checks the version before anything else, so a report of another major version fails here.
+  let again: MediaReport = serde_json::from_str(&text)?;
+  assert_eq!(again, report);
+
+  // Several inputs in the document form that the CLI writes, an error among them.
+  let mut document = Document::new(Generator::new("media-catalog", env!("CARGO_PKG_VERSION")));
+  for (index, path) in ["movie.mkv", "notes.txt"].into_iter().enumerate() {
+    let input = PortablePath::from_path(Path::new(path));
+    document.push(match probe_file(path) {
+      Ok(report) => DocumentEntry::report(index, input, report),
+      Err(error) => DocumentEntry::error(index, input, error.to_record()),
+    });
+  }
+  serde_json::to_writer_pretty(std::io::stdout().lock(), &document)?;
+  Ok(())
+}
+```
+
+### 15.7 Async probing
+
+**Tokio.** The path convenience of section 9.2 runs inside the caller's runtime. A file that the caller opened goes through the prober's handle. The future is `Send`, so it can run on another task.
+
+```rust
+use cc_media_probe::asynchronous::tokio::probe_file;
+use cc_media_probe::{Limits, Prober};
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+  // The path convenience opens the file with Tokio's file type, so it must run inside a Tokio runtime.
+  let report = probe_file("movie.mkv").await?;
+  println!("{}: {} streams", report.format(), report.streams().len());
+
+  // A reader the caller opened, probed with options through the prober's Tokio handle.
+  let prober = Prober::new().with_limits(Limits::default().with_bytes_read(4 * 1024 * 1024));
+  let file = tokio::fs::File::open("clip.mp4").await?;
+  let report = prober.tokio().probe_reader(file).await?;
+  println!("{}: {} streams", report.format(), report.streams().len());
+
+  // The future is `Send` because the path and the file are, so it can run on another task.
+  let task = tokio::spawn(probe_file("song.webm"));
+  let report = task.await??;
+  println!("{}: {} streams", report.format(), report.streams().len());
+  Ok(())
+}
+```
+
+**futures-io.** Any executor can poll the probe. `futures-lite`, a development dependency of the dossier, supplies one and the adapters.
+
+```rust
+use cc_media_probe::asynchronous::futures::{probe_reader, probe_stream};
+use futures_lite::io::{AssertAsync, Cursor};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+  futures_lite::future::block_on(run())
+}
+
+async fn run() -> Result<(), Box<dyn std::error::Error>> {
+  // Any reader with futures-io's `AsyncRead` and `AsyncSeek` will do, such as a runtime's own file type.
+  // `AssertAsync` wraps a blocking file, which suits a small program.
+  let file = AssertAsync::new(std::fs::File::open("movie.mkv")?);
+  let report = probe_reader(file).await?;
+  println!("{}: {} streams", report.format(), report.streams().len());
+
+  // A forward-only reader: here, bytes already in memory.
+  let bytes = std::fs::read("clip.webm")?;
+  let report = probe_stream(Cursor::new(bytes)).await?;
+  println!("{}: {} streams", report.format(), report.streams().len());
+  Ok(())
+}
+```
+
+**A custom async source.** No feature is needed. The source keeps one range request in flight. It can do so without remembering which request that was, because the library repeats a request after `Pending` (section 9.3).
+
+```rust
+use std::future::Future;
+use std::io;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll, ready};
+
+use cc_media_probe::asynchronous::{AsyncPositionalSource, probe_source};
+
+/// A stand-in for a store's client, whose `fetch` resolves to the bytes of one range.
+#[derive(Clone)]
+struct Store {
+  object: Arc<Vec<u8>>,
+}
+
+impl Store {
+  fn fetch(&self, position: u64, length: usize) -> impl Future<Output = io::Result<Vec<u8>>> + Send + 'static {
+    let object = Arc::clone(&self.object);
+    async move {
+      let start = usize::try_from(position).unwrap_or(usize::MAX).min(object.len());
+      let end = start.saturating_add(length).min(object.len());
+      Ok(object[start..end].to_vec())
+    }
+  }
+}
+
+/// One range request in flight.
+type RangeRequest = Pin<Box<dyn Future<Output = io::Result<Vec<u8>>> + Send>>;
+
+/// The source: one range request in flight at a time.
+struct RemoteObject {
+  store: Store,
+  length: u64,
+  request: Option<RangeRequest>,
+}
+
+impl AsyncPositionalSource for RemoteObject {
+  fn poll_read_at(
+    self: Pin<&mut Self>,
+    context: &mut Context<'_>,
+    position: u64,
+    buffer: &mut [u8],
+  ) -> Poll<io::Result<usize>> {
+    let this = self.get_mut();
+    // After `Pending` the library repeats the same request, so the stored request is the one it asks for.
+    let request = this
+      .request
+      .get_or_insert_with(|| Box::pin(this.store.fetch(position, buffer.len())));
+    let bytes = ready!(request.as_mut().poll(context));
+    this.request = None;
+    let bytes = bytes?;
+    let count = bytes.len().min(buffer.len());
+    buffer[..count].copy_from_slice(&bytes[..count]);
+    Poll::Ready(Ok(count))
+  }
+
+  fn poll_length(self: Pin<&mut Self>, _context: &mut Context<'_>) -> Poll<io::Result<Option<u64>>> {
+    // The store gave the length when the object was opened.
+    Poll::Ready(Ok(Some(self.length)))
+  }
+}
+
+fn main() -> Result<(), cc_media_probe::Error> {
+  let object = Arc::new(std::fs::read("movie.mkv").unwrap_or_default());
+  let source = RemoteObject {
+    length: object.len() as u64,
+    store: Store { object },
+    request: None,
+  };
+  let report = futures_lite::future::block_on(probe_source(source))?;
+  println!("{}: read {} bytes", report.format(), report.usage().bytes_read());
+  Ok(())
+}
+```
+
+### 15.8 Bytes, standard input and a source that serves ranges
+
+The report owns what it keeps, so the bytes can be dropped as soon as the probe returns. Standard input is forward-only, and a name hint only orders the candidates. A custom blocking source answers positional reads, and a short read is allowed.
+
+```rust
+use std::fs::File;
+use std::io::{self, Read, Seek, SeekFrom};
+
+use cc_media_probe::source::PositionalSource;
+use cc_media_probe::{Prober, probe_bytes, probe_source};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+  // Bytes in memory. The report copies what it keeps, so the bytes can go once the probe returns.
+  let bytes = std::fs::read("clip.webm")?;
+  let from_bytes = probe_bytes(&bytes)?;
+  drop(bytes);
+  println!("bytes: {}", from_bytes.format());
+
+  // Standard input is forward-only. A name hint orders the candidates; it is never opened.
+  let prober = Prober::new().with_file_name_hint("upload.mkv");
+  let from_input = prober.probe_stream(io::stdin().lock())?;
+  println!("standard input: {}", from_input.format());
+
+  // A source that is neither a file nor a reader.
+  let from_ranges = probe_source(RangedObject::open("movie.mkv")?)?;
+  println!(
+    "ranges: {}, read {} bytes",
+    from_ranges.format(),
+    from_ranges.usage().bytes_read()
+  );
+  Ok(())
+}
+
+/// Each read is one range request, as against an object store; a local file stands in for the store.
+struct RangedObject {
+  file: File,
+  length: u64,
+}
+
+impl RangedObject {
+  fn open(path: &str) -> io::Result<RangedObject> {
+    let file = File::open(path)?;
+    let length = file.metadata()?.len();
+    Ok(RangedObject { file, length })
+  }
+}
+
+impl PositionalSource for RangedObject {
+  fn read_at(&mut self, position: u64, buffer: &mut [u8]) -> io::Result<usize> {
+    // A short read is fine: the library asks again for the rest.
+    self.file.seek(SeekFrom::Start(position))?;
+    self.file.read(buffer)
+  }
+
+  fn length(&mut self) -> io::Result<Option<u64>> {
+    Ok(Some(self.length))
+  }
+}
+```
+
+### 15.9 Scanning a directory
+
+One prober serves every file and every thread. An error says what kind of failure stopped the probe and carries what was established before it. The usage counters are there for an error too.
+
+```rust
+use std::path::Path;
+use std::thread;
+
+use cc_media_probe::{Error, ErrorKind, Limits, Prober};
+
+fn main() -> std::io::Result<()> {
+  // One prober serves every file. It is `Sync`, so the threads share it.
+  let prober = Prober::new().with_limits(Limits::default().with_bytes_read(8 * 1024 * 1024));
+  let mut paths = Vec::new();
+  for entry in std::fs::read_dir("media")? {
+    let path = entry?.path();
+    if path.is_file() {
+      paths.push(path);
+    }
+  }
+  thread::scope(|scope| {
+    for path in &paths {
+      let prober = &prober;
+      scope.spawn(move || scan(prober, path));
+    }
+  });
+  Ok(())
+}
+
+fn scan(prober: &Prober, path: &Path) {
+  match prober.probe_file(path) {
+    Ok(report) => {
+      let status = if report.completeness().is_complete() {
+        "complete"
+      } else {
+        "incomplete"
+      };
+      println!(
+        "{}: {} with {} streams, {status}",
+        path.display(),
+        report.format(),
+        report.streams().len()
+      );
+    }
+    Err(error) => {
+      println!("{}: {error}", path.display());
+      print_partial_data(&error);
+    }
+  }
+}
+
+fn print_partial_data(error: &Error) {
+  match error.kind() {
+    // The source failed. If the stream inventory was reached first, the report so far comes with the error.
+    ErrorKind::SourceFailed => {
+      if let Some(partial) = error.partial_report() {
+        println!("  before the failure: {} streams", partial.streams().len());
+      }
+    }
+    // The probe stopped before any stream list; what it saw is kept as observations.
+    ErrorKind::NoStreamInventory => {
+      for diagnostic in error
+        .observations()
+        .map_or(&[][..], |observations| observations.diagnostics())
+      {
+        println!("  {}: {}", diagnostic.code(), diagnostic.message());
+      }
+    }
+    // Not a media file, or none this version reads, and the kinds of later versions: nothing more to show.
+    _ => {}
+  }
+  // The usage is known for an error too, so a scan can total its reads.
+  println!("  read {} bytes", error.usage().bytes_read());
+}
+```
+
+### 15.10 Format-specific details
+
+The details are reached through the two open enums. A caller matches the variant it knows, and a stored flag tells a stored value from a default. Conflicts are read the same way for every format.
+
+```rust
+use cc_media_probe::details::{CodecDetails, FormatDetails};
+use cc_media_probe::{Error, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("movie.mkv")?;
+  // The container's own facts. Its per-track details are found by stream index.
+  if let Some(FormatDetails::Matroska(matroska)) = report.format_details() {
+    let writer = matroska.writing_application().unwrap_or("not stated");
+    println!("DocType {}, WritingApp {writer}", matroska.document_type());
+    for stream in report.streams() {
+      if let Some(track) = matroska.track(stream.index()) {
+        let flag = track.flag_default();
+        let origin = if flag.is_stored() { "stored" } else { "the default" };
+        println!(
+          "#{}: TrackNumber {}, FlagDefault {} ({origin})",
+          stream.index(),
+          track.track_number(),
+          flag.value()
+        );
+      }
+    }
+  }
+  for stream in report.streams() {
+    // The coded values. The normalized profile and level are in `stream.codec()`.
+    if let Some(CodecDetails::H264(h264)) = stream.codec_details() {
+      println!(
+        "#{}: profile_idc {}, level_idc {}",
+        stream.index(),
+        h264.profile_indication(),
+        h264.level_indication()
+      );
+    }
+  }
+  // Conflicts are reached the same way for every format, without matching on its variant.
+  for conflict in report.format_details().into_iter().flat_map(FormatDetails::conflicts) {
+    let values: Vec<String> = conflict
+      .values()
+      .iter()
+      .map(|value| format!("{} says {}", value.source(), value.value()))
+      .collect();
+    println!("{} disagrees: {}", conflict.field(), values.join("; "));
+  }
+  Ok(())
+}
+```
+
+### 15.11 An estimated duration
+
+The normalized duration and the estimate are separate accessors, so an estimate can never be mistaken for a stated value. The estimate names its method.
+
+```rust
+use cc_media_probe::model::Provenance;
+use cc_media_probe::{Error, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("broadcast.ts")?;
+  // The normalized duration is never an estimate; the estimate is a separate accessor (R25).
+  match (report.duration(), report.estimated_duration()) {
+    (Some(duration), _) => {
+      let origin = report
+        .duration_provenance()
+        .map_or("origin not recorded", Provenance::as_str);
+      println!("duration {duration} ({origin})");
+    }
+    (None, Some(estimate)) => println!("about {} (estimated: {})", estimate.value(), estimate.method().as_str()),
+    (None, None) => println!("duration unknown"),
+  }
+  // The streams have the same pair of accessors.
+  for stream in report.streams() {
+    if let (None, Some(estimate)) = (stream.duration(), stream.estimated_duration()) {
+      println!("#{}: about {}", stream.index(), estimate.value());
+    }
+  }
+  Ok(())
+}
+```
+
+### 15.12 What the scenarios changed
+
+Writing and checking the scenarios revised the specification as follows. G2.1 confirms the names and G2.2 the rest.
+
+| Change | Found in | Sections |
+|---|---|---|
+| **Enums by reference.** No enum with a catch-all can be `Copy`, because the catch-all holds text. Accessors that the draft gave as `Option<Provenance>`, `FrameRateMode`, `InventoryClass`, `Option<Rotation>`, `FloatingPointWidth`, `StoredValue<…>` and `Option<Estimate<…>>` now return references, and `first_stopped()` returns `Option<&Part>`. A pattern still matches without `*` or `&`. | 15.2, 15.10, 15.11 | 1 (rule 7), 5.2, 5.3, 6.1 to 6.5, 11.2, 11.4 |
+| **Stable names.** Printing a kind needed text that does not change. `Debug` is not stable, and `Display` is for people. Every enum with a catch-all now has `as_str()`, its serialized name. | 15.1, 15.5, 15.11 | 1 (rule 7), 2 |
+| **A codec's display.** Listing streams needed the name of an unknown codec. `CodecInformation` displays its name, or else the first raw identifier as written. `Codec::name()` returns `Option<&str>`, which is absent for `Unknown` and `Unrecognized`. The draft did not say what those two variants give. | 15.1 | 3.3, 6.4 |
+| **Whole-file tag sets.** A caller had to test four lists to see whether a set describes the whole file. `TagSet::targets_whole_file()` does it. | 15.4 | 6.9 |
+| **Locations of targets.** The draft said what a resolved reference locates, but not as a type. `EntityLocation` has `index()` and `chapter_path()`. `ChapterEdition::chapter_at()` turns a path into a chapter, which a caller would otherwise walk by hand. | 15.4 | 6.8, 6.9 |
+| **Tag values.** The draft named `BinaryValue` without accessors. It now has `size()` and `data()`, the bytes kept within the retained-data limit. `IntegerValue` displays itself, and `TagValue` has the catch-all of rule 5. | 15.4 | 3.3, 6.9 |
+| **What a catch-all implies.** A value that a newer version wrote has no counter, no angle and no support level in this version. So `Limits::get()` returns `Option<u64>`, and `with()` leaves the limits unchanged for such a limit. `Rotation::degrees()` returns `Option<u16>`, and `Format::support()` returns `Option<SupportLevel>`. Limits are passed as `&Limit`, as tag keys are. | the stub | 4.5, 5.3, 6.4, 6.5, 6.14 |
+| **Repeated requests.** A poll-based source that keeps one request in flight needs to know that the next call asks for the same range. The library now promises it. | 15.7 | 9.3 |
+| **Building a document.** The draft named the constructors without their arguments. They are now `Generator::new(name, version)`, `PortablePath::from_path(&Path)` and `DocumentEntry::error(index, input, ErrorRecord)`. `push` takes `&mut self`, and an entry's index is a `usize`. | 15.6 | 12 |
+| **Whole words (R32).** The name check of D23 rejected the spike's `Io`, `io` and `Id`. `ErrorKind::Io` becomes `ErrorKind::SourceFailed`, and `io_error()` becomes `source_failure()`. `io_error_kind()` becomes `source_failure_kind()`, and `os_error_code()` becomes `operating_system_error_code()`. The namespace `MatroskaCodecId` becomes `MatroskaCodecIdentifier`. `Feature` keeps only `Zlib`, the one feature that can make information unavailable, so `FuturesIo` is gone too. | the check of the spike | 4.1, 4.4, 5.1, 5.5, 6.4, 10, 13 |
+
+**Left open by the scenarios:**
+
+- **A document written as it goes (G2.3).** `Document` holds all its entries. The CLI writes its document incrementally and keeps one report at a time (plan section 8.9). A library caller who scans many files into one document must therefore hold every report, or write the framing itself. The JSON contract of task 5 decides whether `document` offers an entry-at-a-time form.
+- **Repeated requests in the I/O layer (G3.1).** The promise of section 9.3 has to hold for the block cache and the forward-only window as well. The I/O spike of Phase 3 confirms it.
+
+## 16. Decisions for the gates
 
 **G2.1, naming:**
 
@@ -913,6 +1594,7 @@ Traits the library does not intend callers to implement are sealed. Compile-fail
 - The feature names of section 3.1.
 - The async module names `asynchronous::tokio` and `asynchronous::futures`.
 - The names `MediaReport` and `Stream`, and the other names of this document.
+- The names that replace abbreviations (section 15.12): `ErrorKind::SourceFailed`, `source_failure()`, `source_failure_kind()`, `operating_system_error_code()` and `CodecNamespace::MatroskaCodecIdentifier`.
 
 **G2.2, API approval:**
 
@@ -920,9 +1602,12 @@ Traits the library does not intend callers to implement are sealed. Compile-fail
 - The fifteen field-guide proposals as specified, and the amendment of plan section 8.2 that F3 implies.
 - The public usage summary (section 6.14).
 - The tags and chapters options (section 4.3).
-- The Tokio path convenience (section 9.2), with its GS.1 request for Tokio's `fs` feature.
+- The Tokio path convenience (section 9.2). Tokio's `fs` feature was approved through GS.1 on 2026-11-22.
+- The usage scenarios (section 15), and the revisions they made (section 15.12).
 
 **Open points found while writing:**
 
 - **Item-list track and disc numbers.** Plan Phase 6, task 12 reads the item list "including cover art, track and disc numbers". The approved QuickTime documentation defines the item list only with keys from a `keys` table, and none of its keys is a track or disc number. No approved source defines the four-character item codes that carry them. Until one is approved through GS.2, `TrackNumber` and `DiscNumber` have no source in `0.1.0`, and such items keep their names (section 6.9).
+- **A document written as it goes** (G2.3, section 15.12): whether `document` offers an entry-at-a-time form for long scans.
+- **Repeated requests** (G3.1, section 9.3): the I/O spike confirms that the block cache and the forward-only window keep the promise.
 - **The first normalized keys.** `Date` is the date of the content's creation, and Matroska's four dates stay unmapped. The QuickTime key `com.apple.quicktime.year` has no key. G2.2 can add keys; a new key is a compatible change.
