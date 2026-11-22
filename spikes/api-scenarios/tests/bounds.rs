@@ -15,12 +15,13 @@
 * limitations under the License.
 */
 
-//! Compile-time checks of the auto traits that `api.md` sections 3.3 and 9.1 promise, and of matching on an enum
-//! that an accessor returns by reference.
+//! Compile-time checks of the auto traits that `api.md` sections 3.3 and 9.1 promise, of matching on an enum that
+//! an accessor returns by reference, and of the reference types of the completeness getters, section 5.3.
 
 use std::pin::Pin;
 
 use cc_media_probe::asynchronous::{AsyncPositionalSource, probe_source};
+use cc_media_probe::completeness::{Completeness, DetectionStatus, DiscoveryStatus, SectionStatus};
 use cc_media_probe::model::{FrameRateMode, Provenance};
 
 fn assert_send<Value: Send>(_value: &Value) {}
@@ -48,6 +49,18 @@ fn an_enum_returned_by_reference_matches_without_dereferencing() {
   assert!(matches!(provenance, Some(Provenance::Declared)));
   let mode: &FrameRateMode = &FrameRateMode::Unknown;
   assert!(matches!((None::<u64>, mode), (None, FrameRateMode::Unknown)));
+}
+
+#[test]
+fn the_completeness_statuses_are_returned_by_reference() {
+  // Each status is a stored enum with a catch-all, so its getter borrows it (`api.md` section 1, rule 7).
+  let completeness = Completeness::default();
+  let detection: &DetectionStatus = completeness.detection();
+  let discovery: &DiscoveryStatus = completeness.discovery();
+  let sections: [&SectionStatus; 3] = [completeness.tags(), completeness.chapters(), completeness.attachments()];
+  assert!(matches!(detection, DetectionStatus::Complete));
+  assert!(matches!(discovery, DiscoveryStatus::Complete));
+  assert!(sections.iter().all(|status| matches!(status, SectionStatus::Complete)));
 }
 
 #[cfg(feature = "tokio")]

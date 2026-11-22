@@ -21,7 +21,9 @@ use std::num::ParseIntError;
 
 use super::path::PortablePath;
 #[cfg(feature = "serde")]
-use super::path::{RawPath, is_not_lossy};
+use super::path::is_not_lossy;
+#[cfg(feature = "serde")]
+use super::raw::RawPath;
 use crate::completeness::Reason;
 #[cfg(feature = "serde")]
 use crate::constants::LOSSY_PATH_MESSAGE;

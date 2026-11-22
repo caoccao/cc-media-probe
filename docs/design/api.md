@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, tasks 2 and 3, written on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first four reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22; the names added since are confirmed at G2.2, together with the API. |
+| **Status** | Draft of Phase 2, tasks 2 and 3, written on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22; the names added since are confirmed at G2.2, together with the API. |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -39,6 +39,10 @@ At the fourth review, the same day, the maintainer approved G2.1 for the names o
 - **A document written as it goes.** `document` gains a writer that takes the entries one at a time, which answers the question that G2.3 had left open (section 12).
 - **An outcome that cannot be derived.** `DocumentEntry::from_report` and `from_detection` refuse a record that holds a value of a newer version that decides the outcome, and the refusal takes the outcome that the caller gives (section 12).
 - **Detection as a part.** A limit that stops detection is recorded against `Part::Detection` (section 5.3).
+
+At the fifth review, the same day, the maintainer made one more choice:
+
+- **A candidate's check that a limit stopped.** When a limit stops one candidate's validation check while another candidate validates, the report is incomplete: `Completeness::detection()` is `Incomplete`, and the reason names the limit against `Part::Detection` (section 5.3).
 
 ## Contents
 
@@ -273,7 +277,7 @@ flowchart TD
 | The probe stopped before the stream inventory | `ErrorKind::NoStreamInventory` | The format, the reason, and the observations made so far, such as the track identifiers and raw ticks of an ISO media segment (R20) |
 | The stream inventory was reached | `Ok(MediaReport)` | Diagnostics and completeness; nothing short of a source failure turns it into an error |
 
-With several validated candidates, the one with the highest confidence is used, and a diagnostic records the others (plan section 8.3).
+With several validated candidates, the one with the highest confidence is used, and a diagnostic records the others (plan section 8.3). A candidate whose check a limit stopped, beside one that validated, leaves the report incomplete, with the limit named against `Part::Detection` (section 5.3).
 
 ### 5.2 Stream inventory
 
@@ -291,16 +295,24 @@ An observed format can also reach its inventory with no unit at all, where its e
 | Accessor | Returns | Values |
 |---|---|---|
 | `is_complete()` | `bool` | The definition of plan section 8.3, which `--strict` uses |
-| `discovery()` | `DiscoveryStatus` | `Complete`, `Incomplete` |
-| `tags()`, `chapters()`, `attachments()` | `SectionStatus` | `Complete` (including proven empty), `Incomplete`, `NotRequested`, `NotApplicable` |
-| `timing()` | `TimingStatus` | `Established`, `NotAvailableByDesign`, `CutShort`, `NotApplicable` |
-| `companions()` | `CompanionStatus` | `NotApplicable`, `Complete`, `NotEnabled`, `CutShort` |
+| `detection()` | `&DetectionStatus` | `Complete`, `Incomplete` (below) |
+| `discovery()` | `&DiscoveryStatus` | `Complete`, `Incomplete` |
+| `tags()`, `chapters()`, `attachments()` | `&SectionStatus` | `Complete` (including proven empty), `Incomplete`, `NotRequested`, `NotApplicable` |
+| `timing()` | `&TimingStatus` | `Established`, `NotAvailableByDesign`, `CutShort`, `NotApplicable` |
+| `companions()` | `&CompanionStatus` | `NotApplicable`, `Complete`, `NotEnabled`, `CutShort` |
 | `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, `source_identifier() -> Option<SourceIdentifier>` for a companion's request, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5) |
 | `record()` | `&LimitRecord` | The fixed-size record below |
 
+Each status is a stored enum with a catch-all, so its getter returns it by reference (section 1, rule 7), as `matches!(report.completeness().chapters(), SectionStatus::Complete)` in section 15.5 shows.
+
 `Part` names what a reason stopped: `Detection`, `Discovery`, `Headers`, `Tags`, `Chapters`, `Attachments`, `Timing` and `Companions`. The header statuses of the streams count as well (section 5.4); `Completeness` does not repeat them. `Display` writes a one-line summary, such as "incomplete: discovery stopped by the stream limit".
 
-**Detection** is a part of its own, as the maintainer chose on 2026-11-22: detection, with the validation checks of the candidates (section 8; plan section 8.3). A report exists only once detection has decided, so only an error names it, and it has no status among those of a report. A limit that ends detection is recorded against it. With `BytesRead` at 0, for example, `probe_bytes` reads nothing and ends with `ErrorKind::FormatNotDetermined`. The error's `reason()` names `BytesRead`, `record().exhausted(&Limit::BytesRead)` is true, and `record().first_stopped(&Limit::BytesRead)` is `Some(&Part::Detection)`, since stream discovery never began. Section 15.9 prints such an error.
+**Detection** is a part of its own, as the maintainer chose on 2026-11-22: detection, with the validation checks of the candidates (section 8; plan section 8.3). A limit that stops it is recorded against it, in an error or in a report:
+
+- **A limit that ends detection** gives an error. With `BytesRead` at 0, for example, `probe_bytes` reads nothing and ends with `ErrorKind::FormatNotDetermined`. The error's `reason()` names `BytesRead`, `record().exhausted(&Limit::BytesRead)` is true, and `record().first_stopped(&Limit::BytesRead)` is `Some(&Part::Detection)`, since stream discovery never began. Section 15.9 prints such an error.
+- **A limit that stops one candidate's check while another validates** gives a report, once the validated candidate's probe reaches its inventory. The candidate that was not checked might have validated with a higher confidence and been chosen instead, so the report is incomplete, as the maintainer chose at the fifth review. `detection()` is `Incomplete`, and `reasons()` holds a `PartReason` whose `part()` is `Part::Detection` and whose reason names the limit. `record().first_stopped(&limit)` is `Some(&Part::Detection)`, since detection comes first. If the same limit stops discovery later, discovery has its own status and reason, and the record still names detection. The diagnostic that lists the other candidates names the one that was not checked. The nesting depth can do this, when one candidate's structure is deeper than the limit and the other's is not.
+
+`detection()` is `Complete` when every check that detection began ran to its end, as in every report whose detection was not ambiguous.
 
 **The fixed-size record.** `LimitRecord` exists under any limits and is never charged to a counter (plan section 7.5). It holds:
 
@@ -320,7 +332,7 @@ An error carries the same record (section 10).
 |---|---|---|
 | `Parsed` | yes | Every header field read |
 | `PartiallyParsedByDesign` | yes | Some fields lie behind decoding, as implicit spectral-band replication does |
-| `Identified` | yes | `identification() -> Option<Identification>` says why: `IdentificationOnly` (by design), `UnknownCodec`, `PendingParser` (a pair of a later phase) or `UnsupportedCompression` (below) |
+| `Identified` | yes | `identification() -> Option<&Identification>` says why: `IdentificationOnly` (by design), `UnknownCodec`, `PendingParser` (a pair of a later phase) or `UnsupportedCompression` (below) |
 | `Protected` | yes | The bytes that hold the codec header are encrypted: the configuration itself, or the packets that carry an in-band header. Protection sets no other state. A clear configuration beside protected packets is parsed like any other, so its state is its parser's outcome, from `Parsed` to `Malformed`, and `Stream::protection()` reports the packets' protection separately (F22). |
 | `NotFoundWithinBudget` | no | No header field was read before the input, a limit or the reach of a forward-only source ended the search. `reason()` says which: truncated input; the limit by name; or `RangeUnavailable`, when the header's bytes had already left the window of a forward-only source, as for a stream discovered after its in-band header passed (plan sections 7.4 and 7.6). |
 | `PartiallyParsedForLackOfBytes` | no | Some fields read before the input, a limit or the reach of a forward-only source ended; `reason()` says which, with the same three reasons |
@@ -468,9 +480,9 @@ A later format that protects a range of packets adds an accessor to `ProtectionD
 
 | Accessor | Returns | Field guide (section 3.3) and notes |
 |---|---|---|
-| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved (below) |
+| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved, or when the first sample's description is established and the probe could not read or keep it (below) |
 | `candidates()` | `&[CodecCandidate]` | While the description of the first sample is unproven, each description that could hold it and that the probe read and kept, in index order; empty otherwise (below) |
-| `has_every_candidate()` | `bool` | Whether `candidates()` misses none: true while nothing is unresolved, false when the probe could not read or keep a description that could hold the first sample (below) |
+| `has_every_candidate()` | `bool` | Whether the probe read and kept every description that could hold the first sample: false when one is missing, including the one that the first sample is known to use, and true otherwise (below) |
 | `name()` | `Option<&str>` | `name`: the library's name for a known codec; absent for an unknown or unresolved one |
 | `raw_identifiers()` | `&[RawCodecIdentifier]` | `raw_identifiers`: those of the reported description, and while it is unproven, every candidate's, in candidate order. Each has `namespace() -> &CodecNamespace` (`MatroskaCodecIdentifier`, `RiffFourCharacterCode`, `WaveFormatTag`, `IsoSampleEntry`, `Mpeg4ObjectType`, `QuickTimeCode` and the namespaces of later phases) and `value() -> &str` as written |
 | `profile()`, `profile_provenance()` | `Option<&Profile>`, `Option<&Provenance>` | `profile` |
@@ -480,11 +492,13 @@ A later format that protects a range of packets adds an accessor to `ProtectionD
 
 **Which description the codec fields describe.** An ISO track can declare several sample descriptions. Plan Phase 6, task 7 decides which one the codec fields describe, in three cases:
 
-- **The first sample's description is established.** The fields describe it, and `candidates()` is empty.
+- **The first sample's description is established.** The fields describe it, and `candidates()` is empty. The probe may still have failed to read that description, or to keep it within the retained-data limit, as when the first fragment selects description 2 after the limit kept only description 1. No other description can hold the first sample, so a kept one is no candidate and lends nothing. `codec()`, `name()` and every field that the description supplies are absent, `candidates()` is empty, `has_every_candidate()` is false, and the details keep the index (below).
 - **The track is proven to have no sample,** as an initialization segment on its own is once the probe has examined all of it: empty sample tables, and no fragment up to the end of the input. The fields describe the first declared description, as a fallback that the details label, and `candidates()` is empty. Nothing is unresolved: no sample exists that could select another description.
 - **Otherwise the first sample's description is unproven.** A description may have been observed in use while the first sample's selection was not, or the probe stopped before it could establish either, as a read limit that ends before the first fragment does. The fields that depend on the first sample are unresolved. `candidates()` lists each description that could hold the first sample, and the details say which descriptions were observed in use. A stopped probe has not observed a description in use, yet the first sample can still select any declared one, so no fallback applies.
 
 Any declared description can hold the first sample until the selection is established. A probe can fail to read a description, because the input or a limit cut the sample descriptions short, or fail to keep one within the retained-data limit. `candidates()` then lacks it, and `has_every_candidate()` is false.
+
+**The index in the details.** The ISO family's details keep the selection once it is established, whether or not the probe kept the description it selects. `IsoBaseMediaDetails::track(stream_index)` gives a track's details. Their `first_sample_description_index() -> Option<u32>` is the `sample_description_index` that selects the first sample's description, at its coded width: from the sample-to-chunk table, the track-extends default or a track-fragment override (ISO/IEC 14496-12:2015, 8.7.4, 8.8.3 and 8.8.7). It is absent while the selection is unproven, and for a track proven to have no sample, whose fallback the details label. So a known description that was lost reads apart from an unresolved selection whose candidates were all lost: both have no codec, no candidates and `has_every_candidate()` false, and only the first has an index. Phase 6 designs the rest of these details.
 
 A `CodecCandidate` has `sample_description_index() -> u64`, `codec() -> &Codec` and `raw_identifiers() -> &[RawCodecIdentifier]`. Its identifiers are its own, so a protected entry's code and the code of its original format stay with their description. In the third case, as the maintainer chose on 2026-11-22, a missing codec is `None`, as every missing value is (section 1, rule 2):
 
@@ -500,7 +514,7 @@ A `CodecCandidate` has `sample_description_index() -> u64`, `codec() -> &Codec` 
 - `Codec::Unknown`: the file names a codec that this version does not know. `raw_identifiers()` keeps what it wrote.
 - `Codec::Unrecognized(UnrecognizedValue)`: a serialized name that a newer version wrote. The library never produces it itself.
 
-`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). An unresolved codec displays each candidate in the same way, by its codec's name or else its own first raw identifier, separated by " or ", such as "H.264 or H.265". When a candidate is missing, the display ends with "or a description that was not read".
+`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). An unresolved codec displays each candidate in the same way, by its codec's name or else its own first raw identifier, separated by " or ", such as "H.264 or H.265". When a candidate is missing, the display ends with "or a description that was not read". With no candidate kept, as for a known description that was lost, the display is "a description that was not read".
 
 **`Format`** has one variant per entry of the detection inventory frozen at G3.5, and one per family: `Matroska`, `WebM`, `Mp4`, `ThreeGpp`, `ThreeGpp2`, `F4v`, `QuickTime`, `Avi`, and the formats of the later phases. The families `IsoBaseMedia` and `Riff` are reported when detection is certain of the family only (plan section 8.6). `Format::Unrecognized` is the catch-all. Its accessors:
 
@@ -747,10 +761,10 @@ For `ExpectedCompanion`, `identifier()` is the validated identifier, and `locati
 
 - `display() -> &str`;
 - `is_lossy() -> bool`, whether `display()` lost information;
-- `raw() -> Option<&RawPath>`, present exactly when the path is lossy, which has `encoding() -> &RawPathEncoding` (`UnixBytes` or `WindowsWide`) and `data() -> &str`, the path's bytes or its 16-bit units in lowercase hexadecimal (plan section 8.8);
+- `raw() -> Option<&RawPath>`, present exactly when the path is lossy, which has `encoding() -> &RawPathEncoding` (`UnixBytes` or `WindowsWide`) and `data() -> &str`, the path's bytes or its 16-bit units in lowercase hexadecimal, two digits a byte or four a unit (plan section 8.8), and for an encoding that a newer version wrote, the data as written;
 - `to_native() -> Option<PathBuf>`. A path that is not lossy is rebuilt from its display string on every platform, since Unicode text converts to a native path without loss. A lossy path is rebuilt from its raw form only when that encoding belongs to the running platform, and gives `None` otherwise.
 
-Reading never fails because a path is foreign. Serialized, a path is not a value of its own: the map that holds it writes its display string under the path's name, and a lossy path adds its flag and its raw form beside it (section 12).
+Reading never fails because a path is foreign, but it checks the data of a known encoding wherever it was written: whole units of lowercase hexadecimal digits, two for each byte of `unix_bytes` and four for each unit of `windows_wide`. Other data fails as malformed input does, so a path of the running platform's encoding always rebuilds. A foreign path that passes is kept, and the data of an encoding that a newer version wrote is kept as written. Serialized, a path is not a value of its own: the map that holds it writes its display string under the path's name, and a lossy path adds its flag and its raw form beside it (section 12).
 
 ## 7. Normalized values
 
@@ -1014,7 +1028,7 @@ With the `serde` feature, every model type implements `Serialize` and `Deseriali
   - *Twins.* The quantities that a record cannot omit are numbers when they fit. Beyond that, the number is omitted and an `_exact` twin carries the decimal string. This covers the offsets in diagnostics and errors, the usage counters and the bytes read in the source table (plan section 8.8). A tag's integer value is data, not a measured quantity, so it gets the same twin when it lies beyond the range.
   - *Wide fields are strings.* In the typed details, every integer whose type is 64 bits wide (`u64`, `i64`) is always a decimal string, so its JSON type never depends on its value. Matroska's `DateUTC` in nanoseconds is an example, and so is an observed count. Narrower integers that are not identifiers are numbers. The fixed-size record's `omitted_diagnostics` and `omitted_declarations` are decimal strings too. The maintainer chose this on 2026-11-22.
   - *Bit patterns are hexadecimal.* A `FloatingPointValue` is a map of its `width` and its `bits` in lowercase hexadecimal: 8 digits for single precision and 16 for double, as in `"3ff0000000000000"` for 1.0.
-- **Paths.** A `PortablePath` is written as its display string under the member's own name, so an entry's input reads `"input": "movie.mkv"`, as plan section 8.9 shows. A lossy path adds two members beside it, named after it, as the twins of large quantities are: `<name>_lossy` with `true`, and `<name>_raw`, a map of `encoding` (`unix_bytes` or `windows_wide`) and `data` (plan section 8.8). A path that is not lossy has neither, so an entry has `input`, `input_lossy` and `input_raw`, and a source-table entry `path`, `path_lossy` and `path_raw`. Reading takes the flag and the raw form only together, and a member with one but not the other fails as malformed input does.
+- **Paths.** A `PortablePath` is written as its display string under the member's own name, so an entry's input reads `"input": "movie.mkv"`, as plan section 8.9 shows. A lossy path adds two members beside it, named after it, as the twins of large quantities are: `<name>_lossy` with `true`, and `<name>_raw`, a map of `encoding` (`unix_bytes` or `windows_wide`) and `data` (plan section 8.8). A path that is not lossy has neither, so an entry has `input`, `input_lossy` and `input_raw`, and a source-table entry `path`, `path_lossy` and `path_raw`. Reading takes the flag and the raw form only together, and a member with one but not the other fails as malformed input does. So does the data of a known encoding that is not whole units of lowercase hexadecimal digits, two a byte or four a unit, such as `"gg"`, an odd number of digits for `unix_bytes`, or a sign (section 6.15).
 - **Unknown members** are ignored on input. No type denies unknown fields.
 - **`Document`** is what the CLI writes and what a library user can write too. A document holds either results or a usage error, never both (plan section 8.9). Its two constructors keep it so, and it has no method that adds an entry later:
   - `Document::from_results(generator: Generator, results: Vec<DocumentEntry>)`. With no entries it is the document of `--json --version`.
@@ -1035,16 +1049,17 @@ With the `serde` feature, every model type implements `Serialize` and `Deseriali
   - A document with a usage error has an empty `results` array.
   - An entry of a known outcome holds exactly one of the three records.
   - That record warrants the outcome, by the table above. An error record labeled `ok` fails, and so does an incomplete report labeled `ok` or a detection of a family only labeled `error`. The check applies where this version can derive the outcome. A report whose statuses include one from a newer version, and a detection outcome from a newer version, keep the outcome that was written, since a newer table may decide them differently. So does an outcome from a newer version, whatever its entry holds.
-- **Nested root records.** A report, detection result or error record inside a document carries the document's version as its own `schema_version` (plan section 8.8). A document gives each record it holds its own version, whatever version the record was read with: `from_results` and the writer below set it on every entry. So a document rebuilt from the entries of a document of version 1.1 is a document of version 1.0 throughout. Reading checks every nested record of every entry against the document's version, including each record of an entry of a newer outcome that holds several. A nested record of another version is the version error.
+- **Nested root records.** A report, detection result or error record inside a document carries the document's version as its own `schema_version` (plan section 8.8), and so does the partial report inside an error record, through `ErrorRecord::partial_report()`. A document gives each record it holds its own version, whatever version the record was read with: `from_results` and the writer below set it on every entry, down to the partial report. So a document rebuilt from the entries of a document of version 1.1 is a document of version 1.0 throughout. Reading checks every nested record of every entry against the document's version, the partial report of an error record included, and each record of an entry of a newer outcome that holds several. A nested record of another version is the version error.
 - **Writing as it goes.** `Document::serialize_results(generator: &Generator, entries: impl IntoIterator<Item = DocumentEntry>, serializer: impl Serializer)` writes a document of results to any Serde serializer, one entry at a time, as the maintainer chose on 2026-11-22. It answers the question that G2.3 had left open:
   - it writes what `Document::from_results` with the same entries writes, also for no entries;
   - each entry is written with the document's version, and released before the next one is taken;
   - the first error of the serializer ends the document, and no further entry is taken, so a caller who probes in the sequence stops probing;
-  - the results are a sequence of unknown length, so a serializer that needs the length of a sequence up front cannot write them (Serde, `Serializer::serialize_seq`).
+  - the results are a sequence of unknown length, so a serializer that needs the length of a sequence up front cannot write them (Serde, `Serializer::serialize_seq`);
+  - it writes nothing after the document's closing. A caller who ends the document with a line break, or whose output is buffered, writes the break and flushes through the same output, and returns a failure of either as it returns a failure of the writer. An output that fails at its last byte therefore fails as one that fails inside an entry does (section 15.6).
 
   The CLI writes its document with it, so a scan of any length holds one report at a time and has the framing of every other document (plan section 8.9). `from_results` stays for callers who hold their entries.
 
-The stub of section 15 writes this form for every member that its document carries: the version as `"1.0"`, an input as its display string with its flag and raw form for a lossy path, outcomes and error kinds as `snake_case` strings with their catch-alls, a version on each nested record, the stable I/O error kind, identifiers as strings, and no member for an absent value. Its tests read the entry form of plan section 8.9 back, including a lossy input and a 32-bit identifier kept in an error's observations. They check the three rules and every nested version. They also check that the writer writes what `from_results` writes, for no entries and for mixed ones, and that an output failure leaves the next entry untaken. The rest of the stub's model keeps the default form of Serde's derive, the detail enums' tagging included, since the stub builds no report; task 5 fixes the complete form.
+The stub of section 15 writes this form for every member that its document carries: the version as `"1.0"`, an input as its display string with its flag and raw form for a lossy path, outcomes and error kinds as `snake_case` strings with their catch-alls, a version on each nested record, the stable I/O error kind, identifiers as strings, and no member for an absent value. Its tests read the entry form of plan section 8.9 back, including a lossy input and a 32-bit identifier kept in an error's observations. They check the three rules and every nested version, the partial report of an error record included, in a document that is read and in one rebuilt from version 1.1 by either writer. A raw path of a known encoding whose data is not whole units of lowercase hexadecimal digits fails, while a foreign path and an encoding of a newer version are kept. They also check that the writer writes what `from_results` writes, for no entries and for mixed ones, and that an output failure leaves the next entry untaken. The rest of the stub's model keeps the default form of Serde's derive, the detail enums' tagging included, since the stub builds no report; task 5 fixes the complete form.
 
 ## 13. Companion lookup
 
@@ -1421,10 +1436,10 @@ fn time(value: Option<Seconds>) -> String {
 
 ### 15.6 JSON
 
-A report is a root record on its own. The document form is the one the CLI writes, and a library caller writes it the same way, one entry at a time, so a scan holds one report at a time. An error enters a document as its record. Standard output carries only the document, so it stays valid JSON, and the summaries go to standard error. An earlier catalog read back gives each entry's input and what it holds: a report, a detection or an error record. Only an outcome that a newer version wrote falls to the catch-all.
+A report is a root record on its own. The document form is the one the CLI writes, and a library caller writes it the same way, one entry at a time, so a scan holds one report at a time. An error enters a document as its record. Standard output carries only the document, so it stays valid JSON, and the summaries go to standard error. The line break after the document and the flush fail as the document does, so an output that fails at its last byte ends the program with an error, not a panic. An earlier catalog read back gives each entry's input and what it holds: a report, a detection or an error record. Only an outcome that a newer version wrote falls to the catch-all. A missing catalog is skipped, and one that cannot be read is an error.
 
 ```rust
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 
 use cc_media_probe::document::{Document, DocumentEntry, EntryOutcome, Generator};
@@ -1458,22 +1473,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   });
   let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
-  // Standard output carries the document and nothing else, so it stays valid JSON. An output error stops the scan.
-  Document::serialize_results(
-    &generator,
-    entries,
-    &mut serde_json::Serializer::pretty(io::stdout().lock()),
-  )?;
-  println!();
+  // Standard output carries the document and nothing else, so it stays valid JSON. An output error stops the scan,
+  // and so does one in the final line break or the flush, which return their errors as the document does.
+  let mut output = io::stdout().lock();
+  Document::serialize_results(&generator, entries, &mut serde_json::Serializer::pretty(&mut output))?;
+  writeln!(output)?;
+  output.flush()?;
 
   // An earlier catalog, read back, gives each entry's input and what it holds. Each nested record has the
-  // document's version.
+  // document's version. Only a missing catalog is skipped; one that cannot be read is an error.
   let text = match std::fs::read_to_string("catalog.json") {
     Ok(text) => text,
-    Err(error) => {
-      eprintln!("catalog.json: {error}");
+    Err(error) if error.kind() == io::ErrorKind::NotFound => {
+      eprintln!("catalog.json: none yet");
       return Ok(());
     }
+    Err(error) => return Err(error.into()),
   };
   let document: Document = serde_json::from_str(&text)?;
   for entry in document.results() {
@@ -1937,6 +1952,10 @@ Writing and checking the scenarios revised the specification as follows. G2.1 ap
 - The revisions of the second review, below, with the three choices that the maintainer made at it, and the plan amendments of revision 35 that they need.
 - The revisions of the third review, below, with the three choices that the maintainer made at it, and the plan amendments of revision 36 that they need.
 - The revisions of the fourth review, below, with the three choices that the maintainer made at it, and the plan amendments of revision 37 that they need.
+- The revisions of the fifth review, below, with the choice that the maintainer made at it, and the plan amendments of revision 38 that they need.
+- The names that the fifth review added:
+  - completeness: `Completeness::detection()` and `DetectionStatus`;
+  - details: `IsoBaseMediaDetails::track()`, and `IsoBaseMediaTrackDetails` with `first_sample_description_index()`.
 - The names that the fourth review added, after G2.1:
   - completeness: `Part::Detection`;
   - codecs: `CodecInformation::has_every_candidate()`;
@@ -2021,6 +2040,20 @@ The review also noted that the spike's document was not in the wire form of sect
 | A document rebuilt from entries of version 1.1 wrote a 1.0 document around 1.1 records, and reading checked only the first record of an entry | A document gives every nested record its version, in `from_results` and in the writer, and reading checks every record | 12 |
 | The spike wrote an input as an object, and its reader refused the string of plan section 8.9 | An input is its display string; a lossy one has `input_lossy` and `input_raw` beside it. The tests read the plan's entries and a lossy input back. | 6.15, 12 |
 | An identifier of the typed details narrower than 64 bits met both the rule for identifiers and the rule for integers | Identifiers are strings at every width, and that rule comes first; a test keeps a 32-bit `track_ID` in an error's observations | 12 |
+
+**The fifth review.** Later on 2026-11-22 the maintainer's review of revision `69f83bb` held back G2.2 on three findings. It confirmed the two caveats of the fourth revision, the 32-bit identifier and the refused report, and carried three findings and a smaller one into the joint review of G2.3. Each was checked against the plan, ISO/IEC 14496-12:2015 and the spike, and each one holds. Tests written first failed on the partial report, read and rebuilt by either writer, and on the raw data `"gg"`. The scenario exited 0 with a catalog that is not UTF-8. While revising, two more turned up: `HeaderStatus::identification()` returned a stored enum by value as well, and the spike's reading of hexadecimal data took a leading `+` and uppercase digits. The specification changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| The completeness table returned its statuses by value, while rule 7 and the spike borrow a stored enum | Every status getter returns a reference, and so does `HeaderStatus::identification()`; a spike test fixes the types | 5.3, 5.4 |
+| A limit could stop one candidate's check while another validated, and the text said that only an error names `Part::Detection` | The report is incomplete: `Completeness::detection()` is `Incomplete`, a reason names the limit against `Part::Detection`, and the record names detection as the part stopped first (the maintainer's choice) | 5.1, 5.3 |
+| A first sample known to use a description that the probe could not keep fitted none of the three cases | The codec is absent, no other description is a candidate, `has_every_candidate()` is false, and `IsoBaseMediaTrackDetails::first_sample_description_index()` keeps the index | 6.4 |
+| A document of version 1.0 accepted an error record whose partial report was of version 2.0, and a rebuilt document kept a partial report of version 1.1 with either writer | The partial report is a nested root record too: the writers give it the document's version, and reading checks it | 12 |
+| The JSON scenario panicked when standard output failed at its last byte | The line break and the flush go through the locked output and return their errors | 12, 15.6 |
+| Reading took the `unix_bytes` data `"gg"`, which `to_native()` then could not rebuild on its own platform | The data of a known encoding is whole units of lowercase hexadecimal digits, or the input is malformed. A foreign path and the data of a newer encoding are kept. | 6.15, 12 |
+| A catalog that could not be read was treated as missing | Only a missing catalog is skipped, and any other failure to read it is returned | 15.6 |
+
+The review raised the last four under G2.3. Three of them carry into the joint review of tasks 4 and 5: the last-byte failure is a test of the CLI contract, and the partial report's version and the raw data are rules of the JSON contract (plan sections 8.8 and 8.9).
 
 **Open points found while writing:**
 

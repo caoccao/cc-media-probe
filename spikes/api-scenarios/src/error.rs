@@ -285,16 +285,19 @@ impl ErrorRecord {
     self.observations.as_ref()
   }
 
-  /// The schema version the record was written with, which a document checks against its own.
+  /// The schema versions the record and its partial report were written with, which a document checks against its
+  /// own: the partial report is a root record nested in the document too.
   #[cfg(feature = "serde")]
-  pub(crate) fn schema_version(&self) -> SchemaVersion {
-    self.schema_version
+  pub(crate) fn schema_versions(&self) -> impl Iterator<Item = SchemaVersion> + use<> {
+    let report = self.partial_report.as_ref().map(MediaReport::schema_version);
+    [Some(self.schema_version), report].into_iter().flatten()
   }
 
-  /// The record with another schema version: a document gives each record it holds its own.
+  /// The record and its partial report with another schema version: a document gives each record it holds its own.
   #[cfg(feature = "serde")]
   pub(crate) fn with_schema_version(mut self, version: SchemaVersion) -> ErrorRecord {
     self.schema_version = version;
+    self.partial_report = self.partial_report.map(|report| report.with_schema_version(version));
     self
   }
 }

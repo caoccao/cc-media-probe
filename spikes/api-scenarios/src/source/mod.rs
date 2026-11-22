@@ -21,10 +21,12 @@
 mod constants;
 mod path;
 mod positional;
+mod raw;
 mod table;
 
+pub use path::PortablePath;
 #[cfg(feature = "serde")]
 pub(crate) use path::is_not_lossy;
-pub use path::{PortablePath, RawPath, RawPathEncoding};
 pub use positional::PositionalSource;
+pub use raw::{RawPath, RawPathEncoding};
 pub use table::{SourceEntry, SourceIdentifier};

@@ -26,8 +26,8 @@ pub const WINDOWS_WIDE_NAME: &str = "windows_wide";
 #[cfg(any(unix, windows))]
 pub const HEXADECIMAL_RADIX: u32 = 16;
 /// The hexadecimal digits of one byte of a Unix path.
-#[cfg(unix)]
+#[cfg(any(unix, feature = "serde"))]
 pub const BYTE_DIGITS: usize = 2;
 /// The hexadecimal digits of one 16-bit unit of a Windows path.
-#[cfg(windows)]
+#[cfg(any(windows, feature = "serde"))]
 pub const UNIT_DIGITS: usize = 4;

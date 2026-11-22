@@ -137,6 +137,10 @@ pub const SCHEMA_VERSION_TEXT_MESSAGE: &str = "a schema version is two decimal n
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
 pub const LOSSY_PATH_MESSAGE: &str = "a lossy path has a raw form beside its display string, and only a lossy path";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const RAW_PATH_DATA_MESSAGE: &str = "the data of a raw path is lowercase hexadecimal, two digits a byte for \
+                                         unix_bytes and four a unit for windows_wide";
 
 /// Why an entry cannot be built from a record alone (`api.md` section 12).
 #[cfg(feature = "serde")]

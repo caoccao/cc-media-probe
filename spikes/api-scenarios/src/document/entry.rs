@@ -126,16 +126,20 @@ impl DocumentEntry {
     self.error.as_ref()
   }
 
-  /// The schema version of every nested record, which the document checks against its own. An entry of a newer
-  /// outcome can hold more than one.
+  /// The schema version of every nested record, down to the partial report of an error record, which the document
+  /// checks against its own. An entry of a newer outcome can hold more than one record.
   pub(super) fn nested_versions(&self) -> impl Iterator<Item = SchemaVersion> + use<> {
     let report = self.report.as_ref().map(MediaReport::schema_version);
     let detection = self.detection.as_ref().map(Detection::schema_version);
-    let error = self.error.as_ref().map(ErrorRecord::schema_version);
-    [report, detection, error].into_iter().flatten()
+    let error = self.error.as_ref().map(ErrorRecord::schema_versions);
+    [report, detection]
+      .into_iter()
+      .flatten()
+      .chain(error.into_iter().flatten())
   }
 
-  /// The entry with every nested record at the document's version, which a document gives each record it holds.
+  /// The entry with every nested record at the document's version, down to the partial report of an error record,
+  /// which a document gives each record it holds.
   pub(super) fn with_schema_version(self, version: SchemaVersion) -> DocumentEntry {
     DocumentEntry {
       report: self.report.map(|report| report.with_schema_version(version)),

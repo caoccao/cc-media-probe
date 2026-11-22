@@ -17,7 +17,7 @@
 
 //! Scenario 6: export JSON, on its own and in the CLI's document form. Needs the `serde` feature.
 
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 
 use cc_media_probe::document::{Document, DocumentEntry, EntryOutcome, Generator};
@@ -51,22 +51,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   });
   let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
-  // Standard output carries the document and nothing else, so it stays valid JSON. An output error stops the scan.
-  Document::serialize_results(
-    &generator,
-    entries,
-    &mut serde_json::Serializer::pretty(io::stdout().lock()),
-  )?;
-  println!();
+  // Standard output carries the document and nothing else, so it stays valid JSON. An output error stops the scan,
+  // and so does one in the final line break or the flush, which return their errors as the document does.
+  let mut output = io::stdout().lock();
+  Document::serialize_results(&generator, entries, &mut serde_json::Serializer::pretty(&mut output))?;
+  writeln!(output)?;
+  output.flush()?;
 
   // An earlier catalog, read back, gives each entry's input and what it holds. Each nested record has the
-  // document's version.
+  // document's version. Only a missing catalog is skipped; one that cannot be read is an error.
   let text = match std::fs::read_to_string("catalog.json") {
     Ok(text) => text,
-    Err(error) => {
-      eprintln!("catalog.json: {error}");
+    Err(error) if error.kind() == io::ErrorKind::NotFound => {
+      eprintln!("catalog.json: none yet");
       return Ok(());
     }
+    Err(error) => return Err(error.into()),
   };
   let document: Document = serde_json::from_str(&text)?;
   for entry in document.results() {

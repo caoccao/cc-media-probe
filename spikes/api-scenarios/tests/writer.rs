@@ -33,7 +33,8 @@ fn error_entry(index: usize) -> DocumentEntry {
   DocumentEntry::from_error(index, PortablePath::from_path(Path::new("input.bin")), record)
 }
 
-/// Two error entries, a detection entry, and an entry read from a document of version 1.1.
+/// Two error entries, a detection entry, and an entry read from a document of version 1.1, whose error record
+/// carries a partial report.
 fn mixed_entries() -> Vec<DocumentEntry> {
   let detection = serde_json::from_value(json!({ "schema_version": "1.0", "outcome": "identified" })).unwrap();
   let detection = DocumentEntry::from_detection(2, PortablePath::from_path(Path::new("clip.mp4")), detection);
@@ -44,6 +45,26 @@ fn mixed_entries() -> Vec<DocumentEntry> {
   .unwrap();
   newer["schema_version"] = json!("1.1");
   newer["results"][0]["error"]["schema_version"] = json!("1.1");
+  newer["results"][0]["error"]["partial_report"] = json!({
+    "schema_version": "1.1",
+    "format": "Matroska",
+    "streams": [],
+    "chapter_editions": [],
+    "tag_sets": [],
+    "attachments": [],
+    "diagnostics": [],
+    "completeness": {
+      "detection": "Complete",
+      "discovery": "Complete",
+      "tags": "Complete",
+      "chapters": "Complete",
+      "attachments": "Complete",
+      "reasons": [],
+      "record": { "exhausted": [], "first_stopped": [] },
+    },
+    "usage": { "bytes_read": 0, "peak_working_memory": 0 },
+    "sources": [],
+  });
   let newer: Document = serde_json::from_value(newer).unwrap();
   vec![
     error_entry(0),
@@ -74,8 +95,15 @@ fn the_writer_writes_what_from_results_writes() {
     );
     assert_eq!(written(entries, true), serde_json::to_string_pretty(&document).unwrap());
   }
-  // The entry of version 1.1 is written with the document's version, so the document reads back.
+  // The entry of version 1.1 is written with the document's version, down to the partial report of its error
+  // record, so the document reads back.
   let text = written(mixed_entries(), false);
+  let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+  assert_eq!(value["results"][3]["error"]["schema_version"], json!("1.0"));
+  assert_eq!(
+    value["results"][3]["error"]["partial_report"]["schema_version"],
+    json!("1.0")
+  );
   let read: Document = serde_json::from_str(&text).unwrap();
   assert_eq!(read.results().len(), 4);
 }

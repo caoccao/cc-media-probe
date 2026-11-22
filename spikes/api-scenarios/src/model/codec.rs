@@ -171,19 +171,19 @@ pub struct CodecInformation {
 
 impl CodecInformation {
   /// The codec's identity; absent while the description of the first sample is unproven, unless every candidate
-  /// is listed and they name one codec.
+  /// is listed and they name one codec, and absent when that description is established but was not read or kept.
   pub fn codec(&self) -> Option<&Codec> {
     self.codec.as_ref()
   }
 
   /// While the description of the first sample is unproven, each description that could hold it and that the probe
-  /// read and kept, in index order.
+  /// read and kept, in index order. Empty once the description is established: the details keep its index.
   pub fn candidates(&self) -> &[CodecCandidate] {
     &self.candidates
   }
 
   /// Whether no candidate is missing: true while nothing is unresolved, and false when the probe could not read or
-  /// keep a description that could hold the first sample.
+  /// keep a description that could hold the first sample, including the one that the first sample is known to use.
   pub fn has_every_candidate(&self) -> bool {
     self.has_every_candidate
   }
@@ -218,9 +218,9 @@ impl CodecInformation {
 impl fmt::Display for CodecInformation {
   /// The codec's name; for a codec without one, the first raw identifier as written. An unresolved codec writes
   /// each candidate in the same way, from the candidate's own identifiers, separated by " or ", and ends with a
-  /// description that was not read when a candidate is missing.
+  /// description that was not read when a candidate is missing. With no candidate kept, that phrase stands alone.
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if self.codec.is_some() || self.candidates.is_empty() {
+    if self.codec.is_some() || (self.candidates.is_empty() && self.has_every_candidate) {
       let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
       return formatter.write_str(self.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT));
     }
@@ -231,7 +231,10 @@ impl fmt::Display for CodecInformation {
       write!(formatter, "{candidate}")?;
     }
     if !self.has_every_candidate {
-      write!(formatter, "{CANDIDATE_SEPARATOR}{MISSING_CANDIDATE_TEXT}")?;
+      if !self.candidates.is_empty() {
+        formatter.write_str(CANDIDATE_SEPARATOR)?;
+      }
+      formatter.write_str(MISSING_CANDIDATE_TEXT)?;
     }
     Ok(())
   }

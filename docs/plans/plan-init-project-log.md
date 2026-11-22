@@ -2221,3 +2221,79 @@ The field guide follows in sections 3 (the names), 3.3 (`raw_identifiers`) and 4
 - the maintainer's review of the revision, for G2.2;
 - G2.3, with task 4, the CLI contract, and task 5, the JSON contract;
 - the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-22 — Progress: Phase 2, the fifth review of the API specification
+
+The maintainer reviewed revision 37 (`69f83bb`) of `docs/design/api.md`, ran the spike's 24 tests, and held back G2.2 on three findings of priority 2. The review confirmed the two caveats of the fourth revision, the 32-bit identifier and the refused report. It also raised three findings of priority 2 for the joint review of G2.3, and a smaller one in the JSON scenario. No gate is approved. Each finding was checked, and each one holds:
+
+- against the plan (sections 7.5, 8.3, 8.8 and 8.9, Phase 6, task 7), `api.md` section 1, rule 7, and the stub, whose completeness getters return references;
+- against ISO/IEC 14496-12:2015, whose contents give 8.7.4, 8.8.3 and 8.8.7 for the sample-to-chunk, track-extends and track-fragment-header boxes. Each box holds `sample_description_index` as `unsigned int(32)`;
+- by tests written before the fixes, which failed against the stub:
+  - a 1.0 document accepted an error record whose partial report was of version 1.1; the review's case was 2.0, which the same test now covers;
+  - a document rebuilt from a 1.1 document kept its partial report at `"1.1"`, with `from_results` and with the writer, which agreed with each other;
+  - reading took the `unix_bytes` data `"gg"`;
+- by running the JSON scenario in a scratch folder with a `catalog.json` that is not UTF-8. It printed the diagnostic and exited 0.
+
+The last-byte panic was not timed locally: a pipe takes the whole document at once, so no reader can close it between the last line and the line break. The scenario wrote that break with `println!`, which panics when its write to standard output fails, as the standard library documents. That matches the review's exit status of 101.
+
+**Decision of the maintainer.** The agent asked one question, and the maintainer took the recommended option.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A limit stops one candidate's validation check while another validates and its probe reaches the inventory | The report is incomplete. `Completeness::detection()` returns `Incomplete`, `reasons()` holds the limit against `Part::Detection`, the record names detection as the part that the limit stopped first, and `is_complete()` is false, so `--strict` fails. | Incomplete only when the unchecked candidate's confidence is above the chosen one's; or a diagnostic only, with the report complete | The unchecked candidate might have validated and been chosen, so the report's format is not established in full. Every shortfall still changes `is_complete()`. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **Getter types.** The completeness table returns `&DetectionStatus`, `&DiscoveryStatus`, `&SectionStatus`, `&TimingStatus` and `&CompanionStatus`, as rule 7 requires for a stored enum. A spike test fixes the types.
+- **Detection in a report.** As decided above. `Completeness` gains `detection()`, so the fixed-size record keeps the status under any limits. Section 5.1 says that a stopped check beside a validated candidate leaves the report incomplete.
+- **A known description that was lost.** The first sample's description is established, but the probe could not read it or keep it. `codec()` and `name()` are absent, `candidates()` is empty, since no other description can hold the first sample, and `has_every_candidate()` is false. `IsoBaseMediaDetails::track(index)` gives `IsoBaseMediaTrackDetails`, whose `first_sample_description_index() -> Option<u32>` keeps the index. The display is "a description that was not read".
+- **The partial report's version.** It is a nested root record too. `ErrorRecord` gives its partial report its own version when a document sets it, and yields both versions for the reader's check.
+- **The last byte.** The JSON scenario keeps the lock of standard output, writes the line break with `writeln!` and flushes, and returns both errors through `?`. The writer's description says that it writes nothing after the closing.
+- **Raw path data.** A reader takes the data of `unix_bytes` and `windows_wide` only as whole units of lowercase hexadecimal digits, two a byte or four a unit, and refuses anything else as malformed. A foreign path that passes is kept, and so is the data of an encoding of a newer version.
+- **The catalog.** Only `NotFound` skips the earlier catalog; any other read error is returned.
+
+**Found while revising.**
+
+- `HeaderStatus::identification()` returned the stored enum `Identification` by value. It returns `Option<&Identification>` now.
+- The stub's hexadecimal reading used `u16::from_str_radix`, which takes a leading `+` and uppercase digits, so `"+f"` rebuilt as the byte 0x0f. The check of whole units now comes first.
+- The plan's test "the same file under a retained-data limit" left open whether the read limit still applied. It now names both limits, and a new test covers the established index.
+- The stub's `Completeness` had no fixed-size record. It has one now, so a test can read `first_stopped()` from a report.
+- `RawPath` moved to `source/raw.rs`, one concern per file, with its encoding and the check.
+
+**Choices made without asking,** each open at the gate named:
+
+- `DetectionStatus` has the two values `Complete` and `Incomplete` and its catch-all, like `DiscoveryStatus` (G2.2).
+- The digits of raw path data must be lowercase, as the writer writes them, so that one path has one form (G2.3, task 5).
+- Empty raw path data of a known encoding counts as whole units and is accepted (G2.3, task 5).
+- `first_sample_description_index()` keeps the coded width, `u32`, and the ISO track details are reached by stream index, as Matroska's are (G2.2, Phase 6).
+- The JSON scenario prints "catalog.json: none yet" to standard error when there is no catalog (G2.2).
+
+**Plan, revision 38:**
+
+- section 7.5: a report's record names detection too;
+- section 8.3: the detection row of the parts, the validated-candidate row, the activity paragraph and `is_complete()`;
+- section 8.8 and its tests: the partial report's version, and the check of raw path data;
+- section 8.9 and its tests: an output failure at the last byte;
+- Phase 2, task 13: raw path data and the partial report's version;
+- Phase 3, tests: the report of two ambiguous candidates, one of them unchecked;
+- Phase 6, task 7 and its tests: the established index of a lost description;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+The field guide follows in section 3.3 (`raw_identifiers`) and section 4.2 (the first sample's description).
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - 29 tests pass: the 24 earlier ones, two of them extended, and five new. The new tests cover the reference types of the statuses, the partial report inside an error record, raw path data, a report with a stopped check, and a lost description.
+- **Programs.** All 13 programs end without a panic. With stand-in files, the directory scan exits normally. The JSON scenario exits normally without a catalog and with a valid one, and with an error for a catalog that is not UTF-8. Its document ends with a line break.
+- **JSON.** `jq` reads the JSON scenario's standard output: the version `"1.0"`, plain-string inputs, the outcomes `error` with the kind `source_failed`, the nested version `"1.0"`, the I/O kind `not_found`, and no `null` member.
+- **Structure.** The structure check of D23 reports 0 findings for the spike. The 13 programs in section 15 of `api.md` match the spike's examples; scenario 6 was synced from it.
+- **Diagrams.** No diagram changed.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of the revision, for G2.2;
+- G2.3, with task 4, the CLI contract, and task 5, the JSON contract, which take the last-byte failure, the partial report's version and the raw path data;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.

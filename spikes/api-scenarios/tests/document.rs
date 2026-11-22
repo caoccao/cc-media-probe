@@ -105,6 +105,30 @@ fn read_error(text: Value) -> String {
   serde_json::from_value::<Document>(text).unwrap_err().to_string()
 }
 
+/// A report without streams, of that version, such as the partial report that an error record carries.
+fn report_text(version: &str) -> Value {
+  json!({
+    "schema_version": version,
+    "format": "Matroska",
+    "streams": [],
+    "chapter_editions": [],
+    "tag_sets": [],
+    "attachments": [],
+    "diagnostics": [],
+    "completeness": {
+      "detection": "Complete",
+      "discovery": "Complete",
+      "tags": "Complete",
+      "chapters": "Complete",
+      "attachments": "Complete",
+      "reasons": [],
+      "record": { "exhausted": [], "first_stopped": [] },
+    },
+    "usage": { "bytes_read": 0, "peak_working_memory": 0 },
+    "sources": [],
+  })
+}
+
 #[test]
 fn the_document_has_the_wire_form_of_section_12() {
   let text = results_document();
@@ -293,6 +317,7 @@ fn a_document_rebuilt_from_newer_entries_gives_them_its_version() {
   for index in 0..2 {
     newer["results"][index]["error"]["schema_version"] = json!("1.1");
   }
+  newer["results"][0]["error"]["partial_report"] = report_text("1.1");
   let read: Document = serde_json::from_value(newer).unwrap();
   assert_eq!(read.schema_version().minor(), 1);
   let rebuilt = Document::from_results(Generator::new("catalog", "1"), read.results().to_vec());
@@ -301,7 +326,68 @@ fn a_document_rebuilt_from_newer_entries_gives_them_its_version() {
   for index in 0..2 {
     assert_eq!(text["results"][index]["error"]["schema_version"], json!("1.0"));
   }
+  // The report inside an error record is a root record nested in the document too.
+  assert_eq!(
+    text["results"][0]["error"]["partial_report"]["schema_version"],
+    json!("1.0")
+  );
   assert!(serde_json::from_value::<Document>(text).is_ok());
+}
+
+#[test]
+fn reading_checks_the_partial_report_inside_an_error_record() {
+  // A source that fails after the inventory leaves an error that carries the report so far.
+  let mut text = results_document();
+  text["results"][0]["error"]["partial_report"] = report_text("1.0");
+  let read: Document = serde_json::from_value(text.clone()).unwrap();
+  assert!(read.results()[0].error().unwrap().partial_report().is_some());
+  for version in ["1.1", "2.0"] {
+    text["results"][0]["error"]["partial_report"]["schema_version"] = json!(version);
+    assert_eq!(
+      read_error(text.clone()),
+      "a nested record's schema version differs from the document's"
+    );
+  }
+}
+
+#[test]
+fn a_raw_path_of_a_known_encoding_is_read_only_as_whole_hexadecimal_units() {
+  let lossy = |encoding: &str, data: &str| {
+    let mut text = results_document();
+    text["results"][0]["input"] = json!("caf\u{FFFD}.mkv");
+    text["results"][0]["input_lossy"] = json!(true);
+    text["results"][0]["input_raw"] = json!({ "encoding": encoding, "data": data });
+    serde_json::from_value::<Document>(text)
+  };
+  // Two lowercase hexadecimal digits a byte, and four a 16-bit unit, as the writer writes them.
+  let malformed = [
+    ("unix_bytes", "gg"),
+    ("unix_bytes", "636"),
+    ("unix_bytes", "+f"),
+    ("unix_bytes", "E9"),
+    ("windows_wide", "0061d8"),
+    ("windows_wide", "+061"),
+    ("windows_wide", "D800"),
+  ];
+  for (encoding, data) in malformed {
+    assert_eq!(
+      lossy(encoding, data).unwrap_err().to_string(),
+      "the data of a raw path is lowercase hexadecimal, two digits a byte for unix_bytes and four a unit for \
+       windows_wide",
+      "{encoding} {data}"
+    );
+  }
+  // A foreign path is kept although this platform cannot rebuild it, and so is the data of an encoding that a
+  // newer version wrote, as it was written.
+  let native = |encoding: &str, data: &str| {
+    let read = lossy(encoding, data).unwrap();
+    let input = read.results()[0].input();
+    assert_eq!(input.raw().unwrap().data(), data);
+    input.to_native()
+  };
+  assert_eq!(native("unix_bytes", "636166e9").is_some(), cfg!(unix));
+  assert_eq!(native("windows_wide", "0061d800").is_some(), cfg!(windows));
+  assert_eq!(native("vms_records", "Any Text"), None);
 }
 
 #[test]

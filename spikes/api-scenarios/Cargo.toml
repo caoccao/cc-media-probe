@@ -50,5 +50,9 @@ name = "document"
 required-features = ["serde"]
 
 [[test]]
+name = "report"
+required-features = ["serde"]
+
+[[test]]
 name = "writer"
 required-features = ["serde"]

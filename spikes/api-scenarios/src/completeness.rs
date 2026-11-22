@@ -32,17 +32,26 @@ use crate::source::SourceIdentifier;
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Completeness {
+  detection: DetectionStatus,
   discovery: DiscoveryStatus,
   tags: SectionStatus,
   chapters: SectionStatus,
   attachments: SectionStatus,
   reasons: Vec<PartReason>,
+  record: LimitRecord,
 }
 
 impl Completeness {
-  /// The definition of plan section 8.3; the stub checks discovery and the reasons only.
+  /// The definition of plan section 8.3; the stub checks detection, discovery and the reasons only.
   pub fn is_complete(&self) -> bool {
-    self.discovery == DiscoveryStatus::Complete && self.reasons.is_empty()
+    self.detection == DetectionStatus::Complete
+      && self.discovery == DiscoveryStatus::Complete
+      && self.reasons.is_empty()
+  }
+
+  /// Whether every candidate's validation check that detection began ran to its end.
+  pub fn detection(&self) -> &DetectionStatus {
+    &self.detection
   }
 
   /// Whether every stream was found.
@@ -70,10 +79,16 @@ impl Completeness {
     &self.reasons
   }
 
+  /// The fixed-size record.
+  pub fn record(&self) -> &LimitRecord {
+    &self.record
+  }
+
   /// Whether every status is one this version knows, so that `is_complete()` decides as the writer did.
   #[cfg(feature = "serde")]
   pub(crate) fn is_known(&self) -> bool {
-    !matches!(self.discovery, DiscoveryStatus::Unrecognized(_))
+    !matches!(self.detection, DetectionStatus::Unrecognized(_))
+      && !matches!(self.discovery, DiscoveryStatus::Unrecognized(_))
       && [&self.tags, &self.chapters, &self.attachments]
         .into_iter()
         .all(|status| !matches!(status, SectionStatus::Unrecognized(_)))
@@ -88,6 +103,22 @@ impl fmt::Display for Completeness {
       Some(first) => write!(formatter, "{INCOMPLETE_TEXT}: {}", first.reason.kind.as_str()),
     }
   }
+}
+
+/// Whether detection checked every candidate it began to check. A report exists once one candidate validated; a
+/// limit that stopped another candidate's check leaves detection incomplete, since that candidate could have been
+/// chosen.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
+pub enum DetectionStatus {
+  /// Every check that detection began ran to its end.
+  #[default]
+  Complete,
+  /// A limit stopped a candidate's check.
+  Incomplete,
+  /// A value that a newer version wrote.
+  Unrecognized(UnrecognizedValue),
 }
 
 /// Whether every stream was found.
@@ -172,8 +203,8 @@ impl PartReason {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Part {
-  /// Detection, with the validation checks of the candidates. Only an error names it, since a report exists only
-  /// once detection has decided.
+  /// Detection, with the validation checks of the candidates. An error names it when a limit ended detection, and a
+  /// report when a limit stopped one candidate's check while another validated.
   Detection,
   /// Stream discovery.
   Discovery,
