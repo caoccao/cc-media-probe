@@ -1,0 +1,10 @@
+{
+  "format": ["typescript"],
+  "minLines": 5,
+  "minTokens": 50,
+  "mode": "mild",
+  "similarity": 0.8,
+  "ignore": ["**/*.test.ts", "**/node_modules/**"],
+  "reporters": ["console"],
+  "exitCode": 1
+}

@@ -33,17 +33,14 @@ pub fn generic_parameter_names(tokens: &[Token]) -> Vec<usize> {
   let mut indices = Vec::new();
   for (index, token) in tokens.iter().enumerate() {
     let next = index.saturating_add(1);
-    let opening = if [
+    let opening = if token.is_any_word(&[
       FUNCTION_KEYWORD,
       STRUCTURE_KEYWORD,
       ENUMERATION_KEYWORD,
       UNION_KEYWORD,
       TRAIT_KEYWORD,
       TYPE_KEYWORD,
-    ]
-    .iter()
-    .any(|word| token.is_word(word))
-    {
+    ]) {
       next.saturating_add(1)
     } else if token.is_word(IMPLEMENTATION_KEYWORD) || token.is_word(FOR_KEYWORD) {
       next

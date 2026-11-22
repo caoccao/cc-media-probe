@@ -19,8 +19,7 @@
 
 use crate::constants::keywords::{MOVE_KEYWORD, RETURN_KEYWORD};
 use crate::constants::punctuation::{
-  CLOSING_BRACE, CLOSING_BRACKET, CLOSING_PARENTHESIS, COLON, COMMA, EQUALS_SIGN, EXCLAMATION_MARK, GREATER_THAN_SIGN,
-  OPENING_BRACE, OPENING_BRACKET, OPENING_PARENTHESIS, SEMICOLON, VERTICAL_LINE,
+  COLON, COMMA, EQUALS_SIGN, EXCLAMATION_MARK, GREATER_THAN_SIGN, SEMICOLON, VERTICAL_LINE,
 };
 use crate::lexer::Token;
 use crate::names::definitions::patterns::{is_single_colon, pattern_bindings};
@@ -48,18 +47,8 @@ fn opens_closure(tokens: &[Token], index: usize) -> bool {
   let Some(previous) = index.checked_sub(1).and_then(|before| tokens.get(before)) else {
     return true;
   };
-  let follows_punctuation = [
-    OPENING_PARENTHESIS,
-    OPENING_BRACKET,
-    OPENING_BRACE,
-    COMMA,
-    SEMICOLON,
-    COLON,
-    EQUALS_SIGN,
-    EXCLAMATION_MARK,
-  ]
-  .iter()
-  .any(|character| previous.is_punctuation(*character));
+  let follows_punctuation =
+    previous.opens_group() || previous.is_any_punctuation(&[COMMA, SEMICOLON, COLON, EQUALS_SIGN, EXCLAMATION_MARK]);
   let follows_fat_arrow = previous.is_punctuation(GREATER_THAN_SIGN)
     && index
       .checked_sub(PAIR_LENGTH)
@@ -74,15 +63,9 @@ fn closing_line(tokens: &[Token], opening: usize) -> usize {
   let mut depth: usize = 0;
   let mut index = opening.saturating_add(1);
   while let Some(token) = tokens.get(index) {
-    if [OPENING_PARENTHESIS, OPENING_BRACKET, OPENING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-    {
+    if token.opens_group() {
       depth = depth.saturating_add(1);
-    } else if [CLOSING_PARENTHESIS, CLOSING_BRACKET, CLOSING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-    {
+    } else if token.closes_group() {
       depth = depth.saturating_sub(1);
     } else if depth == 0 && token.is_punctuation(VERTICAL_LINE) {
       return index;
@@ -102,15 +85,9 @@ fn parameters_between(tokens: &[Token], opening: usize, closing: usize) -> Vec<u
     let Some(token) = tokens.get(index) else {
       break;
     };
-    if [OPENING_PARENTHESIS, OPENING_BRACKET, OPENING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-    {
+    if token.opens_group() {
       depth = depth.saturating_add(1);
-    } else if [CLOSING_PARENTHESIS, CLOSING_BRACKET, CLOSING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-    {
+    } else if token.closes_group() {
       depth = depth.saturating_sub(1);
     } else if depth == 0 && (index == closing || token.is_punctuation(COMMA)) {
       indices.extend(pattern_bindings(tokens, start..pattern_end.unwrap_or(index)));

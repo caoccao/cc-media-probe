@@ -15,9 +15,11 @@
 * limitations under the License.
 */
 
-//! Constants that several checks share (R33): Rust keywords, punctuation and
-//! the names of files and directories with a fixed meaning.
+//! Constants that several checks share (R33): Rust keywords, punctuation,
+//! characters of plain text and the names of files and directories with a
+//! fixed meaning.
 
+pub mod characters;
 pub mod data_files;
 pub mod keywords;
 pub mod metadata;

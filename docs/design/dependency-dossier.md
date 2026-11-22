@@ -2,7 +2,7 @@
 
 The evidence for gate G1.3 of the [development plan](../plans/plan-init-project.md): every crate and tool proposed in D5 to D7, and the pure-Rust verification of D4 for the graph of the two published crates. The choices come from the maintainer's answers of 2026-11-21, and the approval followed the same day; both are recorded in the [development log](../plans/plan-init-project-log.md).
 
-- **Status:** approved at G1.3 on 2026-11-21. Each manifest gains its dependencies in the phase that first uses them; until then no manifest of the workspace names any of these crates. Any other crate, tool or version change goes through GS.1, and this document is updated with it. The GitHub Actions of section 1.7 were approved through GS.1 on 2026-11-21. The Linux and Windows results of sections 3.3 and 3.4 were added from CI on 2026-11-22.
+- **Status:** approved at G1.3 on 2026-11-21. Each manifest gains its dependencies in the phase that first uses them; until then no manifest of the workspace names any of these crates. Any other crate, tool or version change goes through GS.1, and this document is updated with it. The GitHub Actions of section 1.7 were approved through GS.1 on 2026-11-21. The Linux and Windows results of sections 3.3 and 3.4 were added from CI on 2026-11-22. `cargo-dupes` and `jscpd`, the duplicate-code checks of R36, were approved through GS.1 on 2026-11-22.
 - **Resolved:** 2026-11-21, by Cargo 1.100.0 with the workspace's dependency cooldown of 3 days. Every version below is the newest release that the cooldown admits.
 - **Evidence:** the spike [`spikes/dependency-graph/`](../../spikes/dependency-graph/README.md). It copies the two published crates with exactly the dependencies and features approved here, together with the development and fuzzing dependencies. Its lock file pins every version in this document.
 - **Advisories:** none. On 2026-11-21 the OSV database, which includes the RustSec advisories, listed no vulnerability for any of the 78 crate versions in the spike's lock file, or for the three npm packages of section 6.
@@ -59,17 +59,19 @@ Each tool is installed with `cargo install --locked --version <version> <tool>`,
 | `cargo-semver-checks` | 0.51.0 | 2026-10-03 | Apache-2.0 OR MIT | 1.93 | 416 | API comparison from 0.1.0 on (plan section 8.10). Whether it reads the rustdoc JSON of the pinned toolchain is checked when the comparison is first run, in Phase 8. |
 | `cargo-hack` | 0.6.46 | 2026-11-01 | Apache-2.0 OR MIT | 1.85 | 48 | Feature combinations in CI. |
 | `cargo-fuzz` | 0.13.2 | 2026-06-09 | MIT OR Apache-2.0 | — | 101 | Fuzzing (plan section 9.5). |
+| `cargo-dupes` | 0.2.1 | 2026-02-17 | MIT | 1.93 | 93 | Duplicate Rust code (R36), with `dupes.toml`. Approved through GS.1 on 2026-11-22. One maintainer; 0.2.1 is its newest release. It depends on `clap` and on its author's `dupes-core` and `dupes-rust`, and parses with `syn`. |
 
 The publishing rehearsal of Appendix C.2.3 needs no tool: its local registry is an in-house script, `scripts/rehearsal-registry.ts`. It is written in Phase 8 with Node.js built-in modules only (R34). It serves a sparse index, the publish endpoint and downloads, and records each version's publication time, so the rehearsal also exercises the cooldown.
 
-### 1.6 Type checking of the scripts (npm, D24)
+### 1.6 The scripts' npm tools (D24)
 
-`typescript` and `@types/node` are pinned exactly in `scripts/package.json` (`"private": true`, `"type": "module"`) with its `package-lock.json`, and are installed with `npm ci` in `scripts/`. `scripts/tsconfig.json` holds the settings below. The npm files stay in `scripts/`, at the maintainer's request. The scripts themselves still import only `node:` modules.
+`typescript`, `@types/node` and `jscpd` are pinned exactly in `scripts/package.json` (`"private": true`, `"type": "module"`) with its `package-lock.json`, and are installed with `npm ci` in `scripts/`. `scripts/tsconfig.json` holds the settings below. The npm files stay in `scripts/`, at the maintainer's request. The scripts themselves still import only `node:` modules.
 
 | Package | Version | Released | License | Depends on |
 |---|---|---|---|---|
 | `typescript` | 7.0.2 | 2026-07-08 | Apache-2.0 | One of 20 optional platform packages `@typescript/typescript-<platform>` 7.0.2, each holding the native compiler. npm installs only the one for the running platform. |
 | `@types/node` | 26.6.6 | 2026-10-28 | MIT | `undici-types` 8.9.0 (MIT). |
+| `jscpd` | 5.4.3 | 2026-11-08 | MIT | One of 8 optional platform packages `jscpd-<platform>` 5.4.3, each holding the native engine. npm installs only the one for the running platform. No install script. The duplicate-code check of the scripts (R36), with `scripts/jscpd.json`; approved through GS.1 on 2026-11-22. Only its embedding mode, which is not used, reaches the network. |
 
 `tsc --noEmit` runs with `strict`, `erasableSyntaxOnly`, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `module` set to `nodenext`, and three stricter checks: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and `noPropertyAccessFromIndexSignature`. With these settings, 7.0.2 and 6.0.3 both reported one error in the current scripts: the stdio constants were typed as plain string arrays. That was fixed with the `StdioOptions` type. Both now pass. 7.0.2 checks the 36 files in 0.09 seconds, 6.0.3 in 0.54 seconds.
 

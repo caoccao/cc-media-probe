@@ -84,6 +84,7 @@ The rules of [section 7.2](docs/plans/plan-init-project.md#72-library-module-lay
 - **File size (R31).** At most 500 lines per Rust file, counted up to its one embedded `#[cfg(test)] mod tests` block at the end. Every line counts, comments and blank lines included, and there are no exceptions.
 - **Names (R32).** Whole English words: `identifier`, not `id`; `buffer`, not `buf`; no single-letter names, generic parameters or lifetimes. Names that Rust, a dependency or a tool fixes, and proper names such as `H264` or `Id3v2`, are exempt.
 - **Constants (R33).** Every literal outside tests, documentation, attribute arguments and the numbers 0 and 1 is a named constant in a constants module beside the code that uses it. Message text is a constant too.
+- **No duplicate code (R36).** Code is written once, and code that several modules need lives in their nearest common parent. In Rust, no function, method or closure of 5 lines or more may have an exact copy, or a near copy at 80% similarity or more, once names and literal values are normalized (`cargo-dupes`, `dupes.toml`). In the scripts, no clone of 5 lines and 50 tokens or more is allowed, and no function may be 80% alike in structure to another (`jscpd`, `scripts/jscpd.json`). Test code is left out. A duplicate is removed, never added to an ignore list.
 - **Header.** Every `.rs` and `.ts` file starts with the copyright header and the Apache-2.0 notice. Copy it from any existing file.
 - **Robustness.** No `unwrap`, `expect`, unchecked indexing or unchecked arithmetic on values that come from input. Every loop over file structure is bounded by the probe budget, and walkers use explicit stacks, never recursion driven by the input.
 
@@ -129,10 +130,11 @@ flowchart TD
 
 - the Rust toolchain that `rust-toolchain.toml` pins: `rustup toolchain install`;
 - a long-term-support release of Node.js, which `.nvmrc` names: `nvm install` reads it;
-- the type checker of the scripts: `npm ci` in `scripts/`;
-- `cargo-llvm-cov` 0.9.1: `cargo install --locked --version 0.9.1 cargo-llvm-cov`.
+- the type checker and the duplicate-code check of the scripts: `npm ci` in `scripts/`;
+- `cargo-llvm-cov` 0.9.1: `cargo install --locked --version 0.9.1 cargo-llvm-cov`;
+- `cargo-dupes` 0.2.1: `cargo install --locked --version 0.2.1 cargo-dupes`.
 
-It runs, in order: the Node.js version, file hygiene, Markdown links, the specification tables, the structure, types and tests of the scripts, formatting, lints, the Rust structure check, the tests, coverage, documentation, target ownership, the package contents, the joint packaging of both crates and the pure-Rust verification. It stops at the first step that fails.
+It runs, in order: the Node.js version, file hygiene, Markdown links, the specification tables, the structure, types, duplicate code and tests of the scripts, formatting, lints, the Rust structure check, Rust duplicate code, the tests, coverage, documentation, target ownership, the package contents, the joint packaging of both crates and the pure-Rust verification. It stops at the first step that fails.
 
 **Never set `RUSTFLAGS`.** It replaces the flag that marks a repository build, and a guard test then fails. Warnings are denied by the workspace's lint table instead.
 

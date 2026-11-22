@@ -22,8 +22,8 @@
 //! with the line it starts on and whether the next token follows directly.
 //! That is enough for the structure check (D23).
 
+mod characters;
 mod constants;
-mod cursor;
 mod literal_scanner;
 mod token;
 mod tokenizer;

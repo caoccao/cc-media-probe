@@ -22,6 +22,7 @@ permissions:
 env:
   # The tool versions of docs/design/dependency-dossier.md, section 1.5.
   CARGO_LLVM_COV_VERSION: "0.9.1"
+  CARGO_DUPES_VERSION: "0.2.1"
   CARGO_DENY_VERSION: "0.21.0"
   CARGO_HACK_VERSION: "0.6.46"
 
@@ -62,6 +63,20 @@ jobs:
         env:
           # cargo install reads only the user's configuration, not .cargo/config.toml, so the dependency cooldown of
           # that file is given here (plan D7).
+          CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE: 3 days
+          CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE: deny
+      - name: Restore cargo-dupes
+        id: duplicates-tool
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/bin/cargo-dupes
+            ~/.cargo/bin/cargo-dupes.exe
+          key: cargo-dupes-${{ env.CARGO_DUPES_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Install cargo-dupes
+        if: steps.duplicates-tool.outputs.cache-hit != 'true'
+        run: cargo install --locked --version ${{ env.CARGO_DUPES_VERSION }} cargo-dupes
+        env:
           CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE: 3 days
           CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE: deny
       - name: Run every check of the repository

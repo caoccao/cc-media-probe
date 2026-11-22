@@ -29,6 +29,10 @@ pub const CLOSING_BRACKET: char = ']';
 pub const OPENING_BRACE: char = '{';
 /// Closes a braced group.
 pub const CLOSING_BRACE: char = '}';
+/// The characters that open a group.
+pub const OPENING_DELIMITERS: [char; 3] = [OPENING_PARENTHESIS, OPENING_BRACKET, OPENING_BRACE];
+/// The characters that close a group.
+pub const CLOSING_DELIMITERS: [char; 3] = [CLOSING_PARENTHESIS, CLOSING_BRACKET, CLOSING_BRACE];
 /// Ends a statement or an item.
 pub const SEMICOLON: char = ';';
 /// Separates list elements.

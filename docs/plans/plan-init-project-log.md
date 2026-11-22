@@ -1128,3 +1128,89 @@ The agent presented the Windows result and two choices: allow the Visual C++ run
 
 - A commit and push, on the maintainer's request, so that the third run checks the new entries.
 - G1.9, once CI is green on the three runners.
+
+## 2026-11-22 — Progress: the third CI run
+
+On the maintainer's request, the allow-list was committed as `2b1b9fd` and pushed. Every job of the run passed:
+
+- the check script on `ubuntu-26.04`, `macos-26` and `windows-2025`, with 0 findings in the fourth pure-Rust layer on each;
+- the tests on current stable on the three runners;
+- the tests on the declared `rust-version`;
+- the feature combinations;
+- the audit.
+
+Phase 1's last exit criterion, CI green, is met.
+
+**Open:** G1.9, the phase gate.
+
+## 2026-11-22 — G1.9 Phase gate [CONFIRM]
+
+The agent presented the summary of Phase 1, which covered:
+
+- what was built: the workspace, the checks, the dossier, the specification set and the project documents with CI;
+- CI green on `2b1b9fd` on the three runners, with 90 script tests and 149 Rust tests;
+- coverage: 100.00% for the CLI (10/10); the library and its areas have no executable lines;
+- no resource, fuzz or output results yet, because no parser exists;
+- no optional steps in Phase 1;
+- every exit criterion met;
+- the deviations of revisions 7 to 21;
+- eight choices made without asking.
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| The phase gate | Approved. Phase 1 is complete, and Phase 2 is next. | The exit criteria are met, and CI is green. |
+| The choices made without asking | All eight kept: warnings denied in the lint table; absolute links in the README; the npm cooldown and exact versions in `scripts/.npmrc`; joint packaging as a step of the check script; the declared `rust-version` read by a script; the cooldown variables on the install steps only; runs not canceled by a newer push; the advisory published with the fixing release. | No change was asked for. |
+| Unconfirmed active rows | The deliverables check fails on an active coverage row without the date of its confirmation. | All 307 active rows have one, but no check required it, and later phases add rows. |
+
+## 2026-11-22 — GS.1 Duplicate-code checks [CONFIRM]
+
+The maintainer asked for `cargo-dupes` to enforce a duplicate-code rule, with its threshold in `CLAUDE.md` and CI. The agent installed it, measured the repository, and presented the tool, the thresholds and where the check runs. It then researched and proposed `jscpd` for the scripts, which `cargo-dupes` does not read. The maintainer decided:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| `cargo-dupes` | Approved: 0.2.1 of 2026-02-17, MIT, 93 crates in its lock file. | It finds exact and near copies per function, method and closure after normalizing names and literal values. |
+| Rust thresholds | Functions, methods and closures of 5 lines or more. No exact copy, and no near copy at 80% similarity (the tool's default) or more. Test code is left out, and so are `spikes/` and `readers/`. In `dupes.toml`. | With the tool's default of 10 syntax nodes, the first run found 19 exact and 5 near groups. Most were one-line functions that differ only in a constant, and tests that differ only in their values. At 5 lines without tests, only real copies remain. The other choices measured 7 exact and 2 near groups with tests included, and 10 and 2 at the default size. |
+| Where it runs | A step of `scripts/check.ts`, so locally on every change and in CI's check job on the three runners. | A duplicate is found before a commit, not after a push. |
+| `jscpd` | Approved: 5.4.3 of 2026-11-08, MIT, no dependencies and no install script. Its native engine comes as one optional npm package per platform. | It reads TypeScript and compares functions by normalized structure, as `cargo-dupes` does for Rust. |
+| Script thresholds | Exact clones of 5 lines and 50 tokens or more (its defaults), and functions at 80% similarity of structure or more. Any clone fails. `*.test.ts` and `node_modules` are left out. In `scripts/jscpd.json`. | Adding renamed matching token by token found 20 groups, all runs of constant declarations, message lists and import blocks, none copied logic. |
+
+## 2026-11-22 — Progress: no duplicate code (R36)
+
+**Added:**
+
+- `dupes.toml`, at the repository root. `cargo dupes --path . check` reads it, because exclusions match the walked path as a substring: from `.` that path is relative, while from an absolute root a parent directory's name would match. Every exclusion is written for both path separators. `tests.rs`, `tests/` and `benches/` are excluded by path, because the tool's `exclude_tests` covers only `#[test]` functions and `#[cfg(test)]` modules.
+- `scripts/jscpd.json`, and `jscpd` 5.4.3 in `scripts/package.json`. The lock file records all eight platform packages, and `npm ci` installs the host's.
+- Two steps of `node scripts/check.ts`: "script duplicate code (R36)" after the type check, and "duplicate code (R36)" after the Rust structure check. The npm tools now start through one function that reports a missing `npm ci`.
+- CI's check job installs `cargo-dupes` 0.2.1 with the cooldown and caches it, as it does `cargo-llvm-cov`.
+
+**Duplicates removed**, in `cc-media-probe-checks`:
+
+- The JSON reader's `Scanner` repeated the lexer's `Cursor`: the same fields, constructor and `advance`. `Cursor` moved to the crate's shared module `src/cursor.rs`, and the scanner now wraps it. The lexer keeps its character classes in `lexer/characters.rs`. The line feed is one shared constant instead of one in each module.
+- A token compared with a list of words or punctuation was written out 13 times. Four of those were the lists of opening and closing brackets. `Token` gained `is_any_word`, `is_any_punctuation`, `opens_group` and `closes_group`, with the bracket lists and the keywords that make `const` a function qualifier as shared constants.
+- The crate's documentation named `scripts/check.sh` and left out the command `dynamic-libraries`; both are corrected.
+
+**Verification, on macOS on 2026-11-22:**
+
+- `node scripts/check.ts` passes every step, the two new ones included.
+- `cargo dupes --path . check` reports 0 exact and 0 near groups among 171 code units, and `jscpd` reports 0 clones in the 57 script files above its token minimum.
+- The 150 Rust tests pass, including a new one for the token methods, and so do the 91 script tests, including a new one for the confirmation rule.
+- A synthetic pair of renamed functions in a scratch directory makes `jscpd` fail with `scripts/jscpd.json`. During the work, `cargo-dupes` failed the check on a near pair of closures, which was then removed.
+
+**Documents:**
+
+- Plan, revision 22:
+  - R36;
+  - D7, D23 and D24;
+  - section 5.2;
+  - the layout of section 7.1;
+  - section 9.8;
+  - the status line and the Phase 1 progress line;
+  - Appendix D;
+  - Appendix E.
+- The dossier: section 1.5, section 1.6 (now the scripts' npm tools) and the status line.
+- `CLAUDE.md` and `CONTRIBUTING.md`: the rule, its thresholds, the checks and the tools.
+
+**Open:**
+
+- A commit and push, on the maintainer's request, so that CI installs `cargo-dupes` and runs both checks on the three runners.
+- Phase 2, from its first task.

@@ -175,7 +175,9 @@ test('accepts a committed description of a paid standard as a source, but not it
     ['key\tkind\tsection\tsubject\titem\tcarriage\tphase', ...DELIVERED.map(cells)].join('\n') + '\n',
   );
   const coverage = DELIVERED.map((row, index) =>
-    [row.key, 'active', '0.1.0', '', index === 0 ? 'README.md: 1' : 'iso-iec-14496-15.md: 2', '', ''].join('\t'),
+    [row.key, 'active', '0.1.0', '', index === 0 ? 'README.md: 1' : 'iso-iec-14496-15.md: 2', '', '2026-11-21'].join(
+      '\t',
+    ),
   );
   writeFileSync(
     join(specifications, 'coverage.tsv'),

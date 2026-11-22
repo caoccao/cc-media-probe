@@ -1,0 +1,28 @@
+# The duplicate-code check of `cargo dupes`, run by `node scripts/check.ts`
+# from the repository root as `cargo dupes --path . check` (R36).
+#
+# A function, method or closure of 5 lines or more may have no exact copy and
+# no near copy of 80% similarity or more anywhere in the Rust code of the
+# repository. Test code is left out: `#[test]` functions, `#[cfg(test)]`
+# modules, `tests.rs` files, and the `tests/` and `benches/` directories.
+# The spikes and the old-reader workspaces are left out too. Each pattern
+# matches a part of a path, which starts with `./`, so each is written once
+# for each path separator.
+
+min_lines = 5
+similarity_threshold = 0.8
+exclude_tests = true
+exclude = [
+  "./spikes/",
+  ".\\spikes\\",
+  "./readers/",
+  ".\\readers\\",
+  "/tests/",
+  "\\tests\\",
+  "/tests.rs",
+  "\\tests.rs",
+  "/benches/",
+  "\\benches\\",
+]
+max_exact_duplicates = 0
+max_near_duplicates = 0

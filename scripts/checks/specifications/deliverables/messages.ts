@@ -34,6 +34,8 @@ export const MALFORMED_GATE_OR_RELEASE =
 export const SOURCES_RULE = 'an active row names at least one source';
 /** A malformed date. */
 export const MALFORMED_DATE = 'the confirmation date is not written as YYYY-MM-DD';
+/** An active row whose cited sections were not confirmed in the stored documents. */
+export const UNCONFIRMED_ROW = 'an active row has the date on which its sections were confirmed';
 /** A key of one table without its partner in the other. */
 export const NO_COVERAGE = 'deliverable without a coverage row';
 /** A coverage row without its deliverable. */

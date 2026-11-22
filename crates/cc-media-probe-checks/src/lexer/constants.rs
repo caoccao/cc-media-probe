@@ -21,8 +21,6 @@
 pub const QUOTATION_MARK: char = '"';
 /// Starts an escape sequence.
 pub const BACKSLASH: char = '\\';
-/// Ends a line.
-pub const LINE_FEED: char = '\n';
 /// The slash of a comment.
 pub const SLASH: char = '/';
 /// The asterisk of a block comment.

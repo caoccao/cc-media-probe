@@ -106,6 +106,10 @@ pub const TESTS_MODULE_NAME: &str = "tests";
 /// The name of a binary's entry function.
 pub const MAIN_FUNCTION_NAME: &str = "main";
 
+/// The keywords after `const` that make it a qualifier of a function
+/// rather than the start of a constant item.
+pub const CONSTANT_FUNCTION_KEYWORDS: &[&str] =
+  &[FUNCTION_KEYWORD, UNSAFE_KEYWORD, ASYNCHRONOUS_KEYWORD, EXTERN_KEYWORD];
 /// Keywords that never name a binding in a pattern.
 pub const PATTERN_KEYWORDS: &[&str] = &[
   "ref", "mut", "box", "_", "true", "false", "self", "Self", "crate", "super", "in", "if", "else", "as", "const",

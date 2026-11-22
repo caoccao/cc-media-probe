@@ -15,12 +15,12 @@
 * limitations under the License.
 */
 
-//! A cursor over the characters of a source text.
+//! A cursor over the characters of a text, shared by the Rust lexer and the
+//! JSON reader.
 
-use crate::constants::punctuation::{APOSTROPHE, UNDERSCORE};
-use crate::lexer::constants::LINE_FEED;
+use crate::constants::characters::LINE_FEED;
 
-/// Hands out the characters of a source text one at a time and counts lines.
+/// Hands out the characters of a text one at a time and counts lines.
 pub struct Cursor {
   characters: Vec<char>,
   position: usize,
@@ -28,10 +28,10 @@ pub struct Cursor {
 }
 
 impl Cursor {
-  /// A cursor at the start of `source`, on line one.
-  pub fn new(source: &str) -> Self {
+  /// A cursor at the start of `text`, on line one.
+  pub fn new(text: &str) -> Self {
     Self {
-      characters: source.chars().collect(),
+      characters: text.chars().collect(),
       position: 0,
       line: 1,
     }
@@ -85,24 +85,9 @@ impl Cursor {
   }
 }
 
-/// Whether `character` can start an identifier.
-pub fn is_identifier_start(character: char) -> bool {
-  character == UNDERSCORE || character.is_alphabetic()
-}
-
-/// Whether `character` can continue an identifier.
-pub fn is_identifier_continue(character: char) -> bool {
-  character == UNDERSCORE || character.is_alphanumeric()
-}
-
-/// Whether `character` closes a character literal.
-pub fn is_apostrophe(character: char) -> bool {
-  character == APOSTROPHE
-}
-
 #[cfg(test)]
 mod tests {
-  use super::{Cursor, is_apostrophe, is_identifier_continue, is_identifier_start};
+  use super::Cursor;
 
   #[test]
   fn advances_and_counts_lines() {
@@ -118,15 +103,5 @@ mod tests {
     assert_eq!(cursor.advance_while(char::is_alphabetic), "cd");
     assert_eq!(cursor.advance(), None);
     assert_eq!(cursor.peek_at(usize::MAX), None);
-  }
-
-  #[test]
-  fn classifies_identifier_characters() {
-    assert!(is_identifier_start('_'));
-    assert!(is_identifier_start('é'));
-    assert!(!is_identifier_start('7'));
-    assert!(is_identifier_continue('7'));
-    assert!(!is_identifier_continue('-'));
-    assert!(is_apostrophe('\''));
   }
 }

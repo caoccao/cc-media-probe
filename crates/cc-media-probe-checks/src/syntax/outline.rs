@@ -18,10 +18,10 @@
 //! The top-level items of a source file.
 
 use crate::constants::keywords::{
-  ASYNCHRONOUS_KEYWORD, AUTO_KEYWORD, CONSTANT_KEYWORD, CRATE_KEYWORD, DEFAULT_KEYWORD, ENUMERATION_KEYWORD,
-  EXTERN_KEYWORD, FUNCTION_KEYWORD, IMPLEMENTATION_KEYWORD, MACRO_RULES_NAME, MODULE_KEYWORD, MUTABLE_KEYWORD,
-  PUBLIC_KEYWORD, SAFE_KEYWORD, STATIC_KEYWORD, STRUCTURE_KEYWORD, TRAIT_KEYWORD, TYPE_KEYWORD, UNION_KEYWORD,
-  UNSAFE_KEYWORD, USE_KEYWORD,
+  ASYNCHRONOUS_KEYWORD, AUTO_KEYWORD, CONSTANT_FUNCTION_KEYWORDS, CONSTANT_KEYWORD, CRATE_KEYWORD, DEFAULT_KEYWORD,
+  ENUMERATION_KEYWORD, EXTERN_KEYWORD, FUNCTION_KEYWORD, IMPLEMENTATION_KEYWORD, MACRO_RULES_NAME, MODULE_KEYWORD,
+  MUTABLE_KEYWORD, PUBLIC_KEYWORD, SAFE_KEYWORD, STATIC_KEYWORD, STRUCTURE_KEYWORD, TRAIT_KEYWORD, TYPE_KEYWORD,
+  UNION_KEYWORD, UNSAFE_KEYWORD, USE_KEYWORD,
 };
 use crate::constants::punctuation::{
   EXCLAMATION_MARK, NUMBER_SIGN, OPENING_BRACE, OPENING_BRACKET, OPENING_PARENTHESIS, SEMICOLON,
@@ -103,21 +103,14 @@ fn skip_visibility_and_qualifiers(tokens: &[Token], delimiters: &Delimiters, sta
       return index;
     };
     let next = tokens.get(index.saturating_add(1));
-    let is_qualifier = [
+    let is_qualifier = token.is_any_word(&[
       UNSAFE_KEYWORD,
       ASYNCHRONOUS_KEYWORD,
       DEFAULT_KEYWORD,
       AUTO_KEYWORD,
       SAFE_KEYWORD,
-    ]
-    .iter()
-    .any(|word| token.is_word(word))
-      || (token.is_word(CONSTANT_KEYWORD)
-        && next.is_some_and(|following| {
-          [FUNCTION_KEYWORD, UNSAFE_KEYWORD, ASYNCHRONOUS_KEYWORD, EXTERN_KEYWORD]
-            .iter()
-            .any(|word| following.is_word(word))
-        }))
+    ]) || (token.is_word(CONSTANT_KEYWORD)
+      && next.is_some_and(|following| following.is_any_word(CONSTANT_FUNCTION_KEYWORDS)))
       || (token.is_word(EXTERN_KEYWORD) && next.is_some_and(Token::is_string));
     if !is_qualifier {
       return index;

@@ -22,8 +22,8 @@ use std::ops::Range;
 
 use crate::constants::keywords::{ELSE_KEYWORD, FOR_KEYWORD, IN_KEYWORD, LET_KEYWORD, PATTERN_KEYWORDS};
 use crate::constants::punctuation::{
-  CLOSING_BRACE, CLOSING_BRACKET, CLOSING_PARENTHESIS, COLON, EQUALS_SIGN, EXCLAMATION_MARK, FULL_STOP,
-  GREATER_THAN_SIGN, LESS_THAN_SIGN, OPENING_BRACE, OPENING_BRACKET, OPENING_PARENTHESIS, SEMICOLON,
+  CLOSING_BRACE, COLON, EQUALS_SIGN, EXCLAMATION_MARK, FULL_STOP, GREATER_THAN_SIGN, LESS_THAN_SIGN, OPENING_BRACE,
+  OPENING_PARENTHESIS, SEMICOLON,
 };
 use crate::lexer::{Token, TokenKind};
 use crate::syntax::{is_path_separator, previous_is_path_separator};
@@ -94,15 +94,9 @@ pub fn pattern_end(tokens: &[Token], start: usize) -> usize {
   let mut depth: usize = 0;
   let mut index = start;
   while let Some(token) = tokens.get(index) {
-    if [OPENING_PARENTHESIS, OPENING_BRACKET, OPENING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-    {
+    if token.opens_group() {
       depth = depth.saturating_add(1);
-    } else if [CLOSING_PARENTHESIS, CLOSING_BRACKET, CLOSING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-    {
+    } else if token.closes_group() {
       if depth == 0 {
         return index;
       }

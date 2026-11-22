@@ -30,6 +30,7 @@ import {
   ALL_CHECKS_PASSED,
   COVERAGE_STEP,
   DOCUMENTATION_STEP,
+  DUPLICATES_STEP,
   FAILED_PREFIX,
   FORMATTING_STEP,
   HYGIENE_STEP,
@@ -37,17 +38,18 @@ import {
   LINTS_STEP,
   MARKDOWN_LINKS_STEP,
   NODE_VERSION_STEP,
+  NPM_TOOL_MISSING,
   PACKAGES_STEP,
   PURE_RUST_STEP,
   RUST_STRUCTURE_STEP,
   RUST_TESTS_STEP,
+  SCRIPT_DUPLICATES_STEP,
   SCRIPT_STRUCTURE_STEP,
   SCRIPT_TESTS_STEP,
   SCRIPT_TYPES_STEP,
   SPECIFICATIONS_STEP,
   STEP_PREFIX,
   TARGETS_STEP,
-  TYPE_CHECKER_MISSING,
 } from './messages.ts';
 import { checkNodeVersion } from './node-version.ts';
 import { checkPackages } from './packages/packages.ts';
@@ -60,10 +62,16 @@ import {
   COVERAGE_COMMAND,
   COVERAGE_REPORT,
   DOCUMENTATION_ARGUMENTS,
+  DUPLICATES_ARGUMENTS,
   FORMATTING_ARGUMENTS,
   JOINT_PACKAGING_ARGUMENTS,
   LINTS_ARGUMENTS,
+  SCRIPT_DUPLICATES_CONFIGURATION,
+  SCRIPT_DUPLICATES_CONFIGURATION_OPTION,
+  SCRIPT_DUPLICATES_OPTIONS,
+  SCRIPT_DUPLICATES_TOOL,
   SCRIPT_TESTS_ARGUMENTS,
+  SCRIPTS_DIRECTORY,
   STRUCTURE_COMMAND,
   TARGETS_COMMAND,
   TESTS_ARGUMENTS,
@@ -86,14 +94,33 @@ function passes(findings: readonly string[]): boolean {
   return findings.length === 0;
 }
 
-/** Type-checks the scripts with the type checker that `npm ci` installs in `scripts` (D24). */
-function typeCheck(root: string): boolean {
-  const typeChecker = join(root, ...TYPE_CHECKER);
-  if (!existsSync(typeChecker)) {
-    console.error(TYPE_CHECKER_MISSING);
+/**
+ * Runs a tool that `npm ci` installs in `scripts`, given by the components of its entry point, with Node.js itself, so
+ * that it needs no shell (D24).
+ */
+function runNpmTool(root: string, tool: readonly string[], toolArguments: readonly string[]): boolean {
+  const entryPoint = join(root, ...tool);
+  if (!existsSync(entryPoint)) {
+    console.error(`${entryPoint}: ${NPM_TOOL_MISSING}`);
     return false;
   }
-  return runCommand(process.execPath, [typeChecker, TYPE_CHECK_OPTION, join(root, ...TYPE_CHECK_CONFIGURATION)], root);
+  return runCommand(process.execPath, [entryPoint, ...toolArguments], root);
+}
+
+/** Type-checks the scripts (D24). */
+function typeCheck(root: string): boolean {
+  return runNpmTool(root, TYPE_CHECKER, [TYPE_CHECK_OPTION, join(root, ...TYPE_CHECK_CONFIGURATION)]);
+}
+
+/** Looks for duplicate code in the scripts, with the thresholds of their configuration (R36). */
+function scriptDuplicates(root: string): boolean {
+  const configuration = join(root, ...SCRIPT_DUPLICATES_CONFIGURATION);
+  return runNpmTool(root, SCRIPT_DUPLICATES_TOOL, [
+    SCRIPT_DUPLICATES_CONFIGURATION_OPTION,
+    configuration,
+    ...SCRIPT_DUPLICATES_OPTIONS,
+    join(root, ...SCRIPTS_DIRECTORY),
+  ]);
 }
 
 /**
@@ -123,6 +150,7 @@ const STEPS: readonly Step[] = [
   { description: SPECIFICATIONS_STEP, run: (root) => passes(checkSpecifications(root, repositoryFiles(root))) },
   { description: SCRIPT_STRUCTURE_STEP, run: (root) => passes(checkScriptStructure(root, repositoryFiles(root))) },
   { description: SCRIPT_TYPES_STEP, run: (root) => typeCheck(root) },
+  { description: SCRIPT_DUPLICATES_STEP, run: (root) => scriptDuplicates(root) },
   {
     description: SCRIPT_TESTS_STEP,
     run: (root) => runCommand(process.execPath, [...SCRIPT_TESTS_ARGUMENTS, ...scriptTests(root)], root),
@@ -133,6 +161,7 @@ const STEPS: readonly Step[] = [
     description: RUST_STRUCTURE_STEP,
     run: (root) => runCommand(CARGO, [...CHECKS_ARGUMENTS, STRUCTURE_COMMAND], root),
   },
+  { description: DUPLICATES_STEP, run: (root) => runCommand(CARGO, DUPLICATES_ARGUMENTS, root) },
   { description: RUST_TESTS_STEP, run: (root) => runCommand(CARGO, TESTS_ARGUMENTS, root) },
   { description: COVERAGE_STEP, run: (root) => coverage(root) },
   { description: DOCUMENTATION_STEP, run: (root) => runCommand(CARGO, DOCUMENTATION_ARGUMENTS, root) },

@@ -46,6 +46,10 @@ export const FORMATTING_STEP = 'formatting';
 export const LINTS_STEP = 'lints';
 /** The Rust structure check. */
 export const RUST_STRUCTURE_STEP = 'structure (D23)';
+/** The duplicate-code check of the Rust code. */
+export const DUPLICATES_STEP = 'duplicate code (R36)';
+/** The duplicate-code check of the scripts. */
+export const SCRIPT_DUPLICATES_STEP = 'script duplicate code (R36)';
 /** Rust tests. */
 export const RUST_TESTS_STEP = 'tests';
 /** Coverage. */
@@ -60,5 +64,5 @@ export const PACKAGES_STEP = 'package contents';
 export const JOINT_PACKAGING_STEP = 'joint packaging (Appendix C.2.1)';
 /** The pure-Rust verification. */
 export const PURE_RUST_STEP = 'pure Rust (D4)';
-/** The type checker is not installed. */
-export const TYPE_CHECKER_MISSING = 'the type checker is missing; run `npm ci` in the `scripts` directory (D24)';
+/** A tool that `npm ci` installs in `scripts`, the type checker or the duplicate-code check, is not installed. */
+export const NPM_TOOL_MISSING = 'is missing; run `npm ci` in the `scripts` directory (D24)';

@@ -20,10 +20,7 @@
 //! templates, which are checked for words instead.
 
 use crate::constants::keywords::EXTERN_KEYWORD;
-use crate::constants::punctuation::{
-  CLOSING_BRACKET, CLOSING_PARENTHESIS, COMMA, EXCLAMATION_MARK, FULL_STOP, OPENING_BRACE, OPENING_BRACKET,
-  OPENING_PARENTHESIS,
-};
+use crate::constants::punctuation::{CLOSING_BRACKET, CLOSING_PARENTHESIS, COMMA, EXCLAMATION_MARK, FULL_STOP};
 use crate::lexer::Token;
 use crate::literals::constants::{LITERAL_ONLY_MACROS, TEMPLATE_MACROS};
 use crate::syntax::ParsedSource;
@@ -76,11 +73,7 @@ pub fn literal_places(parsed: &ParsedSource) -> LiteralPlaces {
 fn examine_macro_call(parsed: &ParsedSource, places: &mut LiteralPlaces, name_index: usize) {
   let tokens = &parsed.tokens;
   let opening = name_index.saturating_add(TWO_TOKENS_AHEAD);
-  let opens_group = tokens.get(opening).is_some_and(|token| {
-    [OPENING_PARENTHESIS, OPENING_BRACKET, OPENING_BRACE]
-      .iter()
-      .any(|character| token.is_punctuation(*character))
-  });
+  let opens_group = tokens.get(opening).is_some_and(Token::opens_group);
   let Some(closing) = parsed.delimiters.partner(opening).filter(|_| opens_group) else {
     return;
   };

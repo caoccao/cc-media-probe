@@ -18,7 +18,7 @@
 //! Repository checks for `cc-media-probe`.
 //!
 //! Every check here uses the standard library only, so it runs before any
-//! dependency is approved. `scripts/check.sh` and CI run them through the
+//! dependency is approved. `scripts/check.ts` and CI run them through the
 //! `cc-media-probe-checks` binary:
 //!
 //! - `structure`: the code rules R30 to R33 and the copyright header (D23).
@@ -28,10 +28,13 @@
 //!   excluded workspaces stay outside the root workspace (plan section 7.1).
 //! - `inventory`: the first layer of the pure-Rust verification (D4).
 //! - `build-output`: the third layer, over the outputs of build scripts.
+//! - `dynamic-libraries`: the fourth layer, over the libraries of the linked
+//!   command-line binary.
 
 pub mod command_line;
 pub mod constants;
 pub mod coverage;
+mod cursor;
 pub mod findings;
 pub mod inventory;
 pub mod json;

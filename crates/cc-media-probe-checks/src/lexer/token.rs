@@ -17,6 +17,8 @@
 
 //! Tokens produced by the tokenizer.
 
+use crate::constants::punctuation::{CLOSING_DELIMITERS, OPENING_DELIMITERS};
+
 /// What a token is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind {
@@ -78,10 +80,34 @@ impl Token {
     self.kind == TokenKind::Identifier && self.text == word
   }
 
+  /// Whether this token is one of the identifiers or keywords `words`.
+  #[must_use]
+  pub fn is_any_word(&self, words: &[&str]) -> bool {
+    words.iter().any(|word| self.is_word(word))
+  }
+
   /// Whether this token is the punctuation character `character`.
   #[must_use]
   pub fn is_punctuation(&self, character: char) -> bool {
     self.kind == TokenKind::Punctuation && self.text.chars().eq(std::iter::once(character))
+  }
+
+  /// Whether this token is one of the punctuation characters `characters`.
+  #[must_use]
+  pub fn is_any_punctuation(&self, characters: &[char]) -> bool {
+    characters.iter().any(|character| self.is_punctuation(*character))
+  }
+
+  /// Whether this token opens a parenthesized, bracketed or braced group.
+  #[must_use]
+  pub fn opens_group(&self) -> bool {
+    self.is_any_punctuation(&OPENING_DELIMITERS)
+  }
+
+  /// Whether this token closes a parenthesized, bracketed or braced group.
+  #[must_use]
+  pub fn closes_group(&self) -> bool {
+    self.is_any_punctuation(&CLOSING_DELIMITERS)
   }
 
   /// Whether this token is an identifier or a raw identifier.
@@ -126,6 +152,23 @@ mod tests {
     assert!(token(TokenKind::Punctuation, ";").is_punctuation(';'));
     assert!(!token(TokenKind::Punctuation, ";").is_punctuation(','));
     assert!(token(TokenKind::RawIdentifier, "type").is_identifier());
+  }
+
+  #[test]
+  fn recognizes_one_of_several_words_or_characters() {
+    assert!(token(TokenKind::Identifier, "fn").is_any_word(&["const", "fn"]));
+    assert!(!token(TokenKind::Identifier, "fn").is_any_word(&["const", "static"]));
+    assert!(token(TokenKind::Punctuation, ",").is_any_punctuation(&[';', ',']));
+    assert!(!token(TokenKind::Punctuation, ":").is_any_punctuation(&[';', ',']));
+    for opening in ["(", "[", "{"] {
+      assert!(token(TokenKind::Punctuation, opening).opens_group());
+      assert!(!token(TokenKind::Punctuation, opening).closes_group());
+    }
+    for closing in [")", "]", "}"] {
+      assert!(token(TokenKind::Punctuation, closing).closes_group());
+      assert!(!token(TokenKind::Punctuation, closing).opens_group());
+    }
+    assert!(!token(TokenKind::Punctuation, "<").opens_group());
   }
 
   #[test]

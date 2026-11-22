@@ -17,57 +17,48 @@
 
 //! Reading JSON scalars: strings, numbers and words.
 
+use crate::constants::characters::LINE_FEED;
+use crate::cursor::Cursor;
 use crate::json::constants::{
   BACKSLASH, BACKSPACE, BACKSPACE_ESCAPE, CARRIAGE_RETURN, CARRIAGE_RETURN_ESCAPE, FORM_FEED, FORM_FEED_ESCAPE,
-  HEXADECIMAL_RADIX, HIGH_SURROGATE_START, INVALID_JSON, LINE_FEED, LINE_FEED_ESCAPE, LOW_SURROGATE_END,
-  LOW_SURROGATE_START, NUMBER_CHARACTERS, QUOTATION_MARK, SOLIDUS, SUPPLEMENTARY_START, SURROGATE_PAYLOAD_BITS, TAB,
-  TAB_ESCAPE, UNEXPECTED_END, UNICODE_ESCAPE, UNICODE_ESCAPE_DIGITS,
+  HEXADECIMAL_RADIX, HIGH_SURROGATE_START, INVALID_JSON, LINE_FEED_ESCAPE, LOW_SURROGATE_END, LOW_SURROGATE_START,
+  NUMBER_CHARACTERS, QUOTATION_MARK, SOLIDUS, SUPPLEMENTARY_START, SURROGATE_PAYLOAD_BITS, TAB, TAB_ESCAPE,
+  UNEXPECTED_END, UNICODE_ESCAPE, UNICODE_ESCAPE_DIGITS,
 };
 use crate::source_error::SourceError;
 
-/// A position in JSON text, with the line for error messages.
+/// A position in JSON text, with the line for error messages, on the shared cursor.
 pub struct Scanner {
-  characters: Vec<char>,
-  position: usize,
-  line: usize,
+  cursor: Cursor,
 }
 
 impl Scanner {
   /// A scanner at the start of `text`.
   pub fn new(text: &str) -> Self {
     Self {
-      characters: text.chars().collect(),
-      position: 0,
-      line: 1,
+      cursor: Cursor::new(text),
     }
   }
 
   /// The character at the position.
   pub fn peek(&self) -> Option<char> {
-    self.characters.get(self.position).copied()
+    self.cursor.peek()
   }
 
   /// Moves past the character at the position and returns it.
   pub fn advance(&mut self) -> Option<char> {
-    let character = self.peek()?;
-    self.position = self.position.saturating_add(1);
-    if character == LINE_FEED {
-      self.line = self.line.saturating_add(1);
-    }
-    Some(character)
+    self.cursor.advance()
   }
 
   /// Skips whitespace.
   pub fn skip_whitespace(&mut self) {
-    while self.peek().is_some_and(char::is_whitespace) {
-      self.advance();
-    }
+    self.cursor.advance_while(char::is_whitespace);
   }
 
   /// An error at the current line.
   pub fn error(&self, message: &'static str) -> SourceError {
     SourceError {
-      line: self.line,
+      line: self.cursor.line(),
       message,
     }
   }
@@ -88,12 +79,9 @@ impl Scanner {
 
   /// Reads a number as written.
   pub fn number(&mut self) -> String {
-    let mut text = String::new();
-    while let Some(character) = self.peek().filter(|character| NUMBER_CHARACTERS.contains(*character)) {
-      text.push(character);
-      self.advance();
-    }
-    text
+    self
+      .cursor
+      .advance_while(|character| NUMBER_CHARACTERS.contains(character))
   }
 
   /// Reads a string whose opening quotation mark is at the position.

@@ -41,6 +41,11 @@ export const JOINT_PACKAGING_ARGUMENTS = [
 ];
 /** The Rust structure check. */
 export const STRUCTURE_COMMAND = 'structure';
+/**
+ * The duplicate-code check of R36 over the repository's Rust code, with the thresholds of `dupes.toml`. The path is
+ * the repository root, given as `.` so that the exclusions of `dupes.toml` match relative paths.
+ */
+export const DUPLICATES_ARGUMENTS = ['dupes', '--path', '.', 'check'];
 /** The target-ownership check. */
 export const TARGETS_COMMAND = 'targets';
 /** The type checker's entry point, relative to the repository root, by component; `npm ci` in `scripts` installs it. */
@@ -49,6 +54,16 @@ export const TYPE_CHECKER = ['scripts', 'node_modules', 'typescript', 'bin', 'ts
 export const TYPE_CHECK_OPTION = '--project';
 /** The type checker's configuration, which emits nothing, relative to the repository root, by component. */
 export const TYPE_CHECK_CONFIGURATION = ['scripts', 'tsconfig.json'];
+/** The duplicate-code check of the scripts, by component; `npm ci` in `scripts` installs it (R36). */
+export const SCRIPT_DUPLICATES_TOOL = ['scripts', 'node_modules', 'jscpd', 'run-jscpd.js'];
+/** The option of the duplicate-code check that names its configuration; the configuration's path follows. */
+export const SCRIPT_DUPLICATES_CONFIGURATION_OPTION = '--config';
+/** The thresholds of the duplicate-code check of the scripts, relative to the repository root, by component. */
+export const SCRIPT_DUPLICATES_CONFIGURATION = ['scripts', 'jscpd.json'];
+/** Leaves out the tips that the duplicate-code check prints after its result. */
+export const SCRIPT_DUPLICATES_OPTIONS = ['--no-tips'];
+/** The directory of the scripts, relative to the repository root, by component. */
+export const SCRIPTS_DIRECTORY = ['scripts'];
 /** Measures line coverage over every test of every crate and writes an LCOV report; the report's path follows. */
 export const COVERAGE_ARGUMENTS = [
   'llvm-cov',

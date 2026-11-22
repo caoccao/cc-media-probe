@@ -67,3 +67,11 @@ test('reports malformed keys, kinds, order, duplicates, statuses, gates, release
     'c.tsv:4: an active row names its release and no gate; a deferred or dropped row names its gate and no release',
   ]);
 });
+
+test('reports an active row whose sections are not confirmed, and accepts a deferred row without a date', () => {
+  const coverage = readCoverage(
+    'c.tsv',
+    COVERAGE + 'probe.a\tactive\t0.1.0\t\trfc9559: 5\t\t\nprobe.b\tdeferred\t\tG17.n\t\t\t\n',
+  );
+  assert.deepEqual(coverage.findings, ['c.tsv:2: an active row has the date on which its sections were confirmed']);
+});

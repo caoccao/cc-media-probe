@@ -51,8 +51,6 @@ pub const UNICODE_ESCAPE: char = 'u';
 pub const BACKSPACE: char = '\u{8}';
 /// A form feed.
 pub const FORM_FEED: char = '\u{c}';
-/// A line feed.
-pub const LINE_FEED: char = '\n';
 /// A carriage return.
 pub const CARRIAGE_RETURN: char = '\r';
 /// A tab.

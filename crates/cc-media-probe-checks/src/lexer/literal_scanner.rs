@@ -18,12 +18,13 @@
 //! Scanning of number, string and character literals.
 
 use crate::constants::punctuation::{FULL_STOP, HYPHEN_MINUS, NUMBER_SIGN, UNDERSCORE};
+use crate::cursor::Cursor;
+use crate::lexer::characters::is_identifier_start;
 use crate::lexer::constants::{
   AFTER_NEXT_OFFSET, BACKSLASH, BINARY_MARKER, DIGIT_ZERO, FLOATING_POINT_SUFFIX_START, HEXADECIMAL_MARKER,
   LOWER_CASE_EXPONENT, MALFORMED_RAW_STRING, OCTAL_MARKER, PLUS_SIGN, QUOTATION_MARK, UNTERMINATED_LITERAL,
   UPPER_CASE_EXPONENT,
 };
-use crate::lexer::cursor::{Cursor, is_identifier_start};
 use crate::lexer::token::{LiteralKind, TokenKind};
 use crate::source_error::SourceError;
 
@@ -155,7 +156,7 @@ fn is_number_character(character: char) -> bool {
 #[cfg(test)]
 mod tests {
   use super::{scan_number, scan_quoted, scan_raw};
-  use crate::lexer::cursor::Cursor;
+  use crate::cursor::Cursor;
   use crate::lexer::token::{LiteralKind, TokenKind};
 
   fn number(source: &str) -> (LiteralKind, String, Option<char>) {

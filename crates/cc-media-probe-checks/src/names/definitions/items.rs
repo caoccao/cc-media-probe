@@ -19,9 +19,9 @@
 //! by `as` in `use` declarations, loop labels and macro metavariables.
 
 use crate::constants::keywords::{
-  AS_KEYWORD, ASYNCHRONOUS_KEYWORD, CONSTANT_KEYWORD, CRATE_KEYWORD, ENUMERATION_KEYWORD, EXTERN_KEYWORD, FOR_KEYWORD,
-  FUNCTION_KEYWORD, LOOP_KEYWORD, MACRO_RULES_NAME, MODULE_KEYWORD, MUTABLE_KEYWORD, STATIC_KEYWORD, STRUCTURE_KEYWORD,
-  TRAIT_KEYWORD, TYPE_KEYWORD, UNION_KEYWORD, UNSAFE_KEYWORD, USE_KEYWORD, WHILE_KEYWORD,
+  AS_KEYWORD, CONSTANT_FUNCTION_KEYWORDS, CONSTANT_KEYWORD, CRATE_KEYWORD, ENUMERATION_KEYWORD, EXTERN_KEYWORD,
+  FOR_KEYWORD, FUNCTION_KEYWORD, LOOP_KEYWORD, MACRO_RULES_NAME, MODULE_KEYWORD, MUTABLE_KEYWORD, STATIC_KEYWORD,
+  STRUCTURE_KEYWORD, TRAIT_KEYWORD, TYPE_KEYWORD, UNION_KEYWORD, USE_KEYWORD, WHILE_KEYWORD,
 };
 use crate::constants::punctuation::{COLON, DOLLAR_SIGN, EXCLAMATION_MARK, LESS_THAN_SIGN, OPENING_BRACE, SEMICOLON};
 use crate::lexer::{Token, TokenKind};
@@ -54,11 +54,7 @@ pub fn item_names(tokens: &[Token]) -> Vec<usize> {
         .map(|_| next),
       CONSTANT_KEYWORD => tokens
         .get(next)
-        .filter(|following| {
-          ![FUNCTION_KEYWORD, UNSAFE_KEYWORD, ASYNCHRONOUS_KEYWORD, EXTERN_KEYWORD]
-            .iter()
-            .any(|word| following.is_word(word))
-        })
+        .filter(|following| !following.is_any_word(CONSTANT_FUNCTION_KEYWORDS))
         .map(|_| next),
       MACRO_RULES_NAME
         if tokens
@@ -112,10 +108,7 @@ pub fn label_names(tokens: &[Token]) -> Vec<usize> {
       .is_some_and(|following| following.is_punctuation(COLON))
       && !is_path_separator(tokens, colon);
     let labels_a_loop = target.is_some_and(|following| {
-      [LOOP_KEYWORD, WHILE_KEYWORD, FOR_KEYWORD]
-        .iter()
-        .any(|word| following.is_word(word))
-        || following.is_punctuation(OPENING_BRACE)
+      following.is_any_word(&[LOOP_KEYWORD, WHILE_KEYWORD, FOR_KEYWORD]) || following.is_punctuation(OPENING_BRACE)
     });
     if has_colon && labels_a_loop {
       indices.push(index);

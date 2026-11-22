@@ -17,12 +17,14 @@
 
 //! Turns source text into tokens.
 
+use crate::constants::characters::LINE_FEED;
 use crate::constants::punctuation::{APOSTROPHE, NUMBER_SIGN};
+use crate::cursor::Cursor;
+use crate::lexer::characters::{is_apostrophe, is_identifier_continue, is_identifier_start};
 use crate::lexer::constants::{
-  AFTER_NEXT_OFFSET, ASTERISK, BACKSLASH, BYTE_PREFIX, C_STRING_PREFIX, LINE_FEED, NO_PREFIX, QUOTATION_MARK,
-  RAW_BYTE_PREFIX, RAW_C_STRING_PREFIX, RAW_PREFIX, SLASH, UNTERMINATED_COMMENT, UNTERMINATED_LITERAL,
+  AFTER_NEXT_OFFSET, ASTERISK, BACKSLASH, BYTE_PREFIX, C_STRING_PREFIX, NO_PREFIX, QUOTATION_MARK, RAW_BYTE_PREFIX,
+  RAW_C_STRING_PREFIX, RAW_PREFIX, SLASH, UNTERMINATED_COMMENT, UNTERMINATED_LITERAL,
 };
-use crate::lexer::cursor::{Cursor, is_apostrophe, is_identifier_continue, is_identifier_start};
 use crate::lexer::literal_scanner::{scan_number, scan_quoted, scan_raw};
 use crate::lexer::token::{LiteralKind, Token, TokenKind};
 use crate::source_error::SourceError;

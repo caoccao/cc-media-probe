@@ -40,6 +40,7 @@ import {
   NOT_IN_VOCABULARY,
   OUT_OF_ORDER,
   SOURCES_RULE,
+  UNCONFIRMED_ROW,
 } from './messages.ts';
 
 /** One deliverable, in the words of the plan where a table of section 4 lists it. */
@@ -139,7 +140,9 @@ function duplicateFindings(file: string, keys: readonly string[]): string[] {
   return findings;
 }
 
-/** An active row has a release and sources and no gate; a deferred or dropped row names its gate. */
+/**
+ * An active row has a release, sources, a confirmation date and no gate; a deferred or dropped row names its gate.
+ */
 function coverageFindings(location: string, row: Coverage): string[] {
   const findings: string[] = [];
   if (!STATUSES.includes(row.status)) {
@@ -156,6 +159,9 @@ function coverageFindings(location: string, row: Coverage): string[] {
   }
   if (row.confirmed !== EMPTY && !DATE_PATTERN.test(row.confirmed)) {
     findings.push(`${location}: ${MALFORMED_DATE}`);
+  }
+  if (active && row.confirmed === EMPTY) {
+    findings.push(`${location}: ${UNCONFIRMED_ROW}`);
   }
   return findings;
 }
