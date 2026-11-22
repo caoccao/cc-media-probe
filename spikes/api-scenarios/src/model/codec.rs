@@ -19,7 +19,9 @@
 
 use std::fmt;
 
-use super::constants::{AAC_NAME, AV1_NAME, H264_NAME, OPUS_NAME, UNKNOWN_CODEC_TEXT, VP9_NAME, WEBVTT_NAME};
+use super::constants::{
+  AAC_NAME, AV1_NAME, CANDIDATE_SEPARATOR, H264_NAME, OPUS_NAME, UNKNOWN_CODEC_TEXT, VP9_NAME, WEBVTT_NAME,
+};
 use super::values::UnrecognizedValue;
 
 /// A codec's identity.
@@ -123,7 +125,8 @@ impl fmt::Display for Profile {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CodecInformation {
-  codec: Codec,
+  codec: Option<Codec>,
+  candidate_codecs: Vec<Codec>,
   raw_identifiers: Vec<RawCodecIdentifier>,
   profile: Option<Profile>,
   level: Option<Profile>,
@@ -131,17 +134,23 @@ pub struct CodecInformation {
 }
 
 impl CodecInformation {
-  /// The codec's identity.
-  pub fn codec(&self) -> &Codec {
-    &self.codec
+  /// The codec's identity; absent while the description of the first sample is unproven and the candidates name
+  /// different codecs.
+  pub fn codec(&self) -> Option<&Codec> {
+    self.codec.as_ref()
   }
 
-  /// The library's name for a known codec.
+  /// While the codec is unresolved, the codecs of the descriptions that could hold the first sample.
+  pub fn candidate_codecs(&self) -> &[Codec] {
+    &self.candidate_codecs
+  }
+
+  /// The library's name for a known codec; absent for an unknown or unresolved one.
   pub fn name(&self) -> Option<&str> {
-    self.codec.name()
+    self.codec.as_ref().and_then(Codec::name)
   }
 
-  /// Every codec identifier the input carries, as written.
+  /// Every codec identifier the input carries, as written; for an unresolved codec, each candidate's.
   pub fn raw_identifiers(&self) -> &[RawCodecIdentifier] {
     &self.raw_identifiers
   }
@@ -163,9 +172,20 @@ impl CodecInformation {
 }
 
 impl fmt::Display for CodecInformation {
-  /// The codec's name; for a codec without one, the first raw identifier as written.
+  /// The codec's name; for a codec without one, the first raw identifier as written. An unresolved codec writes
+  /// each candidate in the same way, separated by " or ".
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
-    formatter.write_str(self.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT))
+    if self.codec.is_some() || self.candidate_codecs.is_empty() {
+      let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
+      return formatter.write_str(self.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT));
+    }
+    for (position, candidate) in self.candidate_codecs.iter().enumerate() {
+      if position > 0 {
+        formatter.write_str(CANDIDATE_SEPARATOR)?;
+      }
+      let raw = self.raw_identifiers.get(position).map(RawCodecIdentifier::value);
+      formatter.write_str(candidate.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT))?;
+    }
+    Ok(())
   }
 }

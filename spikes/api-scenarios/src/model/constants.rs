@@ -23,6 +23,30 @@ pub const SECONDS_SYMBOL: &str = "s";
 pub const SIZE_SEPARATOR: &str = "x";
 /// The display of a codec without a name or a raw identifier.
 pub const UNKNOWN_CODEC_TEXT: &str = "unknown codec";
+/// Between the candidates in the display of an unresolved codec.
+pub const CANDIDATE_SEPARATOR: &str = " or ";
+
+/// The serialized names of `DetectionOutcome`, with `UNKNOWN_NAME` below.
+pub const IDENTIFIED_NAME: &str = "identified";
+/// The serialized names of `DetectionOutcome`.
+pub const FAMILY_ONLY_NAME: &str = "family_only";
+/// The serialized names of `DetectionOutcome`.
+pub const AMBIGUOUS_NAME: &str = "ambiguous";
+/// The serialized names of `DetectionOutcome`.
+pub const HINT_ONLY_NAME: &str = "hint_only";
+/// The serialized names of `DetectionOutcome`.
+pub const INSUFFICIENT_DATA_NAME: &str = "insufficient_data";
+
+/// The serialized names of `EntityKind`.
+pub const STREAM_NAME: &str = "stream";
+/// The serialized names of `EntityKind`.
+pub const EDITION_NAME: &str = "edition";
+/// The serialized names of `EntityKind`.
+pub const CHAPTER_NAME: &str = "chapter";
+/// The serialized names of `EntityKind`.
+pub const ATTACHMENT_NAME: &str = "attachment";
+/// The serialized names of `EntityKind`.
+pub const PROGRAM_NAME: &str = "program";
 
 /// Format names.
 pub const MATROSKA_NAME: &str = "Matroska";

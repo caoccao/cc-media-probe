@@ -22,6 +22,7 @@ mod audio;
 mod chapters;
 mod codec;
 mod constants;
+mod detection;
 mod format;
 mod language;
 mod lookups;
@@ -36,14 +37,15 @@ pub use attachments::AttachmentHandling;
 pub use audio::AudioInformation;
 pub use chapters::{Chapter, ChapterEdition};
 pub use codec::{Codec, CodecInformation, CodecNamespace, Profile, RawCodecIdentifier};
+pub use detection::{Detection, DetectionOutcome};
 pub use format::{Format, SupportLevel};
 pub use language::{Language, LocalizedText};
 pub use lookups::TagsOf;
 pub use report::MediaReport;
 pub use stream::{Disposition, Stream, StreamKind};
 pub use tags::{
-  BinaryValue, EntityLocation, IntegerValue, Tag, TagKey, TagName, TagSet, TagValue, TargetLevel, TargetReference,
-  TargetReferenceKind,
+  BinaryValue, EntityKind, EntityLocation, IntegerValue, Tag, TagKey, TagName, TagSet, TagValue, TargetLevel,
+  TargetReference, TargetReferenceKind,
 };
 pub use usage::Usage;
 pub use values::{

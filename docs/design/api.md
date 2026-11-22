@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, tasks 2 and 3, written on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first review revised it where section 16 lists. Names are working names until G2.1; the API is confirmed at G2.2. |
+| **Status** | Draft of Phase 2, tasks 2 and 3, written on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first two reviews revised it where section 16 lists. Names are working names until G2.1; the API is confirmed at G2.2. |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -21,6 +21,12 @@ At the first review, on the same day, the maintainer made three more choices:
 - **Attachments and cover art.** The two options split the attachments by role, and each applies on its own (section 4.3).
 - **Companion lookup.** Blocking and async probes have an option each, so a resolver never meets an entry point that cannot call it (section 13).
 - **Wide integers in JSON.** A detail integer of 64 bits is always a decimal string (section 12).
+
+At the second review, also on 2026-11-22, the maintainer made three more:
+
+- **Protection.** A stream without `Protection` has been examined in full and declares none. A stream whose structures were not all examined says so (section 6.3).
+- **An unresolved codec.** `CodecInformation::codec()` is absent while the description of the first sample is unproven and the candidates name different codecs (section 6.4).
+- **Lookup off.** An expected companion is listed only as an external reference; the source table lists requested sources only (section 13).
 
 ## Contents
 
@@ -101,7 +107,7 @@ The crate root holds what most callers need. Everything else lives in modules na
 | `cc_media_probe::source` | `PositionalSource`; `SourceEntry`, `SourceIdentifier`, `PortablePath` (sections 4.4 and 6.15) |
 | `cc_media_probe::error` | `ErrorRecord`, `CandidateCheck`, `Observations`, `Reason` (section 10) |
 | `cc_media_probe::asynchronous` | `AsyncPositionalSource`, `probe_source`, `detect_source`; the submodules `tokio` and `futures` behind their features (section 9) |
-| `cc_media_probe::document` | `Document`, `DocumentEntry`, `Generator`, `SchemaVersion` (`serde` feature; section 12) |
+| `cc_media_probe::document` | `Document`, `DocumentEntry`, `EntryOutcome`, `Generator`, `UsageError`, `SchemaVersion` (`serde` feature; section 12) |
 | `cc_media_probe::companion` | From the release that ships lookup: `CompanionLookup`, `AsyncCompanionLookup`, the resolver traits and their types (section 13) |
 
 The internal module tree of plan section 7.2 may differ from these paths; the public paths are re-exports. Neither the repository-only entry points nor the fuzzing entry points are ever part of the public surface.
@@ -164,7 +170,20 @@ let report = prober.probe_file("movie.mkv")?;
 | Legacy text encoding | `TextEncoding` | decided at G3.4 (D22) | The encoding of text that a format stores without naming one. |
 | Companion lookup | `CompanionLookup` and `AsyncCompanionLookup` | off | From the release that ships lookup; one option for the blocking entry points and one for the async ones (section 13) |
 
-**Attachments and cover art.** The two options split the attachments by role (F8), and each applies on its own, as the maintainer chose on 2026-11-22. A picture that a tag structure carries, such as an item of the ISO item list or an ID3v2 picture frame, follows the cover-art option even when the tags option is `Skip`. The tags section then stays "not requested". The probe reads the metadata of an attachment whose role is skipped only as far as it needs to learn that role, such as a Matroska attachment's file name. Such an attachment is never listed, and its data is never read. The attachments section of the completeness record (section 5.3) covers the requested roles only. It is "not requested" when both options are `Skip`. Otherwise it is complete when every attachment of a requested role was found and listed. A skipped role therefore never makes `is_complete()` false.
+**Attachments and cover art.** The two options split the attachments by role (F8), and each applies on its own, as the maintainer chose on 2026-11-22. A picture that a tag structure carries, such as an item of the ISO item list or an ID3v2 picture frame, follows the cover-art option even when the tags option is `Skip`. The tags section then stays "not requested". The probe reads the metadata of an attachment whose role is skipped only as far as it needs to learn that role, such as a Matroska attachment's file name. Such an attachment is never listed.
+
+**Data that is not kept.** The data of a skipped attachment, and the data of any attachment under `MetadataOnly`, is never kept. That does not mean it is never read:
+
+- A seekable source passes over the data without reading it.
+- A forward-only source has to read the data and discard it to reach what follows. Those bytes count toward the read allowance like any other (plan section 7.5).
+- So a payload that is not kept, but lies before requested metadata, can still use up `BytesRead`. The part that the metadata belongs to then records that limit.
+
+**Completeness of attachments.** The attachments section of the completeness record (section 5.3) covers the requested roles only. It is "not requested" when both options are `Skip`. Otherwise it is complete when both hold:
+
+- every attachment of a requested role was found and listed;
+- for a role whose option is `WithData`, every embedded payload was kept.
+
+A payload that the retained-payload limit or the read limit stopped leaves that attachment's `data()` absent. It also leaves the section incomplete, with that limit named, so a requested payload that was not kept always makes `is_complete()` false. A skipped role never does.
 
 The plan's list of builder options names a "thoroughness level" without defining one. On 2026-11-22 the maintainer chose to leave it out of `0.1.0`: each format phase fixes the bounded work it does, and the limits tune it. A release can add the option when a format needs an opt-in deeper scan, such as the transport-stream scan windows of G10.1. A new setter is a compatible change.
 
@@ -247,7 +266,10 @@ With several validated candidates, the one with the highest confidence is used, 
 
 The three classes of plan section 8.3 decide when the inventory is reached: a declared structure that lists the streams, a single-stream file whose primary structure was validated, or the first stream-carrying unit of an observed format. Each format's class and threshold are part of its entry in `formats.md`. The API exposes the class as `MediaReport::inventory_class() -> &InventoryClass`, with the values `Declared`, `SingleStream` and `Observed`. A report can list zero streams when a declared inventory was reached and declares none.
 
-An observed format can also reach its inventory with no unit at all, where its entry says so. An FLV file that ends cleanly after its header reports zero streams, while a program stream without a map needs one elementary-stream packet (plan section 8.3). A clean end means that the end of the input was observed: a read at the point where the next unit would start returned no bytes. A limit that stops the read at the same byte is not an end. That probe stopped before its inventory, with the error of kind `NoStreamInventory`, which names the limit.
+An observed format can also reach its inventory with no unit at all, where its entry says so. An FLV file that ends cleanly after its header reports zero streams, while a program stream without a map needs one elementary-stream packet (plan section 8.3). A clean end means that the end of the input was observed at the point where the next unit would start, and how it is observed depends on the source (plan section 7.5):
+
+- **Known length.** The end is where the source's known length ends, as for the slice of `probe_bytes`, a file, or a positional source that states its length. No further read is needed. A header-only FLV file therefore gives its zero-stream report even when its last header byte used up the read allowance.
+- **Unknown length.** The end is observed only when a read at that point returned no bytes. A limit that stops the read at the same byte is not an end. That probe stopped before its inventory, with the error of kind `NoStreamInventory`, which names the limit.
 
 ### 5.3 Completeness
 
@@ -283,13 +305,21 @@ An error carries the same record (section 10).
 |---|---|---|
 | `Parsed` | yes | Every header field read |
 | `PartiallyParsedByDesign` | yes | Some fields lie behind decoding, as implicit spectral-band replication does |
-| `Identified` | yes | `identification() -> Option<Identification>` says why: `IdentificationOnly` (by design), `UnknownCodec` or `PendingParser` (a pair of a later phase) |
+| `Identified` | yes | `identification() -> Option<Identification>` says why: `IdentificationOnly` (by design), `UnknownCodec`, `PendingParser` (a pair of a later phase) or `UnsupportedCompression` (below) |
 | `Protected` | yes | The configuration itself is encrypted. A clear configuration with protected packets is `Parsed`, and `Stream::protection()` says that the packets are protected (F22). |
 | `NotFoundWithinBudget` | no | No header field was read before the input or a limit ended the search. `reason()` says which: truncated input, or the limit by name (plan section 7.4). |
 | `PartiallyParsedForLackOfBytes` | no | Some fields read before the input or a limit ended; `reason()` says which |
 | `Malformed` | no | The bytes contradict the syntax |
 | `CompressionUnavailable` | no | The `zlib` feature is off |
 | `NotAttempted` | no | The probe stopped before the stream's turn |
+
+**Compression the library cannot undo.** A Matroska track can compress its codec private data, or the blocks that carry an in-band header, with `bzlib` or `lzo1x`. RFC 9559 discourages both and lets a reader leave them unsupported (5.1.4.1.31.6), and this version cannot undo them, with or without `zlib` (plan section 6.2). When such an algorithm covers the bytes that hold the codec header:
+
+- the stream is reported from its container fields;
+- its state is `Identified`, with the identification `UnsupportedCompression`;
+- a diagnostic names the algorithm, and the content encoding stays in the details (section 11.4).
+
+The state is final, as `PendingParser` is: the probe did everything this version can do, so it does not make `is_complete()` false. `CompressionUnavailable` is different. It stays for `zlib`, which enabling the feature would undo, so it is not final.
 
 `HeaderStatus` has `state()`, `identification()`, `reason() -> Option<&Reason>`, `is_final() -> bool` and `is_parsed() -> bool`. A state that a newer version wrote, `HeaderState::Unrecognized`, is not final. `Display` writes the state with its reason, such as "not found within the budget (per-stream header limit)".
 
@@ -377,18 +407,30 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `video()`, `audio()`, `subtitle()` | `Option<&VideoInformation>`, … | Present exactly when the kind is video, audio or subtitle; all fields inside may still be absent |
 | `codec_details()` | `Option<&CodecDetails>` | Section 11 |
 
-**`Protection`** (F22) says what a stream declares protected, and where. A track can hold a clear sample description beside an encrypted one, so each scheme stays with the scope it covers:
+**`Protection`** (F22) says what a stream declares protected, and where. A declaration establishes a protection mechanism for its scope. It does not say that every byte in that scope is encrypted, because a scheme can leave samples, or parts of them, clear (field guide, `protection`). A track can also hold a clear sample description beside a protected one, so each scheme stays with the scope it covers.
 
-- `declarations() -> &[ProtectionDeclaration]`, one per scope that a declaration covers, in stored order. It is never empty: a stream without one has no `Protection`.
+**Absence is proof**, as the maintainer chose on 2026-11-22. `Stream::protection()` is absent only when every structure of the stream that can declare protection was examined and none does. A probe can stop before such a structure, or fail to keep a declaration within the retained-data limit. Its `Protection` then says so, even when it holds no declaration. `Protection` has:
+
+- `declarations() -> &[ProtectionDeclaration]`, in stored order. It is empty only when `is_fully_examined()` is false.
+- `is_fully_examined() -> bool`: whether every structure that can declare protection was examined and every declaration kept.
+- `sample_descriptions() -> &[SampleDescriptionProtection]`, for a format with sample descriptions such as the ISO family. It has one entry per description that the file states, in index order, and is empty for other formats. Each entry has:
+  - `index() -> u64`, the index as the file numbers it, from 1 in the ISO family;
+  - `state() -> &SampleDescriptionState`, which is `Clear` (examined, and it declares no protection), `Declared` (the declarations name its index) or `Unknown` (not read, or its declaration not kept).
 - `is_configuration_clear() -> Option<bool>`, whether the configuration that the header status describes is clear.
 
 A `ProtectionDeclaration` has:
 
 - `scheme() -> Option<&ProtectionScheme>`, the scheme as written with its namespace, such as an ISO `schm` code or a Matroska `ContentEncAlgo` value;
-- `scope() -> &ProtectionScope`: `Packets`, every packet of the stream; `CodecPrivateData`; or `SampleDescription`, the packets that use one sample description;
-- `sample_description_index() -> Option<u64>`, for the scope `SampleDescription`, the index as the file numbers it, from 1 in the ISO family.
+- `scope() -> &ProtectionScope`, which is one of:
+  - `Packets`, every packet of the stream;
+  - `CodecPrivateData`;
+  - `SampleDescription`, the packets that use one sample description;
+  - `EncodingSettings`, the settings of another content encoding;
+  - `Other`, a scope that the file states and this version does not know;
+- `sample_description_index() -> Option<u64>`, for the scope `SampleDescription`;
+- `encoding_order() -> Option<u64>`, for the scope `EncodingSettings`. It is the `ContentEncodingOrder` of the next encoding, whose `ContentCompression` or `ContentEncryption` the declaration protects, and is absent when the track has no next encoding.
 
-A sample description that no declaration names is clear. A Matroska `ContentEncoding` whose scope covers both the frames and the private data gives two declarations with the same scheme. A later format that protects a range of packets adds an accessor to `ProtectionDeclaration` (rule 6).
+A Matroska `ContentEncodingScope` is a bit field (RFC 9559 5.1.4.1.31.3, Table 21). So one `ContentEncoding` gives one declaration for each bit it sets, each with the same scheme. RFC 9559 discourages the "next" scope and still permits it, so it is read (plan Phase 5, task 8). A bit that a later registration defines, and that this version does not know, gives a declaration of the scope `Other`, and the bit stays in the details. A later format that protects a range of packets adds an accessor to `ProtectionDeclaration` (rule 6).
 
 **`Timecode`** (F23): `frame_number() -> i64`, `rate() -> Rational`, `nominal_frames_per_second() -> u64`, `is_drop_frame() -> bool`, `wraps_at_24_hours() -> bool`, and `label() -> TimecodeLabel` with `is_negative()`, `hours()`, `minutes()`, `seconds()` and `frames()`. `Display` writes `01:00:00:00`, with `;` before the frames of a drop-frame timecode.
 
@@ -398,13 +440,21 @@ A sample description that no declaration names is clear. A Matroska `ContentEnco
 
 | Accessor | Returns | Field guide (section 3.3) and notes |
 |---|---|---|
-| `codec()` | `&Codec` | `codec` |
-| `name()` | `Option<&str>` | `name`: the library's name for a known codec; absent for an unknown one |
-| `raw_identifiers()` | `&[RawCodecIdentifier]` | `raw_identifiers`: each with `namespace() -> &CodecNamespace` (`MatroskaCodecIdentifier`, `RiffFourCharacterCode`, `WaveFormatTag`, `IsoSampleEntry`, `Mpeg4ObjectType`, `QuickTimeCode` and the namespaces of later phases) and `value() -> &str` as written |
+| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved (below) |
+| `candidate_codecs()` | `&[Codec]` | While the codec is unresolved, the codecs of the descriptions that could hold the first sample, in index order; empty otherwise |
+| `name()` | `Option<&str>` | `name`: the library's name for a known codec; absent for an unknown or unresolved one |
+| `raw_identifiers()` | `&[RawCodecIdentifier]` | `raw_identifiers`, which for an unresolved codec holds each candidate's identifier: each with `namespace() -> &CodecNamespace` (`MatroskaCodecIdentifier`, `RiffFourCharacterCode`, `WaveFormatTag`, `IsoSampleEntry`, `Mpeg4ObjectType`, `QuickTimeCode` and the namespaces of later phases) and `value() -> &str` as written |
 | `profile()`, `profile_provenance()` | `Option<&Profile>`, `Option<&Provenance>` | `profile` |
 | `level()`, `level_provenance()` | `Option<&Level>`, `Option<&Provenance>` | `level` |
 | `tier()`, `tier_provenance()` | `Option<&Tier>`, `Option<&Provenance>` | `tier` |
 | `codec_string()` | `Option<&str>` | `codec_string` (F5) |
+
+**An unresolved codec.** An ISO track can declare several sample descriptions, and the probe may not prove which one holds the first sample (plan Phase 6, task 7). The plan then leaves the fields that depend on that first sample unresolved, and the codec is one of them when the candidates disagree. As the maintainer chose on 2026-11-22, a missing codec is `None`, as every missing value is (section 1, rule 2):
+
+- **The candidates name different codecs.** `codec()` and `name()` are absent. `candidate_codecs()` lists the candidates' codecs, and `raw_identifiers()` keeps each candidate's identifier as written. Profile, level, tier, codec string and every field that a codec header supplies stay absent. The details say which descriptions were observed in use.
+- **The candidates name one codec.** `codec()` is that codec, and only the fields on which the candidates differ stay absent.
+
+`Codec::Unknown` keeps its one meaning: the file named a codec that this version does not know.
 
 `Profile`, `Level` and `Tier` are the same shape for every codec: `name() -> Option<&str>`, the specification's name such as "High", "3.1" or "1b"; and `code() -> Option<&str>`, the coded value as written, such as `100`. `Display` writes the name, or the code without one. The codec-specific values stay in the codec details.
 
@@ -413,7 +463,7 @@ A sample description that no declaration names is clear. A Matroska `ContentEnco
 - `Codec::Unknown`: the file names a codec that this version does not know. `raw_identifiers()` keeps what it wrote.
 - `Codec::Unrecognized(UnrecognizedValue)`: a serialized name that a newer version wrote. The library never produces it itself.
 
-`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1).
+`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). An unresolved codec displays each candidate in the same way, separated by " or ", such as "H.264 or H.265".
 
 **`Format`** has one variant per entry of the detection inventory frozen at G3.5, and one per family: `Matroska`, `WebM`, `Mp4`, `ThreeGpp`, `ThreeGpp2`, `F4v`, `QuickTime`, `Avi`, and the formats of the later phases. The families `IsoBaseMedia` and `Riff` are reported when detection is certain of the family only (plan section 8.6). `Format::Unrecognized` is the catch-all. Its accessors:
 
@@ -520,7 +570,12 @@ The report's `duration()` is the segment's and is never replaced by an edition's
 
 A `TargetReference` is one of three things, told apart by `kind() -> &TargetReferenceKind`:
 
-- `Resolved`: a specific identifier that matches an entity of the report. `location() -> Option<&EntityLocation>` gives the entity. `index()` is the index of the stream, edition or attachment, or for a chapter the index of its edition. `chapter_path() -> &[usize]` is, for a chapter, the path that `ChapterEdition::chapter_at` takes, and empty otherwise.
+- `Resolved`: a specific identifier that matches an entity of the report. `location() -> Option<&EntityLocation>` gives the entity:
+  - `kind() -> &EntityKind` is `Stream`, `Edition`, `Chapter`, `Attachment` or `Program`;
+  - `index()` is the index of the stream, edition, attachment or program, or for a chapter the index of its edition;
+  - `chapter_path() -> &[usize]` is, for a chapter, the path that `ChapterEdition::chapter_at` takes, and empty otherwise.
+
+  The typed details locate the owner of a value the same way (section 11.3).
 - `Unmatched`: a specific identifier that matches no entity, kept as written.
 - `Wildcard`: every entity of the kind, which Matroska writes as the identifier zero. It never resolves to a single entity.
 
@@ -569,7 +624,7 @@ The QuickTime names are those of QT "Metadata atoms and types" and "Atoms for us
 | `media_type()`, `media_type_provenance()` | `Option<&MediaType>`, `Option<&Provenance>` | |
 | `size()` | `Option<u64>` | Embedded data only |
 | `link()` | `Option<&str>` | A linked picture's URI as written, never fetched; also listed as an external reference |
-| `data()` | `Option<&[u8]>` | Only with `AttachmentHandling::WithData`, within the retained-payload limit |
+| `data()` | `Option<&[u8]>` | Only with `AttachmentHandling::WithData`, within the retained-payload limit. An empty payload gives an empty slice. A payload that a limit stopped is absent, and the attachments section is then incomplete (section 4.3). |
 | `width()`, `height()` | `Option<u64>` | With `_provenance()` each |
 | `role()` | `Option<&AttachmentRole>` | F8: `CoverArt` or `Other` |
 | `picture_type()` | `Option<&str>` | The native picture type as written, such as FLAC's `3` for a front cover |
@@ -598,6 +653,8 @@ No format of `0.1.0` has programs.
 - `location() -> Option<&str>`, as written and never dereferenced;
 - `role() -> Option<&ReferenceRole>`, such as `PreviousSegment`, `NextSegment` or `TrackData`;
 - `owner() -> Option<&ReferenceOwner>`. The owner is an attachment by index, a chapter by its edition index and child path, or a stream by index with its sample-description index. It is absent for a reference of the whole file.
+
+For `ExpectedCompanion`, `identifier()` is the validated identifier, and `location()` is the name that a request to a resolver would carry (section 13). The library builds that name from a fixed folder and extension, so it is not taken from the media.
 
 ### 6.13 Diagnostics
 
@@ -696,7 +753,10 @@ Tokio and futures-io define different `AsyncRead` and `AsyncSeek` traits, so eac
 
 - Every function is an `async fn` that returns the same `Result` as its blocking twin.
 - The future is `Send` exactly when the reader or source is `Send`.
-- Dropping the future cancels the probe. No task is spawned in the background.
+- **Cancellation.** Dropping the future stops the probe: nothing is polled again, and no further read is issued. Work that was already handed elsewhere is not recalled:
+  - Tokio runs every file operation on its blocking pool. An open or read that `asynchronous::tokio::probe_file` started, or that a caller's `tokio::fs::File` started, keeps running there until it ends. Its result is discarded, and the file closes once no operation is in flight (Tokio's `fs` documentation, "Cancellation"; `tokio::fs::File`).
+  - A caller's own source or resolver decides the same for its own work.
+  - The library spawns no task of its own.
 - A reader that is not `Unpin` can be passed as `Box::pin(reader)`.
 - The same functions exist on the handles of `Prober`: `prober.tokio().probe_reader(reader).await`, `prober.futures().detect_stream(reader).await`, `prober.asynchronous().probe_source(source).await`. Each handle borrows the prober (`TokioProber<'prober>`, `FuturesProber<'prober>`, `AsynchronousProber<'prober>`).
 - The seekable path reads positionally, as a seek followed by a read, through the block cache. The forward-only path uses the sliding window of D9.
@@ -807,9 +867,14 @@ Three kinds of value are not normalized fields but must not be lost. Each has on
 
 | Value | Accessor on `FormatDetails` and `CodecDetails` | Each entry |
 |---|---|---|
-| Raw values of a conflict | `conflicts() -> &[Conflict]` | `field() -> &str` (the field guide's name), `stream() -> Option<usize>`, and `values() -> &[ConflictingValue]`, each with its source's name and the value as text. The diagnostic of the conflict names the same field. |
-| Observed lower bounds | `observed_lower_bounds() -> &[ObservedBound]` | `field()`, `stream()`, `value() -> &ObservedValue` (`Count(u64)` or `Time(Seconds)`). A partial count is never a total (plan section 8.3). |
-| Values beyond the exact range | `exact_values() -> &[ExactValue]` | `field()`, `stream()`, `numerator() -> &str` and `denominator() -> Option<&str>` as decimal strings, and `inputs() -> &[ExactInput]`, the named inputs they were computed from (plan section 8.8) |
+| Raw values of a conflict | `conflicts() -> &[Conflict]` | `field() -> &str` (the field guide's name), `owner()`, `stream()`, and `values() -> &[ConflictingValue]`, each with its source's name and the value as text. The diagnostic of the conflict names the same field. |
+| Observed lower bounds | `observed_lower_bounds() -> &[ObservedBound]` | `field()`, `owner()`, `stream()`, `value() -> &ObservedValue` (`Count(u64)` or `Time(Seconds)`). A partial count is never a total (plan section 8.3). |
+| Values beyond the exact range | `exact_values() -> &[ExactValue]` | `field()`, `owner()`, `stream()`, `numerator() -> &str` and `denominator() -> Option<&str>` as decimal strings, and `inputs() -> &[ExactInput]`, the named inputs they were computed from (plan section 8.8) |
+
+Each entry names the entity whose field it is, so that an archive reader can match it to that entity:
+
+- `owner() -> Option<&EntityLocation>`, the stream, edition, chapter, attachment or program, with the location of section 6.9. It is absent for a field of the whole report. Two chapters whose start times both lie beyond the exact range therefore keep one exact value each, each with its chapter's edition index and path.
+- `stream() -> Option<usize>`, the owner's index when the owner is a stream.
 
 The format-specific fields that the conflict compared also stay in their detail type, as read.
 
@@ -858,8 +923,15 @@ if let Some(FormatDetails::Matroska(matroska)) = report.format_details() {
 | Accessor | Returns | Source |
 |---|---|---|
 | `sequence_parameter_sets()` | `&[H264SequenceParameterSetDetails]` | Each set read, in the order read. Each set has `profile_indication()` (`profile_idc`) and `constraint_set_flags()` (`constraint_set0_flag` to `constraint_set5_flag`, bit 7 first). It also has `level_indication()` (`level_idc`), `sequence_parameter_set_identifier()`, `chroma_format_indication()`, `bit_depth_luma_minus_eight()`, `bit_depth_chroma_minus_eight()`, `picture_width_in_macroblocks_minus_one()`, `frame_macroblocks_only_flag()`, the frame cropping offsets and `video_usability_information()`, each an `Option`. |
-| `primary_sequence_parameter_set()` | `Option<&H264SequenceParameterSetDetails>` | The set that supplied the normalized fields, one of `sequence_parameter_sets()` |
+| `primary_sequence_parameter_set()` | `Option<&H264SequenceParameterSetDetails>` | The set that supplied the normalized fields, one of `sequence_parameter_sets()`. Absent until the selection is established, below. |
 | `configuration_record()` | `Option<&H264ConfigurationRecordDetails>` | `AVCDecoderConfigurationRecord`: `configuration_version()`, `profile_indication()` (`AVCProfileIndication`), `profile_compatibility()`, `level_indication()` (`AVCLevelIndication`), `length_size_minus_one()` and the counts of parameter sets, each an `Option` |
+
+**Which set is primary.** H.264 activates a sequence parameter set in one of two ways: the first coded slice of a picture refers to a picture parameter set that names it, or a buffering-period SEI message of an IDR access unit names it. The set then stays active for the whole coded video sequence (ITU-T H.264 7.4.1.2.1). So the primary set is the one that the first picture activates. It is established in one of two ways:
+
+- **Observed.** The probe read the first slice header of the first picture, or that access unit's buffering-period SEI message, and so knows which set it activates.
+- **No choice.** Every set that the first picture could activate gives the same values. A single set qualifies only where no sample can carry another, and the H.264 phase states for each binding where that holds.
+
+Otherwise `primary_sequence_parameter_set()` is absent, and no set is chosen by its position, which could describe a picture that was never coded. A normalized field then comes from the sets only where every set read gives the same value. The others stay absent, and a diagnostic names them.
 
 The normalized profile and level, such as "High" and "1b", are in `CodecInformation`. They come from the primary set, or from the record when no set gives them, and their provenance says which. The codec details keep the coded values of each source:
 
@@ -886,8 +958,16 @@ With the `serde` feature, every model type implements `Serialize` and `Deseriali
   - *Wide fields are strings.* In the typed details, every integer whose type is 64 bits wide (`u64`, `i64`) is always a decimal string, so its JSON type never depends on its value. Matroska's `DateUTC` in nanoseconds is an example, and so is an observed count. Narrower integers are numbers. The fixed-size record's `omitted_diagnostics` and `omitted_declarations` are decimal strings too. The maintainer chose this on 2026-11-22.
   - *Bit patterns are hexadecimal.* A `FloatingPointValue` is a map of its `width` and its `bits` in lowercase hexadecimal: 8 digits for single precision and 16 for double, as in `"3ff0000000000000"` for 1.0.
 - **Unknown members** are ignored on input. No type denies unknown fields.
-- **`Document`** is what the CLI writes and what a library user can write too. `Document::new(generator: Generator)` builds one, with `Generator::new(name, version)`. `with_usage_error(message)` adds a usage error, and `push(&mut self, entry: DocumentEntry)` adds an entry. An entry is built by `DocumentEntry::from_report(index: usize, input: PortablePath, report: MediaReport)`, `DocumentEntry::from_detection(index, input, detection: Detection)` or `DocumentEntry::from_error(index, input, record: ErrorRecord)`. They are not named `report`, `detection` and `error`, because those are the names of the getters below. `PortablePath::from_path(path: &Path)` gives the input. The entry's `outcome` (`ok`, `partial` or `error`) follows from what it holds (plan section 8.9).
-- **Reading a document.** `Document` has `schema_version() -> SchemaVersion`, `generator() -> &Generator` with `name()` and `version()`, `usage_error() -> Option<&str>` and `results() -> &[DocumentEntry]`. A `DocumentEntry` has `index() -> usize` and `input() -> &PortablePath`. It also has `outcome() -> &EntryOutcome` (`Ok`, `Partial`, `Error` and the catch-all of rule 5), and `report()`, `detection()` and `error()`, of which exactly one is `Some` for an outcome this version knows. Section 15.6 reads a document back.
+- **`Document`** is what the CLI writes and what a library user can write too. A document holds either results or a usage error, never both (plan section 8.9). Its two constructors keep it so, and it has no method that adds an entry later:
+  - `Document::from_results(generator: Generator, results: Vec<DocumentEntry>)`. With no entries it is the document of `--json --version`.
+  - `Document::from_usage_error(generator, error: UsageError)`, whose `results` array is empty.
+
+  `Generator::new(name, version)` and `UsageError::new(message)` build the parts. A `UsageError` is an object with `message() -> &str`, as plan section 8.9 writes it, so that it can gain members later.
+- **Entries.** An entry is built by `DocumentEntry::from_report(index: usize, input: PortablePath, report: MediaReport)`, `DocumentEntry::from_detection(index, input, detection: Detection)` or `DocumentEntry::from_error(index, input, record: ErrorRecord)`. They are not named `report`, `detection` and `error`, because those are the names of the getters below. `PortablePath::from_path(path: &Path)` gives the input. The entry's `outcome` follows from what it holds, by the table of plan section 8.9:
+  - a report gives `ok` when it is complete and `partial` otherwise;
+  - a detection gives `ok` when the format was identified, `partial` for a family only, an ambiguous result or a hint only, and `error` for insufficient data or an unknown format;
+  - an error record gives `error`. A source that fails during detection is such a record.
+- **Reading a document.** `Document` has `schema_version() -> SchemaVersion`, `generator() -> &Generator` with `name()` and `version()`, `usage_error() -> Option<&UsageError>` and `results() -> &[DocumentEntry]`. A `DocumentEntry` has `index() -> usize` and `input() -> &PortablePath`. It also has `outcome() -> &EntryOutcome` (`Ok`, `Partial`, `Error` and the catch-all of rule 5), and `report()`, `detection()` and `error()`, of which exactly one is `Some` for an outcome this version knows. Reading checks both invariants. A document with a usage error and a nonempty `results` array fails, as malformed input does, and so does an entry of a known outcome without exactly one of the three. Section 15.6 reads a document back.
 - **Nested root records.** A report, detection result or error record inside a document carries the document's version as its own `schema_version` (plan section 8.8). Writing a document gives each nested record that version. Reading one checks every nested version against the document's, and a nested record of another version is the version error.
 
 ## 13. Companion lookup
@@ -898,7 +978,17 @@ Lookup ships in the release of its first consumer, `0.7.0` with VobSub (R18, pla
   - `Prober::with_companion_lookup(CompanionLookup)` serves the blocking entry points. `CompanionLookup::off()` is the default. `CompanionLookup::built_in()` turns on the resolver with the trusted root, containment and the second check. `CompanionLookup::custom(resolver)` takes `Arc<dyn CompanionResolver>`.
   - `Prober::with_async_companion_lookup(AsyncCompanionLookup)` serves the async entry points of section 9. `AsyncCompanionLookup::off()` is the default, and `AsyncCompanionLookup::custom(resolver)` takes `Arc<dyn AsyncCompanionResolver>`.
   - An async probe reads only the async option. Without it, its companions are "not enabled", whatever the blocking option says, so a blocking resolver never blocks an async task. A built-in async resolver, such as one on Tokio's file type, can come later as a new constructor of `AsyncCompanionLookup`.
-- **Request.** A `CompanionRequest` has `source_identifier()`, assigned before anything is opened; `role() -> &CompanionRole`, such as `VobSubData`; `identifier() -> &str`, the validated identifier; and `name() -> &str`, built from a fixed folder and extension. A request never carries a path taken from the media.
+- **Lookup off.** No request is made, as the maintainer chose on 2026-11-22. So an expected companion gets no source identifier and no source-table entry, and the source table lists requested sources only (plan section 7.7). The companion is listed as an external reference of kind `ExpectedCompanion`, with its validated identifier and the name a request would carry (section 6.12), and the companions status is "not enabled".
+- **Request.** A `CompanionRequest` has:
+  - `source_identifier()`, assigned before anything is opened;
+  - `role() -> &CompanionRole`, such as `VobSubData`;
+  - `identifier() -> &str`, the validated identifier;
+  - `name() -> &str`, built from a fixed folder and extension;
+  - `primary_path() -> Option<&Path>`, the path that the caller gave to the blocking or Tokio `probe_file`, absent for a reader, a stream, bytes or a source.
+
+  A request never carries a path taken from the media. The primary path is the caller's own.
+- **Context for a shared resolver.** One `Prober` can probe `A/movie.idx` and `B/movie.idx` at the same time. Both ask for the role `VobSubData` with the identifier `movie` and the name `movie.sub`. A resolver shared by both tells the two requests apart by their primary paths. A caller whose input has no path, or who needs other context, gives each probe a resolver of its own. `Prober` holds its resolver in an `Arc` and is cheap to clone, so `prober.clone().with_companion_lookup(CompanionLookup::custom(resolver))` serves one probe.
+- **The built-in resolver needs a folder.** Its trusted root is the folder of the probed file, or a folder that the plan derives from it (plan section 7.7), so it serves `probe_file` only. An input without a path gives it no root. It then declines each request: the source table lists the request with the outcome `Declined`, the reason says that the input has no folder, and the companions status is cut short. A later constructor that takes an explicit root would be a compatible change.
 - **Resolvers.** Both traits are `Send + Sync`, and each has one method.
   - `CompanionResolver::resolve(&self, request: &CompanionRequest) -> Resolution`.
   - `AsyncCompanionResolver::resolve<'request>(&'request self, request: &'request CompanionRequest) -> Pin<Box<dyn Future<Output = AsyncResolution> + Send + 'request>>`. Each request keeps its state in its own future, so one shared resolver serves concurrent probes. A poll method on a shared resolver would have nowhere to keep that state, and an `async fn` in a trait still cannot be called through `dyn` in stable Rust. The companion-request limit bounds the allocations: one per request.
@@ -913,7 +1003,7 @@ Lookup ships in the release of its first consumer, `0.7.0` with VobSub (R18, pla
 ```mermaid
 flowchart TD
   X["The format expects a companion"] --> EN{"The lookup option of<br/>the entry point's kind"}
-  EN -->|off| NE["External reference listed;<br/>companions: not enabled"]
+  EN -->|off| NE["External reference listed,<br/>no source-table entry;<br/>companions: not enabled"]
   EN -->|"built-in or custom"| K{"Key answered before?"}
   K -->|yes| SAME["The same Resolution again"]
   K -->|no| LIM{"Within CompanionRequests?"}
@@ -1223,7 +1313,7 @@ fn time(value: Option<Seconds>) -> String {
 
 ### 15.6 JSON
 
-A report is a root record on its own. The document form is the one the CLI writes, and a library caller can build it entry by entry. An error enters a document as its record. A document read back gives each entry's input and what it holds, and an outcome that a newer version wrote falls to the catch-all.
+A report is a root record on its own. The document form is the one the CLI writes, and a library caller builds it from all its entries at once. An error enters a document as its record. Standard output carries only the document, so it stays valid JSON, and the summaries go to standard error. A document read back gives each entry's input and what it holds: a report, a detection or an error record. Only an outcome that a newer version wrote falls to the catch-all.
 
 ```rust
 use std::path::Path;
@@ -1244,28 +1334,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Err(error) => eprintln!("movie.mkv: {error}"),
   }
 
-  // Several inputs in the document form that the CLI writes, an error among them.
-  let mut document = Document::new(Generator::new("media-catalog", env!("CARGO_PKG_VERSION")));
+  // Several inputs in the document form that the CLI writes, an error among them. A document holds results or a
+  // usage error, never both, so it is built from all its entries at once.
+  let mut results = Vec::new();
   for (index, path) in ["movie.mkv", "notes.txt"].into_iter().enumerate() {
     let input = PortablePath::from_path(Path::new(path));
-    document.push(match probe_file(path) {
+    results.push(match probe_file(path) {
       Ok(report) => DocumentEntry::from_report(index, input, report),
       Err(error) => DocumentEntry::from_error(index, input, error.to_record()),
     });
   }
-  let text = serde_json::to_string_pretty(&document)?;
+  let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
+  let text = serde_json::to_string_pretty(&Document::from_results(generator, results))?;
+  // Standard output carries the document and nothing else, so it stays valid JSON.
   println!("{text}");
 
   // Read back, a document gives each entry's input and what it holds. Each nested record has the document's version.
   let document: Document = serde_json::from_str(&text)?;
   for entry in document.results() {
     let input = entry.input().display();
-    match (entry.outcome(), entry.report(), entry.error()) {
-      (EntryOutcome::Ok | EntryOutcome::Partial, Some(report), _) => {
-        println!("{input}: {}, {}", report.format(), report.completeness())
-      }
-      (EntryOutcome::Error, _, Some(record)) => println!("{input}: {}", record.message()),
-      (outcome, _, _) => println!("{input}: {}, from a newer version", outcome.as_str()),
+    match (entry.outcome(), entry.report(), entry.detection(), entry.error()) {
+      (EntryOutcome::Unrecognized(outcome), ..) => eprintln!("{input}: {}, from a newer version", outcome.as_str()),
+      (_, Some(report), _, _) => eprintln!("{input}: {}, {}", report.format(), report.completeness()),
+      (outcome, _, Some(detection), _) => eprintln!("{input}: {}, {}", outcome.as_str(), detection.outcome().as_str()),
+      (_, _, _, Some(record)) => eprintln!("{input}: {}", record.message()),
+      // Reading checks that an entry of a known outcome holds exactly one record, so nothing else remains.
+      (_, None, None, None) => {}
     }
   }
   Ok(())
@@ -1663,7 +1757,7 @@ Writing and checking the scenarios revised the specification as follows. G2.1 co
 | **Tag values.** The draft named `BinaryValue` without accessors. It now has `size()` and `data()`, the bytes kept within the retained-data limit. `IntegerValue` displays itself, and `TagValue` has the catch-all of rule 5. | 15.4 | 3.3, 6.9 |
 | **What a catch-all implies.** A value that a newer version wrote has no counter, no angle and no support level in this version. So `Limits::get()` returns `Option<u64>`, and `with()` leaves the limits unchanged for such a limit. `Rotation::degrees()` returns `Option<u16>`, and `Format::support()` returns `Option<SupportLevel>`. Limits are passed as `&Limit`, as tag keys are. | the stub | 4.5, 5.3, 6.4, 6.5, 6.14 |
 | **Repeated requests.** A poll-based source that keeps one request in flight needs to know that the next call asks for the same range. The library now promises it. | 15.7 | 9.3 |
-| **Building a document.** The draft named the constructors without their arguments. They are now `Generator::new(name, version)`, `PortablePath::from_path(&Path)` and `DocumentEntry::error(index, input, ErrorRecord)`, which the first review renamed `DocumentEntry::from_error` (section 16). `push` takes `&mut self`, and an entry's index is a `usize`. | 15.6 | 12 |
+| **Building a document.** The draft named the constructors without their arguments. They are now `Generator::new(name, version)`, `PortablePath::from_path(&Path)` and `DocumentEntry::error(index, input, ErrorRecord)`, which the first review renamed `DocumentEntry::from_error` (section 16). An entry's index is a `usize`. The scenario's `push(&mut self)` gave way at the second review to `Document::from_results`, so that a usage error cannot stand beside results. | 15.6 | 12 |
 | **Whole words (R32).** The name check of D23 rejected the spike's `Io`, `io` and `Id`. `ErrorKind::Io` becomes `ErrorKind::SourceFailed`, and `io_error()` becomes `source_failure()`. `io_error_kind()` becomes `source_failure_kind()`, and `os_error_code()` becomes `operating_system_error_code()`. The namespace `MatroskaCodecId` becomes `MatroskaCodecIdentifier`. `Feature` keeps only `Zlib`, the one feature that can make information unavailable, so `FuturesIo` is gone too. | the check of the spike | 4.1, 4.4, 5.1, 5.5, 6.4, 10, 13 |
 
 **Left open by the scenarios:**
@@ -1681,6 +1775,12 @@ Writing and checking the scenarios revised the specification as follows. G2.1 co
 - The names `MediaReport` and `Stream`, and the other names of this document.
 - The names that replace abbreviations (section 15.12): `ErrorKind::SourceFailed`, `source_failure()`, `source_failure_kind()`, `operating_system_error_code()` and `CodecNamespace::MatroskaCodecIdentifier`.
 - The names of the first review, below: the constructors `DocumentEntry::from_report`, `from_detection` and `from_error`; `AsyncCompanionLookup`, `Prober::with_async_companion_lookup` and `AsyncResolution`; `ProtectionDeclaration` and `ProtectionScope`; `EntryOutcome`; and `H264Details::primary_sequence_parameter_set()`.
+- The names of the second review, below:
+  - protection: `Protection::is_fully_examined()` and `sample_descriptions()`, `SampleDescriptionProtection`, `SampleDescriptionState`, `ProtectionScope::EncodingSettings` and `Other`, and `ProtectionDeclaration::encoding_order()`;
+  - codecs: `CodecInformation::candidate_codecs()` and `Identification::UnsupportedCompression`;
+  - details: `EntityKind`, `EntityLocation::kind()` and the `owner()` of the three detail entries;
+  - documents: `Document::from_results`, `Document::from_usage_error` and `UsageError`;
+  - lookup: `CompanionRequest::primary_path()`.
 
 **G2.2, API approval:**
 
@@ -1691,6 +1791,7 @@ Writing and checking the scenarios revised the specification as follows. G2.1 co
 - The Tokio path convenience (section 9.2). Tokio's `fs` feature was approved through GS.1 on 2026-11-22.
 - The usage scenarios (section 15), and the revisions they made (section 15.12).
 - The revisions of the first review, below, with the three choices that the maintainer made at it.
+- The revisions of the second review, below, with the three choices that the maintainer made at it, and the plan amendments of revision 35 that they need.
 
 **The first review.** On 2026-11-22 the maintainer's review held back the approval on 21 findings. Each was checked against the plan, the field guide and the stored sources, and each one holds. The specification changed as follows:
 
@@ -1717,6 +1818,25 @@ Writing and checking the scenarios revised the specification as follows. G2.1 co
 | A document read back had no getters | Getters for the document and each entry; nested records carry the document's version, which reading checks. The spike showed that the constructors `report`, `detection` and `error` would clash with the getters, so they are `from_report`, `from_detection` and `from_error`. | 12, 15.6 |
 | The directory scenario started one thread per file | A fixed number of workers | 15.9 |
 | The async scenario turned a missing file into an empty object | It returns the file's error | 15.7 |
+
+**The second review.** Later on 2026-11-22 the maintainer's review of the revision held back the approval on 14 findings. Each was checked against the plan, the field guide, RFC 9559, ITU-T H.264 and Tokio's documentation, and each one holds. The run of section 15.6 through `jq` failed as the review said. The specification changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| A sample description that the probe never read, or whose declaration it could not keep, was labeled clear, and a declaration read as if every sample were encrypted | Absence of `Protection` is proof, and a description is `Clear`, `Declared` or `Unknown`. A declaration establishes a mechanism, not that every byte is encrypted (the maintainer's choice). | 6.3 |
+| With `WithData` and a retained-payload limit of zero, a section without any payload was still complete | A requested payload that a limit stopped leaves the section incomplete, with the limit named | 4.3, 6.10 |
+| On a forward-only source, the data of a skipped attachment cannot go unread | It is never kept; on such a source it is read and discarded, and those bytes count toward `BytesRead` | 4.3 |
+| A header-only FLV file read through `probe_bytes` needed a further read that a known length makes unnecessary | A known length establishes the end; only a source of unknown length needs the read that returns no bytes | 5.2 |
+| An unproven first-sample description whose candidates name different codecs had no representation | `codec()` returns `Option<&Codec>`, and `candidate_codecs()` lists the candidates (the maintainer's choice) | 6.4 |
+| A header under a compression that the library cannot undo had no header state | `Identified` with `UnsupportedCompression`, final like `PendingParser` | 5.4 |
+| Matroska's "next encoding" scope fitted none of the scopes | `ProtectionScope::EncodingSettings` with `encoding_order()`, and `Other` for a scope this version does not know | 6.3 |
+| Nothing said which parameter set is primary when several disagree | The set that the first picture activates (ITU-T H.264 7.4.1.2.1), or none; no set is chosen by its position | 11.5 |
+| An exact value of a chapter named no chapter | The three detail entries have `owner()`, an `EntityLocation` that now has a kind | 6.9, 11.3 |
+| A resolver shared by concurrent probes could not tell their companions apart, and the built-in resolver had no root for a reader or bytes | `CompanionRequest::primary_path()`, a resolver per probe for other context, and the built-in resolver declines when the input has no folder | 13 |
+| The plan put an expected companion in the source table when lookup is off; this specification did not | External reference only; plan section 8.3 is amended to match section 7.7 (the maintainer's choice) | 6.12, 13 |
+| Dropping an async probe was said to cancel it, while Tokio's blocking pool keeps running a file operation | What stops and what runs to its end are stated | 9.1 |
+| A document could hold a usage error beside results | `Document::from_results` and `Document::from_usage_error`, with no `push`. Reading refuses such a document, and an entry without exactly one record. The usage error is the object of plan section 8.9. | 12, 15.6 |
+| The JSON scenario wrote its summaries after the document on standard output, and read a detection entry as one from a newer version | Summaries go to standard error, and detection entries have their own arm | 15.6 |
 
 **Open points found while writing:**
 

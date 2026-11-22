@@ -16,9 +16,15 @@
 */
 
 //! The document of `api.md` section 12, which the CLI writes and a library user can write too.
-use crate::constants::{ERROR_NAME, OK_NAME, PARTIAL_NAME, SCHEMA_MAJOR, SCHEMA_MINOR};
+
+use std::fmt;
+
+use crate::constants::{
+  ENTRY_WITHOUT_ONE_RECORD_MESSAGE, ERROR_NAME, OK_NAME, PARTIAL_NAME, SCHEMA_MAJOR, SCHEMA_MINOR,
+  USAGE_ERROR_WITH_RESULTS_MESSAGE,
+};
 use crate::error::ErrorRecord;
-use crate::model::{MediaReport, UnrecognizedValue};
+use crate::model::{Detection, DetectionOutcome, MediaReport, UnrecognizedValue};
 use crate::source::PortablePath;
 
 /// A schema version, `major.minor`.
@@ -73,35 +79,81 @@ impl Generator {
   }
 }
 
-/// One result per input, with a usage error where one occurred.
+/// A command line that could not be run, as the `usage_error` object of plan section 8.9.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct UsageError {
+  message: String,
+}
+
+impl UsageError {
+  /// A usage error with that message.
+  pub fn new(message: impl Into<String>) -> UsageError {
+    UsageError {
+      message: message.into(),
+    }
+  }
+
+  /// The message.
+  pub fn message(&self) -> &str {
+    &self.message
+  }
+}
+
+/// One result per input, or a usage error and no results.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "DocumentData")]
 pub struct Document {
   schema_version: SchemaVersion,
   generator: Generator,
-  usage_error: Option<String>,
+  usage_error: Option<UsageError>,
   results: Vec<DocumentEntry>,
 }
 
+/// A document as read, before its invariant is checked.
+#[derive(serde::Deserialize)]
+struct DocumentData {
+  schema_version: SchemaVersion,
+  generator: Generator,
+  usage_error: Option<UsageError>,
+  results: Vec<DocumentEntry>,
+}
+
+impl TryFrom<DocumentData> for Document {
+  type Error = InvalidDocument;
+
+  /// A usage error never stands beside results.
+  fn try_from(data: DocumentData) -> Result<Document, InvalidDocument> {
+    if data.usage_error.is_some() && !data.results.is_empty() {
+      return Err(InvalidDocument(USAGE_ERROR_WITH_RESULTS_MESSAGE));
+    }
+    Ok(Document {
+      schema_version: data.schema_version,
+      generator: data.generator,
+      usage_error: data.usage_error,
+      results: data.results,
+    })
+  }
+}
+
 impl Document {
-  /// An empty document of the current schema version.
-  pub fn new(generator: Generator) -> Document {
+  /// A document of the current schema version with these results; with none, the document of `--json --version`.
+  pub fn from_results(generator: Generator, results: Vec<DocumentEntry>) -> Document {
     Document {
       schema_version: SchemaVersion::CURRENT,
       generator,
       usage_error: None,
-      results: Vec::new(),
+      results,
     }
   }
 
-  /// Adds a usage error.
-  pub fn with_usage_error(mut self, message: impl Into<String>) -> Document {
-    self.usage_error = Some(message.into());
-    self
-  }
-
-  /// Adds an entry.
-  pub fn push(&mut self, entry: DocumentEntry) {
-    self.results.push(entry);
+  /// A document of the current schema version that holds a usage error and no results.
+  pub fn from_usage_error(generator: Generator, error: UsageError) -> Document {
+    Document {
+      schema_version: SchemaVersion::CURRENT,
+      generator,
+      usage_error: Some(error),
+      results: Vec::new(),
+    }
   }
 
   /// The schema version, which every nested root record carries too.
@@ -115,8 +167,8 @@ impl Document {
   }
 
   /// The usage error, where one occurred.
-  pub fn usage_error(&self) -> Option<&str> {
-    self.usage_error.as_deref()
+  pub fn usage_error(&self) -> Option<&UsageError> {
+    self.usage_error.as_ref()
   }
 
   /// The entries, in order.
@@ -129,11 +181,11 @@ impl Document {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[non_exhaustive]
 pub enum EntryOutcome {
-  /// A complete report.
+  /// A complete report, or an identified format.
   Ok,
-  /// An incomplete report.
+  /// An incomplete report, or a detection of a family only, an ambiguous result or a hint only.
   Partial,
-  /// An error record.
+  /// An error record, or a detection of insufficient data or an unknown format.
   Error,
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue),
@@ -153,26 +205,81 @@ impl EntryOutcome {
 
 /// The result for one input.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "EntryData")]
 pub struct DocumentEntry {
   index: usize,
   input: PortablePath,
   outcome: EntryOutcome,
   report: Option<MediaReport>,
+  detection: Option<Detection>,
   error: Option<ErrorRecord>,
+}
+
+/// An entry as read, before its invariant is checked.
+#[derive(serde::Deserialize)]
+struct EntryData {
+  index: usize,
+  input: PortablePath,
+  outcome: EntryOutcome,
+  report: Option<MediaReport>,
+  detection: Option<Detection>,
+  error: Option<ErrorRecord>,
+}
+
+impl TryFrom<EntryData> for DocumentEntry {
+  type Error = InvalidDocument;
+
+  /// An entry of an outcome this version knows holds exactly one record.
+  fn try_from(data: EntryData) -> Result<DocumentEntry, InvalidDocument> {
+    let records = [data.report.is_some(), data.detection.is_some(), data.error.is_some()];
+    let known = !matches!(data.outcome, EntryOutcome::Unrecognized(_));
+    if known && records.into_iter().filter(|present| *present).count() != 1 {
+      return Err(InvalidDocument(ENTRY_WITHOUT_ONE_RECORD_MESSAGE));
+    }
+    Ok(DocumentEntry {
+      index: data.index,
+      input: data.input,
+      outcome: data.outcome,
+      report: data.report,
+      detection: data.detection,
+      error: data.error,
+    })
+  }
 }
 
 impl DocumentEntry {
   /// An entry that holds a report; its outcome is `ok` or `partial`.
   pub fn from_report(index: usize, input: PortablePath, report: MediaReport) -> DocumentEntry {
+    let outcome = if report.completeness().is_complete() {
+      EntryOutcome::Ok
+    } else {
+      EntryOutcome::Partial
+    };
     DocumentEntry {
       index,
       input,
-      outcome: if report.completeness().is_complete() {
-        EntryOutcome::Ok
-      } else {
-        EntryOutcome::Partial
-      },
+      outcome,
       report: Some(report),
+      detection: None,
+      error: None,
+    }
+  }
+
+  /// An entry that holds a detection; its outcome follows the `--detect` rows of plan section 8.9.
+  pub fn from_detection(index: usize, input: PortablePath, detection: Detection) -> DocumentEntry {
+    let outcome = match detection.outcome() {
+      DetectionOutcome::Identified => EntryOutcome::Ok,
+      DetectionOutcome::FamilyOnly | DetectionOutcome::Ambiguous | DetectionOutcome::HintOnly => EntryOutcome::Partial,
+      DetectionOutcome::InsufficientData | DetectionOutcome::Unknown | DetectionOutcome::Unrecognized(_) => {
+        EntryOutcome::Error
+      }
+    };
+    DocumentEntry {
+      index,
+      input,
+      outcome,
+      report: None,
+      detection: Some(detection),
       error: None,
     }
   }
@@ -184,6 +291,7 @@ impl DocumentEntry {
       input,
       outcome: EntryOutcome::Error,
       report: None,
+      detection: None,
       error: Some(record),
     }
   }
@@ -203,13 +311,28 @@ impl DocumentEntry {
     &self.outcome
   }
 
-  /// The report, for the outcomes `ok` and `partial`.
+  /// The report, for a probe.
   pub fn report(&self) -> Option<&MediaReport> {
     self.report.as_ref()
   }
 
-  /// The error record, for the outcome `error`.
+  /// The detection, for `--detect`.
+  pub fn detection(&self) -> Option<&Detection> {
+    self.detection.as_ref()
+  }
+
+  /// The error record.
   pub fn error(&self) -> Option<&ErrorRecord> {
     self.error.as_ref()
+  }
+}
+
+/// Why a document that was read breaks the rules of `api.md` section 12.
+#[derive(Debug)]
+pub struct InvalidDocument(&'static str);
+
+impl fmt::Display for InvalidDocument {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str(self.0)
   }
 }

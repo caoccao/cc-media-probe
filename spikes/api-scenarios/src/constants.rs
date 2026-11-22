@@ -91,3 +91,11 @@ pub const PARTIAL_NAME: &str = "partial";
 /// The serialized names of `EntryOutcome`.
 #[cfg(feature = "serde")]
 pub const ERROR_NAME: &str = "error";
+
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const USAGE_ERROR_WITH_RESULTS_MESSAGE: &str = "a document with a usage error holds no results";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const ENTRY_WITHOUT_ONE_RECORD_MESSAGE: &str =
+  "an entry of a known outcome holds exactly one of a report, a detection and an error record";

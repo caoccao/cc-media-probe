@@ -20,8 +20,8 @@
 use std::fmt;
 
 use super::constants::{
-  ALBUM_NAME, ARTIST_NAME, COMMENT_NAME, COPYRIGHT_NAME, DATE_NAME, DISC_NUMBER_NAME, ENCODER_NAME, GENRE_NAME,
-  TITLE_NAME, TRACK_NUMBER_NAME,
+  ALBUM_NAME, ARTIST_NAME, ATTACHMENT_NAME, CHAPTER_NAME, COMMENT_NAME, COPYRIGHT_NAME, DATE_NAME, DISC_NUMBER_NAME,
+  EDITION_NAME, ENCODER_NAME, GENRE_NAME, PROGRAM_NAME, STREAM_NAME, TITLE_NAME, TRACK_NUMBER_NAME,
 };
 use super::language::Language;
 use super::values::{Identifier, UnrecognizedValue};
@@ -143,12 +143,18 @@ pub enum TargetReferenceKind {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EntityLocation {
+  kind: EntityKind,
   index: usize,
   chapter_path: Vec<usize>,
 }
 
 impl EntityLocation {
-  /// The index of the stream, edition or attachment; for a chapter, the index of its edition.
+  /// What the entity is.
+  pub fn kind(&self) -> &EntityKind {
+    &self.kind
+  }
+
+  /// The index of the stream, edition, attachment or program; for a chapter, the index of its edition.
   pub fn index(&self) -> usize {
     self.index
   }
@@ -156,6 +162,39 @@ impl EntityLocation {
   /// For a chapter, the child indexes from the edition's top level down; empty otherwise.
   pub fn chapter_path(&self) -> &[usize] {
     &self.chapter_path
+  }
+}
+
+/// The kind of entity that a location names.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
+pub enum EntityKind {
+  /// A stream.
+  Stream,
+  /// A chapter edition.
+  Edition,
+  /// A chapter.
+  Chapter,
+  /// An attachment.
+  Attachment,
+  /// A program.
+  Program,
+  /// A value that a newer version wrote.
+  Unrecognized(UnrecognizedValue),
+}
+
+impl EntityKind {
+  /// The serialized name, or the text of an unrecognized value.
+  pub fn as_str(&self) -> &str {
+    match self {
+      EntityKind::Stream => STREAM_NAME,
+      EntityKind::Edition => EDITION_NAME,
+      EntityKind::Chapter => CHAPTER_NAME,
+      EntityKind::Attachment => ATTACHMENT_NAME,
+      EntityKind::Program => PROGRAM_NAME,
+      EntityKind::Unrecognized(value) => value.as_str(),
+    }
   }
 }
 

@@ -17,6 +17,8 @@
 
 //! The detail types that every format and codec shares, `api.md` sections 11.1 to 11.3.
 
+use crate::model::{EntityKind, EntityLocation};
+
 /// An element that a specification gives a default: the effective value, and whether the file stored it (F1).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -42,7 +44,7 @@ impl<Value> StoredValue<Value> {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Conflict {
   field: String,
-  stream: Option<usize>,
+  owner: Option<EntityLocation>,
   values: Vec<ConflictingValue>,
 }
 
@@ -52,9 +54,18 @@ impl Conflict {
     &self.field
   }
 
-  /// The stream, for a stream's field.
+  /// The stream, edition, chapter, attachment or program whose field it is; absent for a field of the whole report.
+  pub fn owner(&self) -> Option<&EntityLocation> {
+    self.owner.as_ref()
+  }
+
+  /// The owner's index, when the owner is a stream.
   pub fn stream(&self) -> Option<usize> {
-    self.stream
+    self
+      .owner
+      .as_ref()
+      .filter(|owner| matches!(owner.kind(), EntityKind::Stream))
+      .map(EntityLocation::index)
   }
 
   /// Each source's value.

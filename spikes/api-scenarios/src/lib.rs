@@ -39,5 +39,5 @@ pub mod source;
 pub use entry_points::{probe_bytes, probe_file, probe_reader, probe_source, probe_stream};
 pub use error::{Error, ErrorKind};
 pub use limits::{Limit, Limits};
-pub use model::{Codec, Format, MediaReport, Rational, Seconds, Stream, StreamKind};
+pub use model::{Codec, Detection, Format, MediaReport, Rational, Seconds, Stream, StreamKind};
 pub use prober::Prober;

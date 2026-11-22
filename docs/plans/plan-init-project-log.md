@@ -1942,3 +1942,81 @@ The maintainer reviewed `docs/design/api.md` with its scenarios and held back G2
 - the maintainer's review of the revision, for G2.1 and G2.2;
 - the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
 - task 4, the CLI contract, after the review.
+
+## 2026-11-22 — Progress: Phase 2, the second review of the API specification
+
+The maintainer reviewed the revision of `docs/design/api.md` and again held back G2.2, on 14 findings: two of priority 1 and twelve of priority 2. Each finding was checked, and each one holds:
+
+- against the plan, the field guide and RFC 9559 (Tables 21 and 23);
+- against ITU-T H.264 (7.4.1.2.1);
+- against Tokio's documentation of `tokio::fs`, whose cancellation section says that a dropped future "will stop waiting for the result" while "the underlying blocking operation will continue to run on the thread pool";
+- by running the JSON scenario through `jq empty`, which failed at the first summary line.
+
+The revision is in the working tree.
+
+**Decisions of the maintainer.** The agent asked three questions. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| Lookup off | An expected companion is listed only as an external reference, with its validated identifier and the name a request would carry. No request is made, so it gets no source identifier and no source-table entry. Plan section 8.3 is amended to match section 7.7. | A source-table entry with a new outcome "not enabled" | Section 7.7 numbers sources by request, and the source table lists requested sources. The external reference already carries what a caller needs. Section 8.3 was the one passage that disagreed. |
+| Protection | Absence is proof. `Stream::protection()` is absent only when every structure that can declare protection was examined and none does. Otherwise `Protection` is present, even with no declaration, says whether everything was examined, and gives each sample description as `Clear`, `Declared` or `Unknown`. | `Protection` only with a declaration, with an unexamined stream visible only through its completeness reasons | A caller can trust a missing `Protection`, and an unread description is never labeled clear. |
+| An unresolved codec | `CodecInformation::codec()` returns `Option<&Codec>`, absent while the candidate descriptions of an unproven first sample name different codecs. `candidate_codecs()` lists them. | A variant `Codec::Unresolved` | Rule 2 of `api.md`: a missing value is `None`. `Codec::Unknown` keeps its one meaning, a codec that this version does not know. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **Protection (priority 1).** As decided above. A declaration establishes a mechanism for its scope, not that every byte is encrypted, because a scheme can leave samples or parts of them clear (field guide, `protection`). The Matroska scope `0x4` applies to the next encoding's settings (RFC 9559 Table 21). It is now `ProtectionScope::EncodingSettings`, and `encoding_order()` names the affected encoding. A scope bit that this version does not know gives `Other`.
+- **Attachments (priority 1).** With `WithData`, the section is complete only when every embedded payload was kept. A payload that the retained-payload or read limit stopped leaves `data()` absent and the section incomplete, with the limit named. Data that is not kept is still read and discarded on a forward-only source, and those bytes count toward `BytesRead` (plan section 7.5).
+- **Outcomes.**
+  - *FLV end of input.* A known length establishes the end: a slice, a file, or a positional source that states its length. Only a source of unknown length needs the read that returns no bytes (plan section 7.5).
+  - *Unsupported compression.* A Matroska header under `bzlib` or `lzo1x`, which RFC 9559 lets a reader leave unsupported, is `Identified` with `UnsupportedCompression`.
+- **Report fields.**
+  - *Codecs.* As decided above.
+  - *H.264.* The primary set is the one that the first picture activates: through the picture parameter set that its first slice names, or through a buffering-period SEI message of an IDR access unit (ITU-T H.264 7.4.1.2.1). Without that evidence, and with sets that disagree, no set is primary. A normalized field then comes only from values on which every set agrees.
+  - *Owners of detail values.* Conflicts, observed lower bounds and exact values have `owner()`, an `EntityLocation`. `EntityLocation` now has `kind()`: stream, edition, chapter, attachment or program.
+- **Lookup and async.**
+  - *Shared resolvers.* `CompanionRequest::primary_path()` gives the path that the caller passed to `probe_file`. A caller who needs other context gives each probe its own resolver, through a cloned `Prober`. The built-in resolver declines when the input has no folder.
+  - *Lookup off.* As decided above.
+  - *Cancellation.* Dropping the future stops the probe. A file operation already on Tokio's blocking pool runs to its end, and its result is discarded.
+- **Documents.**
+  - *Usage errors.* A document is built by `Document::from_results` or `Document::from_usage_error`, and has no `push`. Reading refuses a usage error beside results, and an entry of a known outcome without exactly one record.
+  - *The scenario.* Standard output carries only the document, and the summaries go to standard error. A detection entry has its own arm, and only an outcome from a newer version prints as such.
+
+**Found while revising.** Plan section 8.9 writes the usage error as an object with a `message` member, while the specification returned `Option<&str>`. It is now `Option<&UsageError>` with `message()`. The spike had no detection type, so its document could not hold the detection entries that section 12 specifies. It now has a minimal `Detection`.
+
+**Choices made without asking,** each open at the gate named:
+
+- Compression that this version cannot undo is a final state, as a pending parser is, rather than a cut-short state. Under `--strict`, the report therefore stays complete (G2.2).
+- A document is built from all its entries at once. An entry-at-a-time form stays the G2.3 question.
+- `UsageError` follows the object of plan section 8.9 (G2.2).
+- A detection entry's outcome follows the `--detect` rows of plan section 8.9. A source that fails during detection becomes an error record (G2.3).
+- `ProtectionScope::Other` holds a scope that this version does not know, rather than leaving the declaration out (G2.2).
+- With no primary parameter set, the fields on which every set agrees are still reported (G2.2; the H.264 phase states, for each binding, when one set is the only candidate).
+- Context for a shared resolver comes from the primary path and from a resolver per probe, not from a context parameter on every entry point (G2.2, and the release that ships lookup).
+- The built-in resolver declines a request on an input without a path, so the source table shows the request, rather than reporting lookup as "not enabled" (G2.2).
+- The three detail entries keep `stream()` beside `owner()` (G2.2).
+- An unresolved codec displays its candidates, separated by " or " (G2.2).
+
+**Plan, revision 35:**
+
+- section 6.2 and Phase 5, task 8: unsupported compression, with two new Phase 5 tests;
+- section 7.7: no request when lookup is off, the primary path in a request, and the built-in resolver without a folder;
+- section 8.3: the split row on companions, the header states, and attachment payloads;
+- section 8.7: cancellation;
+- Phase 6, tasks 7 and 9: the unresolved codec and the protection states;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features.
+  - Ten tests pass: the seven earlier ones and three new tests of documents. A usage-error document reads back. Reading refuses a usage error beside results, and an entry whose record was removed.
+- **Programs.** All 13 programs end without a panic. The JSON scenario exits normally; `jq empty` accepts its standard output, and its summaries are on standard error.
+- **Structure.** The structure check of D23 reports 0 findings for the spike. The 13 programs in section 15 of `api.md` match the spike's examples.
+- **Diagrams.** The two diagrams of `api.md` render without error in mermaid.js.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of the revision, for G2.1 and G2.2;
+- the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
+- task 4, the CLI contract, after the review.

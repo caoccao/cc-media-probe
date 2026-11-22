@@ -35,28 +35,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Err(error) => eprintln!("movie.mkv: {error}"),
   }
 
-  // Several inputs in the document form that the CLI writes, an error among them.
-  let mut document = Document::new(Generator::new("media-catalog", env!("CARGO_PKG_VERSION")));
+  // Several inputs in the document form that the CLI writes, an error among them. A document holds results or a
+  // usage error, never both, so it is built from all its entries at once.
+  let mut results = Vec::new();
   for (index, path) in ["movie.mkv", "notes.txt"].into_iter().enumerate() {
     let input = PortablePath::from_path(Path::new(path));
-    document.push(match probe_file(path) {
+    results.push(match probe_file(path) {
       Ok(report) => DocumentEntry::from_report(index, input, report),
       Err(error) => DocumentEntry::from_error(index, input, error.to_record()),
     });
   }
-  let text = serde_json::to_string_pretty(&document)?;
+  let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
+  let text = serde_json::to_string_pretty(&Document::from_results(generator, results))?;
+  // Standard output carries the document and nothing else, so it stays valid JSON.
   println!("{text}");
 
   // Read back, a document gives each entry's input and what it holds. Each nested record has the document's version.
   let document: Document = serde_json::from_str(&text)?;
   for entry in document.results() {
     let input = entry.input().display();
-    match (entry.outcome(), entry.report(), entry.error()) {
-      (EntryOutcome::Ok | EntryOutcome::Partial, Some(report), _) => {
-        println!("{input}: {}, {}", report.format(), report.completeness())
-      }
-      (EntryOutcome::Error, _, Some(record)) => println!("{input}: {}", record.message()),
-      (outcome, _, _) => println!("{input}: {}, from a newer version", outcome.as_str()),
+    match (entry.outcome(), entry.report(), entry.detection(), entry.error()) {
+      (EntryOutcome::Unrecognized(outcome), ..) => eprintln!("{input}: {}, from a newer version", outcome.as_str()),
+      (_, Some(report), _, _) => eprintln!("{input}: {}, {}", report.format(), report.completeness()),
+      (outcome, _, Some(detection), _) => eprintln!("{input}: {}, {}", outcome.as_str(), detection.outcome().as_str()),
+      (_, _, _, Some(record)) => eprintln!("{input}: {}", record.message()),
+      // Reading checks that an entry of a known outcome holds exactly one record, so nothing else remains.
+      (_, None, None, None) => {}
     }
   }
   Ok(())
