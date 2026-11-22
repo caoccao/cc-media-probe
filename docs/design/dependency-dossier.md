@@ -83,9 +83,24 @@ The CI workflow, `.github/workflows/ci.yml` (plan section 9.8), uses only these 
 |---|---|---|---|---|---|---|
 | `actions/checkout` | 7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | 2026-07-20 | MIT | Node.js 24 | The checkout of the pushed commit, without persisted credentials. |
 | `actions/setup-node` | 7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` | 2026-10-08 | MIT | Node.js 24 | Node.js from `.nvmrc` (`lts/*`), without its npm cache. |
-| `actions/cache` | 6.1.0 | `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` | 2026-06-26 | MIT | Node.js 24 | The installed Cargo tools of section 1.5, one cache per tool, version and runner. |
+| `actions/cache` | 6.1.0 | `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` | 2026-06-26 | MIT | Node.js 24 | The installed Cargo tools of section 1.5, one cache per tool, version and runner; from the first recipe on, the generated test files of section 1.8, one cache per runner. |
 
 The runner images are named exactly: `ubuntu-26.04`, `macos-26` (arm64) and `windows-2025`. They are not dependencies, but like the actions they change only when the workflow file does.
+
+### 1.8 Test-file tools (GS.1, 2026-11-22)
+
+The maintainer amended R8 through GS.4 on 2026-11-22. Two programs now generate test files, run as binaries by `scripts/generate-test-files.ts` (plan section 9.1, [`docs/guide/test-files.md`](../guide/test-files.md)). They are development tools, like the fuzzer: no crate depends on them, nothing links them, and the pure-Rust boundary of R15 is unchanged. Their own licenses (the GPL or LGPL of their builds) cover the programs, not the files they write.
+
+| Tool | Program | Requested version | Version reported with | What it is for |
+|---|---|---|---|---|
+| FFmpeg | `ffmpeg` | 9.1 | `ffmpeg -version` | Codec streams and container files from its synthetic `lavfi` sources |
+| MKVToolNix | `mkvmerge` | 104.0 | `mkvmerge --version` | Matroska and WebM files from generated streams, with `--deterministic` |
+
+- **On a development machine** the generator runs the tools from the system path, or from their usual install locations, and stops with an error when it finds neither. Whatever version it finds is recorded in `target/test-files/generation-state.json` and in every file's identity.
+- **In CI** each runner installs both tools with its own package manager: `apt` on `ubuntu-26.04`, Homebrew on `macos-26` and Chocolatey on `windows-2025`. Where a manager installs an exact version, CI asks for the versions above. Elsewhere it takes the version the manager provides, which the generator records. The steps join the workflow with the first recipes (plan section 9.8); the exact commands are reviewed then.
+- **Upgrades.** A new requested version is a GS.1 change. It gives every file a new identity, so each platform generates its files once more.
+
+Both requested versions were the current releases on 2026-11-22. FFmpeg 9.1 was released on 2026-11-20, so it passes the project's three-day cooldown on 2026-11-23, before any recipe exists.
 
 ## 2. The published graph
 

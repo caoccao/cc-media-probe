@@ -8,7 +8,7 @@ The plan is the authority. Where this file and the plan disagree, the plan wins,
 
 Three kinds of issue help the most:
 
-- **A bug.** Name the version, the command or call, what was reported and what you expected, with the section of the specification that says so. The repository holds only synthetic test files (R8), so a bug is turned into a small, hand-written fixture that shows it, and only then fixed. Please attach no media file. The bytes that matter, as a hex dump with their offsets, are the most useful evidence.
+- **A bug.** Name the version, the command or call, what was reported and what you expected, with the section of the specification that says so. The repository commits no media files (R8), so a bug is turned into a small test file that shows it, and only then fixed: a recipe for the test-file generator where ffmpeg or mkvmerge can produce the case, a hand-written hex fixture otherwise. Please attach no media file; the command that made it is welcome. The bytes that matter, as a hex dump with their offsets, are the most useful evidence.
 - **A format or codec.** Name its specification: a public, normative document if one exists. A format without one needs a public description that the maintainer approves through GS.2 before any work starts. Approved work then joins a phase of the plan.
 - **A changed specification.** A new edition, an erratum, a moved document or a better public description of a format. The maintainer reviews the source through GS.2.
 
@@ -17,8 +17,8 @@ Please do not paste source code of other multimedia projects into an issue. Desc
 ```mermaid
 flowchart TD
   I["An issue"] --> K{"What does it report?"}
-  K -->|"a bug"| F["A small synthetic fixture<br/>that shows it"]
-  F --> X["The fix, with that fixture as its test"]
+  K -->|"a bug"| F["A small test file<br/>that shows it"]
+  F --> X["The fix, with that file as its test"]
   K -->|"a format or codec"| S["Its source is approved<br/>through GS.2"]
   S --> P["The work joins a phase of the plan"]
   K -->|"a changed specification"| G["GS.2 reviews the source"]
@@ -40,12 +40,12 @@ The library reads untrusted files, so each of these is a vulnerability:
 
 Companion lookup, planned for release 0.7.0, opens files that belong to a probed file only when the caller enables it, and only inside the trusted folder the caller names (R18). That containment is guaranteed on one condition: **nobody else changes the folder tree while the probe runs.** An escape that needs such a change is outside the guarantee. Any other escape is a vulnerability.
 
-The report stays private between you and the maintainer. The problem gets a synthetic fixture and a fix, like every bug, and the advisory is published with the release that contains the fix.
+The report stays private between you and the maintainer. The problem gets a test file and a fix, like every bug, and the advisory is published with the release that contains the fix.
 
 ```mermaid
 flowchart LR
   R["Report a vulnerability<br/>on the Security tab"] --> P["A private advisory:<br/>you and the maintainer"]
-  P --> F["A synthetic fixture,<br/>then the fix"]
+  P --> F["A test file,<br/>then the fix"]
   F --> A["The release with the fix;<br/>the advisory is published"]
 ```
 
@@ -57,7 +57,7 @@ Each rule names its source in the plan: a requirement (R…) of [section 3](docs
 
 - Parsing behavior comes only from the specifications that the plan lists (section 5, Appendices A and B). Normative prose, tables, syntax tables, syntax pseudocode and worked examples count as specification (R16, [section 1.3](docs/plans/plan-init-project.md#13-clean-room-rule)).
 - The source code of other multimedia projects is never read for implementation, and never copied, translated or paraphrased. The same holds for a reference encoder or decoder attached to a specification.
-- The repository never names an existing multimedia tool or library: not in code, comments, documentation, the changelog or commit messages.
+- The repository never names an existing multimedia tool or library: not in code, comments, documentation, the changelog or commit messages. The one exception is the two tools that generate test files, ffmpeg and mkvmerge of mkvtoolnix (R8). They are named only in the generator, its recipes, the CI workflow, the plan, the dependency dossier, the development log, [`docs/guide/test-files.md`](docs/guide/test-files.md), `CLAUDE.md` and this file. The library, its rustdoc, the other guides, the changelog and commit messages never name them.
 
 ### Sources and traceability
 
@@ -72,8 +72,15 @@ Each rule names its source in the plan: a requirement (R…) of [section 3](docs
 
 ### Test media and fixtures
 
-- Test media is synthetic only (R8): hand-annotated hex fixtures and the byte-level builders of the test kit. No third-party sample, no external tool to make or check a fixture, and no real media in the repository ([section 9.1](docs/plans/plan-init-project.md#91-fixtures-synthetic-only)).
-- A bug found after a format ships gets a minimized synthetic fixture before it is fixed.
+- **Generated test files** (R8, [section 9.1](docs/plans/plan-init-project.md#91-test-files)). Wherever a tool can produce the case, a test file is generated by the ffmpeg or mkvmerge binary from a JSON recipe in `crates/cc-media-probe-testkit/test-files/<topic>/<format>.json`. Run `node scripts/generate-test-files.ts`.
+  - **Where they go.** The files land in the git-ignored `target/test-files/<topic>/<format>/` and are never committed.
+  - **Generated once.** A file is generated once and kept while its recipe and tool version stay the same, and a file that no recipe describes is removed.
+  - **Finding the tools.** The generator finds the tools on the system path or in their usual install locations, and stops with an error when it finds neither.
+  - **The guide.** [`docs/guide/test-files.md`](docs/guide/test-files.md) explains recipes, reproducible options, CI and troubleshooting.
+- **What a test asserts.** A test on a generated file asserts only what its recipe fixes and the specifications derive from it, never what a tool version decides, and never what a tool reports about the file.
+- **Hex fixtures and builders** of the test kit cover what no tool writes: truncated, damaged and mutated files, edge and reserved values, structures that tools do not write, and byte-exact expectations. No third-party sample is used.
+- **Coverage.** Every implementation phase is covered by tests, and its gate requires line coverage above 90% for both published crates and every area (R28).
+- A bug found after a format ships gets a minimized test file before it is fixed: a recipe where a tool can produce the case, a hex fixture otherwise.
 - A change to what a probe reports updates its expectation files and is listed in the changelog under "Changed output" ([section 9.6](docs/plans/plan-init-project.md#96-reviewing-changes-in-reported-output)).
 
 ### Code
@@ -110,7 +117,7 @@ A format is done when it meets the checklist of [section 11](docs/plans/plan-ini
 1. **Sources.** Every document it needs is approved and in a manifest, and the deliverables and coverage tables have its rows.
 2. **Detection.** A detector entry with its signature, source, confidence and extension hints.
 3. **Probing.** The walker, with every loop charged to the budget; the stream inventory and when it is reached; header parsing for every stream; the mapping to the normalized model and the typed details; completeness with its evidence; behavior on forward-only sources and with each feature disabled.
-4. **Tests.** Hex fixtures and builder matrices, truncation and mutation sweeps, budget tests, source parity, fault injection, a fuzz target, the cross-container pairs, serialization and the command-line output.
+4. **Tests.** Recipes for the generated test files, hex fixtures and builder matrices for what no tool writes, truncation and mutation sweeps, budget tests, source parity, fault injection, a fuzz target, the cross-container pairs, serialization and the command-line output, with coverage above 90%.
 5. **Documentation.** Rustdoc, the rows of the guides and the changelog entry.
 
 The checks pass at every step, and the phase that adds the format ends at its gate.
@@ -119,7 +126,7 @@ The checks pass at every step, and the phase that adds the format ends at its ga
 flowchart TD
   S["1 Sources approved;<br/>deliverables and coverage rows"] --> D["2 Detector entry"]
   D --> P["3 Walker, mapping, typed details,<br/>completeness"]
-  P --> T["4 Fixtures, sweeps, budget, parity,<br/>fault injection, fuzzing"]
+  P --> T["4 Recipes, fixtures, sweeps, budget,<br/>parity, fault injection, fuzzing"]
   T --> O["5 Rustdoc, guides, changelog"]
   O --> G["The checks pass; the phase gate"]
 ```

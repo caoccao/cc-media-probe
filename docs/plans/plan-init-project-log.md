@@ -1746,3 +1746,72 @@ Revision 30 corrects field sources that change the report for valid files. The r
 - ETSI TS 102 366 V1.4.1 reserves sample-rate code 3. Its E-AC-3 program layout includes only the selected program's substreams and counts replacement channels once. The RealAudio matrix now identifies which header versions actually declare audio properties and tags. The Ogg rules require evidence of what a final granule denotes as well as its clock.
 
 The follow-up review checked these mappings across the general rules, individual cells, findings and phase tasks. The guide has 50 tables and 29 findings. The repository checks and Git whitespace checks pass. The API proposals and deliverable decisions remain open for maintainer review.
+
+## 2026-11-22 — Phase 2: the field guide's review closed, task 2 drafted
+
+**Decisions of the maintainer, with the reasons given in the proposals:**
+
+- **The fifteen API proposals of the field guide** (F1 to F8, F14, F18, F22 to F26) are the baseline of the API specification, as written. G2.2 confirms or changes them when the maintainer walks through `api.md`.
+- **The six plan amendments** (F9, F12, F15, F19, F20, F29) are accepted and applied in revision 31. Each follows from a pinned source: the tags draft defines only `BPS` and `FPS` as statistics; no source describes a chapter list box; the AV1 sequence header states only maxima; the WebM guidelines define four WebVTT identifiers; neither the VobSub index nor the PGS description gives the end of the last event; and the `V_VP9` feature list is a representation of its own.
+- **Sources (GS.2).** F13's three pages are added now, because Phase 7 of `0.1.0` reads the members they define: `microsoft-avimainheader`, `microsoft-avistreamheader` and `microsoft-avioldindex`, snapshots of the MicrosoftDocs repository at commit 656e9656bfae, the commit of the stored bitmap pages, with their checksums recorded. The other source questions (F10, F11, F16, F17, F21, F27, F28) wait for their phases. The stored stream header still defines `wLanguage` only as "Language tag", so the AVI stream language stays absent.
+- **E-AC-3 programs.** Program 0, independent substream 0 with its dependent substreams, fills the stream's normalized fields, because every decoder decodes it and it carries the main audio program (ETSI TS 102 366 E.2.8.1, E.2.10.1). The other programs go to the details, as AC-4 presentations do. The field guide's E-AC-3 cells say so.
+- **The async source trait** is poll-based, like `AsyncRead`. Return type notation is still unstable, so a public `async fn` could not let a caller require a `Send` future; the poll-based trait is object-safe, and the probe future is `Send` exactly when the source is.
+- **Thoroughness.** No section defined a level, so the option is left out of `0.1.0`; a release can add it. Plan section 8.2 is amended in revision 31.
+- **The usage summary** is proposed as public, so callers can tune limits from real numbers. G2.2 confirms it.
+- **A path-based async convenience** is proposed for Tokio: `asynchronous::tokio::probe_file` and `detect_file`. It needs Tokio's `fs` feature, which the dossier does not approve, so it goes through GS.1, together with G2.2.
+
+**GS.1 evidence for Tokio's `fs` feature.** The disposable spike `spikes/tokio-file-access/` builds Tokio 1.54.1 with `default-features = false` and `fs` alone. The graph keeps the two approved crates, `tokio` and `pin-project-lite`; the feature enables no other feature and no optional dependency, and no runtime is pulled in. A file opened with `tokio::fs` satisfies the probe's bounds, and the future is `Send`. Outside a Tokio runtime, Tokio panics on the first poll, so the rustdoc of the convenience states that it must run inside one. The GS.1 decision is open.
+
+**Task 2.** The first draft of `docs/design/api.md` specifies:
+
+- the principles, naming conventions, features and public paths;
+- the ten blocking entry points, the `Prober` builder with its options, and the limits;
+- the positional source traits, blocking and async;
+- the ordered outcome procedure, the stream inventory classes, completeness with its fixed-size record, and the header statuses;
+- every type of the report model, with an accessor for each of the 100 fields of the field guide's section 3;
+- detection, the async surface, the live error and its record;
+- the conventions of the typed details, with Matroska and H.264 as worked examples;
+- the serialization points that task 5 expands, the companion lookup design and the compatibility mechanisms.
+
+The normalized tag keys of F4 come with their source names in Matroska, QuickTime and RIFF `INFO`. Each name was read in the stored tags draft, the QuickTime documentation and the RIFF specification. A key is given by a tag's name alone, because a Matroska level means different things in audio and video (tags draft section 3.3).
+
+**Open points the draft raises:**
+
+- No approved source defines the item-list codes that carry track and disc numbers (plan Phase 6, task 12), so those keys have no `0.1.0` source.
+- The tags and chapters options are new: plan section 8.3 allows a section to be "not requested", which only an option can cause.
+
+**Verification.** `node scripts/check.ts` passes, and the spike's tests pass.
+
+**Open:** the review of `api.md`; GS.1 for Tokio's `fs` feature; then task 3, the usage scenarios.
+
+## 2026-11-22 — GS.4: generated test files (revision 32)
+
+**The request.** The maintainer asked for test files generated with ffmpeg, mkvtoolnix and similar tools, by a TypeScript script in `scripts/`. Each file is to be generated only once and kept, unused files are to be removable, and the files are to go into `./target/test-files/` in the folder structure of the specifications. CI is to follow the same rules, every implementation phase is to be covered by tests above 90%, and the rules are to be written into the documents. The request changed R8, which forbade external tools to generate fixtures, and the rule of `CLAUDE.md` that no multimedia tool is named in the repository. The maintainer pointed out that only the tools' binaries are run to make files: no source code of theirs is read or built, so the clean-room rule (R16) is not involved.
+
+**Decisions of the maintainer:**
+
+- **R8, through GS.4.** Generated files replace hex fixtures wherever a tool can produce the case. Hex fixtures and builders remain for what no tool writes. No test compares the library's results with what a tool reports; expected values come from the recipes and the specifications.
+- **Naming.** The tools may be named in the material of generation and testing; the library and its rustdoc stay free of them. Writing the rules showed that the plan's requirement table and revision history, the dependency dossier and this log must name them too, because they record the decision and the approved tools. The exception therefore lists the generator, its recipes, the CI workflow, the plan, the dossier, this log, `docs/guide/test-files.md`, `CLAUDE.md` and `CONTRIBUTING.md`. The library, its rustdoc, the other guides, the changelog and commit messages never name them. This wider list awaits the maintainer's confirmation.
+- **Layout.** By topic, then format: recipes in `crates/cc-media-probe-testkit/test-files/<topic>/<format>.json`, files in `target/test-files/<topic>/<format>/`.
+- **Tools, through GS.1.** On a development machine the generator assumes the tools are installed. It looks on the system path, then in their usual install locations, and reports an error when it finds neither. In CI each platform installs them with its package manager and generates its own files. The requested versions are the current releases, ffmpeg 9.1 and mkvtoolnix 104.0. The CI steps start with the first recipes, as plan section 9.8 starts every job.
+
+**What was done:**
+
+- **The generator.** `scripts/generate-test-files.ts` hands over to `scripts/checks/test-files/`, which has one concern per file: recipes, identity and order, state, tools, pruning and the run.
+  - A file's identity is the SHA-256 of its path, tool, tool version line, arguments and input identities. A file with an unchanged identity is never generated again.
+  - A tool writes to `target/test-files/.partial/`, and the file moves into place only on success. A failed changed recipe also removes its outdated file.
+  - Every run removes the files that no recipe describes. Recipe problems and missing tools stop the run before any file is touched.
+  - The usual locations are one list for every platform: folders below the file-system root, and folders below `ProgramFiles`, `ProgramData`, `LOCALAPPDATA` and `USERPROFILE`, with and without `.exe`. The script therefore adds no platform branch to the scripts.
+  - 16 tests cover the generator with a stand-in for the tools.
+- **Trials.** Two end-to-end trials ran on macOS, with ffmpeg 8.1.2 from Homebrew and mkvmerge 101.0 from `/Applications/MKVToolNix.app/Contents/MacOS`. The generator found the latter without any change to `PATH`.
+  - The first trial was an FFV1 file.
+  - The second was an H.264 stream and an Opus stream, muxed into Matroska with `--deterministic`.
+  - In both, the second run generated nothing, and every file generated again from scratch was byte for byte identical.
+- **The documents.**
+  - `docs/guide/test-files.md` documents the generator in full.
+  - The plan states the rules in R8 and sections 9.1, 9.2, 9.3, 9.8, 9.9, 11 and 12, the Phase 3 test kit and the risk table (revision 32).
+  - `CLAUDE.md`, `CONTRIBUTING.md` and the dependency dossier (section 1.8) carry the rules and the approved tools.
+
+**Verification.** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's confirmation of the wider naming list; the CI steps with the first recipes; the review of `api.md`, and GS.1 for Tokio's `fs` feature.

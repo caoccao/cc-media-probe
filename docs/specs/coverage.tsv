@@ -252,6 +252,7 @@ pair.vp8-vp9.configuration-box.mp4-sample-entry	active	0.1.0		webm-vp-codec-isob
 pair.vp8.frame-header.avi-chunks	active	0.1.0		rfc6386: 9.1; microsoft-avi-riff-reference: AVI Stream Headers		2026-11-21
 pair.vp8.frame-header.ivf-frames	active	0.5.0		rfc6386: 9.1; multimedia-wiki-ivf: Introduction		2026-11-21
 pair.vp8.frame-header.matroska-frames	active	0.1.0		rfc6386: 9.1; ietf-draft-cellar-codec: V_VP8		2026-11-21
+pair.vp9.codec-feature-metadata.matroska-private-data	active	0.1.0		ietf-draft-cellar-codec: V_VP9; webm-container-guidelines: VP9 Codec Feature Metadata (CodecPrivate)		2026-11-22
 pair.vp9.frame-header.ivf-frames	active	0.5.0		webm-vp9-bitstream-0-7: 6.2; webm-vp9-bitstream-0-7: 7.2; multimedia-wiki-ivf: Introduction		2026-11-21
 pair.vp9.frame-header.matroska-frames	active	0.1.0		webm-vp9-bitstream-0-7: 6.2; ietf-draft-cellar-codec: V_VP9		2026-11-21
 pair.vp9.frame-header.mp4-samples	active	0.1.0		webm-vp9-bitstream-0-7: 6.2; iso-iec-14496-12.md: 3		2026-11-21
@@ -281,7 +282,7 @@ probe.amr	deferred		G17.n
 probe.asf	active	0.6.0		microsoft-asf-specification: 2; microsoft-asf-specification: 3; microsoft-asf-specification: 4.1; microsoft-asf-specification: 4.6; microsoft-asf-specification: 4.7; microsoft-asf-specification: 4.8; microsoft-asf-specification: 4.13; microsoft-asf-specification: 5; microsoft-asf-specification: 7.4; microsoft-asf-specification: 7.5; microsoft-asf-specification: 9; microsoft-asf-specification: 10; microsoft-asf-attribute-list: Introduction		2026-11-21
 probe.au	deferred		G17.n			
 probe.av1-obu	active	0.5.0		aom-av1-specification: 5.2; aom-av1-specification: 5.3; aom-av1-specification: 5.5.3; aom-av1-specification: 6.4.3; aom-av1-specification: Annex B		2026-11-21
-probe.avi	active	0.1.0		microsoft-avi-riff-reference: AVI RIFF Form; opendml-avi-1-02: 2.0; opendml-avi-1-02: 3.0; microsoft-dv-in-avi: DV Data in the AVI File Format		2026-11-21
+probe.avi	active	0.1.0		microsoft-avi-riff-reference: AVI RIFF Form; microsoft-avimainheader: AVIMAINHEADER structure; microsoft-avistreamheader: AVISTREAMHEADER structure; microsoft-avioldindex: AVIOLDINDEX structure; opendml-avi-1-02: 2.0; opendml-avi-1-02: 3.0; microsoft-dv-in-avi: DV Data in the AVI File Format		2026-11-22
 probe.blu-ray-playlists	deferred		G17.n			
 probe.caf	active	0.4.0		apple-caf-specification: CAF File Header; apple-caf-specification: CAF Chunk Header; apple-caf-specification: Audio Description Chunk; apple-caf-specification: Audio Data Chunk; apple-caf-specification: Packet Table Chunk; apple-caf-specification: Channel Layout Chunk; apple-caf-specification: Magic Cookie Chunk; apple-caf-specification: Information Chunk		2026-11-21
 probe.dirac	active	0.5.0		smpte-st-2042-1: 10; smpte-st-2042-1: 11; smpte-st-2042-1: Annex A; smpte-st-2042-1: Annex B		2026-11-21
@@ -332,7 +333,7 @@ probe.wmv	active	0.6.0		microsoft-asf-specification: 2; microsoft-asf-specificat
 registry.asf-identifiers	active	0.6.0		microsoft-asf-specification: 10		2026-11-21
 registry.flv-codec-ids	active	0.6.0		adobe-flv-f4v-10-1: E.4.2.1; adobe-flv-f4v-10-1: E.4.3.1; veovera-enhanced-rtmp-v2: Enhanced Audio; veovera-enhanced-rtmp-v2: Enhanced Video		2026-11-21
 registry.iso-sample-entries	active	0.1.0		mp4ra-sample-entries: Sample entries		2026-11-21
-registry.matroska-codec-ids	active	0.1.0		ietf-draft-cellar-codec: Codec Mapping		2026-11-21
+registry.matroska-codec-ids	active	0.1.0		ietf-draft-cellar-codec: Codec Mapping; webm-container-guidelines: Storing WebVTT data in a WebM Track		2026-11-22
 registry.mpeg4-object-types	active	0.1.0		mp4ra-oti: Object types		2026-11-21
 registry.quicktime-codes	active	0.1.0		mp4ra-sample-entries-qt: Sample entries; apple-quicktime-file-format: Sample description atom ('stsd')		2026-11-21
 registry.realmedia-fourcc	active	0.6.0		multimedia-wiki-realmedia: Codecs		2026-11-21
@@ -343,6 +344,7 @@ registry.wave-format-tags	active	0.1.0		rfc2361: Appendix A; iana-wave-avi-codec
 rule.codec-strings	active	0.1.0		rfc6381: 3		2026-11-21
 rule.language-tags	active	0.1.0		rfc5646: 2; iana-language-subtag-registry: Registry; loc-iso-639-2: Code list		2026-11-21
 rule.media-types	active	0.1.0		rfc6838: 4.2; iana-media-types: Registry		2026-11-21
+rule.quicktime-chapter-text-tracks	active	0.1.0		apple-quicktime-file-format: Chapter lists		2026-11-22
 rule.vorbis-chapter-comments	active	0.2.0		xiph-wiki-chapter-extension: Format		2026-11-21
 tags.apev2	active	0.4.0		hydrogenaudio-apev2: Introduction; hydrogenaudio-ape-tags-header: Introduction; hydrogenaudio-ape-tag-item: Introduction; hydrogenaudio-ape-tags-flags: Introduction; hydrogenaudio-ape-key: Introduction; hydrogenaudio-ape-item-value: Introduction		2026-11-21
 tags.id3v1	active	0.4.0		id3-v1: What is ID3 (v1)?; id3-v1: What is ID3v1.1?; id3-v2-3: 8.1		2026-11-21

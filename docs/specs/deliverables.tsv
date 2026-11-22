@@ -252,6 +252,7 @@ pair.vp8-vp9.configuration-box.mp4-sample-entry	pair	4.3	VP8, VP9	Codec configur
 pair.vp8.frame-header.avi-chunks	pair	4.3	VP8	Frame tag and key-frame header	AVI chunks	7
 pair.vp8.frame-header.ivf-frames	pair	4.3	VP8	Frame tag and key-frame header	IVF frames	12
 pair.vp8.frame-header.matroska-frames	pair	4.3	VP8	Frame tag and key-frame header	Matroska frames	5
+pair.vp9.codec-feature-metadata.matroska-private-data	pair	4.3	VP9	Codec feature metadata in private data	Matroska private data	5
 pair.vp9.frame-header.ivf-frames	pair	4.3	VP9	Uncompressed frame header	IVF frames	12
 pair.vp9.frame-header.matroska-frames	pair	4.3	VP9	Uncompressed frame header	Matroska frames	5
 pair.vp9.frame-header.mp4-samples	pair	4.3	VP9	Uncompressed frame header	MP4 samples	6
@@ -343,6 +344,7 @@ registry.wave-format-tags	registry	Phase 4	WAVE format tags			4
 rule.codec-strings	rule	Phase 4	RFC 6381 codec strings			4
 rule.language-tags	rule	Phase 3	BCP 47 language tags and ISO 639 codes			3
 rule.media-types	rule	Phase 3	Media type names			3
+rule.quicktime-chapter-text-tracks	rule	Phase 6	QuickTime chapter text tracks			6
 rule.vorbis-chapter-comments	rule	Phase 9	Chapter comments in Vorbis comment blocks			9
 tags.apev2	tags	7.2	APEv2			11
 tags.id3v1	tags	7.2	ID3v1 and ID3v1.1			11
