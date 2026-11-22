@@ -20,9 +20,15 @@
 mod contents;
 mod entry;
 mod invalid;
+mod outcome;
+mod underivable;
 mod version;
+mod wire;
+mod writer;
 
 pub use contents::{Document, Generator, UsageError};
-pub use entry::{DocumentEntry, EntryOutcome};
+pub use entry::DocumentEntry;
 pub use invalid::InvalidDocument;
+pub use outcome::EntryOutcome;
+pub use underivable::UnderivableOutcome;
 pub use version::SchemaVersion;

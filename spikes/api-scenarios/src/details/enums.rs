@@ -18,6 +18,7 @@
 //! The two open enums, `api.md` section 11.1, and the accessors they share, section 11.3.
 
 use super::h264::H264Details;
+use super::iso_base_media::IsoBaseMediaDetails;
 use super::matroska::MatroskaDetails;
 use super::shared::{Conflict, UnrecognizedDetails};
 
@@ -28,6 +29,8 @@ use super::shared::{Conflict, UnrecognizedDetails};
 pub enum FormatDetails {
   /// Matroska and WebM.
   Matroska(MatroskaDetails),
+  /// The ISO base media family.
+  IsoBaseMedia(IsoBaseMediaDetails),
   /// A kind that a newer version wrote.
   Unrecognized(UnrecognizedDetails),
 }
@@ -37,7 +40,7 @@ impl FormatDetails {
   pub fn conflicts(&self) -> &[Conflict] {
     match self {
       FormatDetails::Matroska(matroska) => matroska.conflicts(),
-      FormatDetails::Unrecognized(_) => &[],
+      FormatDetails::IsoBaseMedia(_) | FormatDetails::Unrecognized(_) => &[],
     }
   }
 }

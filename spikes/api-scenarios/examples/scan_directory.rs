@@ -22,6 +22,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
+use cc_media_probe::completeness::{Part, Reason};
 use cc_media_probe::{Error, ErrorKind, Limits, Prober};
 
 fn main() -> std::io::Result<()> {
@@ -86,6 +87,14 @@ fn print_partial_data(error: &Error) {
         .map_or(&[][..], |observations| observations.diagnostics())
       {
         println!("  {}: {}", diagnostic.code(), diagnostic.message());
+      }
+    }
+    // Detection could not decide. A limit that ended it, such as a read limit of zero, stopped the part `Detection`,
+    // before stream discovery began.
+    ErrorKind::FormatNotDetermined => {
+      if let Some(limit) = error.reason().and_then(Reason::limit) {
+        let part = error.record().first_stopped(limit).map_or("no part", Part::as_str);
+        println!("  the {} limit stopped {part}", limit.as_str());
       }
     }
     // Not a media file, or none this version reads, and the kinds of later versions: nothing more to show.

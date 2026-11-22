@@ -33,7 +33,7 @@ mod usage;
 mod values;
 mod video;
 
-pub use attachments::AttachmentHandling;
+pub use attachments::{Attachment, AttachmentHandling};
 pub use audio::AudioInformation;
 pub use chapters::{Chapter, ChapterEdition};
 pub use codec::{Codec, CodecCandidate, CodecInformation, CodecNamespace, Profile, RawCodecIdentifier};

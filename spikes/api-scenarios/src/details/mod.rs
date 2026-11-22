@@ -15,10 +15,13 @@
 * limitations under the License.
 */
 
-//! The typed details of `api.md` section 11, with the two worked examples.
+//! The typed details of `api.md` section 11, with the two worked examples and the ISO family's track identifiers.
 
 mod enums;
 pub mod h264;
+#[cfg(feature = "serde")]
+mod identifier_text;
+pub mod iso_base_media;
 pub mod matroska;
 mod shared;
 

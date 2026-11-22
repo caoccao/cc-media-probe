@@ -17,7 +17,9 @@
 
 //! `Limits` and `Limit`, `api.md` section 4.5, with three of the counters.
 
-use crate::constants::{DEFAULT_BYTES_READ, DEFAULT_STREAMS, DEFAULT_WORKING_MEMORY};
+use crate::constants::{
+  BYTES_READ_NAME, DEFAULT_BYTES_READ, DEFAULT_STREAMS, DEFAULT_WORKING_MEMORY, STREAMS_NAME, WORKING_MEMORY_NAME,
+};
 use crate::model::UnrecognizedValue;
 
 /// The counters of the shared budget (plan section 7.5).
@@ -107,4 +109,16 @@ pub enum Limit {
   Streams,
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue),
+}
+
+impl Limit {
+  /// The serialized name, or the text of an unrecognized value.
+  pub fn as_str(&self) -> &str {
+    match self {
+      Limit::BytesRead => BYTES_READ_NAME,
+      Limit::WorkingMemory => WORKING_MEMORY_NAME,
+      Limit::Streams => STREAMS_NAME,
+      Limit::Unrecognized(value) => value.as_str(),
+    }
+  }
 }

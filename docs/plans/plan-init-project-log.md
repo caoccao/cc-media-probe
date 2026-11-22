@@ -2120,3 +2120,104 @@ The field guide follows in sections 3.2 (`protection`), 3.3 (`raw_identifiers`),
 - the maintainer's review of the revision, for G2.1 and G2.2;
 - the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
 - task 4, the CLI contract, after the review.
+
+## 2026-11-22 — G2.1 Naming [CONFIRM]
+
+The maintainer's fourth review of `docs/design/api.md` recommended approving G2.1 and found no issue with the names. The agent asked whether G2.1 was approved, and the maintainer took the recommended option.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| G2.1, naming | Approved for the names of revision 36 of the plan: the binary `cc-media-probe`, the feature names of `api.md` section 3.1, the async modules `asynchronous::tokio` and `asynchronous::futures`, `MediaReport` and `Stream`, and the other names that section 16 of `api.md` lists. The names that the fourth review adds are confirmed at G2.2. | Hold G2.1 until the names of the fourth review were reviewed too; approve those names as well | The review found no issue with the names. The few names that the revision adds are reviewed together with the API they belong to. |
+
+**Plan, revision 37:** section 8 says that the names are approved, the Phase 2 progress paragraph and Appendix E record it. `api.md` records it in its status, its introduction and section 16, and the field guide in section 3.
+
+## 2026-11-22 — Progress: Phase 2, the fourth review of the API specification
+
+The maintainer reviewed revision `dbeec40` of `docs/design/api.md`. The review recommended approving G2.1, which the entry above records. It held back G2.2 on six findings, five of priority 2 and one of priority 3, and answered yes to G2.3's open question with three more findings of priority 2 on the JSON contract. All 16 tests of the spike had passed, and the review's further checks reproduced four problems of the document that they missed. Each finding was checked, and each one holds:
+
+- by running a scratch program against the stub, which reproduced all four document problems:
+  - a document rebuilt from the entries of a 1.1 document was written as `"1.0"` around a `"1.1"` record, and its own reader refused it;
+  - an entry of the outcome `skipped` with a 1.0 detection and a 2.0 error was accepted;
+  - the plan's `"input": "notes.txt"` was refused as "invalid type: string";
+  - a `partial` entry rebuilt with `from_detection` became `error`;
+- against the plan (sections 7.4 to 7.7, 8.3, 8.8 and 8.9, Phase 6, task 7) and the text of `api.md`;
+- against Serde's documentation of `Serializer::serialize_seq` and `collect_seq`. The length of a sequence "may or may not be computable before the sequence is iterated", and "some serializers only support sequences whose length is known up front". The call is followed by zero or more calls to `serialize_element`, then a call to `end`.
+
+**Decisions of the maintainer.** The agent asked four questions; the first is the G2.1 entry above. The maintainer took the recommended option on the other three. To the question on the writer the maintainer answered "Yes, means yes I found issues. Fix those issues.": the review's points are the maintainer's own, and every one is fixed.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A document written as it goes (G2.3's open question) | Yes. `Document::serialize_results(generator, entries, serializer)`, behind `serde`, takes a lazy sequence of entries and any Serde serializer. It writes what `from_results` writes, releases each entry before it takes the next, and stops at the first output error. The CLI uses it, and `from_results` stays. | No writer: callers and the CLI write the framing themselves | Library callers get the CLI's framing, and a scan of any length holds one report at a time. |
+| An outcome that this version cannot derive | `from_report` and `from_detection` return `Result<DocumentEntry, UnderivableOutcome>`. The refusal keeps the parts, and `with_outcome(outcome)` builds the entry with a recorded outcome. | Refuse only, and reuse the entry as it was read | A derived guess for a record of a newer version can make a newer reader reject the document. The way back keeps the outcome that a document recorded. |
+| A limit that stops detection | A part of its own, `Part::Detection`, which only an error names and which has no status in a report | Record it as discovery | Discovery is stream discovery, which never began. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **Codecs.** The fallback to the first declared description needs a track proven to have no sample, as an initialization segment examined to its end. A probe that stopped before the first sample's selection leaves it unresolved, with every candidate that it read and kept. `CodecInformation::has_every_candidate()` says whether one is missing, and the candidates name a codec only when none is.
+- **Header status.** `NotFoundWithinBudget` and `PartiallyParsedForLackOfBytes` take `RangeUnavailable`, for a header that left the window of a forward-only source before its stream was discovered.
+- **Detection.** As decided above. `api.md` shows the error of a read limit of zero, and the directory scan prints the limit and the part.
+- **Identity tokens.** `SourceIdentityToken::new(bytes)` and `as_bytes()`. Equal bytes name one source, so the later source becomes an alias of the first.
+- **Entry construction.** As decided above.
+- **Tags.** The scenario prints all four target lists. An unmatched identifier is "unresolved in this report", and `Unmatched` says that the entity can still be in the file.
+- **Nested versions.** A document gives every record it holds its own version: `from_results` and the writer set it. Reading checks every record of every entry, including an entry of a newer outcome that holds several.
+- **Paths.** An input is its display string, as plan section 8.9 shows. A lossy path adds `input_lossy` and `input_raw` beside it, and a source-table path adds `path_lossy` and `path_raw`.
+- **Identifiers.** Identifiers are strings at every coded width, and the rule comes before the rules for integers of the typed details.
+
+**Found while revising.**
+
+- `from_report` shared the flaw of `from_detection`: a report whose statuses include one from a newer version got `partial`, which a newer reader that knows the status may reject. The refusal covers both constructors.
+- The plan wrote the encodings of a raw path `unix-bytes` and `windows-wide`, against the `snake_case` rule of `api.md` section 2. They are now `unix_bytes` and `windows_wide` (plan section 8.8).
+- The stub serialized `SourceIdentifier` as a number; it is a string now.
+- The stub's detail enums keep the tagging of Serde's derive, so the fixture of a 32-bit identifier checks the identifier member's form, not the enum's `kind` form, which task 5 fixes.
+- In Rust 2024 a return-position `impl Iterator` captures the borrow of `&self`. The iterator of nested versions therefore says `use<>`, so that the document can move its entries after the check.
+- A read limit inside the movie box would lose the stream inventory (plan Phase 6, task 14), so the plan's test of a missing candidate uses the retained-data limit.
+- The scenario of section 15.6 writes its document to standard output as it goes, so it can no longer read the same text back. It reads an earlier `catalog.json` instead and exits normally when there is none.
+
+**Choices made without asking,** each open at the gate named:
+
+- The writer is an associated function of `Document` that takes `&Generator`, any `IntoIterator<Item = DocumentEntry>` and the serializer by value, and it passes no length for the results (G2.2, G2.3).
+- A document read and written again as a whole keeps the version it was read with; its records already carry that version (G2.3).
+- A path's flag is written only when it is true, and a flag or raw form without the other is malformed input (G2.3, task 5).
+- `has_every_candidate()` is a `bool`, not a count of candidates (G2.2).
+- An identity token is bytes, charged to working memory for the rest of the probe; a token that cannot be charged closes its source with `LimitReached`, and no token is ever written to the report (G2.2, Phase 14).
+- `RangeUnavailable` applies to both cut-short header states (G2.2, G3.1).
+- `Part::Detection` has no status in the record (G2.2, G3.3).
+- `UnderivableOutcome` keeps its parts behind one pointer and implements `std::error::Error` (G2.2).
+- In the JSON scenario a refused report would take `partial`. That cannot happen for a report of this version's probe, which the comment says (G2.2).
+
+**Plan, revision 37:**
+
+- section 7.4: the reason "range unavailable" for a header out of the forward-only window;
+- section 7.5: detection in the fixed-size record;
+- section 7.7 and its tests: identity tokens;
+- section 8: G2.1 approved;
+- section 8.3: detection as an activity;
+- section 8.8 and its tests: identifiers at every width, paths with their members and encodings, nested versions on writing, and the version and round-trip cases;
+- section 8.9 and its tests: the library's writer;
+- Phase 6, task 7 and its tests: the fallback and missing candidates;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+The field guide follows in sections 3 (the names), 3.3 (`raw_identifiers`) and 4.2 (the first sample's description).
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - 24 tests pass: the 16 earlier ones, six new tests of documents and two of the writer. The new tests cover the plan's entries, a lossy input, an identifier of 32 bits, a rebuilt document, every nested record, a refused outcome, the writer's output, and an output failure that leaves the next entry untaken.
+- **Programs.** All 13 programs end without a panic. The JSON scenario and the directory scan exit normally.
+- **JSON.** `jq empty` accepts the JSON scenario's standard output. In it `jq` reads:
+  - the version `"1.0"`;
+  - each input as a plain string;
+  - the outcomes `error`, with the kinds `unsupported_format` and `source_failed`;
+  - the nested version `"1.0"`;
+  - the I/O kind `not_found`;
+  - no `null` member.
+- **Structure.** The structure check of D23 reports 0 findings for the spike. The 13 programs in section 15 of `api.md` match the spike's examples; scenarios 4, 6 and 9 were synced from it.
+- **Diagrams.** No diagram changed.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of the revision, for G2.2;
+- G2.3, with task 4, the CLI contract, and task 5, the JSON contract;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.

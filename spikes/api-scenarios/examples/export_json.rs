@@ -17,6 +17,7 @@
 
 //! Scenario 6: export JSON, on its own and in the CLI's document form. Needs the `serde` feature.
 
+use std::io;
 use std::path::Path;
 
 use cc_media_probe::document::{Document, DocumentEntry, EntryOutcome, Generator};
@@ -35,22 +36,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Err(error) => eprintln!("movie.mkv: {error}"),
   }
 
-  // Several inputs in the document form that the CLI writes, an error among them. A document holds results or a
-  // usage error, never both, so it is built from all its entries at once.
-  let mut results = Vec::new();
-  for (index, path) in ["movie.mkv", "notes.txt"].into_iter().enumerate() {
+  // Several inputs in the document form that the CLI writes, an error among them. The writer takes one entry at a
+  // time and releases it before the next input is probed, so a scan of any length holds one report at a time.
+  let entries = ["movie.mkv", "notes.txt"].into_iter().enumerate().map(|(index, path)| {
     let input = PortablePath::from_path(Path::new(path));
-    results.push(match probe_file(path) {
-      Ok(report) => DocumentEntry::from_report(index, input, report),
+    match probe_file(path) {
+      Ok(report) => match DocumentEntry::from_report(index, input, report) {
+        Ok(entry) => entry,
+        // Only a report read from a newer version can hold a status that decides the outcome, never one that this
+        // version's probe made. Refused, it takes the outcome given, as this version would label it.
+        Err(refused) => refused.with_outcome(EntryOutcome::Partial),
+      },
       Err(error) => DocumentEntry::from_error(index, input, error.to_record()),
-    });
-  }
+    }
+  });
   let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
-  let text = serde_json::to_string_pretty(&Document::from_results(generator, results))?;
-  // Standard output carries the document and nothing else, so it stays valid JSON.
-  println!("{text}");
+  // Standard output carries the document and nothing else, so it stays valid JSON. An output error stops the scan.
+  Document::serialize_results(
+    &generator,
+    entries,
+    &mut serde_json::Serializer::pretty(io::stdout().lock()),
+  )?;
+  println!();
 
-  // Read back, a document gives each entry's input and what it holds. Each nested record has the document's version.
+  // An earlier catalog, read back, gives each entry's input and what it holds. Each nested record has the
+  // document's version.
+  let text = match std::fs::read_to_string("catalog.json") {
+    Ok(text) => text,
+    Err(error) => {
+      eprintln!("catalog.json: {error}");
+      return Ok(());
+    }
+  };
   let document: Document = serde_json::from_str(&text)?;
   for entry in document.results() {
     let input = entry.input().display();

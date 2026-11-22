@@ -15,175 +15,72 @@
 * limitations under the License.
 */
 
-//! A document's entries, `api.md` section 12: what each holds and the outcome it warrants.
+//! A document's entries, `api.md` section 12: what each holds, and the constructors that derive its outcome.
 
-use super::invalid::InvalidDocument;
+use super::outcome::EntryOutcome;
+use super::underivable::{UnderivableOutcome, UnderivedRecord};
 use super::version::SchemaVersion;
-use crate::constants::{
-  ENTRY_WITHOUT_ONE_RECORD_MESSAGE, ERROR_NAME, OK_NAME, OUTCOME_DISAGREES_MESSAGE, PARTIAL_NAME,
-};
 use crate::error::ErrorRecord;
-use crate::model::{Detection, DetectionOutcome, MediaReport, UnrecognizedValue};
+use crate::model::{Detection, MediaReport};
 use crate::source::PortablePath;
 
-/// What an entry holds. Serialized as its stable name.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(into = "String", from = "String")]
-#[non_exhaustive]
-pub enum EntryOutcome {
-  /// A complete report, or an identified format.
-  Ok,
-  /// An incomplete report, or a detection of a family only, an ambiguous result or a hint only.
-  Partial,
-  /// An error record, or a detection of insufficient data or an unknown format.
-  Error,
-  /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
-}
-
-impl EntryOutcome {
-  /// The serialized name, or the text of an unrecognized value.
-  pub fn as_str(&self) -> &str {
-    match self {
-      EntryOutcome::Ok => OK_NAME,
-      EntryOutcome::Partial => PARTIAL_NAME,
-      EntryOutcome::Error => ERROR_NAME,
-      EntryOutcome::Unrecognized(value) => value.as_str(),
-    }
-  }
-
-  /// The outcome that a report warrants: `ok` when it is complete.
-  fn of_report(report: &MediaReport) -> EntryOutcome {
-    if report.completeness().is_complete() {
-      EntryOutcome::Ok
-    } else {
-      EntryOutcome::Partial
-    }
-  }
-
-  /// The outcome that a detection warrants, by the `--detect` rows of plan section 8.9; `None` for a detection
-  /// outcome that a newer version wrote.
-  fn of_detection(detection: &Detection) -> Option<EntryOutcome> {
-    match detection.outcome() {
-      DetectionOutcome::Identified => Some(EntryOutcome::Ok),
-      DetectionOutcome::FamilyOnly | DetectionOutcome::Ambiguous | DetectionOutcome::HintOnly => {
-        Some(EntryOutcome::Partial)
-      }
-      DetectionOutcome::InsufficientData | DetectionOutcome::Unknown => Some(EntryOutcome::Error),
-      DetectionOutcome::Unrecognized(_) => None,
-    }
-  }
-}
-
-impl From<String> for EntryOutcome {
-  fn from(name: String) -> EntryOutcome {
-    match name.as_str() {
-      OK_NAME => EntryOutcome::Ok,
-      PARTIAL_NAME => EntryOutcome::Partial,
-      ERROR_NAME => EntryOutcome::Error,
-      _ => EntryOutcome::Unrecognized(UnrecognizedValue::new(name)),
-    }
-  }
-}
-
-impl From<EntryOutcome> for String {
-  fn from(outcome: EntryOutcome) -> String {
-    outcome.as_str().to_owned()
-  }
-}
-
-/// The result for one input.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "EntryData")]
+/// The result for one input. Its serialized form is in `wire.rs`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DocumentEntry {
-  index: usize,
-  input: PortablePath,
-  outcome: EntryOutcome,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  report: Option<MediaReport>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  detection: Option<Detection>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  error: Option<ErrorRecord>,
-}
-
-/// An entry as read, before its rules are checked.
-#[derive(serde::Deserialize)]
-struct EntryData {
-  index: usize,
-  input: PortablePath,
-  outcome: EntryOutcome,
-  report: Option<MediaReport>,
-  detection: Option<Detection>,
-  error: Option<ErrorRecord>,
-}
-
-impl EntryData {
-  /// The outcome that the entry's one record warrants, where this version can tell. A report whose statuses include
-  /// one from a newer version, and a detection outcome from a newer version, keep the outcome that was written.
-  fn warranted_outcome(&self) -> Option<EntryOutcome> {
-    match (&self.report, &self.detection, &self.error) {
-      (Some(report), None, None) => report
-        .completeness()
-        .is_known()
-        .then(|| EntryOutcome::of_report(report)),
-      (None, Some(detection), None) => EntryOutcome::of_detection(detection),
-      (None, None, Some(_)) => Some(EntryOutcome::Error),
-      _ => None,
-    }
-  }
-}
-
-impl TryFrom<EntryData> for DocumentEntry {
-  type Error = InvalidDocument;
-
-  /// An entry of an outcome this version knows holds exactly one record, and that record warrants the outcome.
-  fn try_from(data: EntryData) -> Result<DocumentEntry, InvalidDocument> {
-    if !matches!(data.outcome, EntryOutcome::Unrecognized(_)) {
-      let records = [data.report.is_some(), data.detection.is_some(), data.error.is_some()];
-      if records.into_iter().filter(|present| *present).count() != 1 {
-        return Err(InvalidDocument::new(ENTRY_WITHOUT_ONE_RECORD_MESSAGE));
-      }
-      if data
-        .warranted_outcome()
-        .is_some_and(|warranted| warranted != data.outcome)
-      {
-        return Err(InvalidDocument::new(OUTCOME_DISAGREES_MESSAGE));
-      }
-    }
-    Ok(DocumentEntry {
-      index: data.index,
-      input: data.input,
-      outcome: data.outcome,
-      report: data.report,
-      detection: data.detection,
-      error: data.error,
-    })
-  }
+  pub(super) index: usize,
+  pub(super) input: PortablePath,
+  pub(super) outcome: EntryOutcome,
+  pub(super) report: Option<MediaReport>,
+  pub(super) detection: Option<Detection>,
+  pub(super) error: Option<ErrorRecord>,
 }
 
 impl DocumentEntry {
-  /// An entry that holds a report; its outcome is `ok` or `partial`.
-  pub fn from_report(index: usize, input: PortablePath, report: MediaReport) -> DocumentEntry {
-    DocumentEntry {
-      index,
-      input,
-      outcome: EntryOutcome::of_report(&report),
-      report: Some(report),
-      detection: None,
-      error: None,
+  /// An entry that holds a report; its outcome is `ok` or `partial`. A report whose statuses include one from a
+  /// newer version is refused, and the refusal can take the outcome that was recorded for it.
+  pub fn from_report(
+    index: usize,
+    input: PortablePath,
+    report: MediaReport,
+  ) -> Result<DocumentEntry, UnderivableOutcome> {
+    match EntryOutcome::of_report(&report) {
+      Some(outcome) => Ok(DocumentEntry {
+        index,
+        input,
+        outcome,
+        report: Some(report),
+        detection: None,
+        error: None,
+      }),
+      None => Err(UnderivableOutcome::new(
+        index,
+        input,
+        UnderivedRecord::Report(Box::new(report)),
+      )),
     }
   }
 
-  /// An entry that holds a detection; its outcome follows the `--detect` rows of plan section 8.9.
-  pub fn from_detection(index: usize, input: PortablePath, detection: Detection) -> DocumentEntry {
-    DocumentEntry {
-      index,
-      input,
-      outcome: EntryOutcome::of_detection(&detection).unwrap_or(EntryOutcome::Error),
-      report: None,
-      detection: Some(detection),
-      error: None,
+  /// An entry that holds a detection; its outcome follows the `--detect` rows of plan section 8.9. A detection
+  /// outcome from a newer version is refused, and the refusal can take the outcome that was recorded for it.
+  pub fn from_detection(
+    index: usize,
+    input: PortablePath,
+    detection: Detection,
+  ) -> Result<DocumentEntry, UnderivableOutcome> {
+    match EntryOutcome::of_detection(&detection) {
+      Some(outcome) => Ok(DocumentEntry {
+        index,
+        input,
+        outcome,
+        report: None,
+        detection: Some(detection),
+        error: None,
+      }),
+      None => Err(UnderivableOutcome::new(
+        index,
+        input,
+        UnderivedRecord::Detection(detection),
+      )),
     }
   }
 
@@ -229,12 +126,22 @@ impl DocumentEntry {
     self.error.as_ref()
   }
 
-  /// The schema version of the nested record, which the document checks against its own.
-  pub(super) fn nested_version(&self) -> Option<SchemaVersion> {
+  /// The schema version of every nested record, which the document checks against its own. An entry of a newer
+  /// outcome can hold more than one.
+  pub(super) fn nested_versions(&self) -> impl Iterator<Item = SchemaVersion> + use<> {
     let report = self.report.as_ref().map(MediaReport::schema_version);
     let detection = self.detection.as_ref().map(Detection::schema_version);
-    report
-      .or(detection)
-      .or(self.error.as_ref().map(ErrorRecord::schema_version))
+    let error = self.error.as_ref().map(ErrorRecord::schema_version);
+    [report, detection, error].into_iter().flatten()
+  }
+
+  /// The entry with every nested record at the document's version, which a document gives each record it holds.
+  pub(super) fn with_schema_version(self, version: SchemaVersion) -> DocumentEntry {
+    DocumentEntry {
+      report: self.report.map(|report| report.with_schema_version(version)),
+      detection: self.detection.map(|detection| detection.with_schema_version(version)),
+      error: self.error.map(|record| record.with_schema_version(version)),
+      ..self
+    }
   }
 }

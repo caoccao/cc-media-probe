@@ -67,7 +67,7 @@ flowchart TD
 
 ## 3. The normalized fields
 
-The names are working names until G2.1, and the types are decided in `docs/design/api.md`. "Rational" means an exact fraction. Plan section 8.2 lists the types that hold these fields.
+The maintainer approved the names at G2.1 on 2026-11-22, and a name added since is confirmed at G2.2. The types are decided in `docs/design/api.md`. "Rational" means an exact fraction. Plan section 8.2 lists the types that hold these fields.
 
 ### 3.1 Report
 
@@ -114,7 +114,7 @@ The names are working names until G2.1, and the types are decided in `docs/desig
 |---|---|---|---|
 | `codec` | The codec's identity, an open set | declared, bitstream | From the container's identifier through the registries of Phase 4. A codec header can refine it, as E-AC-3 refines AC-3. |
 | `name` | The codec's human-readable name | — | From the library's registry entry for a known codec, never from the file. Absent for an unknown codec. A name that the file states, such as Matroska's `CodecName`, goes to the details. |
-| `raw_identifiers` | Every codec identifier the input carries, as written, each with its namespace | declared | Kept also when the library does not know them, as when an MP4 entry gives both a sample-entry code and an object type. Empty when the format names no codec, as a SubRip file, which is identified from its content. While the description of an ISO track's first sample is unproven, each candidate description keeps its own identifiers (`api.md` section 6.4). |
+| `raw_identifiers` | Every codec identifier the input carries, as written, each with its namespace | declared | Kept also when the library does not know them, as when an MP4 entry gives both a sample-entry code and an object type. Empty when the format names no codec, as a SubRip file, which is identified from its content. While the description of an ISO track's first sample is unproven, each candidate description keeps its own identifiers, and a description that the probe could not read or keep is marked as missing (`api.md` section 6.4). |
 | `profile` | The codec's profile | bitstream, declared | 1. The parsed header. 2. A container declaration (WebM's VP9 feature metadata). |
 | `level`, `tier` | The codec's level and tier | bitstream, declared | As `profile`. |
 | `codec_string` | An RFC 6381 `codecs` value | derived | In the ISO family: the registered four-character code of the selected description, with the case and escaping of `rfc6381` 3.2 to 3.4, followed by the parameters where an approved source defines them (`rfc6381` 3.3). In WebM: the strings of the WebM guidelines. In Ogg: the registered value corresponding to the identification header, `vorbis`, `theora`, `speex`, `flac`, `dirac`, `kate` and the others of `rfc5334` 4, and `opus` (`rfc7845` 9). Other containers require an approved mapping (finding F5). An ISO stream's primary string describes its selected sample description. A file-wide MIME `codecs` list would need all used descriptions across tracks (`rfc6381` 3.1). |
@@ -392,7 +392,7 @@ The project's description cites QT and F4V for the common boxes. Fragmented MP4 
 | `start_timecode` | — | — | — | A timecode track (`tmcd`): the time scale and frame duration, nominal number of frames, and drop, wrap, negative and counter flags from its description. Interpret the first sample by section 3.2 (QT "Timecode sample description", "Timecode sample data"; plan Phase 6, milestone 6B); declared |
 | *details* | `tkhd` `alternate_group`, `layer`, flags `track_in_movie` and `track_in_preview`; `mdhd` `timescale` and `duration`; `tref` (ISO 8.3.3); every sample description and whether it is used (plan Phase 6, task 7); protection (ISO 8.12) | adds `trex` defaults and `tfhd` overrides | as MP4 | adds `txas` (QT "Track exclude from autoselection atom") and `load` |
 
-The primary codec and header values follow the first sample's selected description (plan Phase 6, task 7). A description observed later establishes usage there only. When no usage was observed, label the first-declaration fallback in the details.
+The primary codec and header values follow the first sample's selected description (plan Phase 6, task 7). A description observed later establishes usage there only. When the track is proven to have no sample, as an initialization segment examined to its end is, label the first-declaration fallback in the details. A probe that stopped before the first sample's selection was established takes no fallback: the first-sample fields stay unresolved, and every declared description is a candidate (`api.md` section 6.4).
 
 **Video** (`VisualSampleEntry`, ISO 12.1.3; QT "Video sample description")
 

@@ -6,10 +6,11 @@ This disposable spike type-checks the usage scenarios of Phase 2, task 3 against
 
 - **A stub of the library** in `src/`, named `cc_media_probe` so that the scenarios read exactly as a caller writes them. Its types, accessors and entry points have the signatures of `api.md` sections 3 to 13, as far as the scenarios use them. Enums carry a subset of their variants. Nothing is parsed: every probe opens or touches its input and then returns an error.
 - **The scenarios** in `examples/`, one program each. Three need a feature, as their shipped versions will: `export_json` needs `serde`, `probe_with_tokio` needs `tokio` and `probe_with_futures` needs `futures-io`.
-- **Three test files** in `tests/`:
+- **Four test files** in `tests/`:
   - `bounds.rs` checks at compile time that the model, the error and the prober are `Send`, `Sync` and `'static`, and that the probe futures are `Send` for Tokio and for a boxed `Send` source. It also checks that a pattern matches an enum that an accessor returns by reference.
   - `async_source.rs` checks the repeated-request contract of section 9.3 against the stub. A source that answers `Pending` is asked again with the same position and buffer length. A probe dropped while its request is pending never calls again, and a source that keeps the range of its request answers the next request, for another range, with that range's bytes.
-  - `document.rs`, with the `serde` feature, checks that a document has the wire form of `api.md` section 12 for every member the stub writes. It reads a document back and checks each entry through its getters. The stub builds no report, so its entries are error records, and a detection entry is written by hand. It also reads a usage-error document back. Reading refuses a document whose usage error stands beside results, an entry of a known outcome that lacks its record or holds one that does not warrant the outcome, a nested record of another version, and a document of another major version. An outcome from a newer version, and a detection outcome from a newer version, read back as written.
+  - `document.rs`, with the `serde` feature, checks that a document has the wire form of `api.md` section 12 for every member the stub writes. It reads a document back and checks each entry through its getters. The stub builds no report, so its entries are error records, and a detection entry is written by hand. It also reads a usage-error document back. Reading refuses a document whose usage error stands beside results, an entry of a known outcome that lacks its record or holds one that does not warrant the outcome, a nested record of another version in any record of an entry, and a document of another major version. An outcome from a newer version, and a detection outcome from a newer version, read back as written. The entries of plan section 8.9 read back as written there, a lossy input keeps its flag and raw form, a 32-bit identifier in an error's observations is a string, a document rebuilt from entries of version 1.1 gives them its version, and an entry whose outcome this version cannot derive is refused and takes the outcome given.
+  - `writer.rs`, with the `serde` feature, checks the document written as it goes: it writes what `Document::from_results` writes, for no entries and for mixed ones, takes an entry only after the previous one was written, and takes none after an output error.
 
 The dependencies are the approved ones of the dependency dossier: Serde, Tokio with `fs`, futures-io, and as development dependencies `futures-lite`, `serde_json` and Tokio's runtime.
 
@@ -36,3 +37,11 @@ After the third review, on the same day: every Clippy run passes, the 16 tests p
 - an optional `FlagDefault`;
 - the reason of a source entry, and the source of a completeness reason;
 - the check that an entry's record warrants its outcome.
+
+After the fourth review, on the same day: every Clippy run passes, the 24 tests pass, and the structure check reports 0 findings. All 13 programs end without a panic, and the JSON scenario and the directory scan exit normally. The JSON scenario writes its document with the writer, and `jq` reads the input as a plain string. The review's four problems of the document reproduced first, in a scratch program against the stub: a rebuilt document refused by its own reader, a record of version 2.0 accepted beside a detection, the plan's `"input"` string refused, and a `partial` entry rebuilt as `error`. The stub also gained:
+
+- `Document::serialize_results` and `UnderivableOutcome`, in a document module of eight files;
+- a `source/` directory, with `RawPath` and the path's members in JSON, and `SourceIdentifier` as a string;
+- the ISO family's details with its 32-bit track identifiers, and the observations of an error record;
+- `Part::Detection` with the fixed-size record, the error's reason, `ReasonKind::RangeUnavailable` and `Limit::as_str()`;
+- `CodecInformation::has_every_candidate()`, and the attachments that the tag scenario names.

@@ -52,17 +52,30 @@ fn describe_targets(report: &MediaReport, tag_set: &TagSet) -> String {
       report.stream(index).map(|stream| stream.codec().to_string())
     }));
   }
+  for reference in tag_set.edition_targets() {
+    targets.push(describe(reference, "edition", |index, _| {
+      let edition = report.chapter_editions().get(index)?;
+      edition
+        .unique_identifier()
+        .map(|identifier| identifier.as_str().to_owned())
+    }));
+  }
   for reference in tag_set.chapter_targets() {
     targets.push(describe(reference, "chapter", |edition, path| {
       let chapter = report.chapter_editions().get(edition)?.chapter_at(path)?;
       chapter.titles().first().map(|title| title.text().to_owned())
     }));
   }
-  // Editions and attachments are described the same way.
+  for reference in tag_set.attachment_targets() {
+    targets.push(describe(reference, "attachment", |index, _| {
+      report.attachments().get(index)?.name().map(str::to_owned)
+    }));
+  }
   format!("{}{note} ({level})", targets.join(", "))
 }
 
-/// One reference: resolved to an entity of the report, a wildcard, or an identifier that names nothing here.
+/// One reference: resolved to an entity of the report, a wildcard, or an identifier that matches nothing the report
+/// holds. Such an entity can still be in the file: chapters that were skipped or cut short are not in the report.
 fn describe(reference: &TargetReference, entity: &str, name: impl Fn(usize, &[usize]) -> Option<String>) -> String {
   match (reference.kind(), reference.location()) {
     (TargetReferenceKind::Resolved, Some(location)) => {
@@ -72,7 +85,7 @@ fn describe(reference: &TargetReference, entity: &str, name: impl Fn(usize, &[us
     (TargetReferenceKind::Wildcard, _) => format!("every {entity}"),
     _ => {
       let written = reference.identifier().map_or("?", |identifier| identifier.as_str());
-      format!("{entity} {written}, not in this file")
+      format!("{entity} {written}, unresolved in this report")
     }
   }
 }

@@ -25,7 +25,7 @@ pub struct InvalidDocument(&'static str);
 
 impl InvalidDocument {
   /// The rule that the document breaks.
-  pub(super) fn new(message: &'static str) -> InvalidDocument {
+  pub(crate) fn new(message: &'static str) -> InvalidDocument {
     InvalidDocument(message)
   }
 }

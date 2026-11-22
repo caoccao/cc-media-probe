@@ -92,8 +92,9 @@ struct DocumentData {
 impl TryFrom<DocumentData> for Document {
   type Error = InvalidDocument;
 
-  /// A document of this major version, whose nested records carry its version, and whose usage error never stands
-  /// beside results. The library checks the version before it decodes anything else; the stub checks it after.
+  /// A document of this major version, every nested record of which carries its version, and whose usage error
+  /// never stands beside results. The library checks the version before it decodes anything else; the stub checks
+  /// it after.
   fn try_from(data: DocumentData) -> Result<Document, InvalidDocument> {
     if data.schema_version.major() != SchemaVersion::CURRENT.major() {
       return Err(InvalidDocument::new(OTHER_MAJOR_VERSION_MESSAGE));
@@ -101,7 +102,7 @@ impl TryFrom<DocumentData> for Document {
     if data.usage_error.is_some() && !data.results.is_empty() {
       return Err(InvalidDocument::new(USAGE_ERROR_WITH_RESULTS_MESSAGE));
     }
-    let mut nested = data.results.iter().filter_map(DocumentEntry::nested_version);
+    let mut nested = data.results.iter().flat_map(DocumentEntry::nested_versions);
     if nested.any(|version| version != data.schema_version) {
       return Err(InvalidDocument::new(NESTED_VERSION_MESSAGE));
     }
@@ -116,12 +117,16 @@ impl TryFrom<DocumentData> for Document {
 
 impl Document {
   /// A document of the current schema version with these results; with none, the document of `--json --version`.
+  /// Each nested record takes the document's version, whatever version it was read with.
   pub fn from_results(generator: Generator, results: Vec<DocumentEntry>) -> Document {
     Document {
       schema_version: SchemaVersion::CURRENT,
       generator,
       usage_error: None,
-      results,
+      results: results
+        .into_iter()
+        .map(|entry| entry.with_schema_version(SchemaVersion::CURRENT))
+        .collect(),
     }
   }
 

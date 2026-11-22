@@ -15,7 +15,8 @@
 * limitations under the License.
 */
 
-//! The attachment option of `api.md` section 4.3. An option is never serialized, so it has no catch-all.
+//! The attachment option of `api.md` section 4.3, and an attachment of section 6.10 as far as the scenarios read
+//! it. An option is never serialized, so it has no catch-all.
 
 /// Whether a probe reads attachments, and whether it keeps their data.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
@@ -28,4 +29,18 @@ pub enum AttachmentHandling {
   MetadataOnly,
   /// Keep the payloads too, within the retained-payload limit.
   WithData,
+}
+
+/// One attachment of a requested role.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Attachment {
+  name: Option<String>,
+}
+
+impl Attachment {
+  /// The attachment's name, such as a Matroska `FileName`.
+  pub fn name(&self) -> Option<&str> {
+    self.name.as_deref()
+  }
 }

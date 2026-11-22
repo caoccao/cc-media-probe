@@ -20,7 +20,8 @@
 use std::fmt;
 
 use super::constants::{
-  AAC_NAME, AV1_NAME, CANDIDATE_SEPARATOR, H264_NAME, OPUS_NAME, UNKNOWN_CODEC_TEXT, VP9_NAME, WEBVTT_NAME,
+  AAC_NAME, AV1_NAME, CANDIDATE_SEPARATOR, H264_NAME, MISSING_CANDIDATE_TEXT, OPUS_NAME, UNKNOWN_CODEC_TEXT, VP9_NAME,
+  WEBVTT_NAME,
 };
 use super::values::UnrecognizedValue;
 
@@ -161,6 +162,7 @@ impl fmt::Display for CodecCandidate {
 pub struct CodecInformation {
   codec: Option<Codec>,
   candidates: Vec<CodecCandidate>,
+  has_every_candidate: bool,
   raw_identifiers: Vec<RawCodecIdentifier>,
   profile: Option<Profile>,
   level: Option<Profile>,
@@ -168,15 +170,22 @@ pub struct CodecInformation {
 }
 
 impl CodecInformation {
-  /// The codec's identity; absent while the description of the first sample is unproven and the candidates do not
-  /// name one codec.
+  /// The codec's identity; absent while the description of the first sample is unproven, unless every candidate
+  /// is listed and they name one codec.
   pub fn codec(&self) -> Option<&Codec> {
     self.codec.as_ref()
   }
 
-  /// While the description of the first sample is unproven, each description that could hold it, in index order.
+  /// While the description of the first sample is unproven, each description that could hold it and that the probe
+  /// read and kept, in index order.
   pub fn candidates(&self) -> &[CodecCandidate] {
     &self.candidates
+  }
+
+  /// Whether no candidate is missing: true while nothing is unresolved, and false when the probe could not read or
+  /// keep a description that could hold the first sample.
+  pub fn has_every_candidate(&self) -> bool {
+    self.has_every_candidate
   }
 
   /// The library's name for a known codec; absent for an unknown or unresolved one.
@@ -208,7 +217,8 @@ impl CodecInformation {
 
 impl fmt::Display for CodecInformation {
   /// The codec's name; for a codec without one, the first raw identifier as written. An unresolved codec writes
-  /// each candidate in the same way, from the candidate's own identifiers, separated by " or ".
+  /// each candidate in the same way, from the candidate's own identifiers, separated by " or ", and ends with a
+  /// description that was not read when a candidate is missing.
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.codec.is_some() || self.candidates.is_empty() {
       let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
@@ -219,6 +229,9 @@ impl fmt::Display for CodecInformation {
         formatter.write_str(CANDIDATE_SEPARATOR)?;
       }
       write!(formatter, "{candidate}")?;
+    }
+    if !self.has_every_candidate {
+      write!(formatter, "{CANDIDATE_SEPARATOR}{MISSING_CANDIDATE_TEXT}")?;
     }
     Ok(())
   }

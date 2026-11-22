@@ -52,6 +52,13 @@ impl Detection {
   pub(crate) fn schema_version(&self) -> SchemaVersion {
     self.schema_version
   }
+
+  /// The record with another schema version: a document gives each record it holds its own.
+  #[cfg(feature = "serde")]
+  pub(crate) fn with_schema_version(mut self, version: SchemaVersion) -> Detection {
+    self.schema_version = version;
+    self
+  }
 }
 
 /// The outcome of a detection. Serialized as its stable name.

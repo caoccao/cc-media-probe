@@ -20,6 +20,7 @@
 use std::fmt;
 use std::io;
 
+use crate::completeness::{LimitRecord, Reason};
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
   NO_STREAM_INVENTORY_MESSAGE, NO_STREAM_INVENTORY_NAME, SOURCE_FAILED_MESSAGE, SOURCE_FAILED_NAME,
@@ -143,6 +144,8 @@ struct ErrorData {
   source_failure: Option<io::Error>,
   partial_report: Option<MediaReport>,
   observations: Option<Observations>,
+  reason: Option<Reason>,
+  record: LimitRecord,
   usage: Usage,
 }
 
@@ -156,6 +159,8 @@ impl Error {
         source_failure: None,
         partial_report: None,
         observations: None,
+        reason: None,
+        record: LimitRecord::default(),
         usage: Usage::default(),
       }),
     }
@@ -196,6 +201,16 @@ impl Error {
   /// What was seen before an inventory.
   pub fn observations(&self) -> Option<&Observations> {
     self.data.observations.as_ref()
+  }
+
+  /// Why the probe stopped, including a named limit or a disabled feature.
+  pub fn reason(&self) -> Option<&Reason> {
+    self.data.reason.as_ref()
+  }
+
+  /// The fixed-size record: which counters ran out, and the part each one stopped first.
+  pub fn record(&self) -> &LimitRecord {
+    &self.data.record
   }
 
   /// What the budget accounted for.
@@ -240,6 +255,8 @@ pub struct ErrorRecord {
   source_failure_kind: Option<String>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   partial_report: Option<MediaReport>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  observations: Option<Observations>,
 }
 
 impl ErrorRecord {
@@ -263,10 +280,22 @@ impl ErrorRecord {
     self.partial_report.as_ref()
   }
 
+  /// What was seen before an inventory.
+  pub fn observations(&self) -> Option<&Observations> {
+    self.observations.as_ref()
+  }
+
   /// The schema version the record was written with, which a document checks against its own.
   #[cfg(feature = "serde")]
   pub(crate) fn schema_version(&self) -> SchemaVersion {
     self.schema_version
+  }
+
+  /// The record with another schema version: a document gives each record it holds its own.
+  #[cfg(feature = "serde")]
+  pub(crate) fn with_schema_version(mut self, version: SchemaVersion) -> ErrorRecord {
+    self.schema_version = version;
+    self
   }
 }
 
@@ -296,6 +325,7 @@ impl From<&Error> for ErrorRecord {
         .as_ref()
         .map(|cause| stable_kind_name(cause.kind())),
       partial_report: error.data.partial_report.clone(),
+      observations: error.data.observations.clone(),
     }
   }
 }

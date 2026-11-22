@@ -20,8 +20,9 @@
 use std::fmt;
 
 use crate::constants::{
-  COMPLETE_TEXT, INCOMPLETE_TEXT, LIMIT_EXHAUSTED_NAME, NOT_APPLICABLE_NAME, NOT_ATTEMPTED_NAME,
-  NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME, TRUNCATED_INPUT_NAME,
+  CHAPTERS_NAME, COMPLETE_TEXT, DETECTION_NAME, DISCOVERY_NAME, HEADERS_NAME, INCOMPLETE_TEXT, LIMIT_EXHAUSTED_NAME,
+  NOT_APPLICABLE_NAME, NOT_ATTEMPTED_NAME, NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME,
+  RANGE_UNAVAILABLE_NAME, TAGS_NAME, TRUNCATED_INPUT_NAME,
 };
 use crate::limits::Limit;
 use crate::model::UnrecognizedValue;
@@ -171,6 +172,9 @@ impl PartReason {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Part {
+  /// Detection, with the validation checks of the candidates. Only an error names it, since a report exists only
+  /// once detection has decided.
+  Detection,
   /// Stream discovery.
   Discovery,
   /// A stream's headers.
@@ -181,6 +185,45 @@ pub enum Part {
   Chapters,
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue),
+}
+
+impl Part {
+  /// The serialized name, or the text of an unrecognized value.
+  pub fn as_str(&self) -> &str {
+    match self {
+      Part::Detection => DETECTION_NAME,
+      Part::Discovery => DISCOVERY_NAME,
+      Part::Headers => HEADERS_NAME,
+      Part::Tags => TAGS_NAME,
+      Part::Chapters => CHAPTERS_NAME,
+      Part::Unrecognized(value) => value.as_str(),
+    }
+  }
+}
+
+/// The fixed-size record of `api.md` section 5.3, with the two accessors that the scenarios read. The library's
+/// record has a fixed size; the stub keeps two short lists.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct LimitRecord {
+  exhausted: Vec<Limit>,
+  first_stopped: Vec<(Limit, Part)>,
+}
+
+impl LimitRecord {
+  /// Whether the counter ran out.
+  pub fn exhausted(&self, limit: &Limit) -> bool {
+    self.exhausted.contains(limit)
+  }
+
+  /// The part that the counter stopped first, such as `Part::Detection` for a read limit that ended detection.
+  pub fn first_stopped(&self, limit: &Limit) -> Option<&Part> {
+    self
+      .first_stopped
+      .iter()
+      .find(|(stopped, _)| stopped == limit)
+      .map(|(_, part)| part)
+  }
 }
 
 /// Why something was not established.
@@ -214,6 +257,8 @@ impl Reason {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum ReasonKind {
+  /// On a forward-only source, the bytes fell behind the read window before they were needed.
+  RangeUnavailable,
   /// The input ended early.
   TruncatedInput,
   /// A limit was reached.
@@ -226,6 +271,7 @@ impl ReasonKind {
   /// The serialized name, or the text of an unrecognized value.
   pub fn as_str(&self) -> &str {
     match self {
+      ReasonKind::RangeUnavailable => RANGE_UNAVAILABLE_NAME,
       ReasonKind::TruncatedInput => TRUNCATED_INPUT_NAME,
       ReasonKind::LimitExhausted => LIMIT_EXHAUSTED_NAME,
       ReasonKind::Unrecognized(value) => value.as_str(),
@@ -274,7 +320,8 @@ impl fmt::Display for HeaderStatus {
 pub enum HeaderState {
   /// Every header field read.
   Parsed,
-  /// A limit ended the search.
+  /// No header field was read before the input ended, a limit ended the search, or the range fell behind the
+  /// forward-only window.
   NotFoundWithinBudget,
   /// The probe stopped before the stream's turn.
   NotAttempted,

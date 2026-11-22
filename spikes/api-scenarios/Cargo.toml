@@ -48,3 +48,7 @@ required-features = ["futures-io"]
 [[test]]
 name = "document"
 required-features = ["serde"]
+
+[[test]]
+name = "writer"
+required-features = ["serde"]

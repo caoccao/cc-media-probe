@@ -25,6 +25,8 @@ pub const SIZE_SEPARATOR: &str = "x";
 pub const UNKNOWN_CODEC_TEXT: &str = "unknown codec";
 /// Between the candidates in the display of an unresolved codec.
 pub const CANDIDATE_SEPARATOR: &str = " or ";
+/// The display of a candidate that the probe could not read or keep.
+pub const MISSING_CANDIDATE_TEXT: &str = "a description that was not read";
 
 /// The serialized names of `DetectionOutcome`, with `UNKNOWN_NAME` below.
 pub const IDENTIFIED_NAME: &str = "identified";

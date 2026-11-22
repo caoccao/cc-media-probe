@@ -17,6 +17,7 @@
 
 //! `MediaReport`, `api.md` section 6.2, with the tag lookups of section 6.9.
 
+use super::attachments::Attachment;
 use super::chapters::ChapterEdition;
 use super::format::Format;
 use super::lookups::TagsOf;
@@ -47,6 +48,7 @@ pub struct MediaReport {
   streams: Vec<Stream>,
   chapter_editions: Vec<ChapterEdition>,
   tag_sets: Vec<TagSet>,
+  attachments: Vec<Attachment>,
   diagnostics: Vec<Diagnostic>,
   completeness: Completeness,
   usage: Usage,
@@ -121,6 +123,11 @@ impl MediaReport {
     )
   }
 
+  /// The attachments of the requested roles.
+  pub fn attachments(&self) -> &[Attachment] {
+    &self.attachments
+  }
+
   /// The first file-level tag with that key and a value.
   pub fn tag(&self, key: &TagKey) -> Option<&Tag> {
     self
@@ -157,5 +164,12 @@ impl MediaReport {
   #[cfg(feature = "serde")]
   pub(crate) fn schema_version(&self) -> SchemaVersion {
     self.schema_version
+  }
+
+  /// The record with another schema version: a document gives each record it holds its own.
+  #[cfg(feature = "serde")]
+  pub(crate) fn with_schema_version(mut self, version: SchemaVersion) -> MediaReport {
+    self.schema_version = version;
+    self
   }
 }

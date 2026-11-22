@@ -37,6 +37,26 @@ pub const NOT_REQUESTED_NAME: &str = "not_requested";
 /// The serialized names of `SectionStatus` beyond the two above.
 pub const NOT_APPLICABLE_NAME: &str = "not_applicable";
 
+/// The serialized names of `Part`.
+pub const DETECTION_NAME: &str = "detection";
+/// The serialized names of `Part`.
+pub const DISCOVERY_NAME: &str = "discovery";
+/// The serialized names of `Part`.
+pub const HEADERS_NAME: &str = "headers";
+/// The serialized names of `Part`.
+pub const TAGS_NAME: &str = "tags";
+/// The serialized names of `Part`.
+pub const CHAPTERS_NAME: &str = "chapters";
+
+/// The serialized names of `Limit`.
+pub const BYTES_READ_NAME: &str = "bytes_read";
+/// The serialized names of `Limit`.
+pub const WORKING_MEMORY_NAME: &str = "working_memory";
+/// The serialized names of `Limit`.
+pub const STREAMS_NAME: &str = "streams";
+
+/// The serialized names of `ReasonKind`.
+pub const RANGE_UNAVAILABLE_NAME: &str = "range_unavailable";
 /// The serialized names of `ReasonKind`.
 pub const TRUNCATED_INPUT_NAME: &str = "truncated_input";
 /// The serialized names of `ReasonKind`.
@@ -114,6 +134,33 @@ pub const NESTED_VERSION_MESSAGE: &str = "a nested record's schema version diffe
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
 pub const SCHEMA_VERSION_TEXT_MESSAGE: &str = "a schema version is two decimal numbers separated by a period";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const LOSSY_PATH_MESSAGE: &str = "a lossy path has a raw form beside its display string, and only a lossy path";
+
+/// Why an entry cannot be built from a record alone (`api.md` section 12).
+#[cfg(feature = "serde")]
+pub const UNDERIVABLE_OUTCOME_MESSAGE: &str =
+  "the record holds a value of a newer version that decides the entry's outcome, so the outcome must be given";
+/// Why the writer's entries can be taken only once.
+#[cfg(feature = "serde")]
+pub const ENTRIES_TAKEN_MESSAGE: &str = "the entries of a document written as it goes were already written";
+
+/// The members of a document, in the order written.
+#[cfg(feature = "serde")]
+pub const DOCUMENT_NAME: &str = "Document";
+/// The members of a document, in the order written.
+#[cfg(feature = "serde")]
+pub const SCHEMA_VERSION_MEMBER: &str = "schema_version";
+/// The members of a document, in the order written.
+#[cfg(feature = "serde")]
+pub const GENERATOR_MEMBER: &str = "generator";
+/// The members of a document, in the order written.
+#[cfg(feature = "serde")]
+pub const RESULTS_MEMBER: &str = "results";
+/// The members that a document of results writes.
+#[cfg(feature = "serde")]
+pub const RESULTS_DOCUMENT_MEMBER_COUNT: usize = 3;
 
 /// Between the major and the minor number of a schema version, as in `1.0`.
 #[cfg(feature = "serde")]
