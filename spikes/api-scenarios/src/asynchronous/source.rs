@@ -27,8 +27,9 @@ use crate::prober::Prober;
 
 /// An async source that is neither a file nor a reader, such as ranges of a remote object.
 ///
-/// After a call returns `Poll::Pending`, the next call to the same method repeats the same request: the same
-/// `position` and a buffer of the same length. A source can therefore keep one request in flight.
+/// Within one probe, after a call returns `Poll::Pending`, the probe's next call to the same method repeats the same
+/// request: the same `position` and a buffer of the same length. The promise ends with the probe: a source that
+/// outlives a dropped probe can still hold its request, and keeps the range of that request to tell it apart.
 pub trait AsyncPositionalSource {
   /// Reads at most `buffer.len()` bytes starting at `position`. Ready with 0 only at or past the end.
   fn poll_read_at(

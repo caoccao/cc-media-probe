@@ -81,3 +81,13 @@ pub const SCHEMA_MAJOR: u32 = 1;
 /// The schema version that the stub writes.
 #[cfg(feature = "serde")]
 pub const SCHEMA_MINOR: u32 = 0;
+
+/// The serialized names of `EntryOutcome`.
+#[cfg(feature = "serde")]
+pub const OK_NAME: &str = "ok";
+/// The serialized names of `EntryOutcome`.
+#[cfg(feature = "serde")]
+pub const PARTIAL_NAME: &str = "partial";
+/// The serialized names of `EntryOutcome`.
+#[cfg(feature = "serde")]
+pub const ERROR_NAME: &str = "error";

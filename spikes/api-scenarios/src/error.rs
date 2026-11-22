@@ -38,7 +38,7 @@ pub enum ErrorKind {
   SourceFailed,
   /// Nothing matched, a hint only, or every candidate rejected.
   UnknownFormat,
-  /// Too few bytes, or no candidate could be checked.
+  /// Too few bytes, or no candidate validated while at least one could not be checked.
   FormatNotDetermined,
   /// A detect-only format.
   UnsupportedFormat,

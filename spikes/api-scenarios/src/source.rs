@@ -108,7 +108,8 @@ impl PortablePath {
     self.lossy
   }
 
-  /// The native path, when the record's form belongs to the running platform.
+  /// The native path. A path that is not lossy is rebuilt from its display string on every platform. A lossy one
+  /// needs its raw form in the running platform's encoding, which the stub does not keep.
   pub fn to_native(&self) -> Option<PathBuf> {
     (!self.lossy).then(|| PathBuf::from(&self.display))
   }

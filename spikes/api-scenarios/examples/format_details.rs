@@ -40,14 +40,17 @@ fn main() -> Result<(), Error> {
     }
   }
   for stream in report.streams() {
-    // The coded values. The normalized profile and level are in `stream.codec()`.
-    if let Some(CodecDetails::H264(h264)) = stream.codec_details() {
-      println!(
-        "#{}: profile_idc {}, level_idc {}",
-        stream.index(),
-        h264.profile_indication(),
-        h264.level_indication()
-      );
+    // The coded values of the set that supplied the normalized profile and level, which are in `stream.codec()`.
+    let Some(CodecDetails::H264(h264)) = stream.codec_details() else {
+      continue;
+    };
+    if let Some(set) = h264.primary_sequence_parameter_set() {
+      // A set cut short keeps the fields read before the cut.
+      match (set.profile_indication(), set.level_indication()) {
+        (Some(profile), Some(level)) => println!("#{}: profile_idc {profile}, level_idc {level}", stream.index()),
+        (Some(profile), None) => println!("#{}: profile_idc {profile}, cut before level_idc", stream.index()),
+        _ => println!("#{}: cut before profile_idc", stream.index()),
+      }
     }
   }
   // Conflicts are reached the same way for every format, without matching on its variant.

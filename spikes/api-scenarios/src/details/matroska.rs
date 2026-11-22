@@ -24,7 +24,9 @@ use super::shared::{Conflict, StoredValue};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MatroskaDetails {
   document_type: String,
-  timestamp_scale: StoredValue<u64>,
+  document_type_version: Option<StoredValue<u64>>,
+  document_type_read_version: Option<StoredValue<u64>>,
+  timestamp_scale: Option<StoredValue<u64>>,
   muxing_application: Option<String>,
   writing_application: Option<String>,
   tracks: Vec<MatroskaTrackDetails>,
@@ -37,9 +39,19 @@ impl MatroskaDetails {
     &self.document_type
   }
 
-  /// `TimestampScale`, default 1,000,000.
-  pub fn timestamp_scale(&self) -> &StoredValue<u64> {
-    &self.timestamp_scale
+  /// `DocTypeVersion`, default 1; absent only when the input ended inside the EBML header.
+  pub fn document_type_version(&self) -> Option<&StoredValue<u64>> {
+    self.document_type_version.as_ref()
+  }
+
+  /// `DocTypeReadVersion`, default 1; absent only when the input ended inside the EBML header.
+  pub fn document_type_read_version(&self) -> Option<&StoredValue<u64>> {
+    self.document_type_read_version.as_ref()
+  }
+
+  /// `TimestampScale`, default 1,000,000; absent when the segment information was not reached.
+  pub fn timestamp_scale(&self) -> Option<&StoredValue<u64>> {
+    self.timestamp_scale.as_ref()
   }
 
   /// `MuxingApp`.

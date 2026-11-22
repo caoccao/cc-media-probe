@@ -44,3 +44,7 @@ required-features = ["tokio"]
 [[example]]
 name = "probe_with_futures"
 required-features = ["futures-io"]
+
+[[test]]
+name = "document"
+required-features = ["serde"]

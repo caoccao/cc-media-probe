@@ -203,10 +203,11 @@ impl Tag {
 pub struct TagName {
   as_written: String,
   namespace: Option<String>,
+  bytes: Option<Vec<u8>>,
 }
 
 impl TagName {
-  /// The name as written.
+  /// The name decoded by the rules of its format or namespace, with U+FFFD for a byte they cannot decode.
   pub fn as_written(&self) -> &str {
     &self.as_written
   }
@@ -214,6 +215,11 @@ impl TagName {
   /// The namespace, for a format whose keys have one.
   pub fn namespace(&self) -> Option<&str> {
     self.namespace.as_deref()
+  }
+
+  /// The key exactly as stored, for a format whose keys are bytes that a namespace interprets.
+  pub fn bytes(&self) -> Option<&[u8]> {
+    self.bytes.as_deref()
   }
 }
 

@@ -1876,3 +1876,69 @@ MKVToolNix 104.0 was released on 2026-11-22, the day of the request, so the requ
 - the maintainer's review of `api.md` with its scenarios;
 - the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
 - task 4, the CLI contract, after the review.
+
+## 2026-11-22 — Progress: Phase 2, the first review of the API specification
+
+The maintainer reviewed `docs/design/api.md` with its scenarios and held back G2.2 on 21 findings: two of priority 1, eighteen of priority 2 and one of priority 3. The review also noted that the spike's async test never drops a probe and reuses its source. Each finding was checked against the plan, the field guide, the stored RFCs and the QuickTime documentation, and each one holds. The revision is in the working tree.
+
+**Decisions of the maintainer.** The agent asked three questions. The maintainer took the recommended option for the first two and the alternative for the third.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| Attachments and cover art | The options split the attachments by role. The attachments option covers every attachment that is not cover art; the cover-art option covers cover art in any carriage, even inside tags that are not read. The section is "not requested" only when both are `Skip`; otherwise it is measured against the requested roles. | Pictures inside tags examined only when tags are read; the cover-art option as a refinement of the attachments option | With attachments skipped and cover art at its default, one row promised "not requested" and the other asked for cover metadata. Split by role, each option has one meaning, and a skipped role never makes `is_complete()` false. |
+| Companion lookup | An option for each kind of entry point: `with_companion_lookup` for the blocking ones and `with_async_companion_lookup` for the async ones. The async resolver returns a boxed `Send` future of an `AsyncResolution`, whose found source is an `AsyncPositionalSource`. | One option, with a resolver of the wrong kind not called; one option, with async probes calling a blocking resolver inline | A mismatch cannot be configured, and a blocking resolver never blocks an async task. A poll method on a resolver shared through `Arc<dyn …>` has nowhere to keep each request's state when probes run concurrently. An `async fn` in a trait still cannot be called through `dyn` in stable Rust, as the Rust project's 2026 goals state, so the future is boxed. |
+| 64-bit values in JSON | Wide fields are always strings. A detail integer of a 64-bit type and the fixed-size record's two omitted counts are decimal strings whatever their value. A floating-point value is written by its bits in hexadecimal. Offsets and usage counters keep the twins of plan section 8.8. | The twin rule of section 8.8 for every integer | A field's JSON type never depends on its value. RFC 7493 section 2.2 recommends strings for integers beyond 2^53 − 1, and the bit pattern of double-precision 1.0 is already beyond it. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **Async sources and lookup.**
+  - *A dropped probe and a reused source (priority 1).* The repeated-request promise now holds within one probe. A probe that borrowed `&mut source` and was dropped left its request with the source. The scenario's source returned that request's bytes to the next call, which could ask for another offset. The source now keeps the range of its request in flight and starts a new request when the range differs. A new spike test drops a probe while its request is pending, asks for another range, and runs a second probe on the same source.
+  - *Tokio's `detect_file`.* It goes through `detect_reader` and keeps the file-name hint.
+  - *Resolvers.* As decided above. `limit_reached(limit)` names the limit, as plan section 7.7 requires.
+- **Outcomes.**
+  - *Candidate checks.* A rejected candidate beside one that cannot be checked is `FormatNotDetermined`, with the candidates that were not rejected (plan section 8.3).
+  - *An empty FLV file.* An observed end of input at a unit boundary reaches the inventory where the format's entry says so, as FLV's does; a limit that stops at the same byte does not.
+  - *End of input before a header.* `NotFoundWithinBudget` takes truncated input as its reason (plan section 7.4).
+  - *Attachments and cover art.* As decided above.
+- **Report fields.**
+  - *Protection (priority 1).* `Protection` lists declarations, each with its scheme and scope. A sample-description scope names the description's index, so a clear description beside an encrypted one is told apart (field guide F22).
+  - *Mastering display.* Each primary and each coordinate is optional, because RFC 9559 stores each as an element of its own (5.1.4.1.28.31 to 5.1.4.1.28.40).
+  - *Color.* Each component has its provenance, because an override supplies only the components it states (field guide section 2): a QuickTime `nclc` atom has no range.
+  - *Metadata keys.* `TagName::bytes()` keeps the key bytes where a format defines them. The QuickTime keys atom stores a key as `Key_value[Key_size-8]`, whose meaning depends on its namespace.
+  - *H.264.* Every field of a parameter set is optional, and `primary_sequence_parameter_set()` names the set that supplied the normalized fields. Section 11.2 makes the rule general: a field that the input can cut off is optional.
+  - *EBML versions.* `DocTypeVersion` and `DocTypeReadVersion` have a default of 1 (RFC 8794 11.2.7, 11.2.8), so they are `StoredValue`s, as is `TimestampScale`.
+  - *Instants.* `UtcTime` holds years 0 to 9999, which RFC 3339 can write (`date-fullyear = 4DIGIT`, 5.6).
+- **Serialization and accessors.**
+  - *64-bit values.* As decided above.
+  - *Error offsets.* `Error` has `offset()` and `logical_offset()`, so `ErrorRecord` has them too.
+  - *Paths.* A path that is not lossy has no raw form (plan section 8.8), so `to_native()` rebuilds it from the display string.
+  - *Documents.* `Document` and `DocumentEntry` have getters, with `EntryOutcome`. A nested root record carries the document's version, and reading checks it.
+- **Scenarios.** The directory scan runs a fixed number of workers instead of one thread per file. The async scenario returns the file's error instead of probing an empty object.
+
+**Found by the spike.** The getters `report()` and `error()` share an `impl` with the constructors `DocumentEntry::report(…)` and `DocumentEntry::error(…)`, which Rust does not allow. The constructors are now `from_report`, `from_detection` and `from_error` (G2.1).
+
+**Choices made without asking,** each open at the gate named:
+
+- An instant outside years 0 to 9999 is implausible, as a quantity beyond 2^53 − 1 is. The normalized time is absent, with a diagnostic, and the raw timestamp stays in the details. The alternatives were ISO 8601's expanded years, which RFC 3339 readers reject, and a numeric form (G2.2).
+- A protection declaration has one scope. A Matroska `ContentEncoding` that covers both frames and private data gives two declarations with the same scheme (G2.2).
+- `TagName::bytes()` is present only where a format defines its keys as bytes; Matroska stores names as text (G2.2).
+- `primary_sequence_parameter_set()` returns the set itself rather than its index (G2.2).
+- The EBML versions and `TimestampScale` are `Option<&StoredValue<u64>>`, because the observations of an error can hold a header cut short (G2.2).
+- A tag's integer value keeps its `_exact` twin. The maintainer's choice named detail fields and the two counts, and a tag's value is part of the model (G2.2; task 5 can align it).
+- The directory scenario uses one worker per available processor (task 12 turns the scenarios into the shipped examples).
+
+**Plan, revision 34:** section 7.7 and Phase 14, task 1 (the options in the plural), section 8.2 (the attachment options by role, the two lookup options), section 8.7 (repeated requests within one probe, and a test that reuses a source), section 8.8 (raw 64-bit values as strings, paths rebuilt from their display string), the status line, the Phase 2 progress paragraph and Appendix E.
+
+**Verification.**
+
+- **Spike.** In `spikes/api-scenarios/`, Clippy passes with warnings denied, with no feature, with each feature alone and with all features. Seven tests pass: the five of task 3, the dropped-and-reused source, and a document read back through its getters. The stub builds no report, so that document holds error records only; Phase 3's version tests cover a document with mixed outcomes and a nested record of another version (plan section 8.8).
+- **Programs.** All 13 programs end without a panic. The JSON scenario reads its document back and exits normally; the others end with an ordinary error. With stand-in files, the directory scan probed twelve files on its fixed pool of workers, and the custom async source reached the stub's own error.
+- **Structure.** The structure check of D23 reports 0 findings for the spike. The 13 programs in section 15 of `api.md` match the spike's examples.
+- **Diagrams.** The two diagrams of `api.md` render without error in mermaid.js.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of the revision, for G2.1 and G2.2;
+- the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
+- task 4, the CLI contract, after the review.

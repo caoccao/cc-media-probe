@@ -23,30 +23,52 @@ use super::shared::Conflict;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct H264Details {
-  profile_indication: u8,
-  constraint_set_flags: u8,
-  level_indication: u8,
+  sequence_parameter_sets: Vec<H264SequenceParameterSetDetails>,
+  primary_sequence_parameter_set: Option<usize>,
   conflicts: Vec<Conflict>,
 }
 
 impl H264Details {
-  /// `profile_idc`.
-  pub fn profile_indication(&self) -> u8 {
-    self.profile_indication
+  /// Each sequence parameter set read, in the order read.
+  pub fn sequence_parameter_sets(&self) -> &[H264SequenceParameterSetDetails] {
+    &self.sequence_parameter_sets
   }
 
-  /// `constraint_set0_flag` to `constraint_set5_flag`, bit 7 first.
-  pub fn constraint_set_flags(&self) -> u8 {
-    self.constraint_set_flags
-  }
-
-  /// `level_idc`.
-  pub fn level_indication(&self) -> u8 {
-    self.level_indication
+  /// The set that supplied the normalized fields.
+  pub fn primary_sequence_parameter_set(&self) -> Option<&H264SequenceParameterSetDetails> {
+    self
+      .primary_sequence_parameter_set
+      .and_then(|index| self.sequence_parameter_sets.get(index))
   }
 
   /// The raw values of every conflict.
   pub fn conflicts(&self) -> &[Conflict] {
     &self.conflicts
+  }
+}
+
+/// One sequence parameter set. A set cut short keeps the fields read before the cut.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct H264SequenceParameterSetDetails {
+  profile_indication: Option<u8>,
+  constraint_set_flags: Option<u8>,
+  level_indication: Option<u8>,
+}
+
+impl H264SequenceParameterSetDetails {
+  /// `profile_idc`.
+  pub fn profile_indication(&self) -> Option<u8> {
+    self.profile_indication
+  }
+
+  /// `constraint_set0_flag` to `constraint_set5_flag`, bit 7 first.
+  pub fn constraint_set_flags(&self) -> Option<u8> {
+    self.constraint_set_flags
+  }
+
+  /// `level_idc`.
+  pub fn level_indication(&self) -> Option<u8> {
+    self.level_indication
   }
 }

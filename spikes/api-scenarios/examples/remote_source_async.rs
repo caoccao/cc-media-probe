@@ -46,11 +46,18 @@ impl Store {
 /// One range request in flight.
 type RangeRequest = Pin<Box<dyn Future<Output = io::Result<Vec<u8>>> + Send>>;
 
+/// One range request in flight, with the range it asks for.
+struct PendingRange {
+  position: u64,
+  length: usize,
+  request: RangeRequest,
+}
+
 /// The source: one range request in flight at a time.
 struct RemoteObject {
   store: Store,
   length: u64,
-  request: Option<RangeRequest>,
+  pending: Option<PendingRange>,
 }
 
 impl AsyncPositionalSource for RemoteObject {
@@ -61,12 +68,22 @@ impl AsyncPositionalSource for RemoteObject {
     buffer: &mut [u8],
   ) -> Poll<io::Result<usize>> {
     let this = self.get_mut();
-    // After `Pending` the library repeats the same request, so the stored request is the one it asks for.
-    let request = this
-      .request
-      .get_or_insert_with(|| Box::pin(this.store.fetch(position, buffer.len())));
-    let bytes = ready!(request.as_mut().poll(context));
-    this.request = None;
+    // Within one probe the library repeats a request after `Pending`. A dropped probe can leave a request for
+    // another range behind, so the request in flight is kept only while it asks for this range.
+    if this
+      .pending
+      .as_ref()
+      .is_some_and(|pending| (pending.position, pending.length) != (position, buffer.len()))
+    {
+      this.pending = None;
+    }
+    let pending = this.pending.get_or_insert_with(|| PendingRange {
+      position,
+      length: buffer.len(),
+      request: Box::pin(this.store.fetch(position, buffer.len())),
+    });
+    let bytes = ready!(pending.request.as_mut().poll(context));
+    this.pending = None;
     let bytes = bytes?;
     let count = bytes.len().min(buffer.len());
     buffer[..count].copy_from_slice(&bytes[..count]);
@@ -79,12 +96,13 @@ impl AsyncPositionalSource for RemoteObject {
   }
 }
 
-fn main() -> Result<(), cc_media_probe::Error> {
-  let object = Arc::new(std::fs::read("movie.mkv").unwrap_or_default());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+  // A file that cannot be read is reported as itself, never as a format the probe could not recognize.
+  let object = Arc::new(std::fs::read("movie.mkv")?);
   let source = RemoteObject {
     length: object.len() as u64,
     store: Store { object },
-    request: None,
+    pending: None,
   };
   let report = futures_lite::future::block_on(probe_source(source))?;
   println!("{}: read {} bytes", report.format(), report.usage().bytes_read());

@@ -17,7 +17,9 @@
 
 //! Scenario 9: scan a directory, handle each file's error, and use the partial data an error carries.
 
+use std::num::NonZeroUsize;
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use cc_media_probe::{Error, ErrorKind, Limits, Prober};
@@ -32,10 +34,16 @@ fn main() -> std::io::Result<()> {
       paths.push(path);
     }
   }
+  // A fixed number of workers, however many files there are: each takes the next path until none is left.
+  let workers = thread::available_parallelism().map_or(1, NonZeroUsize::get);
+  let next = AtomicUsize::new(0);
   thread::scope(|scope| {
-    for path in &paths {
-      let prober = &prober;
-      scope.spawn(move || scan(prober, path));
+    for _ in 0..workers.min(paths.len()) {
+      scope.spawn(|| {
+        while let Some(path) = paths.get(next.fetch_add(1, Ordering::Relaxed)) {
+          scan(&prober, path);
+        }
+      });
     }
   });
   Ok(())
