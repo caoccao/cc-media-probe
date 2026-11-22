@@ -22,12 +22,17 @@ use super::constants::{
 };
 use super::format::Format;
 use super::values::UnrecognizedValue;
+#[cfg(feature = "serde")]
+use crate::document::SchemaVersion;
 
-/// What a detection established about one input.
+/// What a detection established about one input, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Detection {
+  #[cfg(feature = "serde")]
+  schema_version: SchemaVersion,
   outcome: DetectionOutcome,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   format: Option<Format>,
 }
 
@@ -41,11 +46,18 @@ impl Detection {
   pub fn format(&self) -> Option<&Format> {
     self.format.as_ref()
   }
+
+  /// The schema version the record was written with, which a document checks against its own.
+  #[cfg(feature = "serde")]
+  pub(crate) fn schema_version(&self) -> SchemaVersion {
+    self.schema_version
+  }
 }
 
-/// The outcome of a detection.
+/// The outcome of a detection. Serialized as its stable name.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "String", from = "String"))]
 #[non_exhaustive]
 pub enum DetectionOutcome {
   /// One format, identified.
@@ -76,5 +88,27 @@ impl DetectionOutcome {
       DetectionOutcome::Unknown => UNKNOWN_NAME,
       DetectionOutcome::Unrecognized(value) => value.as_str(),
     }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl From<String> for DetectionOutcome {
+  fn from(name: String) -> DetectionOutcome {
+    match name.as_str() {
+      IDENTIFIED_NAME => DetectionOutcome::Identified,
+      FAMILY_ONLY_NAME => DetectionOutcome::FamilyOnly,
+      AMBIGUOUS_NAME => DetectionOutcome::Ambiguous,
+      HINT_ONLY_NAME => DetectionOutcome::HintOnly,
+      INSUFFICIENT_DATA_NAME => DetectionOutcome::InsufficientData,
+      UNKNOWN_NAME => DetectionOutcome::Unknown,
+      _ => DetectionOutcome::Unrecognized(UnrecognizedValue::new(name)),
+    }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl From<DetectionOutcome> for String {
+  fn from(outcome: DetectionOutcome) -> String {
+    outcome.as_str().to_owned()
   }
 }

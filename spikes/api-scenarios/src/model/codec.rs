@@ -121,12 +121,46 @@ impl fmt::Display for Profile {
   }
 }
 
+/// One sample description that could hold the first sample, with its own codec and identifiers.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CodecCandidate {
+  sample_description_index: u64,
+  codec: Codec,
+  raw_identifiers: Vec<RawCodecIdentifier>,
+}
+
+impl CodecCandidate {
+  /// The description's index as the file numbers it, from 1 in the ISO family.
+  pub fn sample_description_index(&self) -> u64 {
+    self.sample_description_index
+  }
+
+  /// The codec that the description names.
+  pub fn codec(&self) -> &Codec {
+    &self.codec
+  }
+
+  /// The description's own codec identifiers, as written, such as a protected entry's code and its original format.
+  pub fn raw_identifiers(&self) -> &[RawCodecIdentifier] {
+    &self.raw_identifiers
+  }
+}
+
+impl fmt::Display for CodecCandidate {
+  /// The codec's name; for a codec without one, the description's first raw identifier as written.
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
+    formatter.write_str(self.codec.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT))
+  }
+}
+
 /// What a stream says about its codec.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CodecInformation {
   codec: Option<Codec>,
-  candidate_codecs: Vec<Codec>,
+  candidates: Vec<CodecCandidate>,
   raw_identifiers: Vec<RawCodecIdentifier>,
   profile: Option<Profile>,
   level: Option<Profile>,
@@ -134,15 +168,15 @@ pub struct CodecInformation {
 }
 
 impl CodecInformation {
-  /// The codec's identity; absent while the description of the first sample is unproven and the candidates name
-  /// different codecs.
+  /// The codec's identity; absent while the description of the first sample is unproven and the candidates do not
+  /// name one codec.
   pub fn codec(&self) -> Option<&Codec> {
     self.codec.as_ref()
   }
 
-  /// While the codec is unresolved, the codecs of the descriptions that could hold the first sample.
-  pub fn candidate_codecs(&self) -> &[Codec] {
-    &self.candidate_codecs
+  /// While the description of the first sample is unproven, each description that could hold it, in index order.
+  pub fn candidates(&self) -> &[CodecCandidate] {
+    &self.candidates
   }
 
   /// The library's name for a known codec; absent for an unknown or unresolved one.
@@ -150,7 +184,8 @@ impl CodecInformation {
     self.codec.as_ref().and_then(Codec::name)
   }
 
-  /// Every codec identifier the input carries, as written; for an unresolved codec, each candidate's.
+  /// The codec identifiers of the reported description, as written; while it is unproven, every candidate's, in
+  /// candidate order.
   pub fn raw_identifiers(&self) -> &[RawCodecIdentifier] {
     &self.raw_identifiers
   }
@@ -173,18 +208,17 @@ impl CodecInformation {
 
 impl fmt::Display for CodecInformation {
   /// The codec's name; for a codec without one, the first raw identifier as written. An unresolved codec writes
-  /// each candidate in the same way, separated by " or ".
+  /// each candidate in the same way, from the candidate's own identifiers, separated by " or ".
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if self.codec.is_some() || self.candidate_codecs.is_empty() {
+    if self.codec.is_some() || self.candidates.is_empty() {
       let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
       return formatter.write_str(self.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT));
     }
-    for (position, candidate) in self.candidate_codecs.iter().enumerate() {
+    for (position, candidate) in self.candidates.iter().enumerate() {
       if position > 0 {
         formatter.write_str(CANDIDATE_SEPARATOR)?;
       }
-      let raw = self.raw_identifiers.get(position).map(RawCodecIdentifier::value);
-      formatter.write_str(candidate.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT))?;
+      write!(formatter, "{candidate}")?;
     }
     Ok(())
   }

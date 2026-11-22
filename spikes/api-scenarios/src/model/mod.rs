@@ -36,7 +36,7 @@ mod video;
 pub use attachments::AttachmentHandling;
 pub use audio::AudioInformation;
 pub use chapters::{Chapter, ChapterEdition};
-pub use codec::{Codec, CodecInformation, CodecNamespace, Profile, RawCodecIdentifier};
+pub use codec::{Codec, CodecCandidate, CodecInformation, CodecNamespace, Profile, RawCodecIdentifier};
 pub use detection::{Detection, DetectionOutcome};
 pub use format::{Format, SupportLevel};
 pub use language::{Language, LocalizedText};
@@ -45,7 +45,7 @@ pub use report::MediaReport;
 pub use stream::{Disposition, Stream, StreamKind};
 pub use tags::{
   BinaryValue, EntityKind, EntityLocation, IntegerValue, Tag, TagKey, TagName, TagSet, TagValue, TargetLevel,
-  TargetReference, TargetReferenceKind,
+  TargetReference, TargetReferenceKind, TargetScope,
 };
 pub use usage::Usage;
 pub use values::{

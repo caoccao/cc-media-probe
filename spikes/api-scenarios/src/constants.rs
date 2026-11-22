@@ -75,6 +75,9 @@ pub const FEATURE_DISABLED_MESSAGE: &str = "the stream information needs a disab
 /// The messages of `Error`, by kind.
 pub const NO_STREAM_INVENTORY_MESSAGE: &str = "the probe stopped before the stream inventory";
 
+/// Between the words of a stable I/O error kind, as in `permission_denied`.
+pub const WORD_SEPARATOR: char = '_';
+
 /// The schema version that the stub writes.
 #[cfg(feature = "serde")]
 pub const SCHEMA_MAJOR: u32 = 1;
@@ -99,3 +102,19 @@ pub const USAGE_ERROR_WITH_RESULTS_MESSAGE: &str = "a document with a usage erro
 #[cfg(feature = "serde")]
 pub const ENTRY_WITHOUT_ONE_RECORD_MESSAGE: &str =
   "an entry of a known outcome holds exactly one of a report, a detection and an error record";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const OUTCOME_DISAGREES_MESSAGE: &str = "an entry's outcome disagrees with the record it holds";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const OTHER_MAJOR_VERSION_MESSAGE: &str = "the document has a schema major version that this version does not read";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const NESTED_VERSION_MESSAGE: &str = "a nested record's schema version differs from the document's";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const SCHEMA_VERSION_TEXT_MESSAGE: &str = "a schema version is two decimal numbers separated by a period";
+
+/// Between the major and the minor number of a schema version, as in `1.0`.
+#[cfg(feature = "serde")]
+pub const VERSION_SEPARATOR: char = '.';

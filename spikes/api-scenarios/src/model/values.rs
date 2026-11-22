@@ -35,6 +35,12 @@ impl UnrecognizedValue {
   pub fn as_str(&self) -> &str {
     &self.0
   }
+
+  /// The text of a value that this version does not know, as a reader keeps it.
+  #[cfg(feature = "serde")]
+  pub(crate) fn new(text: String) -> UnrecognizedValue {
+    UnrecognizedValue(text)
+  }
 }
 
 /// An exact fraction with a denominator of at least 1. The stub does not reduce it.

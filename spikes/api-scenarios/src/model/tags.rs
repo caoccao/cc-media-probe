@@ -21,7 +21,8 @@ use std::fmt;
 
 use super::constants::{
   ALBUM_NAME, ARTIST_NAME, ATTACHMENT_NAME, CHAPTER_NAME, COMMENT_NAME, COPYRIGHT_NAME, DATE_NAME, DISC_NUMBER_NAME,
-  EDITION_NAME, ENCODER_NAME, GENRE_NAME, PROGRAM_NAME, STREAM_NAME, TITLE_NAME, TRACK_NUMBER_NAME,
+  EDITION_NAME, ENCODER_NAME, ENTITIES_NAME, GENRE_NAME, INCOMPLETE_NAME, PROGRAM_NAME, STREAM_NAME, TITLE_NAME,
+  TRACK_NUMBER_NAME, WHOLE_FILE_NAME,
 };
 use super::language::Language;
 use super::values::{Identifier, UnrecognizedValue};
@@ -35,6 +36,7 @@ pub struct TagSet {
   edition_targets: Vec<TargetReference>,
   chapter_targets: Vec<TargetReference>,
   attachment_targets: Vec<TargetReference>,
+  target_scope: TargetScope,
   tags: Vec<Tag>,
 }
 
@@ -64,17 +66,43 @@ impl TagSet {
     &self.attachment_targets
   }
 
-  /// Whether the set describes the whole file: all four target lists are empty.
-  pub fn targets_whole_file(&self) -> bool {
-    self.stream_targets.is_empty()
-      && self.edition_targets.is_empty()
-      && self.chapter_targets.is_empty()
-      && self.attachment_targets.is_empty()
+  /// Whether the set describes the whole file, the entities its lists name, or a scope that the probe did not
+  /// establish.
+  pub fn target_scope(&self) -> &TargetScope {
+    &self.target_scope
   }
 
   /// The top-level tags, in stored order.
   pub fn tags(&self) -> &[Tag] {
     &self.tags
+  }
+}
+
+/// What a tag set describes.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
+pub enum TargetScope {
+  /// The target structure was read in full and names no entity.
+  WholeFile,
+  /// The target structure was read in full, and the four lists hold every target it names.
+  Entities,
+  /// The probe stopped before the target structure was read in full, or did not keep every target. The lists hold
+  /// the targets kept, and empty lists do not mean the whole file.
+  Incomplete,
+  /// A value that a newer version wrote.
+  Unrecognized(UnrecognizedValue),
+}
+
+impl TargetScope {
+  /// The serialized name, or the text of an unrecognized value.
+  pub fn as_str(&self) -> &str {
+    match self {
+      TargetScope::WholeFile => WHOLE_FILE_NAME,
+      TargetScope::Entities => ENTITIES_NAME,
+      TargetScope::Incomplete => INCOMPLETE_NAME,
+      TargetScope::Unrecognized(value) => value.as_str(),
+    }
   }
 }
 

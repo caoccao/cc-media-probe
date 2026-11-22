@@ -48,6 +48,13 @@ pub const ATTACHMENT_NAME: &str = "attachment";
 /// The serialized names of `EntityKind`.
 pub const PROGRAM_NAME: &str = "program";
 
+/// The serialized names of `TargetScope`.
+pub const WHOLE_FILE_NAME: &str = "whole_file";
+/// The serialized names of `TargetScope`.
+pub const ENTITIES_NAME: &str = "entities";
+/// The serialized names of `TargetScope`.
+pub const INCOMPLETE_NAME: &str = "incomplete";
+
 /// Format names.
 pub const MATROSKA_NAME: &str = "Matroska";
 /// Format names.

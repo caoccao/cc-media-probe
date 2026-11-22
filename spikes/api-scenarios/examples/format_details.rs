@@ -27,16 +27,20 @@ fn main() -> Result<(), Error> {
     let writer = matroska.writing_application().unwrap_or("not stated");
     println!("DocType {}, WritingApp {writer}", matroska.document_type());
     for stream in report.streams() {
-      if let Some(track) = matroska.track(stream.index()) {
-        let flag = track.flag_default();
-        let origin = if flag.is_stored() { "stored" } else { "the default" };
-        println!(
-          "#{}: TrackNumber {}, FlagDefault {} ({origin})",
-          stream.index(),
-          track.track_number(),
-          flag.value()
-        );
-      }
+      let Some(track) = matroska.track(stream.index()) else {
+        continue;
+      };
+      // A track entry cut short leaves an unread flag absent: the effective default holds only after an omission.
+      let flag = match track.flag_default() {
+        Some(flag) if flag.is_stored() => format!("{} (stored)", flag.value()),
+        Some(flag) => format!("{} (the default)", flag.value()),
+        None => "unknown, the track entry was cut short".to_owned(),
+      };
+      println!(
+        "#{}: TrackNumber {}, FlagDefault {flag}",
+        stream.index(),
+        track.track_number()
+      );
     }
   }
   for stream in report.streams() {

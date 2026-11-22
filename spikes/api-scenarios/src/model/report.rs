@@ -21,18 +21,22 @@ use super::chapters::ChapterEdition;
 use super::format::Format;
 use super::lookups::TagsOf;
 use super::stream::Stream;
-use super::tags::{Tag, TagKey, TagSet};
+use super::tags::{Tag, TagKey, TagSet, TargetScope};
 use super::usage::Usage;
 use super::values::{Estimate, MediaType, Provenance, Rational, Seconds};
 use crate::completeness::Completeness;
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
+#[cfg(feature = "serde")]
+use crate::document::SchemaVersion;
 use crate::source::SourceEntry;
 
-/// What a probe established about one input.
+/// What a probe established about one input, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MediaReport {
+  #[cfg(feature = "serde")]
+  schema_version: SchemaVersion,
   format: Format,
   media_type: Option<MediaType>,
   size: Option<u64>,
@@ -106,9 +110,15 @@ impl MediaReport {
     &self.tag_sets
   }
 
-  /// The tags of every tag set that targets the whole file.
+  /// The tags of every tag set whose scope was established as the whole file. A set cut short before its targets
+  /// is never among them.
   pub fn file_tags(&self) -> TagsOf<'_> {
-    TagsOf::new(self.tag_sets.iter().filter(|tag_set| tag_set.targets_whole_file()))
+    TagsOf::new(
+      self
+        .tag_sets
+        .iter()
+        .filter(|tag_set| matches!(tag_set.target_scope(), TargetScope::WholeFile)),
+    )
   }
 
   /// The first file-level tag with that key and a value.
@@ -141,5 +151,11 @@ impl MediaReport {
   /// The format's details.
   pub fn format_details(&self) -> Option<&FormatDetails> {
     self.format_details.as_ref()
+  }
+
+  /// The schema version the record was written with, which a document checks against its own.
+  #[cfg(feature = "serde")]
+  pub(crate) fn schema_version(&self) -> SchemaVersion {
+    self.schema_version
   }
 }

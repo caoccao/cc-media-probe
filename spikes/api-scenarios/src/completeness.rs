@@ -25,6 +25,7 @@ use crate::constants::{
 };
 use crate::limits::Limit;
 use crate::model::UnrecognizedValue;
+use crate::source::SourceIdentifier;
 
 /// What was established, what was not, and why.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
@@ -66,6 +67,15 @@ impl Completeness {
   /// Each shortfall with the part it stopped.
   pub fn reasons(&self) -> &[PartReason] {
     &self.reasons
+  }
+
+  /// Whether every status is one this version knows, so that `is_complete()` decides as the writer did.
+  #[cfg(feature = "serde")]
+  pub(crate) fn is_known(&self) -> bool {
+    !matches!(self.discovery, DiscoveryStatus::Unrecognized(_))
+      && [&self.tags, &self.chapters, &self.attachments]
+        .into_iter()
+        .all(|status| !matches!(status, SectionStatus::Unrecognized(_)))
   }
 }
 
@@ -130,6 +140,7 @@ impl SectionStatus {
 pub struct PartReason {
   part: Part,
   stream: Option<usize>,
+  source_identifier: Option<SourceIdentifier>,
   reason: Reason,
 }
 
@@ -142,6 +153,11 @@ impl PartReason {
   /// The stream, for a stream's headers.
   pub fn stream(&self) -> Option<usize> {
     self.stream
+  }
+
+  /// The source table's entry of the request, for a companion's reason.
+  pub fn source_identifier(&self) -> Option<SourceIdentifier> {
+    self.source_identifier
   }
 
   /// Why.

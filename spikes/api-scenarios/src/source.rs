@@ -21,6 +21,8 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::completeness::Reason;
+
 /// A source that is neither a file nor a reader, such as ranges of a remote object.
 pub trait PositionalSource {
   /// Reads at most `buffer.len()` bytes starting at `position`. Returns 0 only at or past the end.
@@ -60,6 +62,7 @@ pub struct SourceIdentifier(u32);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SourceEntry {
   identifier: SourceIdentifier,
+  reason: Option<Reason>,
   bytes_read: Option<u64>,
   path: Option<PortablePath>,
 }
@@ -68,6 +71,11 @@ impl SourceEntry {
   /// The source's identifier.
   pub fn identifier(&self) -> SourceIdentifier {
     self.identifier
+  }
+
+  /// Why a requested companion was not opened: not found, declined with the resolver's reason, or a limit by name.
+  pub fn reason(&self) -> Option<&Reason> {
+    self.reason.as_ref()
   }
 
   /// The bytes read from it.

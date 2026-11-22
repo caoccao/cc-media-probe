@@ -23,15 +23,18 @@ use std::io;
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
   NO_STREAM_INVENTORY_MESSAGE, NO_STREAM_INVENTORY_NAME, SOURCE_FAILED_MESSAGE, SOURCE_FAILED_NAME,
-  UNKNOWN_FORMAT_MESSAGE, UNKNOWN_FORMAT_NAME, UNSUPPORTED_FORMAT_MESSAGE, UNSUPPORTED_FORMAT_NAME,
+  UNKNOWN_FORMAT_MESSAGE, UNKNOWN_FORMAT_NAME, UNSUPPORTED_FORMAT_MESSAGE, UNSUPPORTED_FORMAT_NAME, WORD_SEPARATOR,
 };
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
+#[cfg(feature = "serde")]
+use crate::document::SchemaVersion;
 use crate::model::{Format, MediaReport, UnrecognizedValue, Usage};
 
-/// Why a probe returned no report, `api.md` section 5.1.
+/// Why a probe returned no report, `api.md` section 5.1. Serialized as its stable name.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "String", from = "String"))]
 #[non_exhaustive]
 pub enum ErrorKind {
   /// A source failed.
@@ -64,6 +67,20 @@ impl ErrorKind {
     }
   }
 
+  /// The kind of a stable name, or the catch-all that keeps a name a newer version wrote.
+  #[cfg(feature = "serde")]
+  fn from_name(name: String) -> ErrorKind {
+    match name.as_str() {
+      SOURCE_FAILED_NAME => ErrorKind::SourceFailed,
+      UNKNOWN_FORMAT_NAME => ErrorKind::UnknownFormat,
+      FORMAT_NOT_DETERMINED_NAME => ErrorKind::FormatNotDetermined,
+      UNSUPPORTED_FORMAT_NAME => ErrorKind::UnsupportedFormat,
+      FEATURE_DISABLED_NAME => ErrorKind::FeatureDisabled,
+      NO_STREAM_INVENTORY_NAME => ErrorKind::NoStreamInventory,
+      _ => ErrorKind::Unrecognized(UnrecognizedValue::new(name)),
+    }
+  }
+
   /// The message for people.
   fn message(&self) -> &str {
     match self {
@@ -75,6 +92,20 @@ impl ErrorKind {
       ErrorKind::NoStreamInventory => NO_STREAM_INVENTORY_MESSAGE,
       ErrorKind::Unrecognized(value) => value.as_str(),
     }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl From<String> for ErrorKind {
+  fn from(name: String) -> ErrorKind {
+    ErrorKind::from_name(name)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl From<ErrorKind> for String {
+  fn from(kind: ErrorKind) -> String {
+    kind.as_str().to_owned()
   }
 }
 
@@ -197,13 +228,17 @@ impl std::error::Error for Error {
   }
 }
 
-/// The serializable description of an error.
+/// The serializable description of an error, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ErrorRecord {
+  #[cfg(feature = "serde")]
+  schema_version: SchemaVersion,
   kind: ErrorKind,
   message: String,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   source_failure_kind: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   partial_report: Option<MediaReport>,
 }
 
@@ -218,7 +253,7 @@ impl ErrorRecord {
     &self.message
   }
 
-  /// The I/O error kind as a stable string; the stub writes its debug form.
+  /// The I/O error kind as a stable string, such as `permission_denied`.
   pub fn source_failure_kind(&self) -> Option<&str> {
     self.source_failure_kind.as_deref()
   }
@@ -227,18 +262,39 @@ impl ErrorRecord {
   pub fn partial_report(&self) -> Option<&MediaReport> {
     self.partial_report.as_ref()
   }
+
+  /// The schema version the record was written with, which a document checks against its own.
+  #[cfg(feature = "serde")]
+  pub(crate) fn schema_version(&self) -> SchemaVersion {
+    self.schema_version
+  }
+}
+
+/// An I/O error kind as a stable string: the words of its name in lowercase, joined by underscores. The library
+/// keeps a table instead, so that a renamed variant keeps its string.
+fn stable_kind_name(kind: io::ErrorKind) -> String {
+  let mut name = String::new();
+  for character in format!("{kind:?}").chars() {
+    if character.is_uppercase() && !name.is_empty() {
+      name.push(WORD_SEPARATOR);
+    }
+    name.extend(character.to_lowercase());
+  }
+  name
 }
 
 impl From<&Error> for ErrorRecord {
   fn from(error: &Error) -> ErrorRecord {
     ErrorRecord {
+      #[cfg(feature = "serde")]
+      schema_version: SchemaVersion::CURRENT,
       kind: error.data.kind.clone(),
       message: error.to_string(),
       source_failure_kind: error
         .data
         .source_failure
         .as_ref()
-        .map(|cause| format!("{:?}", cause.kind())),
+        .map(|cause| stable_kind_name(cause.kind())),
       partial_report: error.data.partial_report.clone(),
     }
   }

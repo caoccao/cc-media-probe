@@ -17,7 +17,7 @@
 
 //! Scenario 4: dump every tag with the entities it describes.
 
-use cc_media_probe::model::{Tag, TagKey, TagSet, TagValue, TargetReference, TargetReferenceKind};
+use cc_media_probe::model::{Tag, TagKey, TagSet, TagValue, TargetReference, TargetReferenceKind, TargetScope};
 use cc_media_probe::{Error, MediaReport, probe_file};
 
 fn main() -> Result<(), Error> {
@@ -40,9 +40,12 @@ fn describe_targets(report: &MediaReport, tag_set: &TagSet) -> String {
     .target_level()
     .and_then(|level| level.type_name())
     .unwrap_or("no level");
-  if tag_set.targets_whole_file() {
-    return format!("the whole file ({level})");
-  }
+  // Empty lists mean the whole file only once the probe read the targets in full.
+  let note = match tag_set.target_scope() {
+    TargetScope::WholeFile => return format!("the whole file ({level})"),
+    TargetScope::Entities => "",
+    _ => ", and targets that were not read",
+  };
   let mut targets = Vec::new();
   for reference in tag_set.stream_targets() {
     targets.push(describe(reference, "stream", |index, _| {
@@ -56,7 +59,7 @@ fn describe_targets(report: &MediaReport, tag_set: &TagSet) -> String {
     }));
   }
   // Editions and attachments are described the same way.
-  format!("{} ({level})", targets.join(", "))
+  format!("{}{note} ({level})", targets.join(", "))
 }
 
 /// One reference: resolved to an entity of the report, a wildcard, or an identifier that names nothing here.

@@ -49,7 +49,7 @@ impl MatroskaDetails {
     self.document_type_read_version.as_ref()
   }
 
-  /// `TimestampScale`, default 1,000,000; absent when the segment information was not reached.
+  /// `TimestampScale`, default 1,000,000; absent when the segment information was cut short before it was read.
   pub fn timestamp_scale(&self) -> Option<&StoredValue<u64>> {
     self.timestamp_scale.as_ref()
   }
@@ -87,7 +87,7 @@ pub struct MatroskaTrackDetails {
   stream_index: usize,
   track_number: u64,
   codec_identifier: String,
-  flag_default: StoredValue<bool>,
+  flag_default: Option<StoredValue<bool>>,
   codec_private_data: Option<Vec<u8>>,
 }
 
@@ -107,9 +107,10 @@ impl MatroskaTrackDetails {
     &self.codec_identifier
   }
 
-  /// `FlagDefault`, default 1.
-  pub fn flag_default(&self) -> &StoredValue<bool> {
-    &self.flag_default
+  /// `FlagDefault`, default 1; absent when the track entry was cut short before the flag was read, since an
+  /// omission is then not established.
+  pub fn flag_default(&self) -> Option<&StoredValue<bool>> {
+    self.flag_default.as_ref()
   }
 
   /// `CodecPrivate`.

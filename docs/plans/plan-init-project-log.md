@@ -2020,3 +2020,103 @@ The revision is in the working tree.
 - the maintainer's review of the revision, for G2.1 and G2.2;
 - the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
 - task 4, the CLI contract, after the review.
+
+## 2026-11-22 — Progress: Phase 2, the third review of the API specification
+
+The maintainer reviewed revision `ed2f78a` of `docs/design/api.md` and held back G2.2 again, on 12 findings: two of priority 1 and ten of priority 2. Each finding was checked, and each one holds:
+
+- against the plan (section 7.7, Phase 5, task 8, Phase 6, task 7), the field guide (sections 3.9 and 4.1) and RFC 9559 (5.1.4.1.31.4, 5.1.4.1.31.9 and 5.1.8.1.1);
+- against ITU-T H.264 7.4.1.2.1: a parameter set "shall be available to the decoding process prior to its activation", and a later set with the same identifier replaces the earlier one's content;
+- against the committed description of ISO/IEC 14496-15 and the W3C ISO BMFF byte stream format, by which `avc1` keeps parameter sets in the sample entry while `avc3` also lets samples carry them. A web search found the same in the published amendment that added `avc3` and in the DVB DASH profile;
+- by reading the spike, whose display of an unresolved codec paired raw identifiers with candidates by position.
+
+The review also noted that the spike's document was not in the wire form of section 12: a version object, capitalized names and nested errors without a version. The revision is in the working tree.
+
+**Decisions of the maintainer.** The agent asked three questions. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| The stem of a VobSub index | From the final component of the probed path, or else from the file-name hint. With neither, no request is made: the data file is an external reference without an identifier or a location, and with lookup on the companions are cut short with the new reason `CompanionNameUnavailable`. | The same stems, with a nameless request that only a per-probe resolver can answer; the path only, never the hint | Every request keeps a name that the library built. The hint is the caller's own statement of the name, and the plan's test of a reader with a supplied resolver needs it. |
+| Image headers of attachments | Read within the per-stream header limit, charged to `BytesRead` and working memory, also when the data is not kept. The rest of the payload is passed over, or read and discarded on a forward-only source. | A new limit of its own; the read allowance alone | The image sniffers of Phase 4 are header parsers, and one malformed picture must not use up the whole read allowance. No new counter is needed. |
+| The scope of a tag set | `TagSet::target_scope() -> &TargetScope`, with `WholeFile`, `Entities` and `Incomplete`. It replaces `targets_whole_file()`, and the whole-file lookups take only `WholeFile`. | `targets_whole_file() -> Option<bool>` with a flag for cut lists; `Option<bool>` alone | One value states what the lists mean, including lists that were cut short after some targets. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **Protection.**
+  - *A bounded table (priority 1).* `sample_descriptions()` lists only the descriptions found clear or declared, within the retained-data limit. `sample_description_count()` gives the declared count. `sample_description_state(index)` gives `Unknown` within it and `None` outside it.
+  - *What declares it.* Only a Matroska encryption with a nonzero `ContentEncAlgo` declares protection, as field guide section 4.1 says; compression and header stripping declare none.
+  - *Header status.* A clear configuration beside protected packets has its parser's state; `Protected` means that the bytes holding the header are encrypted.
+- **H.264 (priority 1).** The candidates of the first picture are the record's sets and those before its first slice. Agreement counts only once the probe has every candidate: the record of a binding that keeps sets out of the samples, read in full, or the first access unit up to its first slice. Agreeing sets give their common fields without naming a primary set. With candidates missing, no normalized field comes from the sets.
+- **Codecs.**
+  - *The fallback.* The three cases of plan Phase 6, task 7 are stated. An initialization segment uses the first declared description and lists no candidates.
+  - *Candidates.* `CodecCandidate` keeps each description's index, codec and identifiers, and replaces `candidate_codecs()`. Two codecs that this version does not know name one codec only when their identifiers match.
+- **Partial reads.**
+  - *Tag scope.* As decided above.
+  - *Matroska defaults.* Every defaulted detail element is `Option<&StoredValue<…>>`, absent until its omission is established. `FlagDefault`, `FlagEnabled`, `CodecDelay` and `SeekPreRoll` are among them; RFC 9559 gives them the defaults 1, 1, 0 and 0.
+  - *Image headers.* As decided above.
+- **Documents.** Reading derives the outcome that the record warrants and fails on a mismatch. A report with a status from a newer version, a detection outcome from a newer version, and an outcome from a newer version keep what was written.
+- **Lookup.**
+  - *A VobSub index without a path.* As decided above.
+  - *Reasons per source.* `SourceEntry::reason()` keeps the reason of each request, with the resolver's text as the detail of `CompanionDeclined`. `PartReason::source_identifier()` names the entry. `declined()` takes `impl Into<String>`.
+
+**Found while revising.**
+
+- RFC 9559 sets no order for the children of a `Tag`, and a `Tag` whose `Targets` is empty or omitted describes the whole segment (5.1.8.1.1). So only a tag read in full shows that its targets are absent.
+- The spike's document module had grown past one concern. It is now a directory of four files: the document, its entries, its version and its error.
+- The spike's documents now have the wire form of section 12 for every member they carry:
+  - the version `"1.0"`;
+  - `snake_case` outcomes, error kinds and detection outcomes, with their catch-alls;
+  - a version on every nested record;
+  - the stable I/O error kind;
+  - no member for an absent value.
+
+  Its tests read that form back.
+- `git mv`, used once to move `document.rs`, staged the rename. The index was restored at once with `git restore --staged`, so nothing stays staged.
+
+**Choices made without asking,** each open at the gate named:
+
+- The table of sample descriptions is sparse, with a declared count and a lookup, rather than a prefix or a list of ranges (G2.2).
+- `CodecInformation::raw_identifiers()` holds every candidate's identifiers while the first sample is unproven, so it keeps the field guide's meaning, and each candidate holds its own (G2.2).
+- A failed source entry has no reason, since the error keeps its cause (G2.2).
+- `PartReason::source_identifier()` exists beside `SourceEntry::reason()`, so both the completeness record and the source table link a reason to its request (G2.2).
+- An image header cut short by the limit makes the attachments section incomplete (G2.2, G3.3).
+- With candidates missing, no H.264 normalized field comes from the sets; the record's profile and level still do (G2.2, G4.1).
+- Reading accepts the written outcome wherever the record holds a value of a newer version (G2.2, G2.3).
+- The hint gives the stem only for the name of a request, and the stem is validated like any identifier (G2.2, Phase 14).
+
+**Plan, revision 36:**
+
+- section 7.5: the per-stream header limit covers an attachment's image header;
+- section 7.7: the stem of a VobSub index, no request without a name, and the reason in each source entry, with the diagram;
+- section 8.3: the header status beside protected packets;
+- section 8.5: the scope of a tag set;
+- section 8.9: a reader checks the outcome table;
+- Phase 4: the primary H.264 set and the image inspection;
+- Phase 5, task 8 and its tests: what declares protection, the header status beside it, a track entry cut short and a tag cut short before its targets;
+- Phase 6, tasks 7 and 9 and their tests: the fallback, the candidates, the bounded table, `avc3` and an embedded picture;
+- Phase 14, task 8 and its tests: the stem and the reasons per source;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+The field guide follows in sections 3.2 (`protection`), 3.3 (`raw_identifiers`), 3.8 (targets) and 3.9 (`width`, `height`).
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - 16 tests pass: the ten earlier ones and six new tests of documents. The new tests cover the wire form, an outcome that its record does not warrant, detection entries, a nested record of another version, another major version and an outcome of a newer version.
+- **Programs.** All 13 programs end without a panic. The JSON scenario and the directory scan exit normally.
+- **JSON.** `jq empty` accepts the JSON scenario's standard output. In it `jq` reads:
+  - the version `"1.0"`;
+  - the outcomes `error` and the kind `source_failed`;
+  - the nested version `"1.0"`;
+  - the I/O kind `not_found`;
+  - no `null` member.
+- **Structure.** The structure check of D23 reports 0 findings for the spike. The 13 programs in section 15 of `api.md` match the spike's examples; scenarios 4 and 10 were synced from it.
+- **Diagrams.** All 15 diagrams of `api.md` and the plan render in mermaid.js, with no syntax error and no console error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of the revision, for G2.1 and G2.2;
+- the G2.3 question whether `document` offers an entry-at-a-time form for long scans;
+- task 4, the CLI contract, after the review.
