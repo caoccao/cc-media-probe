@@ -1214,3 +1214,535 @@ The maintainer asked for `cargo-dupes` to enforce a duplicate-code rule, with it
 
 - A commit and push, on the maintainer's request, so that CI installs `cargo-dupes` and runs both checks on the three runners.
 - Phase 2, from its first task.
+
+## 2026-11-22 — Progress: the fourth CI run
+
+On the maintainer's request, the work of R36 was committed as `1a8a723` and pushed. Every job of run 45013181966 passed. Both duplicate-code steps ran in the check script on `ubuntu-26.04`, `macos-26` and `windows-2025`:
+
+- `jscpd` found 0 clones;
+- `cargo-dupes` found 0 exact and 0 near groups among 171 code units on each runner, so the exclusions hold for both path separators.
+
+**Open:** Phase 2, from its first task.
+
+## 2026-11-22 — Choices for Phase 2
+
+Before the first document, the agent asked three questions. The Cargo SemVer reference, read on 2026-11-22, confirms that adding a variant to a `#[non_exhaustive]` enum is a compatible change, while adding a field to an existing variant is not unless that variant is non-exhaustive as well. The maintainer decided:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Depth of the field inventory (task 1) | Exact sources (element, box or field, with section, unit, precedence and provenance) for Matroska and WebM, the ISO base media family with QuickTime, AVI and the codecs of Phase 4. For the formats of `0.2.0` to `0.8.0`, a matrix of the normalized fields each one can fill, with the section that states it. Each format phase replaces its entry. | The model has to fit every format before it is approved, and the matrix shows that it does. The exact sources of a later format are read in its own phase. |
+| Typed details (tasks 2 and 11) | `api.md` fixes the conventions: the two open enums, the catch-all variant that keeps the kind name, naming, the serialized form with `kind`, raw values, observed bounds and values beyond the exact range. Matroska and H.264 are worked examples. The skeleton ships both enums with the catch-all variant only. Each format phase designs its own detail type within the conventions and has it reviewed at its gate. | A detail type designed before its parser exists would likely change once the parser is written. A new variant is a compatible change. |
+| Review | One document at a time: each is presented for review before the next is started. The gates G2.1 to G2.4 follow as planned. | A design choice that changes early does not spread into later documents. |
+
+**Plan, revision 23:** the status line, sections 10 and 11, and Phase 2 (its goal, a progress line, and tasks 1, 2 and 11).
+
+**Open:** Task 1, the field inventory.
+
+## 2026-11-22 — Progress: Phase 2, task 1
+
+**Written:** the first version of `docs/guide/fields.md`, the field inventory.
+
+- Section 2 gives the general rules and a diagram of how one value is chosen.
+- Section 3 is the catalog of normalized fields: report, stream, codec, video, audio, subtitle, chapters, tags, attachments and programs.
+- Section 4 gives the exact sources of Matroska and WebM, the ISO base media family with QuickTime, and AVI.
+- Section 5 gives the codec headers that `0.1.0` parses, in nine families.
+- Section 6 is the matrix of the formats of `0.2.0` to `0.8.0`.
+- Section 7 lists 18 findings.
+
+The guide includes the codec parsers that the plan assigns to Phases 5 to 7: H.263, AMR, QuickTime text, SSA/ASS, DVB page identifiers and XSUB. They ship in `0.1.0` too.
+
+**Sources read.** Every section number was checked in the stored document, or taken from a coverage row that task 17 of Phase 1 confirmed. The documents read: RFC 9559 and RFC 8794, the 2015 edition of ISO/IEC 14496-12, the QuickTime documentation, the F4V specification, OpenDML 1.02, the DV in AVI page, the ITU-T video recommendations, the AV1 and VP9 specifications, ETSI TS 102 366, 102 114 and 103 190-2, the TrueHD documents, RFC 9639, RFC 7845, RFC 6381, RFC 4867, RFC 2361, the Matroska tags draft, the WebM guidelines, the IANA media types, SMPTE RDD 36 and 3GPP TS 26.244 and 26.245. Microsoft's page for `AVISTREAMHEADER` was read online. No implementation was opened; the archive of RDD 36 also holds a reference decoder, which was left unopened.
+
+**Findings that need a decision**, from section 7 of the guide:
+
+- For the API specification (G2.2): F1 default values, F2 floating point, F3 media types without an IANA entry, F4 report facts and tag keys, F5 codec strings, F6 dynamic range, F7 the direction of rotation, F8 cover art, F14 embedded streams, F18 room for chapter-like structures.
+- Plan amendments: F9 the Matroska statistics tags of Phase 5, F12 a deliverable row for the chapter text track of the ISO family, F15 the AV1 frame size in Phase 4.
+- Through GS.2: F10 the HDR boxes `mdcv` and `clli`, F11 the defined channel layouts of `chnl`, F13 Microsoft's three AVI structure pages, F16 object audio in E-AC-3 (optional), F17 ITU-T H.274 for VVC.
+
+**Verification:** `node scripts/check.ts` passes. The guide's diagram renders without error.
+
+**Open:** the maintainer's review of `fields.md` and the decisions on its findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, first review
+
+The maintainer reviewed the staged `docs/guide/fields.md` and found 20 rows that would report wrong values for valid files or contradict the plan. Every comment was checked against the stored source or the plan and accepted. The revision is in the working tree; the staged version was left as it was.
+
+**Duration, timing and stream discovery:**
+
+- *Fragmented MP4.* A segment index establishes only its reference track's end. The report's duration is the latest end of all tracks after their edits, set only when every track's end is established (plan Phase 6, task 11).
+- *AVI.* The report's duration is the latest stream end minus the earliest start, not the longest stream.
+- *Transport stream.* A report duration only for a file of one program. A program's end needs the last access unit's duration (plan Phase 10, task 6).
+- *Ogg.* Both endpoints of every timed stream of every link, summed over a complete chain inventory (plan Phase 9, tasks 4 and 5).
+- *FLV.* Streams come from observed tags and multitrack identifiers, never from the header's flags (plan section 8.3; Phase 13, task 1).
+- *Subtitle files.* The time range runs from the earliest start to the latest end, because cues can overlap (WebVTT 4.1). A VobSub index gives no end for its last subtitle, and the approved PGS description gives none either: new finding F20.
+- *Program streams and DVD.* Aligned with Phase 10, task 8 and Phase 15, task 2.
+
+**Frame rates and scan types:**
+
+- *H.264.* A clock tick is not a frame interval. Constant only with `fixed_frame_rate_flag` 1 and `pic_struct_present_flag` 0 (E.2.1, Table E-6).
+- *HEVC.* Constant only from the HRD parameters' `fixed_pic_rate_within_cvs_flag` and `elemental_duration_in_tc_minus1`, with `frame_field_info_present_flag` 0 (E.3.2, Table E.7).
+- *VVC.* As HEVC, when no HRD parameters let picture timing messages repeat pictures (7.4.6.2; D.4).
+- *MPEG-2.* Its mode is unknown, because `repeat_first_field` changes the cadence (6.3.10). Its `progressive_sequence` 0 does not prove interlace (6.3.5).
+- *ISO family.* The mode compares the `stts` deltas instead of counting entries.
+- *IVF.* The header's time base is not a frame rate.
+- *AV1.* A rate only with `equal_picture_interval`.
+- *Matroska.* `DefaultDuration` counts a block element, which RFC 9559 calls a frame.
+- *HEVC scan type.* Read from both source flags (7.4.4).
+
+**Codec and container mappings:**
+
+- *H.263.* 12:11 pixels for the standard source formats, and progressive 4:2:0 (4.1).
+- *WebM.* Its WebVTT tracks `D_WEBVTT/` are UTF-8, without private data. The stored guidelines do not name AV1. New finding F19.
+- *PCM in the ISO family.* The channel count comes from `chnl` for multichannel `ipcm` and `fpcm` (`iso-iec-23003-5.md` 2).
+- *OpenDML.* `dmlh` counts the file's frames, not a stream's.
+- *Timed text.* The canvas is the track size (TS 26.245 5.7). The default text box goes to the details.
+- *CAF.* `mNumberPackets` and `mNumberValidFrames` are kept apart.
+- *Creation times.* A creation time needs UTC. That excludes the broadcast extension of WAVE and QuickTime's `mvhd`, which older movies set to local time.
+
+**API contract:**
+
+- *VP9.* Its render size goes to the details, as plan section 8.4 allows no other source of display size.
+- *Stream estimates.* Each stream now has its own estimate accessors.
+
+**The findings now number 20:**
+
+- *Questions for the API specification:* F1 to F8, F14 and F18.
+- *Plan amendments:* F9, F12, F15, F19 and F20.
+- *Sources for GS.2:* F10, F11, F13, F16 and F17.
+
+F4, F8 and F18 were brought in line with plan Phases 9, 13 and 15.
+
+**Verification:** `node scripts/check.ts` passes. The phase tasks of Phases 4 to 15 already list the codec fields the corrected rows need: the VUI with its HRD parameters, and the timing and HRD parameters of the VVC sequence parameter set.
+
+**Open:** the maintainer's decisions on the findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, second review
+
+The maintainer reviewed the staged `docs/guide/fields.md` again and raised 16 issues. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**Timing and duration:**
+
+- *Matroska.* `CodecDelay` is in nanoseconds: samples are `CodecDelay` × rate ÷ 10^9.
+- *ISO family, unknown durations.* A duration of all ones in `mvhd`, `tkhd` and `mdhd` means unknown (ISO 8.2.2.3, 8.3.2.3, 8.4.2.3). It is never converted.
+- *Fragmented MP4.* A track's duration subtracts its first presentation time.
+- *ISO family, frame rate.* The cadence is judged on the composition timeline, with `ctts` or the `trun` offsets, not on decode deltas.
+- *Encoder delay and padding.* An edit fills them only where an approved source says that it marks priming. That is `xiph-opus-in-isobmff` 4.4 for Opus, under which the edit is mandatory and `PreSkip` informative. For AAC, it holds only with roll sample groups (QuickTime, "Using track structures to represent encoder delay explicitly"). Without them, QuickTime assumes an implicit delay instead. This amends plan section 8.4 and Phase 6, task 4 (revision 24).
+- *Sample counts.* The sample count leaves out only an established delay and padding.
+- *WAVE.* The `fact` sample length becomes a duration by dividing by `nSamplesPerSec` (BS.2088-2 Annex 2, 1.3).
+
+**Geometry and codec identification:**
+
+- *OpenDML.* The visible size comes from both field descriptors.
+- *MPEG-2.* The coded height is 32-line aligned when `progressive_sequence` is 0 (H.262 6.3.3).
+- *AVC.* The codec string starts with the track's own sample-entry code, such as `avc3`.
+- *VP8 in the ISO family.* VP8 reads the mandatory `vpcC` record; its color code points are those of H.273, whose twin text is ISO/IEC 23001-8.
+- *AAC.* The codec string follows the `esds` object type, as in `mp4a.67` for MPEG-2 AAC.
+- *VC-1.* The coded size comes from the first entry-point header (SMPTE ST 421 6.2.13).
+
+**Chapters and audio metadata:**
+
+- *Matroska.* `ChapLanguageBCP47` makes `ChapLanguage` and `ChapCountry` ignored.
+- *WebM.* Every element that the WebM guidelines mark unsupported is now absent there, without its default: the edition flags and identifiers, `ChapterFlagHidden`, the tag targets other than tracks, and the unsupported segment and track elements.
+- *FLAC.* `WAVEFORMATEXTENSIBLE_CHANNEL_MASK` (RFC 9639 8.6.2) takes precedence over the default layout.
+- *BW64.* `chna` does not establish immersive audio without ITU-R BS.2076 and BS.2094, which the manifest lacks: new finding F21.
+- *Immersive audio.* It is now tied to the fields that state it: AC-4's `immersive_audio_indicator` and TrueHD's 16-channel presentation. The catalog allows declared provenance for it.
+
+**Found while applying them:**
+
+- *VC-1.* Its display size is a codec header's, so it goes to the details, as VP9's render size does. Its frame rate is constant only without `PULLDOWN`.
+- *Codec strings.* The proposal of F5 changes: outside the ISO family and WebM, no codec string.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 21 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, third review
+
+The maintainer reviewed the staged guide and plan again and raised 15 issues. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**ISO family timing and audio edits:**
+
+- *AAC encoder delay.* It needs QuickTime's complete convention: exactly one `sgpd` and one `sbgp` of grouping type `roll`, a single roll-distance entry, and one table entry that covers every sample ("Sample group description atom ('sgpd')", "Sample-to-group atom ('sbgp')"). It applies only in a QuickTime movie, because no approved source extends it to other files of the ISO family. A roll group of another shape is decoder recovery.
+- *Opus scope.* The Opus binding excludes QuickTime (its section 1), so the MOV column no longer inherits it.
+- *Opus padding.* The binding already gives the last sample only its valid samples (4.3.4). The padding therefore comes from the last packet's TOC byte (`rfc6716` 3.1, 3.2.5) minus that duration, when those bytes are read. The sample count subtracts the delay but not the padding again. `dOps` `PreSkip` stays informative in the ISO family.
+- *Track duration.* Plain and fragmented MP4 now give the same interval: the end of the last media edit minus `start_time`. `tkhd` `duration`, which includes leading empty edits, goes to the details when an edit list exists.
+- *Derived bit rate.* All sample bytes are divided by the whole media's duration, not by an edited selection.
+
+**Video fields:**
+
+- *DV.* 4:1:1 joins the chroma formats, for 525-line consumer DV (`iec-61834-2.md` 6).
+- *Alpha.* `alpha` has its own row, with bitstream provenance first: ProRes and FFV1.
+- *VP8 profile.* The frame tag's `version` is no profile. It goes to the details, and the profile comes only from `vpcC`.
+- *VP8 bit depth and chroma.* Both are 8-bit 4:2:0 in every container (`rfc6386` 2).
+- *Motion JPEG.* A JPEG image can be one field (OpenDML 7.0). It gives no coded size; the container does.
+
+**Audio and container metadata:**
+
+- *WAVE.* The `Samples` union is read as `wValidBitsPerSample` only for PCM and floating point; for compressed formats it is `wSamplesPerBlock`. `wBitsPerSample` is a bit depth only for PCM and floating point.
+- *TrueHD.* A 16-channel presentation is immersive only when it shows objects, an intermediate spatial format, or a top pair (Tables 17 to 19).
+- *AC-4.* Its codec string is `ac-4.` with the bitstream version, presentation version and `md_compat` (ETSI TS 103 190-2 E.13), and F5 now lists it.
+- *FLV.* The audio tag fields are read per codec, as E.4.2.1 directs. For AAC they are ignored, and `SoundSize` counts only for uncompressed audio. The nominal `SoundRate` gives no exact rate.
+- *ASF.* The duration and creation time need the Broadcast Flag at 0. Play Duration is in 100 ns units and Preroll in milliseconds. Average Time Per Frame is an average, so its mode is unknown.
+
+**Plan:** revision 24 is narrowed to these rules. Section 8.4 states the AAC and Opus conditions and gains tests for a partial roll group and for Opus padding.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 21 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, fourth review
+
+The maintainer reviewed the staged guide and plan a fourth time and raised 16 issues. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**ISO family and QuickTime:**
+
+- *AAC encoder delay.* Apple defines the convention for "QuickTime movie files (.mov) and related MPEG-4 files", so it applies to conforming tracks of the ISO family as well. The single `sbgp` run must have `group_description_index` 1, because 0 places no sample in the group (ISO 8.9.2).
+- *AAC padding.* It needs an edit end that is exact to the sample. The edit's duration is in the movie timescale, which Apple warns "may not be sample accurate". So the movie timescale must be a whole multiple of the media timescale, and the end must convert to whole samples.
+- *Initialization segment.* On its own it keeps every count absent, not zero (plan Phase 6, task 10).
+- *Bit rate.* Throughout the guide, bytes are divided by the time of the same units. In fragmented files that time includes the `trun` durations and the defaults.
+- *Opus channels.* In an Opus sample entry, `channelcount` counts the decoded channels (binding 4.3.1). The output count is `dOps` `OutputChannelCount`, and the two are never compared.
+- *Subtitle canvas.* `tkhd` sizes count only when they are pixels: not with `track_size_is_aspect_ratio` set, and not at 0 × 0 (ISO 8.3.2.3). The same conditions now guard the video display size.
+- *Display aspect ratio.* It follows the same presentation size as the display size, because ISO scales every image to the `tkhd` size.
+
+**Matroska and video codecs:**
+
+- *Alpha.* Embedded and supplemental alpha are two carriages. `AlphaMode` describes only the block additions, so it never conflicts with ProRes's or FFV1's alpha.
+- *Chroma.* The Cb-specific factors of Matroska enter the chroma format, which distinguishes 4:2:1 from 4:2:2 (RFC 9559 5.1.4.1.28.21).
+- *Overall bit rate.* Matroska and WebM keep the derived report bit rate, `size` × 8 ÷ `duration`.
+- *VP8 profile.* Its profile is the frame tag's version, which RFC 6386 9.1 calls a profile. `vpcC`'s profile, a different definition, goes to the details.
+- *Motion JPEG.* A JPEG image gives the coded size when it is shown to be a whole frame: the OpenDML `AVI1` field value 0, or a progressive declaration of the container.
+
+**Other containers:**
+
+- *DVD editions.* They may carry the declared playback time of their program chain.
+- *WavPack.* The total samples count only from a first audio block with `block_index` 0, and not when the low word is all ones (2.0).
+- *Enhanced FLV.* Its multichannel configuration supplies the channel count and layout.
+- *ASF.* The average bit rate comes from the stream bitrate properties (3.12). The Data Bitrate of the extended stream properties is a leaky-bucket parameter, so it goes to the details.
+
+**Plan:** revision 24 now covers AAC in related MPEG-4 files, the index of the run, and the sample-exact padding. Section 8.4 gains the tests for them.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 21 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, fifth review
+
+The maintainer reviewed the staged guide and plan a fifth time and raised 12 issues. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**AAC under the QuickTime convention:**
+
+- *Sample count.* `stts` includes both priming and padding, so the valid count is reported only when both are established. With an unknown padding it is absent, and the total goes to the details.
+- *Coarse clock.* A coarse movie clock keeps the encoder delay, which the media timescale gives exactly. Only the padding and the count are lost. The test in plan section 8.4 now says so.
+- *Precision of the end.* The edit's end counts when it converts exactly to whole samples and a movie tick is no longer than one sample. A 90,000 Hz movie clock over 48 kHz audio qualifies, although it is no whole multiple.
+
+**QuickTime:**
+
+- *Track header flag.* `0x0008` means "Track in poster" in QuickTime. The aspect-ratio condition of ISO therefore does not apply to MOV's display size, display aspect ratio or subtitle canvas, and only the zero check remains.
+- *Version 1 bit depth.* A version 1 sound description stores 16 in `sampleSize` and 2 in `bytesPerSample` for formats of more than 16 bits. The depth comes from the data format, such as `in24`.
+- *Unspecified language.* The language code `0x7FFF` marks an unspecified language and leaves the field absent.
+
+**AVI:**
+
+- *Frame count.* Palette-change chunks, `##pc`, belong to the video stream but carry no image, so the frame count leaves them out. The packet count keeps them, and both rules require an index that accounts for every chunk.
+
+**Matroska:**
+
+- *Pixel aspect ratio.* It is the display aspect ratio divided by the visible aspect ratio, for display units 0 to 3: a 720 × 576 frame with a declared 16:9 has pixels of 64:45.
+- *Forced flag.* `FlagForced` applies only to subtitles, so other tracks leave `forced` absent.
+- *Chapter reference.* A chapter's segment reference keeps the edition identifier beside the segment identifier.
+
+**General rules:**
+
+- *Rationals.* The range rule checks a reduced rational's numerator and denominator, as plan section 8.8 does.
+- *Derived bit rates.* They need a duration greater than zero.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 21 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, sixth review
+
+The maintainer reviewed the staged guide a sixth time and raised 12 issues. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**WebM:**
+
+- *Forced tracks.* The WebM guidelines define `FlagForced` for audio, video and subtitles ("Set if that track MUST be used during playback"). An explicit flag is reported on every kind there, and the default only on subtitles.
+
+**Matroska:**
+
+- *Rotation.* Rotation comes from the roll only when the pose is planar: projection type 0, and yaw and pitch both 0. RFC 9559 5.1.4.1.28.46 gives yaw 180 with roll 180 as a vertical flip, a reflection.
+
+**ISO family and QuickTime:**
+
+- *Opus conversions.* Media ticks are converted exactly to 48 kHz samples, because the binding allows other media timescales: 624 ticks at 96 kHz is 312 samples. The same holds for the padding and the sample count.
+- *Cadence.* The comparison includes the last presented frame's own duration. Durations of 40, 40 and 80 ms are variable.
+- *Version 2 bit depth.* `constBitsPerChannel` is set "only for uncompressed audio" and is 0 otherwise. It never gives a compressed entry a depth.
+- *Rounded `tkhd` sizes.* A fractional size is rounded and becomes derived, with its exact value in the details.
+
+**Video codecs:**
+
+- *HEVC and VVC.* With `field_seq_flag` or `sps_field_seq_flag` set, each picture is a field. The coded and visible sizes then come from the container, and the picture size goes to the details.
+- *MPEG-2.* The pixel aspect ratio uses `display_horizontal_size` and `display_vertical_size` when a sequence display extension is present (H.262 6.3.3). H.262's ratios are inverted from height over width first.
+- *DV.* The scan type comes from `IL` of the source control pack. The field order needs `FF` = 1 (`iec-61834-2.md` 4).
+- *Motion JPEG.* A frame header with `Y` 0 defers the height to the define-number-of-lines marker (T.81 B.2.5). The header-only probe takes the container's height then, or none.
+- *FFV1.* `bits_per_raw_sample` is inferred to be 8 when absent, as in version 0, and a stored 0 is read as 8 (RFC 9043 4.2.7).
+
+**CAF:**
+
+- *No packet table.* A file of constant packet size may omit it. Its counts and duration then come from the Audio Data chunk's payload, less the 4-byte `mEditCount`, with `mBytesPerPacket` and `mFramesPerPacket`.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 21 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, seventh review
+
+The maintainer reviewed the staged guide a seventh time and raised 12 issues. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**ISO family:**
+
+- *Color.* A `colr` box "takes precedence, and over-rides the information in the bitstream" (ISO 12.1.5.1), so in the ISO family the container comes first for color.
+- *Clean aperture.* A `clap` box overrides the codec's cropping in the same way (ISO 12.1.4.1).
+- *Coded size.* A sample entry's width and height are "the maximum visual width and height" (ISO 12.1.3.3). They go to the details, and the coded size comes from the codec header.
+- *Cadence.* Non-output samples, which carry the most negative `ctts` offset, are left out first (ISO 8.6.1.1). The last interval runs to `cslg` `compositionEndTime` when it is known (ISO 8.6.1.4), and to the last `stts` delta without offsets.
+- *Sample counts.* The guide now matches plan Phase 6, task 10. For Opus, the plan accepts any media timescale, which its binding defines in 48 kHz samples. AAC needs the sampling timescale.
+
+**Matroska:**
+
+- *Ordered editions.* Playback comes from the leaf chapters. A parent's end is ignored for playback and should not be set (RFC 9559 20.2.4). This amends plan section 8.5 and Phase 5, task 9 (revision 25).
+- *Opus.* For `A_OPUS`, `SamplingFrequency` holds the input rate (codec mapping 3.4.32). It goes to the details, and `CodecDelay` converts at 48 kHz.
+- *Legacy languages.* A legacy code with a country, such as `fre-ca`, becomes `fr-CA` (RFC 9559 12).
+
+**Other containers:**
+
+- *BW64.* `ds64` holds `dummyLow` and `dummyHigh` where RF64 has its sample count, so they are ignored (BS.2088-2 4.2), and BW64 derives the count from the data size.
+- *CAF.* A constant-packet file derives its packet count from the payload, even with a packet table, which may carry `mNumberPackets` 0 ("Constant Bit Rate Format").
+- *ASF.* A Start Time of 0 is ignored (4.1).
+- *AV1.* A still picture with a reduced header and no super-resolution has the maximum frame size, so its coded size is exact (AV1 5.9.2, 5.9.5, 5.9.8). F15 notes it.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 21 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, eighth review
+
+The maintainer reviewed the staged documents an eighth time and raised 19 issues. Three would give wrong answers for `0.1.0` files, nine name features of the plan that had no field, and seven define fields too narrowly. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**Wrong answers:**
+
+- *Matroska bit rate.* The derived rate uses the first segment's own byte size, the `Segment` element's data size. The input's size counts only when the segment is the whole input.
+- *QuickTime coded size.* A QuickTime video sample description gives "the width of the source image in pixels". MOV therefore keeps it as the declared coded size; only the ISO family treats the entry as a maximum.
+- *Opus output rate.* For `A_OPUS`, the default of `OutputSamplingFrequency` would copy the input rate, so it does not apply.
+- *AV1 coded size.* F15 now agrees with the MP4 table. The coded size comes from the still-picture case or a container that states the actual frame size, as Matroska does. Where both sources give maxima, it is absent.
+
+**Fields for planned features:**
+
+- `protection` (F22). Payload encryption is reported independently of the header status, from Matroska's content encodings and ISO 8.12.
+- `start_timecode` (F23). The label and drop-frame flag of a QuickTime timecode track.
+- External references (section 3.11), which receive Matroska's linked segments and QuickTime's data references and reference movies.
+- The codec's human-readable `name`, from the registry.
+- An edition's `has_linked_chapters`, which is yes, no or unknown.
+- Picture `width` and `height`, and the native picture type.
+- Matroska's `Emphasis`, a version 5 element of the pinned schema, in the details.
+
+**Fields defined too narrowly:**
+
+- `languages` (F24). Several language and audio-type pairs per stream, with 0x01 to 0x03 of Table 2-63 kept as roles.
+- `channel_layout` now carries Ambisonic components (`rfc8486` 3).
+- `channel_count` is the decoder's output. AAC's core under parametric stereo goes to the details.
+- Tag values keep their native type (F25): ASF's integers, Booleans and GUIDs.
+- A FLAC picture that holds a URI is an external reference, never fetched, and no attachment.
+- `PCR_PID` 0x1FFF leaves the clock reference absent (H.222.0 2.4.4.9).
+- A chapter title keeps all its languages.
+- `raw_identifiers` lists every identifier present, and is empty for a format such as SubRip that names none.
+
+One claim was left out: that QuickTime names a timecode track through a `tmcd` track reference. The stored documentation does not say so.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 25 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, ninth review
+
+The maintainer reviewed the staged documents a ninth time and raised 16 issues: six wrong results, six missing mappings and four definitions too narrow. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**Wrong results:**
+
+- *Matroska protection.* An encryption encoding protects the blocks only when `ContentEncAlgo` is not 0, because its default 0 means "The data are not encrypted" (RFC 9559 5.1.4.1.31.9).
+- *Matroska Opus output.* Without `OutputSamplingFrequency`, the output rate is absent. Opus counts at 48 kHz, but a decoder may output 8 to 48 kHz (RFC 7845 5.1). The Opus sample-rate cell now says so as well.
+- *Transport-stream language.* `language` is the pair marked primary, 0x80, or the only pair unless it is clean effects. With several pairs and no primary, it is absent. The pairs keep their order and every role of Table 2-63.
+- *WAVE.* A `wavl` list interleaves `data` and `slnt` chunks, so its count and duration come from the `fact` chunk, which that form requires ("Storage of WAVE Data", "FACT Chunk").
+- *DVB canvas.* A complete display set without a display definition segment gives 720 × 576, since the segment is "transmitted once per display set" and its absence means that size (EN 300 743 5.1.3). A read cut short leaves the canvas absent.
+- *Linked chapters.* Positive evidence comes first: a link seen gives yes even when the edition was not read in full.
+
+**Missing mappings:**
+
+- *MP4 data references.* External `dref` entries map to external references, with their track and sample description. The flag 0x000001 marks a self-contained entry, which gives none (ISO 8.7.2).
+- *Linked pictures.* A linked picture stays an attachment with its description, picture type and pixel size. Its URI goes into a new `link` field and is also listed as an external reference, never fetched.
+- *Media types for later releases:*
+  - `audio/flac` (RFC 9639 12.1);
+  - `audio/mpeg` (RFC 3003);
+  - Ogg by RFC 5334 sections 5 and 10, under the evidence rule;
+  - `audio/vnd.wave` (RFC 2361);
+  - `text/vtt` (WebVTT 10.1);
+  - `application/vnd.ms-asf` (IANA registry).
+
+  Each phase settles the rest.
+- *Xing/Info extension.* Its bytes B1 to B3 give the encoder delay and padding, in 12 bits each. The trimmed sample count and the duration subtract them.
+- *Opus output gain.* It goes to the details: Q7.8 dB (RFC 7845 5.1), or `dOps` `OutputGain`, apart from any gain tag.
+- *WAVE cue points.* They become chapters without an end, with `dwName`, `dwPosition` and the label from the associated data list. The catalog now allows a chapter without an end where the format marks a point.
+
+**Definitions too narrow:**
+
+- *Timecode.* `start_timecode` is a signed frame number, which allows negative times (flag 0x0004). A QuickTime counter (flag 0x0008) is no timecode and stays in the details (QT "Timecode sample data").
+- *Color range.* Matroska's `Range` is normalized before comparison: 1 is limited and 2 is full, as H.273's flag 0 and 1. A 0 or 3 leaves the range absent.
+- *Floating-point values.* Tag values may be floating point, QuickTime's types 23 and 24 (QT "Well-known types").
+- *Tag locales.* Tags carry sets of languages and countries, with QuickTime's default locale kept apart (QT "Localization list sets").
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 25 findings; then task 2, the API specification.
+
+## 2026-11-22 — Progress: Phase 2, task 1, tenth review
+
+The maintainer reviewed the staged documents a tenth time and raised 19 issues in the guide, plus a wrong count in this log. Each was checked against the stored source and accepted. The revision is in the working tree; the index was left as it was.
+
+**Wrong values:**
+
+- *MP4 rotation.* Rotation composes the track's matrix with the movie's, in that order, because ISO 6.2.2 composes each track by its matrix and then transforms the result by the movie's.
+- *Report bit rate.* The derived rate needs the input to hold all the media. A reference movie with external data has none.
+- *Ogg media type.* The type follows the dominant content. `audio/ogg` covers audio with lyrics, metadata or cover art. `application/ogg` requires Skeleton and is never inferred (RFC 5334 4, 5).
+- *WAVE cues.* They start at their place in the data: `dwSampleOffset` for PCM in one `data` chunk, and an address resolved through the chunk and block fields in a `wavl` list. `dwPosition` follows the playlist's play order and never gives the start.
+- *Enhanced FLV.* Its metadata is scoped by track: track 0 uses the top level, and every further track uses its entry in `audioTrackIdInfoMap` or `videoTrackIdInfoMap`.
+- *MP3 trimming.* The delay and padding are read at offset 21 from the recognized extension, because the header's place and the fields before it vary. The trimmed sample count is derived.
+- *DTS rates.* `ddts` `DTSSamplingFrequency` is the stream's maximum rate. `SFREQ` gives the core's rate and is never compared with it.
+
+**Missing mappings:**
+
+- *ISO protection.* It covers `enct` and `encs` as well. The IPMP descriptors stand in when `schm` is absent (ISO 8.12).
+- *External references.* They name their `owner`: an attachment, or a stream with its sample description.
+- *Ogg codec strings.* They come from RFC 5334 4 and RFC 7845 9.
+- *MP4 metadata scope.* File-level `meta` (ISO 8.11) and media-level metadata are mapped, and each tag keeps its scope.
+- *Declared averages.* DTS's `avgBitrate` and ALAC's `avgBitRate` give `bit_rate`. Peaks and nominal rates stay in the details.
+- *ASF duration.* A stream's duration is End Time minus Start Time when both are set (4.1).
+- *FLAC tags.* From `0.4.0` they include a leading ID3v2 tag (plan Phase 11, task 2).
+
+**Definitions that lost information:**
+
+- *Bit depth.* Luma and chroma depths are kept apart: H.264 allows 8-bit luma with 9-bit chroma.
+- *QuickTime keys.* Metadata keys keep their namespace and key bytes.
+- *Timecode wrap.* The timecode keeps its 24-hour wrap flag, 0x0002.
+- *ALAC layout.* Above two channels without a layout, ALAC has "no specific channel designation or role", so no speaker positions are guessed.
+- *Localized names.* ASF's localized stream names fill `titles`, and `title` is chosen from them.
+
+**Log:** the entry of the ninth review now says 16 issues, the sum of its own subtotals.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 25 findings; then task 2, the API specification.
+
+## 2026-11-22 — Phase 2, task 1, consolidated field review
+
+The maintainer requested corrections in the working tree and a second review of the corrected documents. Revision 26 aligns the guide with the phase tasks and the pinned specifications.
+
+- **Presentation timing.** ISO media distinguishes decoding order, composition intervals and edit-list playback. A later fragment alone cannot identify the first sample's description. QuickTime requires roll distance −1 for its AAC priming convention. The Opus binding's worked example has 34,560 decoded samples, 312 priming samples and 33,600 valid samples, leaving 648 samples of padding.
+- **Streams and metadata.** USF subtitle groups retain separate languages, roles and cue counts. DVD title inventory includes the video stream. Ogg Skeleton timing, FLV sound formats and presentation intervals, ASF frame timing and RealMedia timestamp adjustments now map to the corresponding fields.
+- **Field scope.** The tables distinguish original and protected sample entries, core and output audio properties, component precision, declared and derived values, metadata owners and localized names. Matroska chapter flags and DV audio pack mappings use the approved supplemental sources. Unresolved standardized speaker codes stay in the details under F11.
+
+The 25 proposals in section 7 of the guide retain their existing decision points. Task 2 awaits those decisions.
+
+## 2026-11-22 — Progress: Phase 2, task 1, review of the maintainer's revision
+
+The maintainer revised `docs/guide/fields.md` directly and asked for a review. The review raised 13 issues and six slips in citations and wording. Each was checked against the stored source, and the maintainer asked for all of them to be applied. The revision is in the working tree; the index was left as it was.
+
+**Wrong values:**
+
+- *Matroska cropping.* The guide put the codec header's cropping first. RFC 9559 section 15.1 applies `PixelCrop*` to the decoded frame and the display size after it, so with its own pillarbox example the visible size was 1920 × 1080 instead of 1440 × 1080, and the derived pixel aspect ratio 3:4 instead of 1:1. Matroska now joins the ISO family, where the container's crop comes first.
+- *Chapters that link a whole edition.* A chapter with `ChapterSegmentEditionUID` plays the whole linked edition, and its end is optional (RFC 9559 section 17.2.2), so its stated length is not what plays. The edition's playback duration and the positions after that chapter are now absent. A chapter that plays a stretch of another segment keeps its length, on that segment's timeline (17.2.1). This amends section 8.5 and Phase 5, task 9 of the plan (revision 27).
+- *ProRes codes.* RDD 36 uses 0 for "Unknown/unspecified" in its primaries, transfer and matrix tables (6.1.1, Tables 5 and 6), where H.273's matrix 0 is the identity matrix of RGB. A 0 now supplies no code point. `aspect_ratio_information` 1, "Square pixels", gives the pixel aspect ratio 1:1, not a display ratio (Table 3), and `frame_rate_code` 0 gives no rate (Table 4).
+- *H.264 scan type.* `frame_mbs_only_flag` 1 says only that every coded picture is a frame (7.4.2.1.1). Such a frame can be shown as two fields (`pic_struct` 3 or 4, Table D-1), and `ct_type` can mark an interlaced source (D.2.3). The scan type is now absent without the picture timing messages.
+- *Matroska defaults and versions.* An element's `minver` is "the first version of the docType to support the EBML Element" (RFC 8794 section 11.1.6.13). The guide applied this only to `Emphasis`. A default now applies only when the file's `DocTypeVersion` reaches the element's version: from 2 for `FlagEnabled` and `FlagInterlaced`, from 3 for `StereoMode` and `AlphaMode`, from 4 for `FieldOrder` and `CodecDelay`. Before, a file of version 2 would have reported a codec delay of 0 for an Opus track whose pre-skip is 312. Phase 5, task 2 now records the minimum version in the schema table (revision 27). F1 states the consequence for `CodecDelay`.
+
+**Gaps and ambiguity:**
+
+- *Audio precedence.* `encoder_delay` and `output_sample_rate` had no order. The header comes first where the codec's mapping makes it normative, as Opus's pre-skip in Ogg and Matroska; the container comes first where the mapping makes the header informative, as the Opus binding to the ISO family does. The Matroska Opus mapping requires `CodecDelay` and sets it from the pre-skip, so the two are compared.
+- *Pixel aspect ratio.* Matroska's ratio was the presented pixel shape and the ISO family's the coded `pasp`, even under a track size of another shape. The guide's own example reported 1:1 beside 16:9 for a 640 × 480 aperture. New finding F26 proposes the presented shape for every format. Section 3.4 and the MP4 table follow the proposal until G2.2.
+- *Fallback wording.* Section 1 now says that a lower source is used only when no higher one establishes a value, and never where the format forbids the fallback.
+- *QuickTime chapter lists.* They are entry points: the end is absent. The `chap` reference counts only from an enabled track, and the first list is taken.
+- *`btrt` average.* A 0 supplies no value, as for `esds`.
+- *DTS with an extension.* The asset's rate and the `ddts` rate are maxima, so the rate comes from the container. The asset's channels are the output only for one presentation of one asset (7.5.2). Their citations move from 7.5.2 to 7.5.3.2, where the asset's fields are defined.
+- *`application/ogg`.* RFC 5334 leaves "complex" content to the writer, so Phase 9 defines the evidence, and until then the type is not reported.
+- *Opus priming in the ISO family.* It is the edit's `media_time`, never `PreSkip`.
+
+**Citations and wording:** the Matroska bit rate cites `rfc8794` 6.2 for an unknown size, where the bare "6.2" pointed at RFC 9559's CRC-32 section; an MP4 cell names ISO for 8.6.6; `tags.itunes` is called a coverage row; the AV1, VP9 and DVB size products have parentheses; the DTS and TrueHD codec strings say "the sample-entry code alone" instead of "likewise"; QuickTime's track names fill `titles`, one per language code. The review's remark that `tnam` belongs to the movie's user data was wrong: QuickTime's "User data atoms" page places it in the track's.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 26 findings; then task 2, the API specification.
+
+## 2026-11-22 — Phase 2, task 1, review against the format bindings
+
+The follow-up review corrected the field inventory and amended the plan in revision 28.
+
+- **Matroska.** RFC 8794 section 15.1 distinguishes the state assumed by older versions from the version in which an element can first be stored. A version 1 track can be effectively enabled with no stored flag. RFC 9559 section 18.10 gives the older stereo codes. A whole-edition chapter link can have a known playback position even when its length and all following positions are unknown.
+- **ISO media.** An empty track fragment can extend the preceding sample through `tfdt`. A composition end in `stbl` covers the movie tables, and one in `trep` covers the fragments. Per-codec bindings settle which audio entry fields supply rates, channel counts and precision. Examples include the integer rate in `mlpa`, the reserved channel word in 3GP AMR, and the compatibility rates of DTS and high-rate FLAC.
+- **Other mappings.** The guide distinguishes the active OpenDML frame from the digitized area, different DTS and Dolby presentations, coded and presented pixel shape, and FLAC channel assignments from channels without assigned speakers. It covers Ogg Opus pre-skip, end trimming and sample counts, and the zero-rate non-audio case of FLAC.
+- **Source decisions.** F27 records the missing major-sync description for DVD-Audio MLP. F28 records the reserved-word arithmetic missing from the WavPack description for extended totals. Both await GS.2. The guide now lists 28 open findings.
+
+F2 now proposes rounding exact half-nanosecond ties away from zero. That choice remains with G2.2.
+
+**Verification.** The field tables and finding references were checked again. `node scripts/check.ts` and both Git whitespace checks pass.
+
+## 2026-11-22 — Progress: Phase 2, task 1, review of revision 28
+
+The maintainer revised `docs/guide/fields.md`, the plan (revision 28) and this log directly and asked for a review until no issue remains. Every changed cell was checked against the stored sources.
+
+The main correction of revision 28 holds. RFC 8794 section 15.1 says that the default of a new mandatory element "MUST represent the state that was assumed for previous versions", so revision 27's rule that a default applies only from the element's `minver` was wrong.
+
+These cells were also confirmed against their sources:
+
+- the `tfdt` extension of the preceding sample, an empty fragment included (ISO 8.8.12.1), and the scope of `cslg` in `stbl` and in `trep` (8.6.1.4.1);
+- the sample-entry fields that the AC-3, E-AC-3, AC-4 and TrueHD bindings tell readers to ignore;
+- the 32-bit `SampleRate` of `mlpa`, the reserved 2 and 16 of the 3GP AMR entry, the 48,000 of high-rate FLAC and DTS, and the FLAC `samplesize` rule;
+- the DTS presentation masks;
+- the OpenDML active frame;
+- the WAVE PCM byte order and signedness;
+- the WavPack 40-bit total;
+- the Ogg granule of −1;
+- the RFC 9639 zero rate and channel masks;
+- the Vorbis channel order above eight channels;
+- ASF's average bit rate with its overhead;
+- the `mp4s` and `mp4v.20.9` forms of RFC 6381.
+
+The review corrected the following in the guide:
+
+- **AC-4 sample rate.** The cell gave the base frequency of `fs_index` alone. A substream's `dsi_sf_multiplier` raises a 48 kHz base to 96 or 192 kHz (TS 103 190-1 4.3.3.7.3, table 89; TS 103 190-2 E.11), and G.2.2 derives the presentation's rate from both.
+- **Matroska version checks.** "Check a stored element" said nothing about the outcome. A stored element above the file's version breaks RFC 9559 section 7, and is now read with a diagnostic. One past its `maxver`, such as `OldStereoMode` in a file of version 3, "SHOULD be discarded" (RFC 8794 section 15.2): it supplies no field. Revision 29 carries this into Phase 5, task 2, with two tests. The `stereo_mode` cell now limits `OldStereoMode` to its `maxver` 2.
+- **Opus codec delay in Matroska.** The cell gave no numbered precedence. It also said that the mapping requires "an explicit nonzero delay", but the mapping requires `CodecDelay` at any value (codec draft 3.4.32). The header's pre-skip now comes first. A stored value less than one nanosecond from the exact duration agrees with it; a value farther away is a conflict. An omitted element beside a nonzero pre-skip is a missing declaration.
+- **Pixel aspect ratio.** Section 3.4 paired every container ratio with the visible size, although OpenDML's ratio describes the active frame. The rule now names the region that each ratio describes, and an unestablished region leaves the field absent, in section 3.4, the MP4 table and F26 alike.
+- **OpenDML.** The display aspect ratio cell gains a numbered precedence, and the pixel aspect ratio cell its provenance. The bitmap can digitize more or less than the active frame, not only part of it. The table of format tokens lists the reciprocal ratio, 2160:1940 for NTSC CCIR 601.
+- **`FlagDefault`.** It is limited to audio, video and subtitle tracks by its definition, in the same form as `FlagForced`.
+- **WavPack.** The cell took "the 40-bit total samples" and then excluded a nonzero upper byte. It now takes the low word when the upper byte is 0.
+- **F27.** It now cites section 1.2 of the Dolby description, which says that the FBB syntax of DVD-Audio is not described, and names its documents by key, as F28 does too.
+- **Wording.** The MP4 display size's second source, the output sample rate, the quotation marks and citation form of the AVI sample format, the 3GP citation by its key, a capital after a semicolon in the Ogg row, and the forms "finding F11", "finding F27", "finding F28" and "Finding F2".
+
+In the plan:
+
+- Appendix E's row 28 and its themes now name the Matroska defaults.
+- The Phase 2 progress line mentions revision 28 once.
+- Phase 5, task 2 names the IANA registry again.
+
+**Verification:** `node scripts/check.ts` passes.
+
+**Open:** the maintainer's decisions on the 28 findings; then task 2, the API specification.
+
+## 2026-11-22 — Phase 2, task 1, review of revision 29
+
+Revision 30 corrects field sources that change the report for valid files. The review covered the working guide, the plan and their source references.
+
+- Matroska `V_AV1` track dimensions repeat the sequence maxima. A reduced still-picture header can establish the output raster even when the coded width depends on super-resolution. A stereo track's display dimensions describe one eye. RFC 9559's 3840 × 1080 side-by-side example consequently has square pixels. The guide also distinguishes each encryption scope and records an omitted Opus `CodecDelay` even for a zero pre-skip.
+- The AV1 ISO binding requires movie timing for presentation and defines which color values go into its codec string. AV1, AVC and HEVC configuration records can supply fields without an in-band header. Matroska's VP9 feature list declares profile, level, bit depth and chroma subsampling. F29 proposes its missing deliverable and fixture. VP9 color-space values now follow the VP9 table, including the two possible BT.2020 matrices.
+- A 3GP H.263 `bitr` box declares an average bit rate. The H.263 picture header can mark a field. The standard's 704 × 240 field with a 5:11 pixel ratio represents a 704 × 480 frame with a 10:11 pixel ratio. The guide now covers the codec's 8-bit precision and limited range. The VC-1 matrix distinguishes the target scan type and converts stored size codes to pixels.
+- ETSI TS 102 366 V1.4.1 reserves sample-rate code 3. Its E-AC-3 program layout includes only the selected program's substreams and counts replacement channels once. The RealAudio matrix now identifies which header versions actually declare audio properties and tags. The Ogg rules require evidence of what a final granule denotes as well as its clock.
+
+The follow-up review checked these mappings across the general rules, individual cells, findings and phase tasks. The guide has 50 tables and 29 findings. The repository checks and Git whitespace checks pass. The API proposals and deliverable decisions remain open for maintainer review.
