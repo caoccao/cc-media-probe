@@ -67,7 +67,7 @@ Each rule names its source in the plan: a requirement (R…) of [section 3](docs
 
 ### Dependencies
 
-- No multimedia parsing or demuxing library may be used anywhere (R2). The published crates and everything they depend on are pure Rust: nothing is compiled or linked from C or C++, and no crate of this project contains `unsafe` code (R15, D4).
+- No multimedia parsing or demuxing library may be used anywhere (R2). The published crates and everything they depend on are pure Rust: nothing is compiled or linked from C or C++, and no crate of this project contains `unsafe` code (R15, D4). The one exception is the system libraries that the Rust standard library itself links, such as the C runtime; the check allows only those in [`system-libraries.tsv`](crates/cc-media-probe-checks/data/system-libraries.tsv).
 - Only the crates and tools approved at G1.3 are used. They are listed with their versions in the [dependency dossier](docs/design/dependency-dossier.md) and enforced by `deny.toml`. Anything else goes through GS.1 first, and a manifest gains a dependency only in the phase that first uses it.
 
 ### Test media and fixtures

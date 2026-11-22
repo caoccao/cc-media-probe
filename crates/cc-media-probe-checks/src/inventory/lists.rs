@@ -16,7 +16,7 @@
 */
 
 //! The committed lists of the pure-Rust verification: reviewed build
-//! scripts and allowed operating-system libraries.
+//! scripts and allowed system libraries.
 
 use crate::constants::data_files::{COLUMN_SEPARATOR, COMMENT_PREFIX};
 use crate::findings::{Finding, Rule};

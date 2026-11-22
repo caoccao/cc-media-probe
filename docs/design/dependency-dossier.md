@@ -2,7 +2,7 @@
 
 The evidence for gate G1.3 of the [development plan](../plans/plan-init-project.md): every crate and tool proposed in D5 to D7, and the pure-Rust verification of D4 for the graph of the two published crates. The choices come from the maintainer's answers of 2026-11-21, and the approval followed the same day; both are recorded in the [development log](../plans/plan-init-project-log.md).
 
-- **Status:** approved at G1.3 on 2026-11-21. Each manifest gains its dependencies in the phase that first uses them; until then no manifest of the workspace names any of these crates. Any other crate, tool or version change goes through GS.1, and this document is updated with it. The GitHub Actions of section 1.7 were approved through GS.1 on 2026-11-21.
+- **Status:** approved at G1.3 on 2026-11-21. Each manifest gains its dependencies in the phase that first uses them; until then no manifest of the workspace names any of these crates. Any other crate, tool or version change goes through GS.1, and this document is updated with it. The GitHub Actions of section 1.7 were approved through GS.1 on 2026-11-21. The Linux and Windows results of sections 3.3 and 3.4 were added from CI on 2026-11-22.
 - **Resolved:** 2026-11-21, by Cargo 1.100.0 with the workspace's dependency cooldown of 3 days. Every version below is the newest release that the cooldown admits.
 - **Evidence:** the spike [`spikes/dependency-graph/`](../../spikes/dependency-graph/README.md). It copies the two published crates with exactly the dependencies and features approved here, together with the development and fuzzing dependencies. Its lock file pins every version in this document.
 - **Advisories:** none. On 2026-11-21 the OSV database, which includes the RustSec advisories, listed no vulnerability for any of the 78 crate versions in the spike's lock file, or for the three npm packages of section 6.
@@ -158,7 +158,7 @@ The two published spike crates were built with `CC`, `CXX` and `AR` naming a fil
 | `aarch64-apple-darwin` | `cargo build` | 6 | 0 |
 | `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`, in one target directory | `cargo check --target` | 10 | 0 |
 | 32-bit (`i686`) | Not run: 32-bit targets are not supported, at the maintainer's decision of 2026-11-21 (plan section 2). | — | — |
-| x86_64 Linux and Windows, as hosts | `cargo build` on the CI runners: the first CI run (task 19) | — | — |
+| x86_64 Linux and Windows, as hosts | `cargo build` of the workspace's published crates on the CI runners `ubuntu-26.04` and `windows-2025`, on 2026-11-22 (task 19). These crates have no dependencies yet, so no build script ran; CI repeats the layer on every push. | 0 | 0 |
 
 `cargo check` runs every build script with the target's `TARGET` and `CARGO_CFG_*` values, which is what this layer inspects; it does not link. Of the 10 runs, the four target-dependent scripts (`serde`, `serde_core`, `serde_json`, `zmij`) ran once per target. `proc-macro2` and `quote` ran once for the host, because they build the derive macro. On every target, `serde_json` emitted `fast_arithmetic="64"`. No run emitted a link instruction or left a native object.
 
@@ -167,7 +167,10 @@ The two published spike crates were built with `CC`, `CXX` and `AR` naming a fil
 | Platform | Tool | Libraries of the spike binary | Findings |
 |---|---|---|---|
 | macOS (aarch64) | `otool -L` | `/usr/lib/libSystem.B.dylib` | 0 |
-| Linux, Windows | `readelf`, `objdump` or `dumpbin` | Measured by the first CI run (task 19), which also sets the allow-list entries of these platforms | — |
+| Linux (x86_64), CI on `ubuntu-26.04` | `readelf --dynamic` | `libc.so.6`, `ld-linux-x86-64.so.2`, `libgcc_s.so.1` | 3, before the entries were added |
+| Windows (x86_64), CI on `windows-2025` | `objdump -p` or `dumpbin -dependents` | `KERNEL32.dll`, `ntdll.dll`, `api-ms-win-core-synch-l1-2-0.dll`; the Universal C runtime sets `api-ms-win-crt-heap-l1-1-0.dll`, `-locale-`, `-math-`, `-runtime-`, `-stdio-` and `-string-l1-1-0.dll`; `VCRUNTIME140.dll` | 10, before the entries were added |
+
+The Linux and Windows rows come from the second CI run of 2026-11-22, which measured the workspace's CLI binary, not the spike binary; that binary has no dependencies yet. They are the allow-list entries of these platforms. `VCRUNTIME140.dll`, the Visual C++ runtime, is not part of Windows; through GS.4 on 2026-11-22, R15 allows the C runtime that the Rust standard library links, beside the operating-system libraries. The fourth layer runs on every push, so a library that a dependency adds later fails CI until it is reviewed.
 
 The spike binary uses every normal dependency once: it parses its arguments with `clap`, inflates its first argument with `miniz_oxide`, and writes a summary with derived `Serialize` and `serde_json`. So the linked binary holds code from all of them.
 

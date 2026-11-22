@@ -87,7 +87,7 @@ export const BUILD_LAYER = '--> layer 3: build inspection';
 /** The fourth layer. */
 export const RESULT_LAYER = '--> layer 4: result inspection';
 /** A platform without an allow-list. */
-export const UNSUPPORTED_PLATFORM = 'no allow-list of operating-system libraries for this platform';
+export const UNSUPPORTED_PLATFORM = 'no allow-list of system libraries for this platform';
 /** The build reported no executable for the binary. */
 export const BINARY_NOT_FOUND = 'the build reported no executable for the binary';
 /** The platform tool failed or is missing. */

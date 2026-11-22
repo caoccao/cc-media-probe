@@ -1082,3 +1082,49 @@ The first run, on commit `dc07ac1`, failed.
 - A commit and push, on the maintainer's request, so that CI runs again.
 - The allow-list entries of Linux and Windows from that run.
 - G1.9, which needs CI green on the three runners (the exit criteria of Phase 1).
+
+## 2026-11-22 — Progress: the second CI run
+
+On the maintainer's request, the fix was committed as `63a9e7d` and pushed.
+
+**Passed:** every job except the check script on Linux and Windows. That includes the check script on macOS, which is green end to end for the first time in CI.
+
+**Failed:** the fourth pure-Rust layer on Linux and Windows, as expected. Every other step of the check script passed there, the joint packaging included. The layer reported each library of the CLI binary as outside the allow-list:
+
+- **Linux** (`ubuntu-26.04`, `readelf --dynamic`): `libc.so.6`, `ld-linux-x86-64.so.2` and `libgcc_s.so.1`.
+- **Windows** (`windows-2025`): 10 libraries:
+  - `KERNEL32.dll`, `ntdll.dll` and `api-ms-win-core-synch-l1-2-0.dll`;
+  - six Universal C runtime sets: `api-ms-win-crt-heap-l1-1-0.dll`, `-locale-`, `-math-`, `-runtime-`, `-stdio-` and `-string-l1-1-0.dll`;
+  - `VCRUNTIME140.dll`.
+
+The Universal C runtime is part of Windows from Windows 10 on. `VCRUNTIME140.dll`, the Visual C++ runtime, is not: the `x86_64-pc-windows-msvc` target links the C runtime dynamically by default. `crt-static` would link the same runtime into the binary instead. R15 allowed only operating-system libraries, so this went to GS.4.
+
+## 2026-11-22 — GS.4 The C runtime under R15 [CONFIRM]
+
+The agent presented the Windows result and two choices: allow the Visual C++ runtime and amend R15, or set `crt-static` for Windows in the repository's Cargo configuration. The maintainer decided:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| The Visual C++ runtime | Allowed. R15's exception becomes the system libraries that the Rust standard library itself links: operating-system libraries and the C runtime. D4, its third layer and the layout use the same term. | The standard library links a C runtime on every platform, so the exception was never limited to the operating system: glibc and GCC's unwinder on Linux, the C runtime on Windows. `crt-static` would hide the runtime inside the binary rather than remove it, and it would change only the repository's builds, not those of users. Users who build with MSVC already have the runtime, and the project ships no prebuilt binaries. |
+| The allow-list entries | The 13 measured libraries by exact name: 3 for Linux, 10 for Windows. No prefix entry for the Universal C runtime. | If the standard library starts using another library, CI fails and the list is updated on purpose. |
+
+## 2026-11-22 — Progress: the allow-list of Linux and Windows
+
+**Changed:**
+
+- `crates/cc-media-probe-checks/data/system-libraries.tsv` gains the 13 libraries, with where and how each platform was measured.
+- The check messages name the allow-list as one of system libraries, in the checks crate and in `scripts/checks/pure-rust/constants.ts`.
+- **Plan, revision 21:**
+  - R15, through GS.4;
+  - D4 and its third layer;
+  - the layout of section 7.1;
+  - Phase 1: the progress line and task 5;
+  - Appendix D: a group of research;
+  - Appendix E.
+- **Dependency dossier:** the status line, the Linux and Windows hosts of section 3.3 and their libraries in section 3.4. They were measured on the workspace's CLI binary, which has no dependencies yet, not on the spike binary.
+- `CLAUDE.md` and `CONTRIBUTING.md` state the exception of R15.
+
+**Open:**
+
+- A commit and push, on the maintainer's request, so that the third run checks the new entries.
+- G1.9, once CI is green on the three runners.

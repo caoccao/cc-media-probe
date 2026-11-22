@@ -1,6 +1,26 @@
-# Operating-system libraries that the published binaries may load, and that
-# a build script may name (platform "build-script"), per D4 (plan section 6,
-# third and fourth layers). Columns: platform, library; tab-separated. A
-# library ending in * matches by prefix; names compare without ASCII case.
+# System libraries that the published binaries may load, and that a build
+# script may name (platform "build-script"), per D4 (plan section 6, third and
+# fourth layers): the operating-system and C runtime libraries that the Rust
+# standard library itself links (R15). Columns: platform, library;
+# tab-separated. A library ending in * matches by prefix; names compare
+# without ASCII case.
 # macOS: measured on 2026-11-21 with otool -L.
 macos	/usr/lib/libSystem.B.dylib
+# Linux: measured on 2026-11-22 by CI on ubuntu-26.04, with readelf --dynamic.
+# glibc, its loader, and GCC's unwinder, which the standard library uses.
+linux	libc.so.6
+linux	ld-linux-x86-64.so.2
+linux	libgcc_s.so.1
+# Windows: measured on 2026-11-22 by CI on windows-2025. Windows itself, the
+# Universal C runtime (part of Windows since Windows 10), and the Visual C++
+# runtime, which is not part of Windows (GS.4 on 2026-11-22, R15).
+windows	KERNEL32.dll
+windows	ntdll.dll
+windows	api-ms-win-core-synch-l1-2-0.dll
+windows	api-ms-win-crt-heap-l1-1-0.dll
+windows	api-ms-win-crt-locale-l1-1-0.dll
+windows	api-ms-win-crt-math-l1-1-0.dll
+windows	api-ms-win-crt-runtime-l1-1-0.dll
+windows	api-ms-win-crt-stdio-l1-1-0.dll
+windows	api-ms-win-crt-string-l1-1-0.dll
+windows	VCRUNTIME140.dll

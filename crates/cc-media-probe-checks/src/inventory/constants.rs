@@ -37,7 +37,7 @@ pub const NATIVE_HELPERS: &[&str] = &[
 pub const FULL_METADATA_ARGUMENTS: &[&str] = &["metadata", "--format-version", "1", "--all-features", "--locked"];
 /// The reviewed build scripts, relative to the repository root, by component.
 pub const REVIEWED_SCRIPTS_FILE: &[&str] = &["crates", "cc-media-probe-checks", "data", "build-scripts.tsv"];
-/// The allowed operating-system libraries, relative to the repository root, by component.
+/// The allowed system libraries, relative to the repository root, by component.
 pub const SYSTEM_LIBRARIES_FILE: &[&str] = &["crates", "cc-media-probe-checks", "data", "system-libraries.tsv"];
 /// The platform name for libraries that a build script may name.
 pub const BUILD_SCRIPT_PLATFORM: &str = "build-script";
@@ -100,7 +100,7 @@ pub const LINK_INSTRUCTION_FOUND: &str = "build script emits a link instruction 
 /// A native object in a build script's output directory.
 pub const NATIVE_OBJECT_FOUND: &str = "native object in a build script's output directory (D4)";
 /// A dynamic library outside the allow-list.
-pub const LIBRARY_NOT_ALLOWED: &str = "dynamic library outside the allow-list of operating-system libraries (D4)";
+pub const LIBRARY_NOT_ALLOWED: &str = "dynamic library outside the allow-list of system libraries (D4)";
 /// The columns of a reviewed build script: name, version, runs, emits.
 pub const REVIEWED_SCRIPT_COLUMNS: usize = 4;
 /// The columns of an allowed library: platform, library.
