@@ -19,11 +19,18 @@
 
 /// What the budget accounted for.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Usage {
   bytes_read: u64,
   peak_working_memory: u64,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Usage);
 
 impl Usage {
   /// The bytes read from every source.

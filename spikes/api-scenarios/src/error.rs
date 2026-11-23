@@ -21,8 +21,6 @@ use std::fmt;
 use std::io;
 
 use crate::completeness::{LimitRecord, Reason};
-#[cfg(feature = "serde")]
-use crate::constants::NESTED_VERSION_MESSAGE;
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
   NO_STREAM_INVENTORY_MESSAGE, NO_STREAM_INVENTORY_NAME, SOURCE_FAILED_MESSAGE, SOURCE_FAILED_NAME,
@@ -114,12 +112,19 @@ impl From<ErrorKind> for String {
 
 /// What a probe saw before it stopped short of a stream inventory.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Observations {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   format_details: Option<FormatDetails>,
   diagnostics: Vec<Diagnostic>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Observations);
 
 impl Observations {
   /// The format's details, such as the track identifiers of an ISO media segment.
@@ -281,17 +286,10 @@ struct ErrorRecordData {
 impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
   type Error = InvalidDocument;
 
-  /// A record whose partial report has the record's own version, also when the record is read on its own: the
-  /// partial report is a root record nested in it.
+  /// A record as read. Its partial report is a root record nested in it, which compared its version with the
+  /// record's before it decoded its body, also when the record is read on its own (`neutral`).
   fn try_from(rooted: crate::neutral::Rooted<ErrorRecordData>) -> Result<ErrorRecord, InvalidDocument> {
     let data = rooted.body;
-    if data
-      .partial_report
-      .as_ref()
-      .is_some_and(|report| report.schema_version() != rooted.version)
-    {
-      return Err(InvalidDocument::new(NESTED_VERSION_MESSAGE));
-    }
     Ok(ErrorRecord {
       schema_version: rooted.version,
       kind: data.kind,
@@ -334,14 +332,6 @@ impl ErrorRecord {
   #[cfg(feature = "serde")]
   pub fn schema_version(&self) -> SchemaVersion {
     self.schema_version
-  }
-
-  /// The schema versions the record and its partial report were written with, which a document checks against its
-  /// own: the partial report is a root record nested in the document too.
-  #[cfg(feature = "serde")]
-  pub(crate) fn schema_versions(&self) -> impl Iterator<Item = SchemaVersion> + use<> {
-    let report = self.partial_report.as_ref().map(MediaReport::schema_version);
-    [Some(self.schema_version), report].into_iter().flatten()
   }
 
   /// The record and its partial report with another schema version: a document gives each record it holds its own.

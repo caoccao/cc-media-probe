@@ -21,13 +21,20 @@
 
 /// What the ISO family states beyond the normalized model.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct IsoBaseMediaDetails {
   #[cfg_attr(feature = "serde", serde(with = "super::identifier_text"))]
   fragment_track_identifiers: Vec<u32>,
   #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "Vec::is_empty"))]
   tracks: Vec<IsoBaseMediaTrackDetails>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(IsoBaseMediaDetails);
 
 impl IsoBaseMediaDetails {
   /// The `track_ID` of each track fragment header read, in the order read, at its coded width (ISO/IEC 14496-12,
@@ -49,12 +56,19 @@ impl IsoBaseMediaDetails {
 
 /// What an ISO track states beyond the normalized model.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct IsoBaseMediaTrackDetails {
   stream_index: usize,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   first_sample_description_index: Option<u32>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(IsoBaseMediaTrackDetails);
 
 impl IsoBaseMediaTrackDetails {
   /// The index of the stream the track became.

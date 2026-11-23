@@ -79,3 +79,16 @@ fn a_record_that_this_version_made_or_a_document_holds_has_the_current_version()
   assert_eq!(held.schema_version(), SchemaVersion::CURRENT);
   assert_eq!(held.schema_version(), document.schema_version());
 }
+
+#[test]
+fn a_bare_root_record_written_again_keeps_the_version_that_it_was_read_with() {
+  // The thirteenth review asked to tell the two apart: a record that this version built writes 1.0, and one that it
+  // read and writes again directly writes the version that it was read with; a document gives every record its own.
+  let report: MediaReport = serde_json::from_value(report_text("1.1")).unwrap();
+  assert_eq!(serde_json::to_value(&report).unwrap()["schema_version"], json!("1.1"));
+  let built = probe_bytes(b"").unwrap_err().to_record();
+  assert_eq!(serde_json::to_value(&built).unwrap()["schema_version"], json!("1.0"));
+  let entry = DocumentEntry::from_report(PortablePath::from_path(Path::new("movie.mkv")), report).unwrap();
+  let document = serde_json::to_value(Document::from_results(Generator::new("catalog", "1"), vec![entry])).unwrap();
+  assert_eq!(document["results"][0]["report"]["schema_version"], json!("1.0"));
+}

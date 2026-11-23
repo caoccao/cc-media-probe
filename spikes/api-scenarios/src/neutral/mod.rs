@@ -21,14 +21,20 @@
 //!
 //! As the maintainer chose on 2026-11-23, only the members written before the version are held: each in a neutral
 //! form that takes any value, null included, so that no member can fail before the version error. Once the version
-//! is read and its major checked, the held members are decoded from that form, and the members after the version are
-//! decoded as they come. Both ways refuse a member that holds null and a map that names a member twice, at any depth:
-//! the held ones through the kept form, which has no null, and the later ones through `Strict`, which wraps the
-//! reader's own deserializer. The library's own output writes the version first, so it is read at its typed size,
-//! and a reader's error keeps its position in the input.
+//! is read and checked, the held members and then the members after the version are decoded in the order written,
+//! all of them through `Strict`, which wraps the reader's own deserializer and refuses, at any depth, a member that
+//! holds null, a map that names a member twice and a record written as an array. The library's own output writes the
+//! version first, so it is read at its typed size, and a reader's error keeps its position in the input.
+//!
+//! Since the thirteenth review, a read keeps a scope: a nested root record compares its version with that of the
+//! record that holds it before it decodes its body, and a record read alone is read strictly too.
 
+mod alone;
 mod held;
+mod held_reader;
 mod root;
+mod scope;
 mod strict;
 
+pub(crate) use alone::{ReadAlone, checked_record_traits, read_alone, record_traits};
 pub(crate) use root::Rooted;

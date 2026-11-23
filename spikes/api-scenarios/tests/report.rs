@@ -75,7 +75,7 @@ fn a_report_whose_detection_was_cut_short_is_incomplete() {
     json!([reason]),
     json!({
       "exhausted": ["WorkingMemory"],
-      "first_stopped": [["WorkingMemory", "Detection"]],
+      "first_stopped": [{ "limit": "WorkingMemory", "part": "Detection" }],
       "first_reasons": [reason],
     }),
   );
@@ -336,9 +336,10 @@ fn a_codec_of_a_newer_version_displays_the_name_that_it_wrote() {
   let newer = json!({ "Unrecognized": "future_codec" });
   assert_eq!(read(newer.clone(), json!([])).to_string(), "future_codec");
   // The name that the newer version wrote comes before the identifier that the file wrote.
-  let raw = json!([{ "namespace": "IsoSampleEntry", "value": "fut1" }]);
+  // A four-character code is its bytes in hexadecimal, as the maintainer chose at the thirteenth review: `fut1`.
+  let raw = json!([{ "namespace": "IsoSampleEntry", "value": "66757431" }]);
   assert_eq!(read(newer.clone(), raw.clone()).to_string(), "future_codec");
-  assert_eq!(read(json!("Unknown"), raw).to_string(), "fut1");
+  assert_eq!(read(json!("Unknown"), raw).to_string(), "66757431");
   assert_eq!(read(json!("Unknown"), json!([])).to_string(), "an unknown codec");
   // A candidate is written the same way.
   let candidate = codec(

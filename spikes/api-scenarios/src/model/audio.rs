@@ -21,7 +21,11 @@ use super::values::{Provenance, Rational};
 
 /// What an audio stream states.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct AudioInformation {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   sample_rate: Option<Rational>,
@@ -32,6 +36,9 @@ pub struct AudioInformation {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   bit_depth: Option<u64>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(AudioInformation);
 
 impl AudioInformation {
   /// The sample rate, in hertz.

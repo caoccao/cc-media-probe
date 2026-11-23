@@ -34,6 +34,8 @@ pub mod document;
 mod entry_points;
 pub mod error;
 #[cfg(feature = "serde")]
+mod hexadecimal;
+#[cfg(feature = "serde")]
 mod kept;
 mod limits;
 pub mod model;

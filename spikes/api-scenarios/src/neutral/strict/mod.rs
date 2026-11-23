@@ -26,3 +26,4 @@ mod variant;
 mod visitor;
 
 pub(super) use access::StrictMap;
+pub(super) use deserializer::Strict;

@@ -115,7 +115,7 @@ impl<'input, Inner: Deserializer<'input>> Deserializer<'input> for Strict<'_, In
   ) -> Result<Read::Value, Inner::Error> {
     self
       .inner
-      .deserialize_struct(name, fields, StrictVisitor::new(visitor, self.name))
+      .deserialize_struct(name, fields, StrictVisitor::record(visitor))
   }
 
   fn deserialize_enum<Read: Visitor<'input>>(

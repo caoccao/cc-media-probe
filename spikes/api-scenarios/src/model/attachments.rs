@@ -33,11 +33,18 @@ pub enum AttachmentHandling {
 
 /// One attachment of a requested role.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Attachment {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   name: Option<String>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Attachment);
 
 impl Attachment {
   /// The attachment's name, such as a Matroska `FileName`.

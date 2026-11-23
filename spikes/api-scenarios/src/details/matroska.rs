@@ -21,7 +21,11 @@ use super::shared::{Conflict, StoredValue};
 
 /// What a Matroska segment states beyond the normalized model.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct MatroskaDetails {
   document_type: String,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -37,6 +41,9 @@ pub struct MatroskaDetails {
   tracks: Vec<MatroskaTrackDetails>,
   conflicts: Vec<Conflict>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(MatroskaDetails);
 
 impl MatroskaDetails {
   /// `DocType`: `matroska` or `webm`.
@@ -87,7 +94,11 @@ impl MatroskaDetails {
 
 /// What a Matroska track states beyond the normalized model.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct MatroskaTrackDetails {
   stream_index: usize,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -99,6 +110,9 @@ pub struct MatroskaTrackDetails {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_private_data: Option<Vec<u8>>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(MatroskaTrackDetails);
 
 impl MatroskaTrackDetails {
   /// The index of the stream the track became.

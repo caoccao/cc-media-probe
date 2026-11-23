@@ -29,7 +29,11 @@ use crate::details::CodecDetails;
 
 /// One stream of a report.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Stream {
   index: usize,
   kind: StreamKind,
@@ -56,6 +60,9 @@ pub struct Stream {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_details: Option<CodecDetails>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Stream);
 
 impl Stream {
   /// The stream's index in the report.
@@ -170,7 +177,11 @@ impl StreamKind {
 
 /// A stream's flags, each absent when the format states nothing.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Disposition {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   default: Option<bool>,
@@ -179,6 +190,9 @@ pub struct Disposition {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   commentary: Option<bool>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Disposition);
 
 impl Disposition {
   /// Whether the stream is a default.

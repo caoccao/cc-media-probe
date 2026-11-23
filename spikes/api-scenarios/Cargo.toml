@@ -96,3 +96,15 @@ required-features = ["serde"]
 [[test]]
 name = "version_first"
 required-features = ["serde"]
+
+[[test]]
+name = "nested_versions"
+required-features = ["serde"]
+
+[[test]]
+name = "standalone"
+required-features = ["serde"]
+
+[[test]]
+name = "wire_values"
+required-features = ["serde"]

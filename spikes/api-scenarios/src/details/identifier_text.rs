@@ -21,6 +21,9 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serializer};
 
+use crate::constants::IDENTIFIER_MESSAGE;
+use crate::decimal::canonical;
+
 /// Writes each identifier as a decimal string.
 pub(super) fn serialize<Output: Serializer>(
   identifiers: &[u32],
@@ -29,10 +32,11 @@ pub(super) fn serialize<Output: Serializer>(
   serializer.collect_seq(identifiers.iter().map(u32::to_string))
 }
 
-/// Reads each identifier from a decimal string.
+/// Reads each identifier from canonical decimal text within 32 bits, so `"01"`, `"+1"` and `"4294967296"` fail
+/// (thirteenth review).
 pub(super) fn deserialize<'input, Input: Deserializer<'input>>(deserializer: Input) -> Result<Vec<u32>, Input::Error> {
   Vec::<String>::deserialize(deserializer)?
     .iter()
-    .map(|text| text.parse().map_err(Input::Error::custom))
+    .map(|text| canonical(text).ok_or_else(|| Input::Error::custom(IDENTIFIER_MESSAGE)))
     .collect()
 }

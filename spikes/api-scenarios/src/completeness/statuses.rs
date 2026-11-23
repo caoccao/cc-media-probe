@@ -15,10 +15,12 @@
 * limitations under the License.
 */
 
-//! Completeness and header status, `api.md` sections 5.3 to 5.5, with a subset of their values.
+//! The statuses, parts and reasons of completeness and the header status, `api.md` sections 5.3 to 5.5, with a
+//! subset of their values.
 
 use std::fmt;
 
+use super::record::LimitRecord;
 use crate::constants::{
   CHAPTERS_NAME, COMPLETE_TEXT, DETECTION_NAME, DISCOVERY_NAME, HEADERS_NAME, INCOMPLETE_TEXT, LIMIT_EXHAUSTED_NAME,
   NOT_APPLICABLE_NAME, NOT_ATTEMPTED_NAME, NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME,
@@ -30,7 +32,11 @@ use crate::source::SourceIdentifier;
 
 /// What was established, what was not, and why.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Completeness {
   detection: DetectionStatus,
   discovery: DiscoveryStatus,
@@ -41,6 +47,9 @@ pub struct Completeness {
   reasons: Vec<PartReason>,
   record: LimitRecord,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Completeness);
 
 impl Completeness {
   /// The definition of plan section 8.3, over the statuses that the stub has: no part fell short. It reads the
@@ -213,7 +222,11 @@ impl SectionStatus {
 
 /// One shortfall and the part it stopped.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct PartReason {
   part: Part,
   #[cfg_attr(
@@ -236,6 +249,9 @@ pub struct PartReason {
   source_identifier: Option<SourceIdentifier>,
   reason: Reason,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(PartReason);
 
 impl PartReason {
   /// The part the reason stopped.
@@ -294,57 +310,13 @@ impl Part {
   }
 }
 
-/// The fixed-size record of `api.md` section 5.3, with the accessors that the scenarios and the tests read. The
-/// library's record has a fixed size, one slot per counter and per part; the stub keeps short lists.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LimitRecord {
-  exhausted: Vec<Limit>,
-  first_stopped: Vec<(Limit, Part)>,
-  #[cfg_attr(feature = "serde", serde(default))]
-  first_reasons: Vec<PartReason>,
-  /// A decimal string, as the other two omitted counts are (`api.md` section 12).
-  #[cfg_attr(feature = "serde", serde(default, with = "crate::decimal"))]
-  omitted_reasons: u64,
-  /// The external references found but not kept within the retained-data limit, a decimal string too.
-  #[cfg_attr(feature = "serde", serde(default, with = "crate::decimal"))]
-  omitted_references: u64,
-}
-
-impl LimitRecord {
-  /// The first reason recorded against the part, kept whatever the limits, without its detail text.
-  pub fn first_reason(&self, part: &Part) -> Option<&PartReason> {
-    self.first_reasons.iter().find(|first| first.part == *part)
-  }
-
-  /// The reasons recorded but not kept in `Completeness::reasons()`.
-  pub fn omitted_reasons(&self) -> u64 {
-    self.omitted_reasons
-  }
-
-  /// The external references found but not kept in `MediaReport::external_references()`.
-  pub fn omitted_references(&self) -> u64 {
-    self.omitted_references
-  }
-
-  /// Whether the counter ran out.
-  pub fn exhausted(&self, limit: &Limit) -> bool {
-    self.exhausted.contains(limit)
-  }
-
-  /// The part that the counter stopped first, such as `Part::Detection` for a read limit that ended detection.
-  pub fn first_stopped(&self, limit: &Limit) -> Option<&Part> {
-    self
-      .first_stopped
-      .iter()
-      .find(|(stopped, _)| stopped == limit)
-      .map(|(_, part)| part)
-  }
-}
-
 /// Why something was not established.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Reason {
   kind: ReasonKind,
   #[cfg_attr(
@@ -366,6 +338,9 @@ pub struct Reason {
   )]
   detail: Option<String>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Reason);
 
 impl Reason {
   /// The kind of reason.
@@ -414,12 +389,19 @@ impl ReasonKind {
 
 /// The outcome of header parsing for one stream.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct HeaderStatus {
   state: HeaderState,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   reason: Option<Reason>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(HeaderStatus);
 
 impl HeaderStatus {
   /// The state.

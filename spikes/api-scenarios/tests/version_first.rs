@@ -33,7 +33,8 @@ const OTHER_MAJOR: &str =
 const MISSING: &str = "a root record has no schema_version";
 const NULL: &str = "a member holds null, which the form never writes";
 const DUPLICATE: &str = "a map names each member once";
-const NESTED: &str = "a nested record's schema version differs from that of the document or record that holds it";
+/// The version error of a nested root record, which compares its version with that of the record that holds it.
+const NESTED: &str = "a nested root record has a schema version other than that of the record that holds it";
 
 /// One of the four root records: its members other than the version, as JSON text, two of them that a broken
 /// record replaces with a value that does not decode, and how to read it.
@@ -262,7 +263,7 @@ fn a_member_named_twice_fails_at_any_depth_but_never_before_the_version_error() 
 #[test]
 fn a_bare_error_record_reads_the_version_of_its_partial_report_first_too() {
   let record = &root_records()[3];
-  for (version, expected) in [("1.1", NESTED), ("2.0", OTHER_MAJOR)] {
+  for version in ["1.1", "2.0"] {
     let mut report = report_value(version);
     // The partial report's version last, and the partial report before the record's version.
     let report_members = members_of(report.clone());
@@ -272,7 +273,7 @@ fn a_bare_error_record_reads_the_version_of_its_partial_report_first_too() {
     };
     let members = with_member(&record.members, "partial_report", &report_text, 0);
     let message = failure(record, &text_of(&members, Some((members.len(), "1.0"))));
-    assert!(message.starts_with(expected), "{version}: {message}");
+    assert!(message.starts_with(NESTED), "{version}: {message}");
   }
   let report_members = members_of(report_value("1.0"));
   let members = with_member(
@@ -320,4 +321,21 @@ fn a_record_written_by_this_version_holds_no_null_and_reads_back() {
   let written = serde_json::to_string(&record).unwrap();
   assert!(!written.contains("null"), "{written}");
   assert_eq!(serde_json::from_str::<ErrorRecord>(&written).unwrap(), record);
+}
+
+#[test]
+fn the_version_comes_first_only_among_values_that_the_reader_can_represent() {
+  // The thirteenth review's case: serde_json cannot hold 1e400, so its own error comes before the version error.
+  let message = serde_json::from_str::<ErrorRecord>(r#"{"future": 1e400, "schema_version": "2.0"}"#)
+    .unwrap_err()
+    .to_string();
+  assert!(message.starts_with("number out of range"), "{message}");
+  // A value that serde_json has already parsed keeps one member for each name, so a repeated name is gone before
+  // the record is read: only the text shows it.
+  let repeated =
+    r#"{"future": 1, "future": 2, "schema_version": "1.0", "outcome": "identified", "format": "Matroska"}"#;
+  let message = serde_json::from_str::<Detection>(repeated).unwrap_err().to_string();
+  assert!(message.starts_with(DUPLICATE), "{message}");
+  let parsed: Value = serde_json::from_str(repeated).unwrap();
+  assert!(serde_json::from_value::<Detection>(parsed).is_ok());
 }

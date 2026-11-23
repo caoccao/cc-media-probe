@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft of 2026-11-23 for review (plan, Phase 2, task 5), to be confirmed at G2.3 with `cli.md` and the serialization contract. Written from revision 47 of the plan, [`api.md`](../design/api.md) after its twelfth review, and [`cli.md`](../design/cli.md). |
+| **Status** | Draft of 2026-11-23 for review (plan, Phase 2, task 5), to be confirmed at G2.3 with `cli.md` and the serialization contract. Written from revision 47 of the plan, [`api.md`](../design/api.md) after its twelfth review, and [`cli.md`](../design/cli.md). The thirteenth review, of this guide with `api.md` and `cli.md`, revised sections 1 to 5, 6.2, 7.2, 7.3, 7.8 and 8 to 11 on the same day, at revision 48 of the plan. |
 | **Sources** | Plan sections 8.8 and 8.9; `api.md` sections 3.3, 5, 6, 8, 10, 11, 12 and 14; `cli.md` section 7; RFC 8259 (JSON), RFC 7493 (I-JSON), RFC 3339 (timestamps) |
-| **Evidence** | The spike [`spikes/api-scenarios/`](../../spikes/api-scenarios/README.md): its stub writes and reads the forms marked "the stub" below, and `tests/version_first.rs` shows the neutral form of section 2 |
+| **Evidence** | The spike [`spikes/api-scenarios/`](../../spikes/api-scenarios/README.md): its stub writes and reads the forms marked "the stub" below. `tests/version_first.rs` shows the neutral form of section 2, `tests/nested_versions.rs` the nested versions of section 4.5, `tests/standalone.rs` a record read alone, and `tests/wire_values.rs` the single values of sections 4.1, 5.4, 6.2, 7.2 and 7.3 |
 
 This guide is the contract of the serialized form: what `cc-media-probe --json` writes, and what the library writes and reads with its `serde` feature. A program that reads the output can rely on everything it states, within one schema major version (section 9). The text mode of the CLI is for people and is no contract (`cli.md` section 8.8).
 
@@ -35,7 +35,7 @@ The form is JSON as RFC 8259 defines it, UTF-8 encoded, and it follows the rules
 | Catch-all | The value that an enum reads for a name that a newer version wrote, and writes back unchanged (section 6). |
 | Kind | The `kind` member of an enum that carries data and of a typed detail, which names its variant (section 6.2). |
 | Twin | The `_exact` member that carries a quantity beyond 2^53 − 1 as a decimal string, in place of the number (section 5.5). |
-| Version error | The failure of a root record whose major version is not the reader's own, or that has no version. |
+| Version error | The failure of a root record that has no version, a version not of the form of section 4.1, or a major version that is not the reader's own, and of a nested root record whose version is not that of the record that holds it (section 4.5). |
 | Malformed input | Any other record that breaks this contract (section 10). |
 
 ## 2. Reading a record
@@ -48,25 +48,33 @@ flowchart TD
   V -->|"no, and the record goes on"| H["Hold the member in the neutral form,<br/>whatever it holds, null included"]
   H --> M
   V -->|"no member is left"| E1["The version error: no version"]
-  V -->|yes| C{"Is its major<br/>the reader's own?"}
+  V -->|yes| C{"Nested: the version of the record that holds it?<br/>Alone: the reader's own major?"}
   C -->|no| E2["The version error, naming both versions"]
-  C -->|yes| D["Decode the held members, then each later<br/>member as it comes, into its type"]
-  D --> N{"A null, a name given twice,<br/>or another rule broken?"}
+  C -->|yes| D["Decode the held members, then each later<br/>member as it comes, in the order written"]
+  D --> N{"A null, a name given twice, an array<br/>for a record, or another rule broken?"}
   N -->|yes| E3["Malformed input"]
   N -->|no| R["The record, with the version it was read with"]
 ```
 
-- **The version first.** JSON fixes no order of an object's members, and tools reorder them, so a reader does not rely on `schema_version` coming first. Until it has the version, it holds each member in a neutral form that takes any value, so no member can fail before the version error: not a member of the wrong type, not a null and not a name given twice. A newer major version may write what this one refuses. Only then are the members decoded.
+- **The version first.** JSON fixes no order of an object's members, and tools reorder them, so a reader does not rely on `schema_version` coming first. Until it has the version, it holds each member in a neutral form that takes any value, so no member can fail before the version error: not a member of the wrong type, not a null and not a name given twice. A newer major version may write what this one refuses. Only then are the members decoded, the held ones first, in the order written, exactly as if the version had come first.
+- **What the guarantee reaches.** The neutral form holds any value that the format's reader can represent, and nothing more, as the thirteenth review found. What the reader itself cannot read fails in the reader, before the version error, wherever it stands: a syntax error, text that is not UTF-8, nesting beyond the reader's recursion limit, and a number beyond the reader's range, such as `1e400`, which serde_json refuses as "number out of range". The version error comes first among the failures that this form defines.
 - **Only what comes before the version is held,** as the maintainer chose on 2026-11-23. Every writer of this form writes `schema_version` first, so a reader holds nothing for its own output: a record is read at its typed size, and an error in a member keeps its place in the input, such as serde_json's line and column. A record that a tool reordered costs the reader a copy of the members before its version while it is read.
 - **Null fails, wherever it stands.** A member is present when its name is, so null never stands for an absent value, and a member that holds null fails as malformed input: an optional member, an element of an array, a member that no type reads, and a member deep inside one. So does a map that names a member twice (RFC 7493 section 2.3). Neither is refused before the version error.
+- **A record is an object.** Every record is a JSON object with named members, at the root and at every level below it. Serde's derive would also read a struct from an array of its values, in the order of its fields; the form refuses such an array as malformed input, so `"generator": ["catalog", "1"]` and `[1, 2]` for a rational fail.
+- **A repeated name needs the text.** A reader sees a name given twice only when it reads the members as written. A value that a parser has already built, such as serde_json's `Value`, keeps one member for each name, so a record read from it cannot refuse the repetition. A program that wants the check reads the record from the text.
 - **Unknown members are ignored,** except where a catch-all keeps them (section 6). No record denies unknown members.
-- **Nested root records** are checked against the version of the record that holds them (section 4.5).
+- **Nested root records** are compared with the version of the record that holds them as soon as their own version is read, before their body is decoded (section 4.5).
+- **Alone or nested.** A model type read on its own, such as a bare rational, follows every rule that it follows inside a root record (`api.md` section 3.3). It has no version, so only the version error does not apply to it.
 
-**Formats other than JSON.** The library writes the form through Serde's format-neutral traits, so any Serde format can carry it. Reading needs a self-describing format, one that can say what a value is without being told, because the neutral form, the catch-alls and the members that an entry of a newer outcome keeps read values whose type the reader does not know yet. JSON, CBOR and MessagePack are such formats. A format that is not self-describing reads no root record. The version error comes first in every format that reads one.
+**Formats other than JSON.** The library writes the form through Serde's format-neutral traits. A format carries it when it does three things, as the thirteenth review asked to state:
+
+- **It writes a record as a map with member names.** A root record is read as a map, so that its reader can find `schema_version` by name. CBOR, through ciborium 0.2.2, writes a struct as a map of its field names. rmp-serde, the MessagePack serializer, writes a struct as an array of its values by default; only a serializer configured with `Serializer::with_struct_map()` writes the form (rmp-serde 1.3.1, `StructMapConfig`). An array of values has no version to find, and reading refuses it (section 10).
+- **It reads self-describing values,** saying what a value is without being told, because the neutral form, the catch-alls and the members that an entry of a newer outcome keeps read values whose type the reader does not know yet. JSON, CBOR and MessagePack are such formats. A format that is not self-describing reads no root record. The version error comes first in every format that reads one.
+- **It takes a map or a sequence whose length is not given up front.** `Document::serialize_results` writes `results` so, since it does not know how many entries will follow, and a writer may write a record so, such as an entry, whose members it does not count first. CBOR writes such a value with an indefinite length. rmp-serde holds its members in memory and writes the length when it ends, so a document that the writer streams to MessagePack is held whole until its last entry is written. A document held in memory and written with `Document::from_results` gives the length of its `results` up front.
 
 ## 3. The document
 
-`cc-media-probe --json` writes one document to standard output, followed by one line feed, and nothing else (`cli.md` section 7). A library caller writes the same document with `Document::from_results` or, one entry at a time, `Document::serialize_results` (`api.md` section 12). The two write the same text for the same entries.
+`cc-media-probe --json` writes one document to standard output, followed by one line feed, and nothing else (`cli.md` section 7). The one exception is help: the exact argument `--help` before any `--` writes the help text, never a document, and exits with 0, whatever else the command line holds, `--json` included (`cli.md` section 3). So `cc-media-probe --json --help` succeeds with text that is not JSON, and a program that reads the output never adds `--help`. A library caller writes the same document with `Document::from_results` or, one entry at a time, `Document::serialize_results` (`api.md` section 12). The two write the same text for the same entries.
 
 | Member | Value | Presence |
 |---|---|---|
@@ -75,7 +83,9 @@ flowchart TD
 | `usage_error` | A record: `message`, a string. The message is unescaped here; standard error writes it escaped (`cli.md` section 4). | Only in the document of a usage error |
 | `results` | The entries, an array, one for each input in the order of the command line | Always; empty with a usage error and for `--json --version` |
 
-A document holds results or a usage error, never both. The CLI writes its document as it goes: each entry as soon as its input is finished. If standard output fails, the document stops where the failure happened, and the run exits with 1 (`cli.md` section 9); a reader then sees text that is not a whole JSON value.
+A document holds results or a usage error, never both. The CLI writes its document as it goes: each entry as soon as its input is finished.
+
+**When standard output fails.** The run stops and exits with 1 (`cli.md` section 9), however many bytes reached the reader. A failure inside an entry leaves text that is not a whole JSON value, while a failure of the final line feed or of the last flush can come after the whole document reached the reader, which then parses it. So a program reads the exit status, never whether the text parses. One exception keeps its status: a usage error exits with 2 even when its document cannot be written, as `cc-media-probe --json --jsno` does with a closed standard output, and standard error then reports the output failure before the usage error (`cli.md` section 4).
 
 **An entry:**
 
@@ -94,10 +104,11 @@ An entry of a known outcome holds exactly one of `report`, `detection` and `erro
 | Record | `ok` | `partial` | `error` |
 |---|---|---|---|
 | Report | Complete (section 7.2) | Incomplete | Never |
+| Report beside a status of a newer version | Only while no status that this version knows records a shortfall and the record holds no first reason | Always | Never |
 | Detection | Identified | A family only, ambiguous, or a hint only | Insufficient data, or an unknown format |
 | Error record | Never | Never | Always |
 
-A source that fails during detection is an error record. Where a record holds a value of a newer version that decides the outcome, the outcomes that the value could still give are allowed: a report beside a status of a newer version allows `ok` and `partial`, never `error`, and a detection outcome of a newer version allows any outcome.
+A source that fails during detection is an error record. Where a record holds a value of a newer version that decides the outcome, the outcomes that the value could still give are allowed, and only those. A report beside a status of a newer version allows `ok` and `partial` while no status that this version knows records a shortfall and the record holds no first reason. A shortfall that this version can see, such as discovery `incomplete` or any first reason in the record, already rules `ok` out, since no newer status makes such a report complete, so it allows `partial` alone. A report never allows `error`. A detection outcome of a newer version allows any outcome.
 
 **An entry of a newer outcome.** An outcome that a newer version wrote, such as a hypothetical `skipped`, can need members that only that version knows. A reader keeps every member of such an entry that it does not read, and writes them back after its own members, in the order read, so the version that wrote the outcome reads the entry again from a document that an older version rewrote. It still checks the members it reads: the input, and the version of each record the entry holds.
 
@@ -121,7 +132,13 @@ A source that fails during detection is an error record. Where a record holds a 
 
 ### 4.1 The version
 
-`schema_version` is a string of two decimal numbers separated by a period, `major.minor`, as in `"1.0"`. This version writes `1.0`. A reader takes a record of its own major version and any minor version, and gives the version it read through `schema_version()`. An additive change raises the minor number; anything else raises the major number, and happens only in a major crate release (section 9).
+`schema_version` is a string of two numbers separated by a period, `major.minor`, as in `"1.0"`. Each number is canonical decimal: ASCII digits, with no sign and no leading zero, from 0 to 4294967295, the range of the `u32` that `major()` and `minor()` return. So `"+1.+0"`, `"01.0"`, `"1.00"` and `"1.4294967296"` are no version, and a root record with one fails with the version error, since no reader can tell which version wrote it. A reader takes a record of its own major version and any minor version in that range, and gives the version it read through `schema_version()`. An additive change raises the minor number; anything else raises the major number, and happens only in a major crate release (section 9).
+
+**Which version a record carries when it is written,** as the thirteenth review asked to tell apart:
+
+- A record that this version builds, such as the report of a probe, carries `1.0`.
+- A root record that was read and is written again on its own keeps the version that it was read with. A bare report read at 1.1 is written as 1.1, without the members that this version does not read, which every later minor version adds as optional (section 9).
+- A document gives every record it holds its own version, whatever version the record was read with (section 4.5).
 
 ### 4.2 Report
 
@@ -172,7 +189,7 @@ Reading a report checks that its completeness agrees with itself and with its st
 | `kind` | An error kind (section 6.1) | Always |
 | `message` | The error's message, for people; its text may change in any release | Always |
 | `format` | The detected format or family | Where the kind has one |
-| `candidates` | Each a record of `format`, `confidence`, `state` (`validated`, `rejected`, `not_checkable`, `outranked`) and `reason` | Always; empty unless candidates were checked |
+| `candidates` | Each a record of `format`, `confidence`, `state` (`validated`, `rejected`, `not_checkable`, `outranked`) and `reason`, optional: the cause that kept a candidate from validating, when it has one. A candidate without a check of its own, such as one of a detect-only format, stays `not_checkable` and has no reason (`api.md` sections 5.1 and 10.1). | Always; empty unless detection had candidates. An ambiguous detection whose candidates have no check gives `format_not_determined` with each candidate `not_checkable` and no check run. |
 | `hint` | As in a detection | For an unknown format with a hint |
 | `reason` | A reason (section 7.2), such as a named limit | Where one reason stopped the probe |
 | `source_identifier` | The source concerned (section 5.4) | When one is concerned |
@@ -190,7 +207,11 @@ An error record is never turned back into the live error: it describes one.
 
 ### 4.5 Nested root records
 
-A report, a detection or an error record inside a document carries the document's version, and so does the partial report of an error record, inside a document or in a bare error record. A writer gives each record it holds its own version, whatever version the record was read with, so a document rebuilt from the entries of a document of version 1.1 is of version 1.0 throughout. A root record stands only in a member that every version reads: an entry's `report`, `detection` and `error`, and an error record's `partial_report`. A reader checks every nested record against the version of the record that holds it; a different version is the version error. The record that holds a nested one already has a version of this major, so the nested record is read strictly from its first member: a null or a repeated name before its version is malformed input, and every other failure comes after its version error.
+A report, a detection or an error record inside a document carries the document's version, and so does the partial report of an error record, inside a document or in a bare error record. A writer gives each record it holds its own version, whatever version the record was read with, so a document rebuilt from the entries of a document of version 1.1 is of version 1.0 throughout. A root record stands only in a member that every version reads: an entry's `report`, `detection` and `error`, and an error record's `partial_report`. No other member holds one, in this version or a later one (section 9).
+
+A reader compares each nested record's version with that of the record that holds it as soon as it has read the nested version, before it decodes anything after it, as the thirteenth review asked. A different version, of either number, is the version error, and its message names both. So the version error comes first whatever the order of the members, of the nested record and of the record that holds it. A document whose `results` come before its own version holds them until it has its version and then reads them in the order written, exactly as if the version had come first, so a nested error record of version 1.1 whose `message` is `42`, or one of version 2.0 with a null after its version, gives the version error in either order.
+
+The record that holds a nested one already has a version of this major and is read strictly, so the nested record is read strictly from its first member: a null or a repeated name written before its version is malformed input, while every other failure of the nested record, such as a member of the wrong type, comes after its version error.
 
 ## 5. Members and values
 
@@ -208,9 +229,10 @@ Every name is ASCII and named once in its record.
 ### 5.2 Absent values, lists and flags
 
 - **An optional value** that is absent is not written. A reader takes a missing optional member as absent.
-- **A list** is always written, empty as `[]`. A list that `0.1.0` defines is required on input; a list that a later minor version adds defaults to empty.
-- **A plain flag** (`bool` in Rust, not `Option<bool>`) is always written, as `true` or `false`. One that a later minor version adds defaults to `false`.
-- **An optional flag** (`Option<bool>`) is written only when the file states it, as `true` or `false`. Absent never means false.
+- **A list** is always written, empty as `[]`. A list that `0.1.0` defines is required on input.
+- **A plain flag** (`bool` in Rust, not `Option<bool>`) is always written, as `true` or `false`.
+- **An optional flag** (`Option<bool>`) is written when its value was established, as `true` or `false`, and is absent otherwise. A value is established when the file states it, and also when the specification gives the element a default and the probe established its omission, as the thirteenth review found: a Matroska `TrackEntry` read in full without `FlagEnabled` is enabled, so `disposition` holds `"enabled": true` and the details hold `{"value": true, "stored": false}` (`api.md` sections 11.2 and 11.4). A track entry cut short before `FlagEnabled` leaves it absent. Absent never means false.
+- **A member that a later minor version adds** takes the default of its type when a record of an earlier version lacks it, the same in Rust and in this form (`api.md` section 14): an optional value is absent, a list is empty and a plain flag is `false`. A newer reader that reads an older record and writes it again therefore writes `[]` and `false` for those members. So a later version adds a list or a plain flag only where that default is true of every record that an earlier version wrote; any other member it adds as an optional value, which an older record leaves absent: not established.
 
 ### 5.3 Text
 
@@ -220,11 +242,13 @@ Text taken from media is decoded by the format's rules and is always valid Unico
 
 A value whose meaning is identity is a string at every coded width (R24): the unique IDs of streams, editions, chapters and attachments, tag target references, source identifiers, program and clock-reference identifiers, and any other identity.
 
-- An integer identifier is canonical decimal: digits with no sign and no leading zero, so `"+1"` and `"01"` are malformed. A source identifier is 64 bits wide, so `"18446744073709551615"` is the largest.
-- A binary identifier is lowercase hexadecimal, two digits a byte.
-- A textual identifier, such as a Matroska `ChapterStringUID`, is its own text.
+- An integer identifier is canonical decimal within its coded width: ASCII digits with no sign and no leading zero, so `"+1"` and `"01"` are malformed. A source identifier is 64 bits wide, so `"18446744073709551615"` is the largest, and a 32-bit ISO `track_ID` ends at `"4294967295"`.
+- A binary identifier is lowercase hexadecimal, two digits a byte, such as a 16-byte Matroska `SegmentUUID`.
+- A textual identifier, such as a Matroska `ChapterStringUID`, is its own text, and any text is one.
 
 In the typed details this rule comes before the rules for integers, so a 32-bit ISO `track_ID` kept in an error's observations is `"4294967295"` as well.
+
+A reader checks the decimal rule wherever the member's type fixes an integer and its width, as for a source identifier and an identifier of the typed details at its coded width, and the tests read each such width. Where only the format decides which kind of identifier a member holds, as for the `unique_identifier` of a stream, the reader takes the text as written, so a hexadecimal or textual identifier reads there.
 
 ### 5.5 Numbers
 
@@ -394,7 +418,7 @@ An enum with a variant that holds a value is a record like a typed detail. Its `
 
 | Enum | Kinds and their members | Examples |
 |---|---|---|
-| Tag value | `text` (a string), `binary` (a record of `size` with its twin and `data`, the bytes in hexadecimal when they were kept), `integer` (a number with its twin), `floating_point` (section 5.6), `boolean`, `guid` (section 5.6) | `{"kind": "text", "text": "Title"}`, `{"kind": "integer", "integer_exact": "18446744073709551615"}`, `{"kind": "binary", "binary": {"size": 4, "data": "89504e47"}}` |
+| Tag value | `text` (a string), `binary` (a record of `size` with its twin and `data`, the bytes in lowercase hexadecimal when they were kept, exactly `size` bytes of them), `integer` (a number with its twin, from −2^63 to 2^64 − 1), `floating_point` (section 5.6), `boolean`, `guid` (section 5.6) | `{"kind": "text", "text": "Title"}`, `{"kind": "integer", "integer_exact": "18446744073709551615"}`, `{"kind": "binary", "binary": {"size": 4, "data": "89504e47"}}` |
 | Observed value (section 8) | `count`, a decimal string; `time`, seconds | `{"kind": "count", "count": "1200"}` |
 | Chroma format | `monochrome`, `chroma_420`, `chroma_422`, `chroma_444`, `chroma_411` without a value; `other`, a record of `horizontal` and `vertical` | `{"kind": "chroma_420"}` |
 | Text encoding | `utf8`, `utf16_little_endian`, `utf16_big_endian`, `utf32_little_endian`, `utf32_big_endian`, `iso8859_part1`, `windows1252`, `mac_roman` without a value; `other`, the encoding's name as written | `{"kind": "other", "other": "KOI8-R"}` |
@@ -438,7 +462,7 @@ A report is complete exactly when every status is complete, final or not applica
 | Member | Value |
 |---|---|
 | `exhausted` | The limits whose counters were exhausted, each once, in the order of `api.md` section 4.5 |
-| `first_stopped` | For each such limit, a record of `limit` and `part`, the part that it stopped first, in the same order |
+| `first_stopped` | For each such limit, a record of `limit` and `part`, the part that it stopped first, in the same order, so it names exactly the limits of `exhausted`, each once. Two limits can stop the same part first, so a part can appear in several records. |
 | `first_reasons` | The first reason recorded against each part, a part reason without its `detail`, each part once, in the order of the parts |
 | `omitted_diagnostics`, `omitted_declarations`, `omitted_reasons`, `omitted_references` | Decimal strings (section 5.5) |
 
@@ -480,19 +504,39 @@ A **timecode**: `frame_number` and `nominal_frames_per_second`, numbers; `rate`,
 | `codec` | A codec name, optional: absent while the codec is unresolved, when the description it describes was not read or kept, or when the input never named one |
 | `candidates` | Each a record of `sample_description_index`, a number, `codec` and `raw_identifiers` |
 | `has_every_candidate` | A flag |
-| `raw_identifiers` | Each a record of `namespace`, a codec namespace, and `value`, as written |
+| `raw_identifiers` | Each a record of `namespace`, a codec namespace, and `value`, the code as written, in the spelling of its namespace (below) |
 | `profile`, `level`, `tier` | Each with its `_provenance`, optional |
 | `codec_string` | A string, optional |
+
+**A raw code** is spelled by its namespace, as the maintainer chose at the thirteenth review, so every code has one spelling and is kept exactly, whatever its bytes:
+
+| Namespace | The code | `value` |
+|---|---|---|
+| `matroska_codec_identifier` | A Matroska `CodecID`, an EBML string | Its text, as in `"V_MPEG4/ISO/AVC"` |
+| `iso_sample_entry`, `quicktime_code`, `riff_four_character_code` | Four bytes | The four bytes as stored, in lowercase hexadecimal, two digits a byte: `"61766331"` for `avc1`, and `"00000000"` for the code of an uncompressed RIFF bitmap |
+| `wave_format_tag` | A 16-bit number (RFC 2361) | Canonical decimal, as in `"85"` |
+| `mpeg4_object_type` | An 8-bit number | Canonical decimal, as in `"64"` |
+
+Two identifiers name the same code exactly when their namespaces and values are equal, which decides whether two candidates of an unknown codec name one codec (`api.md` section 6.4). A `CodecID` holds printable ASCII only (RFC 8794 section 7.4). One with any other byte is damaged: its value has U+FFFD in place of each such byte, the typed details keep the stored bytes in hexadecimal, and since a Matroska track has no sample descriptions, it never decides a comparison of candidates. A value of a namespace that a newer version wrote is kept as written. A namespace that a later phase adds spells its codes by the same rules, so the 16 bytes of an extensible WAVE format's `SubFormat` are 32 hexadecimal digits. The codecs that the namespaces name come with the codec registry of Phase 4.
 
 **Protection:**
 
 | Member | Value |
 |---|---|
-| `declarations` | Each a record: `scheme`, optional, a record of `namespace` and `value` as written, such as an ISO `schm` code or a Matroska `ContentEncAlgo`; `scope`, a protection scope; `sample_description_index` for the scope `sample_description`; `encoding_order` for the scope `encoding_settings`, optional |
+| `declarations` | Each a record: `scheme`, optional, a record of `namespace` and `value`, below; `scope`, a protection scope; `sample_description_index` for the scope `sample_description`; `encoding_order` for the scope `encoding_settings`, optional |
 | `fully_examined` | A flag |
 | `sample_description_count` | A number, optional |
 | `sample_descriptions` | The descriptions whose state was established and kept, in index order: each a record of `index`, a number, and `state` |
 | `configuration_clear` | An optional flag |
+
+**A protection scheme** names its namespace and its value as written, in the spelling of a raw code (above), as the thirteenth review asked:
+
+| `namespace` | The scheme | `value` |
+|---|---|---|
+| `iso_scheme_type` | The `scheme_type` of an ISO `schm` box, four bytes | The four bytes in lowercase hexadecimal |
+| `matroska_content_encryption_algorithm` | A Matroska `ContentEncAlgo` (RFC 9559 section 5.1.4.1.31.9) | Canonical decimal, as in `"5"` for AES |
+
+Phases 5 and 6 confirm these at their gates, G5.2 and G6.2, and later phases add their namespaces.
 
 ### 7.4 Video (`api.md` section 6.5)
 
@@ -549,7 +593,7 @@ A **timecode**: `frame_number` and `nominal_frames_per_second`, numbers; `rate`,
 | `superseded` | A flag: whether a later element replaced the one that holds this set |
 | `tags` | The flat array of section 5.9 |
 
-**A target reference:** `kind`; `identifier` and `namespace`, optional, as written; `location`, an entity location (section 5.7), for a resolved reference.
+**A target reference:** `kind`; `identifier`, optional, as written (section 5.4); `namespace`, optional, the namespace of the identifier; `location`, an entity location (section 5.7), for a resolved reference. The one namespace of `0.1.0` is `matroska_unique_identifier`: the `TagTrackUID`, `TagEditionUID`, `TagChapterUID` or `TagAttachmentUID` of a Matroska tag target, which names the `TrackUID`, `EditionUID`, `ChapterUID` or `FileUID` of an entity of its list, a 64-bit integer in canonical decimal; its wildcard is `"0"` (RFC 9559 sections 5.1.8.1.1.3 to 5.1.8.1.1.6). G5.2 confirms it, and a format phase that adds targets of its own adds its namespace, reviewed at its gate.
 
 **A tag node:** `parent`, optional (section 5.9); `name`, a record of `as_written`, `namespace`, optional, and `bytes`, optional, the key exactly as stored in hexadecimal; `key`, a tag key, optional; `languages`, languages; `countries`, ISO 3166 codes as written; `default`, an optional flag; `value`, a tag value (section 6.2), optional; `native_type`, the value's type name as written, optional.
 
@@ -588,9 +632,25 @@ A report's `format_details` and a stream's `codec_details` are records with a `k
   |---|---|
   | `conflicts` | `field`, the field guide's name; `owner`, an optional entity location; `stream`, an optional index; `values`, each a record of `source` and `value` as text |
   | `observed_lower_bounds` | `field`; `owner`; `stream`; `value`, an observed value (section 6.2). A lower bound is never a total. |
-  | `exact_values` | `field`; `owner`; `stream`; `numerator` and `denominator`, optional, decimal strings; `inputs`, each a record of `name` and `value` as decimal strings |
+  | `exact_values` | `field`; `owner`; `stream`; `numerator`, a decimal string in canonical form, with a minus sign for a negative value; `denominator`, optional, a decimal string, absent for a whole number; `inputs`, each a record of `name`, the input's name as text, and `value`, a decimal string (`api.md` section 11.3) |
 
 - **A kind that a newer version wrote** is kept as written, with its other members, and written back unchanged, as the catch-all of an enum that carries data is (section 6.2).
+
+An exact value keeps a computed rational that no number holds. A Matroska stream whose first cluster has the timestamp 2^64 − 1 under a `TimestampScale` of 1,000,000 nanoseconds starts at (2^64 − 1) / 1000 seconds, which is reduced to 3689348814741910323/200, a numerator beyond 2^53 − 1. So `start_time` is absent, a diagnostic says why, and the details keep:
+
+```json
+{
+  "field": "start_time",
+  "owner": {"kind": "stream", "index": 0, "chapter_path": []},
+  "stream": 0,
+  "numerator": "3689348814741910323",
+  "denominator": "200",
+  "inputs": [
+    {"name": "cluster_timestamp", "value": "18446744073709551615"},
+    {"name": "timestamp_scale", "value": "1000000"}
+  ]
+}
+```
 
 Each format and codec phase adds its kind and fixes its members, reviewed at its gate; this guide then gains a section for it. In the skeleton of Phase 2, the only kind is the catch-all. `api.md` sections 11.4 and 11.5 sketch the Matroska and H.264 details as worked examples.
 
@@ -600,9 +660,9 @@ Within one schema major version, both directions hold:
 
 | Direction | Rule |
 |---|---|
-| A newer reader, older output | Every member added after `0.1.0` is optional on input, with a default. No member is removed or renamed, and none changes its meaning. |
+| A newer reader, older output | Every member added after `0.1.0` is optional on input, with the default of its type (section 5.2). No member is removed or renamed, and none changes its meaning. |
 | An older reader, newer output | Unknown members are ignored. An unknown string of an enum reads into its catch-all and is written back unchanged. An unknown kind of a typed detail or of an enum that carries data keeps its other members and writes them back, and so does an entry of an unknown outcome. Every member that `0.1.0` requires is present in later output. |
-| A minor version's new member | One that an older reader may drop: an optional member of a known record, or a member of a new kind or outcome, which a catch-all keeps. A member that a catch-all keeps never holds a root record: a new kind or outcome puts a report, a detection or an error record under `report`, `detection` or `error`, which every version reads. |
+| A minor version's new member | One that an older reader may drop: an optional member of a known record, or a member of a new kind or outcome, which a catch-all keeps. A member that a catch-all keeps never holds a root record, which stands only where section 4.5 lists it. A new outcome that carries a report, a detection or an error record puts it under the entry's `report`, `detection` or `error`, which every version reads and gives its own version. A new kind of a typed detail, of a tag value or of any other enum that carries data holds no root record at all: an older reader keeps its whole payload unread and writes it back with the version that wrote it, so it could not give the record its own (thirteenth review). |
 | Across major versions | A reader takes root records of its own major version only, and gives the version error for any other, unless the release that raised the major version documents a migration. |
 
 **What a program reading the output should do.** Read the version before anything else, refuse another major version, ignore members it does not know, accept enum values it does not know, and never rely on the order of members, on a message's text or on the spelling of a number or a string. The CLI's text mode is no contract.
@@ -615,14 +675,14 @@ Within one schema major version, both directions hold:
 
 A record that breaks one of these rules fails to read. Each rule is checked by a test (plan section 8.8, task 13).
 
-- **Form.** A member that holds null, wherever it stands. A map that names a member twice. A required member that is missing.
-- **Versions.** A root record without `schema_version`, or of another major version, gives the version error before any other check. A nested root record of another version than the record that holds it is the version error too.
-- **Numbers.** A quantity beyond 2^53 − 1; a twin within the range or not in canonical decimal; a number and its twin together. An identifier or an omitted count that is not canonical decimal, such as `"+1"`, `"01"`, or a source identifier beyond 2^64 − 1. An omitted count written as a number.
-- **Values.** A rational that is not reduced, has a denominator of 0 or a part beyond the range. A size beyond 2^53 − 1. A known kind without the member it names, or beside a member of another known kind.
+- **Form.** A member that holds null, wherever it stands. A map that names a member twice, read from the text (section 2). A record written as an array of its values, at the root or below it. A required member that is missing. Each holds for a model type read alone as well as inside a root record.
+- **Versions.** A root record without `schema_version`, with a version that is not two canonical decimal numbers of 32 bits (section 4.1), or of another major version, gives the version error before any other check that this form defines (section 2). A nested root record whose version is not that of the record that holds it is the version error too, before anything after its version is decoded (section 4.5).
+- **Numbers.** A quantity beyond 2^53 − 1; a twin within the range or not in canonical decimal; a number and its twin together. A tag integer beyond the range from −2^63 to 2^64 − 1. An integer identifier whose member fixes its width, such as a source identifier or a `track_ID` of the typed details, that is not canonical decimal within that width, such as `"+1"`, `"01"`, a source identifier beyond 2^64 − 1 or a `track_ID` beyond 2^32 − 1 (section 5.4); a binary or textual identifier is not checked by this rule. An omitted count that is not canonical decimal, or written as a number.
+- **Values.** A rational that is not reduced, has a denominator of 0 or a part beyond the range. A size beyond 2^53 − 1. A known kind without the member it names, or beside a member of another known kind. Binary data that is not whole bytes of lowercase hexadecimal, or whose length is not its size. A raw code of a known namespace not in that namespace's spelling (section 7.3).
 - **Paths.** A flag without the raw form, or the raw form without the flag; a flag of `false`; data of a known encoding that is not whole units of lowercase hexadecimal digits, that is valid Unicode, or whose decoding is not the display string.
 - **Trees.** A node whose parent does not come before it; a node that returns to a closed subtree; a standalone node's array with no root or with two.
 - **Documents.** Results beside a usage error. An entry whose `index` is not its position. An entry of a known outcome that holds no record or several, or whose record does not allow its outcome.
-- **Completeness.** A headers status of `complete` beside a known header state that is not final, or `incomplete` while every state is known and final. A reason in `reasons` without a first reason of its part in the record. A known part whose status records a shortfall without a first reason, or that has a first reason while its status records none. A limit or a part listed twice in the record.
+- **Completeness.** A headers status of `complete` beside a known header state that is not final, or `incomplete` while every state is known and final. A reason in `reasons` without a first reason of its part in the record. A known part whose status records a shortfall without a first reason, or that has a first reason while its status records none. In the record, a limit listed twice in `exhausted` or in `first_stopped`, a part listed twice in `first_reasons`, and first-stopped records that do not name exactly the limits of `exhausted`, in their order. Two limits that first stopped the same part are no repetition (section 7.2).
 
 ## 11. Decisions for G2.3
 
@@ -631,11 +691,16 @@ A record that breaks one of these rules fails to read. Each rule is checked by a
 - The neutral form holds only the members written before `schema_version`; every later member is decoded as it comes (section 2). Plan section 8.8 says so since revision 47.
 - This guide is the contract in prose, with no machine-readable JSON Schema beside it. Several of its rules are beyond what a schema states: an index that is its position, the depth-first order of a tree, the three members of a path that describe one path, and one version throughout a document.
 
+**Made by the maintainer at the thirteenth review, on 2026-11-23:**
+
+- **Raw codes in hexadecimal.** A code of bytes, such as a four-character code, is its bytes in lowercase hexadecimal, a text code its text and a coded number canonical decimal, so `RawCodecIdentifier::value()` keeps every code exactly (section 7.3). A protection scheme's value is spelled the same way. The alternatives were the four characters with escapes for other bytes, the characters or else eight digits, and a typed value.
+- **`IntegerValue` written by its owner only.** It has no serialized form of its own: the tag value that holds it writes `integer` or `integer_exact` and checks its bounds (section 6.2; `api.md` section 3.3). The alternative was a standalone record of the same two members.
+
 **Proposed here, open at G2.3:**
 
 - **The solidus.** RFC 8259 section 7 requires only the quotation mark, the reverse solidus and the control characters to be escaped. Its erratum 5318, verified on 2026-05-28, narrows the grammar's `unescaped` production so that it no longer holds the solidus, while the section's prose still lists only those three. The proposal: write `/` unescaped, as every JSON reader takes it, and read it escaped or not. The alternative is to escape every `/` in the CLI's output, through a formatter of its own, which conforms to the corrected grammar too, at the cost of paths and media types that read as `video\/mp4`. A library caller's own serializer decides its own escapes either way.
 - **Noncharacters.** RFC 7493 section 2.1 forbids noncharacters, such as U+FFFE, in an I-JSON text. Text from media is valid Unicode and can hold them. The proposal: keep the text as the file wrote it, so the document follows I-JSON's rules on names, numbers and duplicates without being I-JSON in this one respect. The alternative is to replace each noncharacter with U+FFFD, keeping what the file wrote in the details.
-- **Bytes in hexadecimal.** Binary tag data, attachment data and a tag name's bytes are lowercase hexadecimal, as raw paths and binary identifiers are, so the form has one encoding of bytes. Hexadecimal doubles the size of an attachment's data, where base64 (RFC 4648) would add a third.
+- **Bytes in hexadecimal.** Binary tag data, attachment data and a tag name's bytes are lowercase hexadecimal, as raw paths, binary identifiers and, by the maintainer's choice above, raw codes are, so the form has one encoding of bytes. Hexadecimal doubles the size of an attachment's data, where base64 (RFC 4648) would add a third.
 
 **Choices made without asking,** each open at G2.3:
 
@@ -643,9 +708,10 @@ A record that breaks one of these rules fails to read. Each rule is checked by a
 - Lists always written; plain flags always written; a later list or flag defaulting to empty or `false` (section 5.2).
 - The values of every string enum in section 6.1, and the names of formats and codecs, which G3.5 and the codec registry of Phase 4 complete.
 - The forms of section 5.6: a UTC time in one canonical RFC 3339 form, a GUID as its 16 stored bytes in hexadecimal, a confidence as a number.
-- The record of section 7.2: the exhausted limits, the first-stopped pairs and the first reasons as arrays in a fixed order, each limit or part once.
+- The record of section 7.2: the exhausted limits, the first-stopped pairs and the first reasons as arrays in a fixed order, each limit once in each of the first two and each part once in the third, as the thirteenth review corrected.
 - A protection scheme as a record of `namespace` and `value`, and an external reference's owner as an entity location with a sample-description index (sections 7.3 and 7.11).
 - The member `format` of an error record, after the accessor, where the example of plan section 8.9 wrote `detected`; revision 47 corrects the example.
 - Reading needs a self-describing format (section 2).
+- After the thirteenth review: the guarantee of the version first limited to the values that the format's reader can represent, and the check of a repeated name to a record read from the text (section 2); a record refused as a positional array, alone and nested; the three conditions for a format other than JSON, with rmp-serde's `with_struct_map()` named (section 2); a version that is not canonical decimal of 32 bits given the version error, rather than malformed input (section 4.1); a bare record written again keeping the version it was read with, as `schema_version()` already said, rather than taking this version's (section 4.1); the nested version compared before anything after it is decoded, with the record that holds it read in the order written, so a nested record's errors do not depend on the order of its parent's members (section 4.5); the default of a later member by its type, with lists and plain flags added only where the default is true of every older record (section 5.2); a `CodecID` with a byte outside printable ASCII decoded with U+FFFD beside its bytes in the details (section 7.3); the namespaces `iso_scheme_type`, `matroska_content_encryption_algorithm` and `matroska_unique_identifier`, for G5.2 and G6.2 to confirm (sections 7.3 and 7.8); and a new kind of a detail or of an enum that carries data never holding a root record (section 9).
 
-**The stub and the library.** The stub of `spikes/api-scenarios/` writes the forms of sections 2 to 5 for the records it holds, and since this draft no null for an absent member; the rest of its model keeps Serde's default form for enums and typed details, since it builds no report. The skeleton of task 11 implements every form of this guide, and the contract tests of task 13 check each rule of section 10.
+**The stub and the library.** The stub of `spikes/api-scenarios/` writes the forms of sections 2 to 5 for the records it holds, and since this draft no null for an absent member; the rest of its model keeps Serde's default form for enums and typed details, since it builds no report. Since the thirteenth review it also reads every record strictly, alone or nested, compares a nested version with its holder's before decoding the nested body, refuses a record written as an array, writes binary tag data in hexadecimal, checks the spelling of raw codes, canonical versions and identifiers at their width, and writes the record's first-stopped pairs as records. The skeleton of task 11 implements every form of this guide, and the contract tests of task 13 check each rule of section 10.

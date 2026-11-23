@@ -59,7 +59,7 @@ fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
     "reasons": reasons.clone(),
     "record": {
       "exhausted": ["Streams"],
-      "first_stopped": [["Streams", "Discovery"]],
+      "first_stopped": [{ "limit": "Streams", "part": "Discovery" }],
       "first_reasons": reasons,
     },
   })

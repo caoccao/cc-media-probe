@@ -36,12 +36,14 @@ use crate::model::UnrecognizedValue;
 
 /// A path exactly as the platform that wrote it holds it (plan section 8.8).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "RawPathData"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RawPath {
   encoding: RawPathEncoding,
   data: String,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_record_traits!(RawPath from RawPathData);
 
 impl RawPath {
   /// The encoding of the platform that wrote the path.

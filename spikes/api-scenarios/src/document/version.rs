@@ -19,6 +19,7 @@
 
 use super::invalid::InvalidDocument;
 use crate::constants::{SCHEMA_MAJOR, SCHEMA_MINOR, SCHEMA_VERSION_TEXT_MESSAGE, VERSION_SEPARATOR};
+use crate::decimal::canonical;
 
 /// A schema version, `major.minor`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -55,14 +56,15 @@ impl From<SchemaVersion> for String {
 impl TryFrom<String> for SchemaVersion {
   type Error = InvalidDocument;
 
-  /// Two decimal numbers separated by a period. A version that this release does not read is still a version; the
-  /// document decides what to do with it.
+  /// Two canonical decimal numbers of 32 bits separated by a period: ASCII digits, no sign and no leading zero, so
+  /// `"+1.+0"`, `"01.0"` and `"1.00"` are no version (thirteenth review). A version that this release does not read
+  /// is still a version; the record decides what to do with it.
   fn try_from(text: String) -> Result<SchemaVersion, InvalidDocument> {
     let invalid = || InvalidDocument::new(SCHEMA_VERSION_TEXT_MESSAGE);
     let (major, minor) = text.split_once(VERSION_SEPARATOR).ok_or_else(invalid)?;
     Ok(SchemaVersion {
-      major: major.parse().map_err(|_| invalid())?,
-      minor: minor.parse().map_err(|_| invalid())?,
+      major: canonical(major).ok_or_else(invalid)?,
+      minor: canonical(minor).ok_or_else(invalid)?,
     })
   }
 }

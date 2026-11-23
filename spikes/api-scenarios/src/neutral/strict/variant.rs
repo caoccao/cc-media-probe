@@ -71,6 +71,6 @@ impl<'input, Variant: VariantAccess<'input>> VariantAccess<'input> for StrictVar
     fields: &'static [&'static str],
     visitor: Read,
   ) -> Result<Read::Value, Variant::Error> {
-    self.variant.struct_variant(fields, StrictVisitor::new(visitor, None))
+    self.variant.struct_variant(fields, StrictVisitor::record(visitor))
   }
 }

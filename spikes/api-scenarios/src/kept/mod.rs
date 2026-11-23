@@ -28,4 +28,3 @@ mod value;
 
 pub(crate) use kinds::{read_kind, refuse_other_kinds, write_kept};
 pub(crate) use members::KeptMembers;
-pub(crate) use value::KeptValue;

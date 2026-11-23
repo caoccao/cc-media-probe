@@ -34,7 +34,11 @@ use super::values::Identifier;
 
 /// Tags with the entities they describe.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct TagSet {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   target_level: Option<TargetLevel>,
@@ -48,6 +52,9 @@ pub struct TagSet {
   #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
   tags: Vec<Tag>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(TagSet);
 
 impl TagSet {
   /// The target level.
@@ -125,13 +132,20 @@ impl TargetScope {
 
 /// A target level: a number and a type name.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct TargetLevel {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   value: Option<u64>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   type_name: Option<String>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(TargetLevel);
 
 impl TargetLevel {
   /// The level's number.
@@ -147,7 +161,11 @@ impl TargetLevel {
 
 /// One reference of a target list.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct TargetReference {
   kind: TargetReferenceKind,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -155,6 +173,9 @@ pub struct TargetReference {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   location: Option<EntityLocation>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(TargetReference);
 
 impl TargetReference {
   /// Whether the reference resolved, matched nothing, or is a wildcard.
@@ -191,12 +212,19 @@ pub enum TargetReferenceKind {
 
 /// Where an entity is in the report.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct EntityLocation {
   kind: EntityKind,
   index: usize,
   chapter_path: Vec<usize>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(EntityLocation);
 
 impl EntityLocation {
   /// What the entity is.
@@ -357,16 +385,28 @@ impl serde::Serialize for Tag {
   }
 }
 
+/// Read alone, as a value inside a read, strictly either way (thirteenth review).
+#[cfg(feature = "serde")]
+impl<'input> crate::neutral::ReadAlone<'input> for Tag {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Tag, Input::Error> {
+    tree::flat::deserialize_subtree(deserializer)
+  }
+}
+
 #[cfg(feature = "serde")]
 impl<'input> serde::Deserialize<'input> for Tag {
   fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Tag, Input::Error> {
-    tree::flat::deserialize_subtree(deserializer)
+    crate::neutral::read_alone(deserializer)
   }
 }
 
 /// A tag's name as written.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct TagName {
   as_written: String,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -374,6 +414,9 @@ pub struct TagName {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   bytes: Option<Vec<u8>>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(TagName);
 
 impl TagName {
   /// The name decoded by the rules of its format or namespace, with U+FFFD for a byte they cannot decode.

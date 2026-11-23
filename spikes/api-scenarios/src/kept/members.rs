@@ -70,6 +70,13 @@ impl KeptMembers {
     }
   }
 
+  /// The remaining members read as one record of that type, as a map of them.
+  pub(crate) fn into_record<'input, Record: Deserialize<'input>, Failure: serde::de::Error>(
+    self,
+  ) -> Result<Record, Failure> {
+    Record::deserialize(KeptValue::Map(self).into_deserializer())
+  }
+
   /// The members, in the order written.
   pub(crate) fn iter(&self) -> impl Iterator<Item = (&String, &KeptValue)> {
     self.0.iter().map(|(name, value)| (name, value))

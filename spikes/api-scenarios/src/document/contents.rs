@@ -21,14 +21,17 @@ use super::entry::DocumentEntry;
 use super::invalid::InvalidDocument;
 use super::version::SchemaVersion;
 use super::wire::{EntryData, serialize_results};
-use crate::constants::{NESTED_VERSION_MESSAGE, USAGE_ERROR_WITH_RESULTS_MESSAGE};
+use crate::constants::USAGE_ERROR_WITH_RESULTS_MESSAGE;
 
 /// The program that wrote a document.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(remote = "Self")]
 pub struct Generator {
   name: String,
   version: String,
 }
+
+crate::neutral::record_traits!(Generator);
 
 impl Generator {
   /// A generator of that name and version.
@@ -52,9 +55,12 @@ impl Generator {
 
 /// A command line that could not be run, as the `usage_error` object of plan section 8.9.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(remote = "Self")]
 pub struct UsageError {
   message: String,
 }
+
+crate::neutral::record_traits!(UsageError);
 
 impl UsageError {
   /// A usage error with that message.
@@ -93,9 +99,9 @@ struct DocumentData {
 impl TryFrom<crate::neutral::Rooted<DocumentData>> for Document {
   type Error = InvalidDocument;
 
-  /// A document of this major version, every nested record of which carries its version, whose usage error never
-  /// stands beside results, and whose entries each have their position as their index. The library checks the
-  /// version before it decodes anything else, wherever it stands (`neutral`).
+  /// A document of this major version whose usage error never stands beside results, and whose entries each have
+  /// their position as their index. The library checks the version before it decodes anything else, wherever it
+  /// stands, and every nested record's version against it before it decodes that record's body (`neutral`).
   fn try_from(rooted: crate::neutral::Rooted<DocumentData>) -> Result<Document, InvalidDocument> {
     let (version, data) = (rooted.version, rooted.body);
     if data.usage_error.is_some() && !data.results.is_empty() {
@@ -105,10 +111,6 @@ impl TryFrom<crate::neutral::Rooted<DocumentData>> for Document {
       .zip(data.results)
       .map(|(position, entry)| entry.into_entry(position))
       .collect::<Result<Vec<DocumentEntry>, InvalidDocument>>()?;
-    let mut nested = results.iter().flat_map(DocumentEntry::nested_versions);
-    if nested.any(|nested_version| nested_version != version) {
-      return Err(InvalidDocument::new(NESTED_VERSION_MESSAGE));
-    }
     Ok(Document {
       schema_version: version,
       generator: data.generator,

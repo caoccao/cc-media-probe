@@ -16,9 +16,15 @@
 */
 
 //! `Rooted`, a root record's version with its other members, read version first (plan section 8.8). The members
-//! before `schema_version` are held; the version is read and its major checked, so a missing version or another
-//! major is the version error before any other member can fail to decode; then the held members are decoded,
-//! followed by the rest as they come, all of them strictly.
+//! before `schema_version` are held; the version is read and checked, so a missing version or another version is the
+//! version error before any other member can fail to decode; then the held members are decoded, followed by the rest
+//! as they come, all of them strictly and in the order written.
+//!
+//! A root record read alone checks its major version. A root record nested in another, as an entry's report or an
+//! error record's partial report, compares its version with that of the record that holds it, as soon as it has read
+//! it and before it decodes its own body (thirteenth review). The record that holds it already has a version of this
+//! major and reads strictly, so a null or a repeated name before the nested record's version is malformed input,
+//! while every other failure comes after the version error, whatever the order of the parent's members.
 
 use std::collections::HashSet;
 use std::fmt;
@@ -30,13 +36,13 @@ use serde::de::{DeserializeSeed, Error, IntoDeserializer, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
 use super::held::HeldValue;
+use super::scope::{self, Enclosing};
 use super::strict::StrictMap;
 use crate::constants::{
-  DUPLICATE_MEMBER_MESSAGE, MISSING_VERSION_MESSAGE, OTHER_MAJOR_VERSION_MESSAGE, READER_VERSION_LABEL,
-  ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER,
+  HOLDER_VERSION_LABEL, MISSING_VERSION_MESSAGE, NESTED_ROOT_VERSION_MESSAGE, OTHER_MAJOR_VERSION_MESSAGE,
+  READER_VERSION_LABEL, ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER,
 };
 use crate::document::SchemaVersion;
-use crate::kept::KeptValue;
 
 /// A root record as read: its version, of this major, and the members of its body, which hold no version.
 pub(crate) struct Rooted<Body> {
@@ -71,35 +77,45 @@ impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
       }
       held.push((name, members.next_value::<HeldValue>()?));
     };
-    if version.major() != SchemaVersion::CURRENT.major() {
-      return Err(Members::Error::custom(format!(
-        "{OTHER_MAJOR_VERSION_MESSAGE}: {}; {READER_VERSION_LABEL} {}",
-        String::from(version),
-        String::from(SchemaVersion::CURRENT)
-      )));
-    }
-    let mut names = HashSet::from([SCHEMA_VERSION_MEMBER.to_owned()]);
-    let mut kept = Vec::with_capacity(held.len());
-    for (name, value) in held {
-      if !names.insert(name.clone()) {
-        return Err(Members::Error::custom(DUPLICATE_MEMBER_MESSAGE));
-      }
-      kept.push((name, value.into_kept()?));
-    }
-    let body = Body::deserialize(MapAccessDeserializer::new(ChainedMembers {
-      held: kept.into_iter(),
-      pending: None,
-      live: StrictMap::with_names(members, names),
-    }))?;
+    check_version::<Members::Error>(version)?;
+    let _scope = scope::enter(Enclosing::Record(version));
+    let body = Body::deserialize(MapAccessDeserializer::new(StrictMap::with_names(
+      ChainedMembers {
+        held: held.into_iter(),
+        pending: None,
+        live: members,
+      },
+      HashSet::from([SCHEMA_VERSION_MEMBER.to_owned()]),
+    )))?;
     Ok(Rooted { version, body })
   }
 }
 
-/// The body's members: the held ones first, from the kept form, then those after the version, read strictly.
+/// The version error, or nothing: a nested record has the version of the record that holds it, and a record read
+/// alone has this version's major.
+fn check_version<Failure: Error>(version: SchemaVersion) -> Result<(), Failure> {
+  match scope::current() {
+    Some(Enclosing::Record(holder)) if version != holder => Err(Failure::custom(format!(
+      "{NESTED_ROOT_VERSION_MESSAGE}: {}; {HOLDER_VERSION_LABEL} {}",
+      String::from(version),
+      String::from(holder)
+    ))),
+    Some(Enclosing::Record(_)) => Ok(()),
+    _ if version.major() != SchemaVersion::CURRENT.major() => Err(Failure::custom(format!(
+      "{OTHER_MAJOR_VERSION_MESSAGE}: {}; {READER_VERSION_LABEL} {}",
+      String::from(version),
+      String::from(SchemaVersion::CURRENT)
+    ))),
+    _ => Ok(()),
+  }
+}
+
+/// The body's members: the held ones first, as they were read, then those after the version, from the input. The
+/// map around them reads both strictly and notes every name, so a repeated name fails where it stands.
 struct ChainedMembers<Members> {
-  held: vec::IntoIter<(String, KeptValue)>,
-  pending: Option<KeptValue>,
-  live: StrictMap<Members>,
+  held: vec::IntoIter<(String, HeldValue)>,
+  pending: Option<HeldValue>,
+  live: Members,
 }
 
 impl<'input, Members: MapAccess<'input>> MapAccess<'input> for ChainedMembers<Members> {

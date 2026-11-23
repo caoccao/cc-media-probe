@@ -63,11 +63,18 @@ impl ChromaFormat {
 
 /// A chroma subsampling as written: the horizontal and vertical subsampling of the chroma planes.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct ChromaSubsampling {
   horizontal: u8,
   vertical: u8,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(ChromaSubsampling);
 
 impl ChromaSubsampling {
   /// The horizontal subsampling, as written.

@@ -17,17 +17,17 @@
 
 //! A member held before the version is known. It takes any value that a self-describing reader gives, null
 //! included, and a map keeps every member, a repeated name included, so that nothing can fail to decode before the
-//! version error (plan section 8.8). Once the version is checked, a held value becomes a kept value, which refuses a
-//! null and a repeated name at any depth. Its depth is bounded where the reader's is, as serde_json's recursion limit
-//! bounds it.
+//! version error (plan section 8.8). Once the version is checked, a held value is read through `Strict`, in the
+//! order written, as a later member is read from the input: a null or a repeated name fails where it stands, so the
+//! errors of a record do not depend on where its version stood (thirteenth review). Its depth is bounded where the
+//! reader's is, as serde_json's recursion limit bounds it.
 
 use std::fmt;
 
-use serde::de::{Error, MapAccess, SeqAccess, Visitor};
+use serde::de::{MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
-use crate::constants::{HELD_VALUE_EXPECTING, NULL_MEMBER_MESSAGE};
-use crate::kept::{KeptMembers, KeptValue};
+use crate::constants::HELD_VALUE_EXPECTING;
 
 /// A value held as read.
 pub(super) enum HeldValue {
@@ -49,33 +49,6 @@ pub(super) enum HeldValue {
   Sequence(Vec<HeldValue>),
   /// A map, its members in the order written.
   Map(Vec<(String, HeldValue)>),
-}
-
-impl HeldValue {
-  /// The value in the kept form, now that the version is checked: a null or a repeated name fails, at any depth.
-  pub(super) fn into_kept<Failure: Error>(self) -> Result<KeptValue, Failure> {
-    Ok(match self {
-      HeldValue::Null => return Err(Failure::custom(NULL_MEMBER_MESSAGE)),
-      HeldValue::Boolean(value) => KeptValue::Boolean(value),
-      HeldValue::Unsigned(value) => KeptValue::Unsigned(value),
-      HeldValue::Signed(value) => KeptValue::Signed(value),
-      HeldValue::FloatingPoint(value) => KeptValue::FloatingPoint(value.to_bits()),
-      HeldValue::Text(text) => KeptValue::Text(text),
-      HeldValue::Bytes(bytes) => KeptValue::Bytes(bytes),
-      HeldValue::Sequence(items) => KeptValue::Sequence(
-        items
-          .into_iter()
-          .map(HeldValue::into_kept)
-          .collect::<Result<_, Failure>>()?,
-      ),
-      HeldValue::Map(members) => KeptValue::Map(KeptMembers::from_members(
-        members
-          .into_iter()
-          .map(|(name, value)| value.into_kept().map(|value| (name, value)))
-          .collect::<Result<_, Failure>>()?,
-      )?),
-    })
-  }
 }
 
 impl<'input> Deserialize<'input> for HeldValue {

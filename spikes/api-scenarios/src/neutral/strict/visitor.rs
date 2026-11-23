@@ -26,7 +26,7 @@ use serde::de::{Deserializer, EnumAccess, Error, MapAccess, SeqAccess, Visitor};
 use super::access::{StrictMap, StrictSequence};
 use super::deserializer::Strict;
 use super::variant::StrictEnum;
-use crate::constants::NULL_MEMBER_MESSAGE;
+use crate::constants::{NULL_MEMBER_MESSAGE, POSITIONAL_RECORD_MESSAGE};
 
 /// Where a member's name is noted while it is read, for a visitor that reads a name.
 pub(super) type NameSlot<'name> = Option<&'name mut Option<String>>;
@@ -35,12 +35,27 @@ pub(super) type NameSlot<'name> = Option<&'name mut Option<String>>;
 pub(super) struct StrictVisitor<'name, Read> {
   read: Read,
   name: NameSlot<'name>,
+  record: bool,
 }
 
 impl<'name, Read> StrictVisitor<'name, Read> {
   /// The visitor of a value, or of a member's name when `name` is given.
   pub(super) fn new(read: Read, name: NameSlot<'name>) -> StrictVisitor<'name, Read> {
-    StrictVisitor { read, name }
+    StrictVisitor {
+      read,
+      name,
+      record: false,
+    }
+  }
+
+  /// The visitor of a record, which a positional array never is (thirteenth review): Serde's derive reads a struct
+  /// from a sequence too, so the form refuses one here.
+  pub(super) fn record(read: Read) -> StrictVisitor<'name, Read> {
+    StrictVisitor {
+      read,
+      name: None,
+      record: true,
+    }
   }
 
   /// Notes a member's name, when this visitor reads one.
@@ -107,6 +122,9 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
   }
 
   fn visit_seq<Items: SeqAccess<'input>>(self, items: Items) -> Result<Read::Value, Items::Error> {
+    if self.record {
+      return Err(Items::Error::custom(POSITIONAL_RECORD_MESSAGE));
+    }
     self.read.visit_seq(StrictSequence::new(items))
   }
 

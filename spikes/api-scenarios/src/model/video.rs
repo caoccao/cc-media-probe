@@ -24,7 +24,11 @@ use super::values::{Provenance, Rational, Size};
 
 /// What a video stream states.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct VideoInformation {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   coded_size: Option<Size>,
@@ -44,6 +48,9 @@ pub struct VideoInformation {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   chroma_format: Option<ChromaFormat>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(VideoInformation);
 
 impl VideoInformation {
   /// The coded size.

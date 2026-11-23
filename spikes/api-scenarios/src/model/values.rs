@@ -34,12 +34,14 @@ use crate::document::InvalidDocument;
 /// An exact fraction, always reduced, with a denominator of at least 1 and both parts at most 2^53 - 1 in magnitude.
 /// It reads back only in that form (`api.md` section 12).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "RationalData"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Rational {
   numerator: i64,
   denominator: u64,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_record_traits!(Rational from RationalData);
 
 /// A rational as read, before its form is checked.
 #[cfg(feature = "serde")]
@@ -147,12 +149,14 @@ impl fmt::Display for Seconds {
 /// A width and a height in whole pixels, each at most 2^53 - 1, so that JSON holds them as exact numbers. It reads
 /// back only in that range (`api.md` sections 6.1 and 12).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "SizeData"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Size {
   width: u64,
   height: u64,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_record_traits!(Size from SizeData);
 
 /// A size as read, before its range is checked.
 #[cfg(feature = "serde")]
@@ -260,10 +264,35 @@ impl Provenance {
 
 /// An estimated value and how it was made (R25).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Estimate<Value> {
   value: Value,
   method: EstimateMethod,
+}
+
+#[cfg(feature = "serde")]
+impl<Value: serde::Serialize> serde::Serialize for Estimate<Value> {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    Estimate::serialize(self, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input, Value: serde::Deserialize<'input>> crate::neutral::ReadAlone<'input> for Estimate<Value> {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Estimate<Value>, Input::Error> {
+    Estimate::deserialize(deserializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input, Value: serde::Deserialize<'input>> serde::Deserialize<'input> for Estimate<Value> {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Estimate<Value>, Input::Error> {
+    crate::neutral::read_alone(deserializer)
+  }
 }
 
 impl<Value: Copy> Estimate<Value> {

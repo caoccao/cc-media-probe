@@ -19,6 +19,9 @@
 //! so that its JSON type never depends on its value, and a source identifier, which is a string like every
 //! identifier. A field uses it with `#[serde(with = "crate::decimal")]`.
 
+use std::fmt::Display;
+use std::str::FromStr;
+
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serializer};
 
@@ -31,9 +34,11 @@ pub(crate) fn serialize<Output: Serializer>(count: &u64, serializer: Output) -> 
 
 /// Reads the count from canonical decimal text: digits with no sign and no leading zero.
 pub(crate) fn deserialize<'input, Input: Deserializer<'input>>(deserializer: Input) -> Result<u64, Input::Error> {
-  let text = String::deserialize(deserializer)?;
-  match text.parse::<u64>() {
-    Ok(count) if count.to_string() == text => Ok(count),
-    _ => Err(Input::Error::custom(DECIMAL_MESSAGE)),
-  }
+  canonical(&String::deserialize(deserializer)?).ok_or_else(|| Input::Error::custom(DECIMAL_MESSAGE))
+}
+
+/// A number of its type from canonical decimal text: ASCII digits with no sign and no leading zero, within the
+/// type's width. It is the text that the number writes, so a number has one spelling (`json-output.md` section 5.4).
+pub(crate) fn canonical<Number: FromStr + Display>(text: &str) -> Option<Number> {
+  text.parse::<Number>().ok().filter(|number| number.to_string() == text)
 }

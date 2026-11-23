@@ -25,6 +25,7 @@ use serde::de::{Error, IntoDeserializer, Visitor};
 use serde::{Deserializer, forward_to_deserialize_any};
 
 use super::value::KeptValue;
+use crate::constants::POSITIONAL_RECORD_MESSAGE;
 
 /// A kept value as a Serde deserializer, with the error type of the reader that holds it.
 pub(crate) struct KeptValueReader<Failure> {
@@ -81,6 +82,23 @@ impl<'input, Failure: Error> Deserializer<'input> for KeptValueReader<Failure> {
     visitor.visit_newtype_struct(self)
   }
 
+  /// A record is a map; Serde's derive would read one from a sequence too, which the form never writes.
+  fn deserialize_struct<Read: Visitor<'input>>(
+    self,
+    _name: &'static str,
+    _fields: &'static [&'static str],
+    visitor: Read,
+  ) -> Result<Read::Value, Failure> {
+    match self.value {
+      KeptValue::Sequence(_) => Err(Failure::custom(POSITIONAL_RECORD_MESSAGE)),
+      value => KeptValueReader::<Failure> {
+        value,
+        failure: PhantomData,
+      }
+      .deserialize_any(visitor),
+    }
+  }
+
   fn deserialize_enum<Read: Visitor<'input>>(
     self,
     _name: &'static str,
@@ -104,6 +122,6 @@ impl<'input, Failure: Error> Deserializer<'input> for KeptValueReader<Failure> {
   forward_to_deserialize_any! {
     <Read: Visitor<'input>>
     bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf unit unit_struct seq tuple
-    tuple_struct map struct identifier ignored_any
+    tuple_struct map identifier ignored_any
   }
 }

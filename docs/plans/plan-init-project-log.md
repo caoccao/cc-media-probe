@@ -3178,3 +3178,81 @@ The maintainer sent the standing brief again, with no review of revision 46. The
 - G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, and the sixth to twelfth reviews' amendments of `api.md`, `cli.md` and the field guide;
 - `docs/guide/stability.md`, after that review, for G2.4;
 - the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.
+
+## 2026-11-23 — Progress: Phase 2, the thirteenth review of the API specification
+
+The maintainer's thirteenth review, pasted as code comments, read revision 47 (`6dbbaa8`): the draft of `docs/guide/json-output.md` with `api.md` and `cli.md`. It raised four findings on `api.md`, two on `cli.md` and thirteen on `json-output.md`, one of priority 1, seventeen of priority 2 and one of priority 3. The review said that both spike suites pass and that further read-back checks reproduced failures in version handling, record validation and integer encoding. No gate was recorded as approved.
+
+**Decisions of the maintainer.** The agent asked two questions, after reading rmp-serde 1.3.1's configuration and encoder on docs.rs, which the review cited, and ciborium 0.2.2's serializer. The maintainer chose the recommended option for the second and another option for the first.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| The spelling of a raw code kept as written, such as an ISO sample entry, a RIFF four-character code or a WAVE format tag, and of a protection scheme's value | Always hexadecimal: a code of bytes is its bytes in lowercase hexadecimal, a text code its text, a coded number canonical decimal | Printable ASCII as is with `\xHH` for other bytes (the recommendation); four characters, or eight hexadecimal digits when one is not printable; a typed value with a JSON number for numbers | One encoding of bytes for the whole form, and one spelling per code, so two identifiers compare exactly |
+| `IntegerValue`, which read a value that neither `to_i64()` nor `to_u64()` returns | No form of its own: the tag value that holds it writes `integer` or `integer_exact` and checks the bounds, from −2^63 to 2^64 − 1 | A standalone record of the same two members | The twin is a property of the record that holds the value, as the display string and raw form of a path are |
+
+**Reproduced first.** A scratch test against the stub reproduced every case that the review reported, and found two more: `"01.0"` and `"1.00"` read as version 1.0, beside `"+1.+0"`. The scratch test was removed. Then three test files were written before the fix:
+
+- `tests/nested_versions.rs`: five tests, three of which failed. A nested error of version 1.1 whose `message` is `42` gave serde_json's type error, and one of version 2.0 with a null after its version gave the version error with `results` after the document's version but the null error with `results` before it. A bare error record whose partial report of version 1.1 holds `"streams": 5` gave the type error. The two tests that passed, a null or a repeated name before the nested version and a nested record of the parent's version, read in both orders.
+- `tests/standalone.rs`: four tests, three of which failed. `Rational`, `Usage`, `Diagnostic`, `LocalizedText` in a node of a tree and `Generator` took an unknown null, an unknown name given twice or an array of their values alone, and the array inside a document too, `"generator": ["catalog", "1"]` included; an error record took a positional diagnostic, and a tag value a positional binary member. A root record given as an array already failed.
+- `tests/wire_values.rs`: six tests, five of which failed: the version's spelling, a `track_ID` of `"01"` and `"+1"`, binary data `"ff"` (which the stub wrote as an array), a raw code that is not hexadecimal, and the fixed-size record's arrays. The bounds of a tag integer already held, since the tag value checked them.
+- Two tests joined older files and passed before the change: `tests/version_first.rs` shows serde_json's own error for `1e400` before the version, and a repeated name that a parsed `Value` no longer shows; `tests/root_versions.rs` shows a bare report written again with the version it was read with. Both document behavior that the guide did not state.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the four on `api.md` and the thirteen on `json-output.md`, and `cli.md` section 13 the two on the CLI contract:
+
+- **Nested versions (priority 1).** A nested record now compares its version with its holder's as soon as it has read it, before anything after it is decoded, and members held before a root record's version are decoded through `Strict` in the order written instead of being converted to the kept form at once. The version error comes first in either order of the parent's members (`json-output.md` section 4.5; `api.md` section 12).
+- **Standalone reads.** Every type that implements `Deserialize` reads by the same rules alone and nested (`api.md` section 3.3).
+- **Positional arrays.** A record written as an array fails, at the root and below it (`json-output.md` sections 2 and 10).
+- **`IntegerValue` and raw codes.** The maintainer's two choices (`api.md` sections 3.3 and 6.4; `json-output.md` sections 6.2 and 7.3).
+- **Defaults.** A later field takes the default of its type in both contracts, and a later list or plain flag is added only where that default is true of every older record (`api.md` section 14; `json-output.md` sections 5.2 and 9).
+- **The reach of the version first.** It covers what the format's reader can represent, and a repeated name is refused only in a record read from the text (`json-output.md` section 2).
+- **Formats.** A format must write records as maps, read self-describing values and take lengths that are not given up front; rmp-serde needs `with_struct_map()` and holds a streamed document in memory (`json-output.md` section 2).
+- **The document.** `--json --help` writes help; an output failure exits with 1 whatever reached the reader, and a usage error keeps 2; a shortfall that this version can see rules out `ok` beside a newer status (`json-output.md` section 3; `api.md` section 12).
+- **Values.** The version is two canonical decimal numbers of 32 bits, and a root record written again keeps the version it was read with (section 4.1); an error's candidates may have no reason and no check (4.4); an optional flag is written when established, a default included (5.2); the decimal test of identifiers holds for integer identifiers at their width (5.4); binary data is hexadecimal of its size (6.2); the record's arrays are unique each, with the pairs naming the exhausted limits (7.2); the namespaces `iso_scheme_type`, `matroska_content_encryption_algorithm` and `matroska_unique_identifier` (7.3, 7.8); an exact value's numerator is required and its inputs are named in text, with an example (8); root records stand only in the entry locations, and a new kind carries none (4.5, 9).
+- **The CLI.** The exit status of an output failure is stated apart from what reached the reader, and a snapshot whose bytes hold the operating system's text fills it from an error that the test makes the same way (`cli.md` sections 9 and 10).
+
+**The spike.** `spikes/api-scenarios/`:
+
+- `src/neutral/scope.rs` keeps the scope of one read on its thread: whether a read is under way, and the version of the root record whose body is being decoded. `Rooted` compares a nested version with it, and opens a scope of its own for its body.
+- `src/neutral/alone.rs` gives every record type one entry: `ReadAlone` and `read_alone`, which read from the deserializer as it is inside a read and wrap it in `Strict` alone. The record types take it from `record_traits!`, over a derive with `serde(remote = "Self")`, or from `checked_record_traits!` when a shadow type and `TryFrom` check their members. The two generic records, `StoredValue` and `Estimate`, and `Chapter` and `Tag` write it by hand.
+- `src/neutral/held_reader.rs` reads a held value as a deserializer, null and repeated names included, for `Strict` to refuse in place.
+- `Strict` refuses an array where a record is asked for, and so does the reader of kept values.
+- Nodes of a flat tree read from kept members instead of Serde's `flatten`.
+- `src/hexadecimal.rs` writes and reads bytes; binary tag data uses it and is checked against its size.
+- `RawCodecIdentifier` checks the spelling of its namespace and gains `CodecNamespace::WaveFormatTag`.
+- `SchemaVersion`, the 32-bit identifiers of the ISO details and the decimal counts read through one canonical-decimal helper.
+- `completeness` became a directory: `statuses.rs` holds what `completeness.rs` held, and `record.rs` the fixed-size record, written with first-stopped records of `limit` and `part` and checked array by array.
+- `IntegerValue` lost its derives, with a compile-fail doc test under the `serde` feature.
+- The checks of nested versions after decoding, in `Document` and `ErrorRecord`, are gone, with their helpers, since the comparison now happens while reading.
+- Two fixtures wrote first-stopped pairs as arrays, and one test an ISO code as `fut1`; they now write records and `66757431`. Five tests that expected the old nested message now expect the new one, which names both versions.
+
+**Found while revising:**
+
+- **Nodes of a flat tree** read through `flatten`, whose buffer takes an array for a record, so a chapter's title written as an array read inside a node.
+- **A repeated top-level name held before the version** was refused before an earlier member that did not decode; held members now go in order.
+- **The display of an unknown ISO code** becomes its hexadecimal spelling, which the CLI's stream line shows.
+- **Unknown lengths.** The stub writes an entry and a tree node as maps whose length it does not count first, so the guide states unknown lengths as a condition for every format, not only for the writer's results.
+- **Later namespaces.** The field guide keeps a WAVE `SubFormat` GUID beside `wFormatTag`; a namespace for it spells its 16 bytes in hexadecimal by the same rule (`api.md` section 6.4), and the field guide's `raw_identifiers` row now names the spelling.
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16 and `json-output.md` section 11: the scope of one read kept on its thread (G2.3, task 11); `remote = "Self"` in the stub, whose public inherent functions the library does not have (task 11); a malformed version as the version error (G2.3); a root record written again with its read version (G2.3); the defaults by type and the rule for later lists and flags (G2.3, G2.4); a `CodecID` with a byte outside printable ASCII decoded with U+FFFD beside its bytes (G5.2); the scheme and target namespaces, one for all four Matroska target lists (G2.3, G5.2, G6.2); `--json --help` kept as help (G2.3); and platform text filled from an error that the test makes, rather than left out of the comparison (G2.3).
+
+**Plan, revision 48:**
+
+- section 8.8: the nested comparison and the reach of the version first; the version's spelling and the version a rewritten root carries; the same rules alone and nested, and no record as an array; `IntegerValue` and raw codes (the maintainer's choices); binary data and tag integers; identifiers at their width; the default of a later field by its type; root records only in an entry's records; and the new malformed cases and version checks;
+- section 8.9: an output failure's status whatever reached the reader, `--json --help`, and platform text in snapshots;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`api.md` follows in its status, its list of the maintainer's choices, sections 3.1, 3.3, 6.3, 6.4, 6.9, 12 and 14, and section 16. `cli.md` follows in its status and sections 7, 9, 10 and 13, `json-output.md` in sections 1 to 5, 6.2, 7.2, 7.3, 7.8 and 8 to 11, and the field guide in its `raw_identifiers` row.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference, and the documentation builds without a warning. With all features, 108 tests and 8 doc tests pass: the 91 earlier tests, five of them now expecting the nested message with both versions, two new tests in `tests/version_first.rs` and `tests/root_versions.rs`, and the fifteen of the three new files; the new doc test shows that `IntegerValue` cannot be read alone. Without a feature, 13 pass. All 13 programs end without a panic; the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** The changed diagram of `json-output.md`, with the other 16 of the plan, `api.md` and `cli.md`, renders with mermaid.js 11.4.1 in headless Chromium without an error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 48 and of the revised `json-output.md`;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of this review made without asking, and the sixth to thirteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
+- `docs/guide/stability.md`, after that review, for G2.4;
+- the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.

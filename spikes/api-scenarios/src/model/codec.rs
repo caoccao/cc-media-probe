@@ -24,6 +24,14 @@ use super::constants::{
   UNNAMED_CODEC_TEXT, VP9_NAME, WEBVTT_NAME,
 };
 use super::unrecognized_value::UnrecognizedValue;
+#[cfg(feature = "serde")]
+use crate::constants::{FOUR_CHARACTER_CODE_BYTES, RAW_CODE_MESSAGE};
+#[cfg(feature = "serde")]
+use crate::decimal::canonical;
+#[cfg(feature = "serde")]
+use crate::document::InvalidDocument;
+#[cfg(feature = "serde")]
+use crate::hexadecimal;
 
 /// A codec's identity.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -80,12 +88,49 @@ impl Codec {
   }
 }
 
-/// One codec identifier as the input wrote it.
+/// One codec identifier as the input wrote it, in the spelling of its namespace, as the maintainer chose at the
+/// thirteenth review: a text code is its text, a byte code such as a four-character code is its bytes as stored in
+/// lowercase hexadecimal, two digits a byte, and a coded number is canonical decimal. Every value has one spelling,
+/// so two identifiers name the same code exactly when their namespaces and values are equal (`api.md` section 6.4).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RawCodecIdentifier {
   namespace: CodecNamespace,
   value: String,
+}
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_record_traits!(RawCodecIdentifier from RawCodecIdentifierData);
+
+/// A raw codec identifier as read, before its spelling is checked.
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct RawCodecIdentifierData {
+  namespace: CodecNamespace,
+  value: String,
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<RawCodecIdentifierData> for RawCodecIdentifier {
+  type Error = InvalidDocument;
+
+  /// The spelling of a known namespace, and any text for a namespace of a newer version, which is kept as written.
+  fn try_from(read: RawCodecIdentifierData) -> Result<RawCodecIdentifier, InvalidDocument> {
+    let spelled = match read.namespace {
+      CodecNamespace::MatroskaCodecIdentifier | CodecNamespace::Unrecognized(_) => true,
+      CodecNamespace::IsoSampleEntry => {
+        hexadecimal::decode(&read.value).is_some_and(|bytes| bytes.len() == FOUR_CHARACTER_CODE_BYTES)
+      }
+      CodecNamespace::WaveFormatTag => canonical::<u16>(&read.value).is_some(),
+    };
+    if !spelled {
+      return Err(InvalidDocument::new(RAW_CODE_MESSAGE));
+    }
+    Ok(RawCodecIdentifier {
+      namespace: read.namespace,
+      value: read.value,
+    })
+  }
 }
 
 impl RawCodecIdentifier {
@@ -94,7 +139,8 @@ impl RawCodecIdentifier {
     &self.namespace
   }
 
-  /// The identifier as written.
+  /// The identifier as written, in the spelling of its namespace: `"V_MPEG4/ISO/AVC"`, `"61766331"` for `avc1`, or
+  /// `"85"` for a WAVE format tag.
   pub fn value(&self) -> &str {
     &self.value
   }
@@ -107,8 +153,10 @@ impl RawCodecIdentifier {
 pub enum CodecNamespace {
   /// A Matroska `CodecID`.
   MatroskaCodecIdentifier,
-  /// An ISO sample entry code.
+  /// An ISO sample entry code, four bytes.
   IsoSampleEntry,
+  /// A WAVE format tag, a 16-bit number (RFC 2361).
+  WaveFormatTag,
   /// A value that a newer version wrote.
   #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
   Unrecognized(UnrecognizedValue<CodecNamespace>),
@@ -116,13 +164,20 @@ pub enum CodecNamespace {
 
 /// A profile, level or tier: the specification's name and the coded value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Profile {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   name: Option<String>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   code: Option<String>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Profile);
 
 impl Profile {
   /// The specification's name, such as "High".
@@ -144,12 +199,19 @@ impl fmt::Display for Profile {
 
 /// One sample description that could hold the first sample, with its own codec and identifiers.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct CodecCandidate {
   sample_description_index: u64,
   codec: Codec,
   raw_identifiers: Vec<RawCodecIdentifier>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(CodecCandidate);
 
 impl CodecCandidate {
   /// The description's index as the file numbers it, from 1 in the ISO family.
@@ -178,7 +240,11 @@ impl fmt::Display for CodecCandidate {
 
 /// What a stream says about its codec.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct CodecInformation {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec: Option<Codec>,
@@ -192,6 +258,9 @@ pub struct CodecInformation {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_string: Option<String>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(CodecInformation);
 
 impl CodecInformation {
   /// The codec's identity; absent while the description of the first sample is unproven, unless every candidate

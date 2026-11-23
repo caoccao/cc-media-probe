@@ -54,14 +54,16 @@ impl fmt::Display for SourceIdentifier {
 
 /// One source the probe requested.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "SourceEntryData", try_from = "SourceEntryData"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(into = "SourceEntryData"))]
 pub struct SourceEntry {
   identifier: SourceIdentifier,
   reason: Option<Reason>,
   bytes_read: Option<u64>,
   path: Option<PortablePath>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_record_traits!(SourceEntry from SourceEntryData);
 
 impl SourceEntry {
   /// The source's identifier.

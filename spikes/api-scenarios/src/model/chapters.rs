@@ -27,7 +27,11 @@ use super::values::{Identifier, Seconds};
 
 /// One edition of chapters.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct ChapterEdition {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   unique_identifier: Option<Identifier>,
@@ -42,6 +46,9 @@ pub struct ChapterEdition {
   #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
   chapters: Vec<Chapter>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(ChapterEdition);
 
 impl ChapterEdition {
   /// The edition's identifier.
@@ -221,9 +228,17 @@ impl serde::Serialize for Chapter {
   }
 }
 
+/// Read alone, as a value inside a read, strictly either way (thirteenth review).
+#[cfg(feature = "serde")]
+impl<'input> crate::neutral::ReadAlone<'input> for Chapter {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Chapter, Input::Error> {
+    tree::flat::deserialize_subtree(deserializer)
+  }
+}
+
 #[cfg(feature = "serde")]
 impl<'input> serde::Deserialize<'input> for Chapter {
   fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Chapter, Input::Error> {
-    tree::flat::deserialize_subtree(deserializer)
+    crate::neutral::read_alone(deserializer)
   }
 }

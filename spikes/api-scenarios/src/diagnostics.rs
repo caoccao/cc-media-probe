@@ -24,7 +24,11 @@ use crate::source::SourceIdentifier;
 
 /// A problem found in the input that did not stop the probe.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
 pub struct Diagnostic {
   severity: Severity,
   code: DiagnosticCode,
@@ -35,6 +39,9 @@ pub struct Diagnostic {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   stream: Option<usize>,
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Diagnostic);
 
 impl Diagnostic {
   /// How serious it is.

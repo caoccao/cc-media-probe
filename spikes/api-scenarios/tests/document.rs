@@ -193,8 +193,13 @@ fn reading_refuses_a_nested_record_of_another_version() {
   assert_eq!(read_error(text), NESTED);
 }
 
-/// The version error of a record nested in another of the same major version.
-const NESTED: &str = "a nested record's schema version differs from that of the document or record that holds it";
+/// The version error of a record of version 1.1 nested in one of version 1.0, which names both versions. Since the
+/// thirteenth review the nested record compares its version with that of the record that holds it before it decodes
+/// its body, so a nested record of version 2.0 gives the same error.
+const NESTED: &str = "a nested root record has a schema version other than that of the record that holds it: 1.1; \
+                      the record that holds it has 1.0";
+const NESTED_MAJOR: &str = "a nested root record has a schema version other than that of the record that holds \
+                            it: 2.0; the record that holds it has 1.0";
 /// The version error of a root record of version 2.0, whether it is a document or nested in one. It names both
 /// versions (plan section 8.8).
 const OTHER_MAJOR: &str =
@@ -367,7 +372,7 @@ fn reading_checks_the_partial_report_inside_an_error_record() {
   text["results"][0]["error"]["partial_report"] = report_text("1.0");
   let read: Document = serde_json::from_value(text.clone()).unwrap();
   assert!(read.results()[0].error().unwrap().partial_report().is_some());
-  for (version, message) in [("1.1", NESTED), ("2.0", OTHER_MAJOR)] {
+  for (version, message) in [("1.1", NESTED), ("2.0", NESTED_MAJOR)] {
     text["results"][0]["error"]["partial_report"]["schema_version"] = json!(version);
     assert_eq!(read_error(text.clone()), message);
   }

@@ -153,7 +153,8 @@ pub(crate) mod flat {
   use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
   use super::{Branching, assemble, depth_first, is_depth_first};
-  use crate::constants::{SUBTREE_MESSAGE, TREE_ORDER_MESSAGE};
+  use crate::constants::{PARENT_MEMBER, SUBTREE_MESSAGE, TREE_ORDER_MESSAGE};
+  use crate::kept::KeptMembers;
 
   /// One node as written: its own members, with the position of its parent beside them.
   #[derive(Serialize)]
@@ -164,13 +165,21 @@ pub(crate) mod flat {
     node: &'tree Node,
   }
 
-  /// One node as read.
-  #[derive(Deserialize)]
+  /// One node as read: its members kept as written, then `parent` taken out and the rest read into the node. Serde's
+  /// `flatten` would read the rest from a buffer that takes a record written as an array, so the node reads from the
+  /// kept members, which refuse one (thirteenth review).
   struct NodeData<Node> {
-    #[serde(default, deserialize_with = "crate::presence::present")]
     parent: Option<usize>,
-    #[serde(flatten)]
     node: Node,
+  }
+
+  impl<'input, Node: Deserialize<'input>> Deserialize<'input> for NodeData<Node> {
+    fn deserialize<Input: Deserializer<'input>>(deserializer: Input) -> Result<NodeData<Node>, Input::Error> {
+      let mut members = KeptMembers::deserialize(deserializer)?;
+      let parent = members.take::<usize, Input::Error>(PARENT_MEMBER)?;
+      let node = members.into_record::<Node, Input::Error>()?;
+      Ok(NodeData { parent, node })
+    }
   }
 
   /// Writes every node of the trees in depth-first order.

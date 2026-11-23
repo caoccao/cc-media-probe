@@ -131,10 +131,6 @@ pub const OTHER_MAJOR_VERSION_MESSAGE: &str =
   "a root record has a schema major version that this version does not read";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
-pub const NESTED_VERSION_MESSAGE: &str =
-  "a nested record's schema version differs from that of the document or record that holds it";
-/// The messages of a document that breaks the rules of `api.md` section 12.
-#[cfg(feature = "serde")]
 pub const SCHEMA_VERSION_TEXT_MESSAGE: &str = "a schema version is two decimal numbers separated by a period";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
@@ -201,6 +197,9 @@ pub const REASONS_DISAGREE_MESSAGE: &str = "a report's reasons disagree with its
 /// The members of an enum that carries data: the kind, which names the member that holds the value.
 #[cfg(feature = "serde")]
 pub const KIND_MEMBER: &str = "kind";
+/// The member of a node of a flat tree that holds the position of its parent (`api.md` section 12).
+#[cfg(feature = "serde")]
+pub const PARENT_MEMBER: &str = "parent";
 
 /// The largest magnitude that every JSON consumer reads exactly, 2^53 - 1 (R24, RFC 7493 section 2.2).
 pub const LARGEST_EXACT: u64 = 9_007_199_254_740_991;
@@ -256,3 +255,39 @@ pub const ROOT_RECORD_EXPECTING: &str = "a root record, a map with its schema_ve
 /// The version-first reading of a root record: what a member held before the version may be.
 #[cfg(feature = "serde")]
 pub const HELD_VALUE_EXPECTING: &str = "any value, held until the version is read";
+
+/// The thirteenth review: a nested root record whose version is not that of the record that holds it, which the
+/// reader compares before it decodes the nested record's body (`json-output.md` section 4.5).
+#[cfg(feature = "serde")]
+pub const NESTED_ROOT_VERSION_MESSAGE: &str =
+  "a nested root record has a schema version other than that of the record that holds it";
+/// The thirteenth review: what the nested version error says after the version it found.
+#[cfg(feature = "serde")]
+pub const HOLDER_VERSION_LABEL: &str = "the record that holds it has";
+/// The thirteenth review: a record written as a positional array, which the form never writes.
+#[cfg(feature = "serde")]
+pub const POSITIONAL_RECORD_MESSAGE: &str = "a record is written as an object of named members, never as an array";
+/// The thirteenth review: binary data whose length is not the size it states, or whose text is not hexadecimal.
+#[cfg(feature = "serde")]
+pub const BINARY_DATA_MESSAGE: &str =
+  "binary data is whole bytes of lowercase hexadecimal digits, exactly as many as its size";
+/// The thirteenth review: a raw codec identifier not in the spelling of its namespace.
+#[cfg(feature = "serde")]
+pub const RAW_CODE_MESSAGE: &str = "a raw codec identifier is not in the spelling of its namespace";
+/// The thirteenth review: a fixed-size record that names a limit or a part twice in one array, or whose
+/// first-stopped pairs do not name exactly its exhausted limits, in their order.
+#[cfg(feature = "serde")]
+pub const LIMIT_RECORD_MESSAGE: &str = "the record names each limit and part once in each array, and the first-stopped \
+                                        pairs name exactly the exhausted limits, in their order";
+/// The thirteenth review: an integer identifier that is not canonical decimal within its width.
+#[cfg(feature = "serde")]
+pub const IDENTIFIER_MESSAGE: &str = "an integer identifier is canonical decimal within its width";
+/// The thirteenth review: the hexadecimal digits of one byte, and their base (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+pub const BYTE_HEXADECIMAL_DIGITS: usize = 2;
+/// The thirteenth review: the base of hexadecimal digits.
+#[cfg(feature = "serde")]
+pub const HEXADECIMAL_BASE: u32 = 16;
+/// The thirteenth review: the bytes of a four-character code, such as an ISO sample entry's.
+#[cfg(feature = "serde")]
+pub const FOUR_CHARACTER_CODE_BYTES: usize = 4;
