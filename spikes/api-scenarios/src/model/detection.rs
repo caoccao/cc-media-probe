@@ -27,10 +27,13 @@ use crate::document::SchemaVersion;
 
 /// What a detection established about one input, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(from = "crate::neutral::Rooted<DetectionData>")
+)]
 pub struct Detection {
   #[cfg(feature = "serde")]
-  #[cfg_attr(feature = "serde", serde(deserialize_with = "crate::document::read_current_major"))]
   schema_version: SchemaVersion,
   outcome: DetectionOutcome,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -60,6 +63,25 @@ impl Detection {
   pub(crate) fn with_schema_version(mut self, version: SchemaVersion) -> Detection {
     self.schema_version = version;
     self
+  }
+}
+
+/// A detection's members as read, other than its version, which is read first (`neutral`).
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct DetectionData {
+  outcome: DetectionOutcome,
+  format: Option<Format>,
+}
+
+#[cfg(feature = "serde")]
+impl From<crate::neutral::Rooted<DetectionData>> for Detection {
+  fn from(rooted: crate::neutral::Rooted<DetectionData>) -> Detection {
+    Detection {
+      schema_version: rooted.version,
+      outcome: rooted.body.outcome,
+      format: rooted.body.format,
+    }
   }
 }
 

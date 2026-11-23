@@ -125,6 +125,10 @@ mod tests {
       messages("impl Visitor for Reader { fn visit_str(self, text: &str) {} fn visit_seq(self, items: Items) {} }"),
       Vec::<String>::new()
     );
+    assert_eq!(
+      messages("impl Visitor for Reader { fn visit_borrowed_str(self, text: &'input str) {} }"),
+      Vec::<String>::new()
+    );
   }
 
   #[test]

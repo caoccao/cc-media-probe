@@ -52,6 +52,7 @@ impl IsoBaseMediaDetails {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct IsoBaseMediaTrackDetails {
   stream_index: usize,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   first_sample_description_index: Option<u32>,
 }
 

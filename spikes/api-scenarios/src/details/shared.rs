@@ -44,6 +44,7 @@ impl<Value> StoredValue<Value> {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Conflict {
   field: String,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   owner: Option<EntityLocation>,
   values: Vec<ConflictingValue>,
 }

@@ -195,8 +195,10 @@ fn reading_refuses_a_nested_record_of_another_version() {
 
 /// The version error of a record nested in another of the same major version.
 const NESTED: &str = "a nested record's schema version differs from that of the document or record that holds it";
-/// The version error of a root record of another major version, whether it is a document or nested in one.
-const OTHER_MAJOR: &str = "a root record has a schema major version that this version does not read";
+/// The version error of a root record of version 2.0, whether it is a document or nested in one. It names both
+/// versions (plan section 8.8).
+const OTHER_MAJOR: &str =
+  "a root record has a schema major version that this version does not read: 2.0; this version reads 1.0";
 
 #[test]
 fn reading_refuses_a_document_of_another_major_version() {

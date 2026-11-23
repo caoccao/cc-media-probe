@@ -38,6 +38,8 @@ mod kept;
 mod limits;
 pub mod model;
 #[cfg(feature = "serde")]
+mod neutral;
+#[cfg(feature = "serde")]
 mod presence;
 mod prober;
 pub mod source;

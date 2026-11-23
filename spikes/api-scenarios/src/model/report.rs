@@ -38,17 +38,23 @@ use crate::source::SourceEntry;
 #[cfg_attr(
   feature = "serde",
   derive(serde::Serialize, serde::Deserialize),
-  serde(try_from = "super::report_reading::ReportData")
+  serde(try_from = "crate::neutral::Rooted<super::report_reading::ReportData>")
 )]
 pub struct MediaReport {
   #[cfg(feature = "serde")]
   pub(super) schema_version: SchemaVersion,
   pub(super) format: Format,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) media_type: Option<MediaType>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) size: Option<u64>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) duration: Option<Seconds>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) duration_provenance: Option<Provenance>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) estimated_duration: Option<Estimate<Seconds>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) bit_rate: Option<Rational>,
   pub(super) streams: Vec<Stream>,
   pub(super) chapter_editions: Vec<ChapterEdition>,
@@ -58,6 +64,7 @@ pub struct MediaReport {
   pub(super) completeness: Completeness,
   pub(super) usage: Usage,
   pub(super) sources: Vec<SourceEntry>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) format_details: Option<FormatDetails>,
 }
 

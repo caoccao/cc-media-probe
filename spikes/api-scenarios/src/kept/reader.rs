@@ -20,7 +20,7 @@
 
 use std::marker::PhantomData;
 
-use serde::de::value::{MapDeserializer, SeqDeserializer};
+use serde::de::value::{MapAccessDeserializer, MapDeserializer, SeqDeserializer};
 use serde::de::{Error, IntoDeserializer, Visitor};
 use serde::{Deserializer, forward_to_deserialize_any};
 
@@ -89,6 +89,10 @@ impl<'input, Failure: Error> Deserializer<'input> for KeptValueReader<Failure> {
   ) -> Result<Read::Value, Failure> {
     match self.value {
       KeptValue::Text(text) => visitor.visit_enum(text.into_deserializer()),
+      // A variant that holds a value, as Serde's derive writes it by default: a map of the variant's name.
+      KeptValue::Map(members) => {
+        visitor.visit_enum(MapAccessDeserializer::new(MapDeserializer::new(members.into_iter())))
+      }
       value => KeptValueReader::<Failure> {
         value,
         failure: PhantomData,

@@ -35,6 +35,7 @@ pub enum AttachmentHandling {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Attachment {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   name: Option<String>,
 }
 

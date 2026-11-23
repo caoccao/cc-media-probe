@@ -417,6 +417,7 @@ impl ReasonKind {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HeaderStatus {
   state: HeaderState,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   reason: Option<Reason>,
 }
 

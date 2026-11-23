@@ -28,7 +28,9 @@ pub struct H264Details {
   sequence_parameter_sets: Vec<H264SequenceParameterSetDetails>,
   #[cfg_attr(feature = "serde", serde(default))]
   picture_parameter_sets: Vec<H264PictureParameterSetDetails>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   primary_sequence_parameter_set: Option<usize>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   activation: Option<H264ActivationDetails>,
   conflicts: Vec<Conflict>,
 }
@@ -83,10 +85,15 @@ pub enum H264ParameterSetOrigin {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct H264SequenceParameterSetDetails {
   origin: H264ParameterSetOrigin,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   profile_indication: Option<u8>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   constraint_set_flags: Option<u8>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   level_indication: Option<u8>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   sequence_parameter_set_identifier: Option<u32>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   picture_width_in_macroblocks_minus_one: Option<u32>,
 }
 
@@ -129,7 +136,9 @@ impl H264SequenceParameterSetDetails {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct H264PictureParameterSetDetails {
   origin: H264ParameterSetOrigin,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   picture_parameter_set_identifier: Option<u32>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   sequence_parameter_set_identifier: Option<u32>,
 }
 
@@ -154,7 +163,9 @@ impl H264PictureParameterSetDetails {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct H264ActivationDetails {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   picture_parameter_set_identifier: Option<u32>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   buffering_period_sequence_parameter_set_identifier: Option<u32>,
 }
 

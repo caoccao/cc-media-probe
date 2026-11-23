@@ -26,14 +26,22 @@ use super::values::{Provenance, Rational, Size};
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VideoInformation {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   coded_size: Option<Size>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   visible_size: Option<Size>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   display_size: Option<Size>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pixel_aspect_ratio: Option<Rational>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   frame_rate: Option<Rational>,
   frame_rate_mode: FrameRateMode,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   frame_rate_provenance: Option<Provenance>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   rotation: Option<Rotation>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   chroma_format: Option<ChromaFormat>,
 }
 

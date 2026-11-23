@@ -32,4 +32,3 @@ pub use invalid::InvalidDocument;
 pub use outcome::EntryOutcome;
 pub use underivable::UnderivableOutcome;
 pub use version::SchemaVersion;
-pub(crate) use version::read_current_major;

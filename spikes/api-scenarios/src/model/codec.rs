@@ -118,7 +118,9 @@ pub enum CodecNamespace {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Profile {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   name: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   code: Option<String>,
 }
 
@@ -178,12 +180,16 @@ impl fmt::Display for CodecCandidate {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CodecInformation {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec: Option<Codec>,
   candidates: Vec<CodecCandidate>,
   has_every_candidate: bool,
   raw_identifiers: Vec<RawCodecIdentifier>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   profile: Option<Profile>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   level: Option<Profile>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_string: Option<String>,
 }
 

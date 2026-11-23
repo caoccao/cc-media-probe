@@ -116,6 +116,7 @@ impl From<ErrorKind> for String {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Observations {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   format_details: Option<FormatDetails>,
   diagnostics: Vec<Diagnostic>,
 }
@@ -248,7 +249,7 @@ impl std::error::Error for Error {
 /// The serializable description of an error, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "ErrorRecordData"))]
+#[cfg_attr(feature = "serde", serde(try_from = "crate::neutral::Rooted<ErrorRecordData>"))]
 pub struct ErrorRecord {
   #[cfg(feature = "serde")]
   schema_version: SchemaVersion,
@@ -262,12 +263,10 @@ pub struct ErrorRecord {
   observations: Option<Observations>,
 }
 
-/// An error record as read, before its partial report's version is checked.
+/// An error record's members as read, other than its version, before its partial report's version is checked.
 #[cfg(feature = "serde")]
 #[derive(serde::Deserialize)]
 struct ErrorRecordData {
-  #[serde(deserialize_with = "crate::document::read_current_major")]
-  schema_version: SchemaVersion,
   kind: ErrorKind,
   message: String,
   #[serde(default, deserialize_with = "crate::presence::present")]
@@ -279,21 +278,22 @@ struct ErrorRecordData {
 }
 
 #[cfg(feature = "serde")]
-impl TryFrom<ErrorRecordData> for ErrorRecord {
+impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
   type Error = InvalidDocument;
 
   /// A record whose partial report has the record's own version, also when the record is read on its own: the
   /// partial report is a root record nested in it.
-  fn try_from(data: ErrorRecordData) -> Result<ErrorRecord, InvalidDocument> {
+  fn try_from(rooted: crate::neutral::Rooted<ErrorRecordData>) -> Result<ErrorRecord, InvalidDocument> {
+    let data = rooted.body;
     if data
       .partial_report
       .as_ref()
-      .is_some_and(|report| report.schema_version() != data.schema_version)
+      .is_some_and(|report| report.schema_version() != rooted.version)
     {
       return Err(InvalidDocument::new(NESTED_VERSION_MESSAGE));
     }
     Ok(ErrorRecord {
-      schema_version: data.schema_version,
+      schema_version: rooted.version,
       kind: data.kind,
       message: data.message,
       source_failure_kind: data.source_failure_kind,

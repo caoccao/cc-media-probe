@@ -36,6 +36,7 @@ use super::values::Identifier;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TagSet {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   target_level: Option<TargetLevel>,
   stream_targets: Vec<TargetReference>,
   edition_targets: Vec<TargetReference>,
@@ -126,7 +127,9 @@ impl TargetScope {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TargetLevel {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   value: Option<u64>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   type_name: Option<String>,
 }
 
@@ -147,7 +150,9 @@ impl TargetLevel {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TargetReference {
   kind: TargetReferenceKind,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   identifier: Option<Identifier>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   location: Option<EntityLocation>,
 }
 
@@ -255,8 +260,10 @@ pub struct Tag {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) struct TagNode {
   name: TagName,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   key: Option<TagKey>,
   languages: Vec<Language>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   value: Option<TagValue>,
 }
 
@@ -362,7 +369,9 @@ impl<'input> serde::Deserialize<'input> for Tag {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TagName {
   as_written: String,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   namespace: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   bytes: Option<Vec<u8>>,
 }
 

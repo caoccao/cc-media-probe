@@ -24,10 +24,15 @@ use super::shared::{Conflict, StoredValue};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MatroskaDetails {
   document_type: String,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   document_type_version: Option<StoredValue<u64>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   document_type_read_version: Option<StoredValue<u64>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   timestamp_scale: Option<StoredValue<u64>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   muxing_application: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   writing_application: Option<String>,
   tracks: Vec<MatroskaTrackDetails>,
   conflicts: Vec<Conflict>,
@@ -85,9 +90,13 @@ impl MatroskaDetails {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MatroskaTrackDetails {
   stream_index: usize,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   track_number: Option<u64>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_identifier: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   flag_default: Option<StoredValue<bool>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_private_data: Option<Vec<u8>>,
 }
 

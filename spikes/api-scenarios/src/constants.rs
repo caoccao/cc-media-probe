@@ -240,3 +240,19 @@ pub const VERSION_SEPARATOR: char = '.';
 /// The sign of a negative quantity's twin.
 #[cfg(feature = "serde")]
 pub const MINUS_SIGN: char = '-';
+
+/// The version-first reading of a root record (plan section 8.8, task 5): a root record without its version.
+#[cfg(feature = "serde")]
+pub const MISSING_VERSION_MESSAGE: &str = "a root record has no schema_version";
+/// The version-first reading of a root record: what the version error says after the version it found.
+#[cfg(feature = "serde")]
+pub const READER_VERSION_LABEL: &str = "this version reads";
+/// The version-first reading of a root record: a member that holds null, at any depth.
+#[cfg(feature = "serde")]
+pub const NULL_MEMBER_MESSAGE: &str = "a member holds null, which the form never writes";
+/// The version-first reading of a root record: what its reader expects.
+#[cfg(feature = "serde")]
+pub const ROOT_RECORD_EXPECTING: &str = "a root record, a map with its schema_version";
+/// The version-first reading of a root record: what a member held before the version may be.
+#[cfg(feature = "serde")]
+pub const HELD_VALUE_EXPECTING: &str = "any value, held until the version is read";

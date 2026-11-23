@@ -3119,3 +3119,62 @@ The review cites ISO/IEC 14496-15:2024, a paid standard, through a third-party c
 - the MP4RA registry of track references, to be stored with the other MP4RA registries at Phase 6 (GS.2);
 - the features of `clap` in the dossier, at G2.3;
 - the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, task 5, the JSON contract
+
+The maintainer sent the standing brief again, with no review of revision 46. The agent read the plan's Phase 2 and the open items of the twelfth review's entry: task 5 comes next, G2.3 waits for it, and Phase 3 cannot start before G2.5. No gate was recorded as approved.
+
+**Decisions of the maintainer.** The agent asked four questions, after searching how Serde buffers the members of an internally tagged enum (its private `Content`, which needs a self-describing format) and what JSON Schema can state (mutually exclusive members through `not` and `required`, no rule across array positions). The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| The next step while revision 46 waits for its review | Start task 5 now; findings of that review are folded in when they arrive | Wait for the review | The brief asks for the next step, and task 5 depends on no open finding |
+| The order of task 5's two documents | `docs/guide/json-output.md` and its spike first, reviewed for G2.3; `docs/guide/stability.md` after that review, for G2.4 | Both together, in one review | The plan reviews one document at a time, and each document serves its own gate |
+| How much of a root record the reader holds before its version | Only the members written before `schema_version`; every later member is decoded as it comes, through an adapter that refuses null | Every top-level member, as plan section 8.8 was written | Every writer of the form writes the version first, so its output is read at its typed size, and an error keeps its place in the input; holding every member copies a whole record, a document's results included |
+| A machine-readable JSON Schema beside the guide | None: the guide is the contract, in prose | Prose plus a JSON Schema for the structural part, which a validator crate through GS.1 would check | Several rules are beyond a schema: an index that is its position, a tree's depth-first order, the three members of a path, and one version throughout a document |
+
+**The draft.** [`docs/guide/json-output.md`](../guide/json-output.md) gives the reading procedure with a diagram, the document and its entries, the four root records member by member, the names and value forms of every member, the values of every string enum, the enums that carry data, a table for each record of the report model, the conventions of the typed details, the compatibility rules, every rule whose breach is malformed input, and the decisions for G2.3.
+
+**The spike.** `spikes/api-scenarios/` gained `src/neutral/`:
+
+- `Rooted<Body>` reads a root record's map: it holds each member before `schema_version` in `HeldValue`, a neutral form that takes any value, null and a repeated name included, so that nothing can fail first; it reads the version and gives the version error for a missing one or another major, naming both versions as plan section 8.8 requires; then it decodes the held members from the kept form, which refuses null and a repeated name at any depth, and every later member through `Strict`.
+- `Strict` wraps the reader's own deserializer, its visitors, sequences, maps and enums, and refuses null, given as an absent option or a unit, and a repeated name in every map, at any depth. A value that no type reads is walked all the same.
+- The four root records read through it: `MediaReport`, `Detection`, `ErrorRecord` and `Document`. The old `read_current_major` is gone.
+- Every optional member of the model is omitted when absent, so the stub writes no null.
+
+**Found while writing:**
+
+- **A nested root record** is read strictly from its first member once the record that holds it has its version, since the `Strict` around it cannot be lifted for one seed. Within a document, a null or a repeated name before a nested record's version is therefore malformed input, while every other failure still comes after that record's version error. The record that holds it already has a version of this major, and the form writes neither, so `json-output.md` section 4.5 states it rather than the spike working around it.
+- **A null where a struct is expected** fails through serde_json's own type error ("invalid type: null"), before `Strict` sees it; every other null fails with the form's own message. Both are malformed input, and the test accepts either.
+- **The kept form read an enum's variant only as a string.** A variant that holds a value, which Serde's derive writes as a map of one member, did not read back from a held member; `KeptValueReader` now reads it.
+- **The member `format`** of an error record, after the accessor, where the example of plan section 8.9 wrote `detected`. Revision 47 corrects the example.
+- **RFC 8259 erratum 5318**, verified on 2026-05-28, narrows the grammar's `unescaped` production so that it no longer holds the solidus, while the prose of section 7 still names only the quotation mark, the reverse solidus and the control characters as characters that must be escaped. Appendix A.8 left the position to Phase 2. The agent read the erratum on the RFC Editor's errata site and the local RFC text, and the draft proposes the solidus unescaped and read either way, with escaping in the CLI's output as the alternative, for G2.3.
+- **Noncharacters.** RFC 7493 section 2.1 forbids them in an I-JSON text, while text from media can hold them. The draft proposes to keep them as written, with replacement by U+FFFD as the alternative, for G2.3.
+- **The name check** flagged `visit_borrowed_str`, a method of Serde's `Visitor`. It joins `FIXED_NAMES` in `crates/cc-media-probe-checks/src/names/abbreviations.rs`, beside `visit_str` and `visit_seq`, with a test in `src/names/check.rs`.
+
+**Choices made without asking,** each open at G2.3 and listed in `json-output.md` section 11: the member names (`is_` dropped, `has_` kept); lists and plain flags always written, later ones defaulting to empty or false; the values of every string enum, which G3.5 and the codec registry of Phase 4 complete; a UTC time in one canonical RFC 3339 form, a GUID as its stored bytes in hexadecimal, a confidence as a number; bytes in hexadecimal; the fixed-size record's arrays in a fixed order, each limit or part once; a protection scheme as a namespace and a value; an external reference's owner as an entity location; and reading only from a self-describing format.
+
+**Plan, revision 47:**
+
+- section 8.8: the reader holds only the members written before a root record's version (the maintainer's choice);
+- section 8.9: the error record's member `format` in the example;
+- Phase 2, task 5: the order of the two documents and the contract in prose;
+- Appendix A.8: the proposed position on erratum 5318;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`api.md` follows in its status, section 12, whose version bullet and last paragraph describe the stub's reading now, and section 16, with a paragraph on task 5. `cli.md` section 7 links the draft.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference, and the documentation builds without a warning. With all features, 91 tests and 7 doc tests pass: the 82 earlier tests, two of `tests/document.rs` now expecting the version error with both versions, and the nine of `tests/version_first.rs`. Without a feature, 13 pass. All 13 programs end without a panic; the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Checks crate.** Its 147 tests pass, the new case of `visit_borrowed_str` among them.
+- **Structure.** The structure check of D23 reports 0 findings for each spike.
+- **Diagrams.** The diagram of `json-output.md`, with 10 nodes, and the 13 of the plan render with mermaid.js 11.4.1 in headless Chromium without an error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 46 and of the draft of `json-output.md`, with its spike;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, and the sixth to twelfth reviews' amendments of `api.md`, `cli.md` and the field guide;
+- `docs/guide/stability.md`, after that review, for G2.4;
+- the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.

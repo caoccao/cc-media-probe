@@ -30,7 +30,9 @@ pub struct Diagnostic {
   code: DiagnosticCode,
   message: String,
   source_identifier: SourceIdentifier,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   offset: Option<u64>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   stream: Option<usize>,
 }
 

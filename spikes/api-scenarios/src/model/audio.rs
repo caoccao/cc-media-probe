@@ -23,9 +23,13 @@ use super::values::{Provenance, Rational};
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AudioInformation {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   sample_rate: Option<Rational>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   channel_count: Option<u64>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   channel_count_provenance: Option<Provenance>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   bit_depth: Option<u64>,
 }
 

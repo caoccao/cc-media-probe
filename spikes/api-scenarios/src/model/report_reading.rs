@@ -35,14 +35,13 @@ use crate::completeness::{
 use crate::constants::{HEADERS_DISAGREE_MESSAGE, REASONS_DISAGREE_MESSAGE};
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
-use crate::document::{InvalidDocument, SchemaVersion};
+use crate::document::InvalidDocument;
+use crate::neutral::Rooted;
 use crate::source::SourceEntry;
 
-/// A report's members as read, before the headers status is checked.
+/// A report's members as read, other than its version, before the headers status is checked.
 #[derive(serde::Deserialize)]
 pub(super) struct ReportData {
-  #[serde(deserialize_with = "crate::document::read_current_major")]
-  schema_version: SchemaVersion,
   format: Format,
   media_type: Option<MediaType>,
   size: Option<u64>,
@@ -61,10 +60,12 @@ pub(super) struct ReportData {
   format_details: Option<FormatDetails>,
 }
 
-impl TryFrom<ReportData> for MediaReport {
+impl TryFrom<Rooted<ReportData>> for MediaReport {
   type Error = InvalidDocument;
 
-  fn try_from(data: ReportData) -> Result<MediaReport, InvalidDocument> {
+  /// The report of a version read first, whose headers status and reasons agree with the rest.
+  fn try_from(rooted: Rooted<ReportData>) -> Result<MediaReport, InvalidDocument> {
+    let data = rooted.body;
     if !headers_agree(data.completeness.headers(), &data.streams) {
       return Err(InvalidDocument::new(HEADERS_DISAGREE_MESSAGE));
     }
@@ -72,7 +73,7 @@ impl TryFrom<ReportData> for MediaReport {
       return Err(InvalidDocument::new(REASONS_DISAGREE_MESSAGE));
     }
     Ok(MediaReport {
-      schema_version: data.schema_version,
+      schema_version: rooted.version,
       format: data.format,
       media_type: data.media_type,
       size: data.size,

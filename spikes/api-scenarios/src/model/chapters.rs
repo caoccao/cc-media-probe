@@ -29,10 +29,15 @@ use super::values::{Identifier, Seconds};
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ChapterEdition {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   unique_identifier: Option<Identifier>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   default: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   ordered: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   hidden: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   playback_duration: Option<Seconds>,
   #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
   chapters: Vec<Chapter>,
@@ -89,13 +94,20 @@ pub struct Chapter {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) struct ChapterNode {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   unique_identifier: Option<Identifier>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   string_identifier: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   start: Option<Seconds>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   end: Option<Seconds>,
   titles: Vec<LocalizedText>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   hidden: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   enabled: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   playback_position: Option<Seconds>,
 }
 

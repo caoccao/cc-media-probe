@@ -21,6 +21,7 @@
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Language {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   tag: Option<String>,
   as_written: String,
 }

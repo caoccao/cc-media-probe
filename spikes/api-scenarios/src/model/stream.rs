@@ -35,16 +35,25 @@ pub struct Stream {
   kind: StreamKind,
   codec: CodecInformation,
   header_status: HeaderStatus,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   language: Option<Language>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   title: Option<String>,
   titles: Vec<LocalizedText>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   duration: Option<Seconds>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   duration_provenance: Option<Provenance>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   estimated_duration: Option<Estimate<Seconds>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   bit_rate: Option<Rational>,
   disposition: Disposition,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   video: Option<VideoInformation>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   audio: Option<AudioInformation>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   codec_details: Option<CodecDetails>,
 }
 
@@ -163,8 +172,11 @@ impl StreamKind {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Disposition {
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   default: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   forced: Option<bool>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   commentary: Option<bool>,
 }
 

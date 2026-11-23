@@ -20,7 +20,7 @@
 
 use std::fmt;
 
-use serde::de::{DeserializeOwned, Error as _, IntoDeserializer, MapAccess, Visitor};
+use serde::de::{DeserializeOwned, IntoDeserializer, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::value::KeptValue;
@@ -36,13 +36,22 @@ impl KeptMembers {
     mut members: Members,
   ) -> Result<KeptMembers, Members::Error> {
     let mut kept: Vec<(String, KeptValue)> = Vec::new();
-    while let Some((name, value)) = members.next_entry::<String, KeptValue>()? {
-      if kept.iter().any(|(kept_name, _)| *kept_name == name) {
-        return Err(Members::Error::custom(DUPLICATE_MEMBER_MESSAGE));
-      }
-      kept.push((name, value));
+    while let Some(member) = members.next_entry::<String, KeptValue>()? {
+      kept.push(member);
     }
-    Ok(KeptMembers(kept))
+    KeptMembers::from_members(kept)
+  }
+
+  /// The members of a map that were read in that order, refusing a name given twice.
+  pub(crate) fn from_members<Failure: serde::de::Error>(
+    members: Vec<(String, KeptValue)>,
+  ) -> Result<KeptMembers, Failure> {
+    for (position, (name, _)) in members.iter().enumerate() {
+      if members.iter().take(position).any(|(earlier, _)| earlier == name) {
+        return Err(Failure::custom(DUPLICATE_MEMBER_MESSAGE));
+      }
+    }
+    Ok(KeptMembers(members))
   }
 
   /// Whether a member of that name is present.
