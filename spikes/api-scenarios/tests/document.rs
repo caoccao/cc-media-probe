@@ -33,10 +33,10 @@ use serde_json::{Value, json};
 
 fn error_entries() -> Vec<DocumentEntry> {
   let mut entries = Vec::new();
-  for (index, bytes) in [&b""[..], &b"not media"[..]].into_iter().enumerate() {
+  for bytes in [&b""[..], &b"not media"[..]] {
     let record = probe_bytes(bytes).unwrap_err().to_record();
     let input = PortablePath::from_path(Path::new("input.bin"));
-    entries.push(DocumentEntry::from_error(index, input, record));
+    entries.push(DocumentEntry::from_error(input, record));
   }
   entries
 }
@@ -53,7 +53,12 @@ fn a_document_read_back_gives_its_entries() {
   assert_eq!(read.usage_error(), None);
   let mut kinds = Vec::new();
   for (index, entry) in read.results().iter().enumerate() {
-    assert_eq!(entry.index(), index);
+    let written: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+      written["results"][index]["index"],
+      json!(index),
+      "an entry's index is its position"
+    );
     assert_eq!(entry.input().display(), "input.bin");
     assert_eq!(entry.outcome(), &EntryOutcome::Error);
     assert!(entry.report().is_none());
@@ -184,20 +189,19 @@ fn a_detection_entry_reads_back_only_with_the_outcome_it_warrants() {
 fn reading_refuses_a_nested_record_of_another_version() {
   let mut text = results_document();
   text["results"][1]["error"]["schema_version"] = json!("1.1");
-  assert_eq!(
-    read_error(text),
-    "a nested record's schema version differs from the document's"
-  );
+  assert_eq!(read_error(text), NESTED);
 }
+
+/// The version error of a record nested in another of the same major version.
+const NESTED: &str = "a nested record's schema version differs from that of the document or record that holds it";
+/// The version error of a root record of another major version, whether it is a document or nested in one.
+const OTHER_MAJOR: &str = "a root record has a schema major version that this version does not read";
 
 #[test]
 fn reading_refuses_a_document_of_another_major_version() {
   let mut text = results_document();
   text["schema_version"] = json!("2.0");
-  assert_eq!(
-    read_error(text),
-    "the document has a schema major version that this version does not read"
-  );
+  assert_eq!(read_error(text), OTHER_MAJOR);
 }
 
 #[test]
@@ -210,21 +214,28 @@ fn an_outcome_of_a_newer_version_reads_back_as_written() {
 
 #[test]
 fn the_entry_form_of_the_plan_reads_back() {
-  // The entries of plan section 8.9 that hold an error, with the message that the record needs. A member that this
-  // version does not know, `detected`, is ignored.
+  // The entries of plan section 8.9 that hold an error, with the message that the record needs, at their positions
+  // 0 and 1 of this document. A member that this version does not know, `detected`, is ignored.
   let error = |kind: &str| json!({ "schema_version": "1.0", "kind": kind, "message": "not probed" });
   let mut written = json!({
     "schema_version": "1.0",
     "generator": { "name": "cc-media-probe-cli", "version": "0.1.0" },
     "results": [
-      { "index": 2, "input": "notes.txt", "outcome": "error", "error": error("unknown_format") },
-      { "index": 3, "input": "tape.mxf", "outcome": "error", "error": error("unsupported_format") },
+      { "index": 0, "input": "notes.txt", "outcome": "error", "error": error("unknown_format") },
+      { "index": 1, "input": "tape.mxf", "outcome": "error", "error": error("unsupported_format") },
     ],
   });
   written["results"][1]["error"]["detected"] = json!({});
   let read: Document = serde_json::from_value(written.clone()).unwrap();
   let entry = &read.results()[0];
-  assert_eq!((entry.index(), entry.input().display()), (2, "notes.txt"));
+  assert_eq!(entry.input().display(), "notes.txt");
+  // The index is the entry's position, so an index that skips or repeats one is malformed.
+  for indexes in [[2, 3], [0, 0]] {
+    let mut skipped = written.clone();
+    skipped["results"][0]["index"] = json!(indexes[0]);
+    skipped["results"][1]["index"] = json!(indexes[1]);
+    assert_eq!(read_error(skipped), "an entry's index is its position in the results");
+  }
   assert!(!entry.input().is_lossy() && entry.input().raw().is_none());
   assert_eq!(entry.input().to_native().as_deref(), Some(Path::new("notes.txt")));
   assert_eq!(read.results()[1].error().unwrap().kind().as_str(), "unsupported_format");
@@ -242,7 +253,7 @@ fn a_lossy_input_has_its_flag_and_its_raw_form_beside_it() {
   use std::os::unix::ffi::OsStrExt;
   let path = Path::new(OsStr::from_bytes(b"caf\xe9.mkv"));
   let record = probe_bytes(b"").unwrap_err().to_record();
-  let entry = DocumentEntry::from_error(0, PortablePath::from_path(path), record);
+  let entry = DocumentEntry::from_error(PortablePath::from_path(path), record);
   let text = serde_json::to_value(Document::from_results(Generator::new("catalog", "1"), vec![entry])).unwrap();
   let written = &text["results"][0];
   assert_eq!(written["input"], json!("caf\u{FFFD}.mkv"));
@@ -274,7 +285,7 @@ fn a_lossy_input_has_its_flag_and_its_raw_form_beside_it() {
   use std::os::windows::ffi::OsStringExt;
   let path = std::path::PathBuf::from(OsString::from_wide(&[0x0061, 0xd800]));
   let record = probe_bytes(b"").unwrap_err().to_record();
-  let entry = DocumentEntry::from_error(0, PortablePath::from_path(&path), record);
+  let entry = DocumentEntry::from_error(PortablePath::from_path(&path), record);
   let text = serde_json::to_value(Document::from_results(Generator::new("catalog", "1"), vec![entry])).unwrap();
   assert_eq!(
     text["results"][0]["input_raw"],
@@ -341,12 +352,9 @@ fn reading_checks_the_partial_report_inside_an_error_record() {
   text["results"][0]["error"]["partial_report"] = report_text("1.0");
   let read: Document = serde_json::from_value(text.clone()).unwrap();
   assert!(read.results()[0].error().unwrap().partial_report().is_some());
-  for version in ["1.1", "2.0"] {
+  for (version, message) in [("1.1", NESTED), ("2.0", OTHER_MAJOR)] {
     text["results"][0]["error"]["partial_report"]["schema_version"] = json!(version);
-    assert_eq!(
-      read_error(text.clone()),
-      "a nested record's schema version differs from the document's"
-    );
+    assert_eq!(read_error(text.clone()), message);
   }
 }
 
@@ -385,8 +393,12 @@ fn a_raw_path_of_a_known_encoding_is_read_only_as_whole_hexadecimal_units() {
     assert_eq!(input.raw().unwrap().data(), data);
     input.to_native()
   };
-  assert_eq!(native("unix_bytes", "636166e9").is_some(), cfg!(unix));
-  assert_eq!(native("windows_wide", "0061d800").is_some(), cfg!(windows));
+  // Each data spells `caf`, an ill-formed byte or an unpaired surrogate, and `.mkv`, so it decodes to the display.
+  assert_eq!(native("unix_bytes", "636166e92e6d6b76").is_some(), cfg!(unix));
+  assert_eq!(
+    native("windows_wide", "006300610066d800002e006d006b0076").is_some(),
+    cfg!(windows)
+  );
   assert_eq!(native("vms_records", "Any Text"), None);
 }
 
@@ -397,11 +409,8 @@ fn reading_checks_every_nested_record_of_an_entry() {
   text["results"][0]["outcome"] = json!("skipped");
   text["results"][0]["detection"] = json!({ "schema_version": "1.0", "outcome": "identified" });
   assert!(serde_json::from_value::<Document>(text.clone()).is_ok());
-  text["results"][0]["error"]["schema_version"] = json!("2.0");
-  assert_eq!(
-    read_error(text),
-    "a nested record's schema version differs from the document's"
-  );
+  text["results"][0]["error"]["schema_version"] = json!("1.1");
+  assert_eq!(read_error(text), NESTED);
 }
 
 #[test]
@@ -410,15 +419,15 @@ fn an_entry_whose_outcome_is_underivable_is_refused_and_takes_the_outcome_given(
     serde_json::from_value(json!({ "schema_version": "1.0", "outcome": outcome })).unwrap()
   };
   let input = || PortablePath::from_path(Path::new("input.bin"));
-  let known = DocumentEntry::from_detection(0, input(), detection("family_only")).unwrap();
+  let known = DocumentEntry::from_detection(input(), detection("family_only")).unwrap();
   assert_eq!(known.outcome(), &EntryOutcome::Partial);
   // A detection outcome of a newer version decides an outcome that this version cannot derive.
-  let refused = DocumentEntry::from_detection(0, input(), detection("identified_by_content")).unwrap_err();
+  let refused = DocumentEntry::from_detection(input(), detection("identified_by_content")).unwrap_err();
   assert_eq!(
     refused.to_string(),
     "the record holds a value of a newer version that decides the entry's outcome, so the outcome must be given"
   );
-  let entry = refused.with_outcome(EntryOutcome::Partial);
+  let entry = refused.with_outcome(EntryOutcome::Partial).unwrap();
   assert_eq!(entry.outcome(), &EntryOutcome::Partial);
   let text = serde_json::to_value(Document::from_results(Generator::new("catalog", "1"), vec![entry])).unwrap();
   assert_eq!(text["results"][0]["outcome"], json!("partial"));

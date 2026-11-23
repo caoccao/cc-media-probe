@@ -18,6 +18,7 @@
 //! The async positional source, `api.md` section 9.3, and the function that probes it.
 
 use std::io;
+use std::ops::DerefMut;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -43,6 +44,7 @@ pub trait AsyncPositionalSource {
   fn poll_length(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<io::Result<Option<u64>>>;
 }
 
+/// A borrowed source, which must be `Unpin` to be polled through the borrow, as futures-io's `&mut T` requires.
 impl<Source: AsyncPositionalSource + Unpin + ?Sized> AsyncPositionalSource for &mut Source {
   fn poll_read_at(
     self: Pin<&mut Self>,
@@ -58,7 +60,29 @@ impl<Source: AsyncPositionalSource + Unpin + ?Sized> AsyncPositionalSource for &
   }
 }
 
-impl<Source: AsyncPositionalSource + ?Sized> AsyncPositionalSource for Pin<Box<Source>> {
+/// A boxed source, `Unpin` like the borrowed one.
+impl<Source: AsyncPositionalSource + Unpin + ?Sized> AsyncPositionalSource for Box<Source> {
+  fn poll_read_at(
+    self: Pin<&mut Self>,
+    context: &mut Context<'_>,
+    position: u64,
+    buffer: &mut [u8],
+  ) -> Poll<io::Result<usize>> {
+    Pin::new(&mut **self.get_mut()).poll_read_at(context, position, buffer)
+  }
+
+  fn poll_length(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<io::Result<Option<u64>>> {
+    Pin::new(&mut **self.get_mut()).poll_length(context)
+  }
+}
+
+/// A pinned source of any kind, as futures-io's `Pin<P>`: `Pin<Box<Source>>` and `Pin<&mut Source>` serve a source
+/// that is not `Unpin`.
+impl<Pointer> AsyncPositionalSource for Pin<Pointer>
+where
+  Pointer: DerefMut + Unpin,
+  Pointer::Target: AsyncPositionalSource,
+{
   fn poll_read_at(
     self: Pin<&mut Self>,
     context: &mut Context<'_>,

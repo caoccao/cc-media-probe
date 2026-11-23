@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). |
+| **Status** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). The sixth review, of revision 39, amended the approved specification where section 16 lists; G2.3 confirms the amendments with the JSON contract. |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -47,6 +47,13 @@ At the fifth review, the same day, the maintainer made one more choice:
 On 2026-11-23 the maintainer approved G2.2 for revision 38 of the plan, which this specification follows. While the CLI contract of task 4 was written, the maintainer made one more choice:
 
 - **A source that failed.** A part that a source failure stopped carries the reason `SourceFailed` in the error's partial report, with the source named (section 5.5).
+
+At the sixth review, also on 2026-11-23, the maintainer made four more choices:
+
+- **Ranked candidates.** The candidates of an ambiguous detection are ranked, checked in that order, and the first that validates is used. Only a candidate ranked ahead of it that a limit or an unavailable range left unchecked makes detection incomplete (section 5.1).
+- **A full budget.** The fixed-size record keeps the first reason of each part, so an incomplete report always says why (section 5.3).
+- **An entry's index.** It is the entry's position in the document, which the document writes (section 12).
+- **Trees in JSON.** A tree of chapters or tags is one flat array with a parent position on each node, so a document's depth is fixed by its schema (section 12).
 
 ## Contents
 
@@ -124,7 +131,7 @@ The crate root holds what most callers need. Everything else lives in modules na
 | `cc_media_probe::completeness` | `Completeness`, `HeaderStatus`, the status and reason types, `LimitRecord` (section 5) |
 | `cc_media_probe::diagnostics` | `Diagnostic`, `Severity`, `DiagnosticCode` (section 6.13) |
 | `cc_media_probe::details` | `FormatDetails`, `CodecDetails` and the shared detail types; one submodule per format and per codec, such as `details::matroska` and `details::h264` (section 11) |
-| `cc_media_probe::source` | `PositionalSource`; `SourceEntry`, `SourceIdentifier`, `PortablePath`, `RawPath`, `RawPathEncoding` (sections 4.4 and 6.15) |
+| `cc_media_probe::source` | `PositionalSource`; `SourceEntry`, `SourceIdentifier`, `SourceOffset`, `PortablePath`, `RawPath`, `RawPathEncoding` (sections 4.4, 6.3 and 6.15) |
 | `cc_media_probe::error` | `ErrorRecord`, `CandidateCheck`, `Observations`, `Reason` (section 10) |
 | `cc_media_probe::asynchronous` | `AsyncPositionalSource`, `probe_source`, `detect_source`; the submodules `tokio` and `futures` behind their features (section 9) |
 | `cc_media_probe::document` | `Document`, `DocumentEntry`, `EntryOutcome`, `UnderivableOutcome`, `Generator`, `UsageError`, `SchemaVersion` (`serde` feature; section 12) |
@@ -137,8 +144,9 @@ The internal module tree of plan section 7.2 may differ from these paths; the pu
 - Every public type implements `Debug`, with a representation that is never empty (C-DEBUG, C-DEBUG-NONEMPTY).
 - Every model type implements `Clone`, `PartialEq`, `Eq` and `Hash`. A floating-point value is stored by its bits (section 6.1), so equality is exact everywhere.
 - Every model type, `Prober`, `Limits`, `Detection` and `ErrorRecord` is `Send` and `Sync`. `Error` is `Send`, `Sync` and `'static` (C-GOOD-ERR).
-- `Display` exists where a single line of text is useful: `Format`, `Codec`, `CodecInformation`, `CodecCandidate`, `IntegerValue`, `Rational`, `Seconds`, `Size`, `MediaType`, `Language`, `Identifier`, `Profile`, `Level`, `Timecode`, `Guid`, `HeaderStatus`, `Completeness`, `DiagnosticCode`, `Error`, `ErrorRecord` and `UnderivableOutcome`. Display text is for people. It is not part of the stability contract, except where its documentation says so. Stable text comes from `as_str()` (rule 7).
-- With the `serde` feature, every model type implements `Serialize` and `Deserialize` (C-SERDE).
+- `Display` exists where a single line of text is useful: `Format`, `Codec`, `CodecInformation`, `CodecCandidate`, `Confidence`, `IntegerValue`, `Rational`, `Seconds`, `Size`, `MediaType`, `Language`, `Identifier`, `Profile`, `Level`, `Timecode`, `Guid`, `HeaderStatus`, `Completeness`, `DiagnosticCode`, `Error`, `ErrorRecord` and `UnderivableOutcome`. Display text is for people. It is not part of the stability contract, except where its documentation says so. Stable text comes from `as_str()` (rule 7).
+- With the `serde` feature, every model type implements `Serialize` and `Deserialize` (C-SERDE). Two types have no form of their own, because the map that holds them writes members for them (section 12): `PortablePath`, written as its display string with its flag and raw form beside it, and `DocumentEntry`, written with its position in the document as its `index`. Neither implements the two traits.
+- No operation on a tree of the report recurses on its depth. Dropping, cloning, comparing, hashing and `Debug` walk a tree of chapters or tags with an explicit stack, and so does its serialized form (plan section 7.6). A document can hold a tree of any depth (section 12), so no input can exhaust the stack.
 
 ## 4. Entry points, options and limits
 
@@ -281,7 +289,19 @@ flowchart TD
 | The probe stopped before the stream inventory | `ErrorKind::NoStreamInventory` | The format, the reason, and the observations made so far, such as the track identifiers and raw ticks of an ISO media segment (R20) |
 | The stream inventory was reached | `Ok(MediaReport)` | Diagnostics and completeness; nothing short of a source failure turns it into an error |
 
-With several validated candidates, the one with the highest confidence is used, and a diagnostic records the others (plan section 8.3). A candidate whose check a limit stopped, beside one that validated, leaves the report incomplete, with the limit named against `Part::Detection` (section 5.3).
+**The rank of the candidates.** As the maintainer chose at the sixth review, the candidates of an ambiguous detection are ranked, so no two of them tie:
+
+1. a higher confidence first;
+2. then the format that the format hint names (section 4.3);
+3. then the format that the file-name hint names;
+4. then the order of the release's detection inventory (`formats.md`, plan section 4.4).
+
+The probe checks the candidates in that order and uses the first that validates (plan section 8.3). It does not check the candidates ranked behind that one. A candidate ranked ahead of it that could not be checked decides whether detection is complete:
+
+- **A limit stopped its check, or its check needs bytes outside the readable range,** such as beyond the pinned prefix of a forward-only source. A full check could have chosen it, so the report is incomplete, with the limit or `RangeUnavailable` named against `Part::Detection` (section 5.3).
+- **It has no check,** as a detect-only format does. This version can do nothing more for it, so detection stays complete, as it does for a codec whose parser is pending.
+
+A diagnostic lists the candidates that were not used, each with its state, within the diagnostics limit. `Detection::candidates()` lists the candidates in the same rank (section 8).
 
 ### 5.2 Stream inventory
 
@@ -304,7 +324,7 @@ An observed format can also reach its inventory with no unit at all, where its e
 | `tags()`, `chapters()`, `attachments()` | `&SectionStatus` | `Complete` (including proven empty), `Incomplete`, `NotRequested`, `NotApplicable` |
 | `timing()` | `&TimingStatus` | `Established`, `NotAvailableByDesign`, `CutShort`, `NotApplicable` |
 | `companions()` | `&CompanionStatus` | `NotApplicable`, `Complete`, `NotEnabled`, `CutShort` |
-| `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, `source_identifier() -> Option<SourceIdentifier>` for a companion's request or a source that failed, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5) |
+| `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, `source_identifier() -> Option<SourceIdentifier>` for a companion's request or a source that failed, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5). Kept within the retained-data limit; the record keeps the first reason of each part whatever the limits (below). |
 | `record()` | `&LimitRecord` | The fixed-size record below |
 
 Each status is a stored enum with a catch-all, so its getter returns it by reference (section 1, rule 7), as `matches!(report.completeness().chapters(), SectionStatus::Complete)` in section 15.5 shows.
@@ -314,19 +334,29 @@ Each status is a stored enum with a catch-all, so its getter returns it by refer
 **Detection** is a part of its own, as the maintainer chose on 2026-11-22: detection, with the validation checks of the candidates (section 8; plan section 8.3). A limit that stops it is recorded against it, in an error or in a report:
 
 - **A limit that ends detection** gives an error. With `BytesRead` at 0, for example, `probe_bytes` reads nothing and ends with `ErrorKind::FormatNotDetermined`. The error's `reason()` names `BytesRead`, `record().exhausted(&Limit::BytesRead)` is true, and `record().first_stopped(&Limit::BytesRead)` is `Some(&Part::Detection)`, since stream discovery never began. Section 15.9 prints such an error.
-- **A limit that stops one candidate's check while another validates** gives a report, once the validated candidate's probe reaches its inventory. The candidate that was not checked might have validated with a higher confidence and been chosen instead, so the report is incomplete, as the maintainer chose at the fifth review. `detection()` is `Incomplete`, and `reasons()` holds a `PartReason` whose `part()` is `Part::Detection` and whose reason names the limit. `record().first_stopped(&limit)` is `Some(&Part::Detection)`, since detection comes first. If the same limit stops discovery later, discovery has its own status and reason, and the record still names detection. The diagnostic that lists the other candidates names the one that was not checked. The nesting depth can do this, when one candidate's structure is deeper than the limit and the other's is not.
+- **A limit that stops the check of a candidate ranked ahead of the one used** gives a report, once the used candidate's probe reaches its inventory (section 5.1). The candidate that was not checked might have validated and been chosen instead, so the report is incomplete, as the maintainer chose at the fifth review. `detection()` is `Incomplete`, and `reasons()` holds a `PartReason` whose `part()` is `Part::Detection` and whose reason names the limit; the record keeps it as the first reason of detection. `record().first_stopped(&limit)` is `Some(&Part::Detection)`, since detection comes first. If the same limit stops discovery later, discovery has its own status and reason, and the record still names detection. The diagnostic that lists the other candidates names the one that was not checked, within the diagnostics limit. The nesting depth can do this, when the structure of the candidate ranked first is deeper than the limit and the other's is not.
+- **A check that needs bytes outside the readable range** does the same, with the reason `RangeUnavailable` in place of the limit, and no counter in the record.
 
-`detection()` is `Complete` when every check that detection began ran to its end, as in every report whose detection was not ambiguous.
+`detection()` is `Complete` when no candidate ranked ahead of the one used was left unchecked by a limit or an unavailable range, as in every report whose detection was not ambiguous.
 
 **The fixed-size record.** `LimitRecord` exists under any limits and is never charged to a counter (plan section 7.5). It holds:
 
 - the status of each part of a report;
 - `exhausted(limit: &Limit) -> bool` for every counter;
 - `first_stopped(limit: &Limit) -> Option<&Part>`, the part that a counter stopped first;
+- `first_reason(part: &Part) -> Option<&PartReason>`, the first reason recorded against each part, with its kind, limit, feature, stream and source, and without its detail text;
 - `omitted_diagnostics() -> u64`, the diagnostics counted but not stored;
-- `omitted_declarations() -> u64`, the stream declarations seen but not retained.
+- `omitted_declarations() -> u64`, the stream declarations seen but not retained;
+- `omitted_reasons() -> u64`, the reasons recorded but not kept in `reasons()`.
 
 An error carries the same record (section 10).
+
+**When the budget is full.** Every limit can be zero, and the retained-data and diagnostics limits can already be full when a part falls short (plan section 7.5). As the maintainer chose at the sixth review, the record then still says why each part fell short:
+
+- **Kept whatever the limits:** the status of each part, the first reason of each part, the counters and the three omitted counts. They are fixed-size: one slot per counter and one per part, and a reason without its text.
+- **Kept only within their limits:** the entries of `reasons()`, charged to the retained data, with a reason that cannot be charged counted in `omitted_reasons()`; the detail text of a reason; and the diagnostics, among them the one that names an unchecked candidate.
+
+So `reasons()` can be empty while `is_complete()` is false, and the record still names the reason of each part that fell short. The CLI prints the record's reason for a part that `reasons()` does not cover, and the number of reasons that were not kept (`cli.md` section 8.4).
 
 ### 5.4 Header status
 
@@ -338,11 +368,13 @@ An error carries the same record (section 10).
 | `PartiallyParsedByDesign` | yes | Some fields lie behind decoding, as implicit spectral-band replication does |
 | `Identified` | yes | `identification() -> Option<&Identification>` says why: `IdentificationOnly` (by design), `UnknownCodec`, `PendingParser` (a pair of a later phase) or `UnsupportedCompression` (below) |
 | `Protected` | yes | The bytes that hold the codec header are encrypted: the configuration itself, or the packets that carry an in-band header. Protection sets no other state. A clear configuration beside protected packets is parsed like any other, so its state is its parser's outcome, from `Parsed` to `Malformed`, and `Stream::protection()` reports the packets' protection separately (F22). |
-| `NotFoundWithinBudget` | no | No header field was read before the input, a limit or the reach of a forward-only source ended the search. `reason()` says which: truncated input; the limit by name; or `RangeUnavailable`, when the header's bytes had already left the window of a forward-only source, as for a stream discovered after its in-band header passed (plan sections 7.4 and 7.6). |
-| `PartiallyParsedForLackOfBytes` | no | Some fields read before the input, a limit or the reach of a forward-only source ended; `reason()` says which, with the same three reasons |
+| `NotFoundWithinBudget` | no | No header field was read before the input, a limit, the reach of a forward-only source or a source failure ended the search. `reason()` says which: truncated input; the limit by name; `RangeUnavailable`, when the header's bytes had already left the window of a forward-only source, as for a stream discovered after its in-band header passed (plan sections 7.4 and 7.6); or `SourceFailed`, in the partial report of an error (below). |
+| `PartiallyParsedForLackOfBytes` | no | Some fields read before the input, a limit, the reach of a forward-only source or a source failure ended; `reason()` says which, with the same four reasons |
 | `Malformed` | no | The bytes contradict the syntax |
 | `CompressionUnavailable` | no | The `zlib` feature is off |
-| `NotAttempted` | no | The probe stopped before the stream's turn |
+| `NotAttempted` | no | The probe stopped before the stream's turn. In the partial report of an error, `reason()` is `SourceFailed` when the failure stopped it. |
+
+**A source that fails during a header.** A source failure after the inventory gives an error that carries the partial report (section 5.5). In that report, each stream whose header the failure stopped has the state that its parser had reached: `NotFoundWithinBudget` when no header field was read, `PartiallyParsedForLackOfBytes` when some were, with the fields read kept in the details (section 11.2), and `NotAttempted` when its header was not begun. Each has the reason `SourceFailed`, and `reasons()` holds a `PartReason` of `Part::Headers` with the stream and the source that failed. A report that a probe returns never holds these, since a source failure always gives an error.
 
 **Compression the library cannot undo.** A Matroska track can compress its codec private data, or the blocks that carry an in-band header, with `bzlib` or `lzo1x`. RFC 9559 discourages both and lets a reader leave them unsupported (5.1.4.1.31.6), and this version cannot undo them, with or without `zlib` (plan section 6.2). When such an algorithm covers the bytes that hold the codec header:
 
@@ -364,7 +396,7 @@ The state is final, as `PendingParser` is: the probe did everything this version
 - `FurtherSegmentsNotExamined`, `MediaSegmentWithoutInitializationData`;
 - `SourceFailed`.
 
-**A source that failed.** A source failure after the inventory ends the probe with an error of kind `SourceFailed`, which carries the report established so far (R19, section 10.1). In that partial report, each part that the failure stopped is incomplete with the reason `SourceFailed`, and `PartReason::source_identifier()` names the source that failed, the primary input or a companion. The error keeps the I/O error itself. So the rule of section 5.3 holds in a partial report too: every shortfall names its reason. A report that a probe returns never holds this reason, since a source failure always gives an error. The maintainer chose this on 2026-11-23, while the CLI contract was written; it adds a variant to an open set, which is compatible.
+**A source that failed.** A source failure after the inventory ends the probe with an error of kind `SourceFailed`, which carries the report established so far (R19, section 10.1). In that partial report, each part that the failure stopped is incomplete with the reason `SourceFailed`, and `PartReason::source_identifier()` names the source that failed, the primary input or a companion. A stream whose header read it stopped has a header state with the same reason (section 5.4). The error keeps the I/O error itself. So the rule of section 5.3 holds in a partial report too: every shortfall names its reason. A report that a probe returns never holds this reason, since a source failure always gives an error. The maintainer chose this on 2026-11-23, while the CLI contract was written; it adds a variant to an open set, which is compatible.
 
 A format phase adds the reasons it needs; adding a variant is compatible. `Feature` names a Cargo feature that gates parsing. In `0.1.0` that is only `Zlib`: the serialization and async features never make information unavailable. A later feature that gates parsing adds its variant.
 
@@ -435,7 +467,7 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | `estimated_duration()`, `estimated_bit_rate()` | `Option<&Estimate<…>>` | R25 |
 | `packet_count()`, `frame_count()`, `sample_count()` | `Option<u64>` | With `_provenance()` each |
 | `disposition()` | `&Disposition` | `is_default()`, `is_enabled()`, `is_forced()`, `is_hearing_impaired()`, `is_visually_impaired()`, `has_text_descriptions()`, `is_original_language()`, `is_commentary()`, each `Option<bool>`: absent when the format states nothing, never assumed false |
-| `declaration_range()` | `Option<&DeclarationRange>` | `declaration_range`: `first_offset()`, `last_offset()`, `start()`, `end()`, each optional. No format of `0.1.0` uses it. |
+| `declaration_range()` | `Option<&DeclarationRange>` | `declaration_range`: `first_offset()` and `last_offset()`, each an `Option<&SourceOffset>`, and `start()` and `end()`, each optional. A `SourceOffset` names its source, as every byte offset does (plan section 7.7): `source_identifier() -> SourceIdentifier`, `offset() -> u64` from that source's start, and `logical_offset() -> Option<u64>` where several files form one stream. The two endpoints can lie in different sources, as in the object files of a DVD title set. No format of `0.1.0` uses it. |
 | `embedded_in()` | `Option<usize>` | `embedded_in` (F14) |
 | `start_timecode()` | `Option<&Timecode>` | `start_timecode` (F23), below |
 | `video()`, `audio()`, `subtitle()` | `Option<&VideoInformation>`, … | Present exactly when the kind is video, audio or subtitle; all fields inside may still be absent |
@@ -487,9 +519,9 @@ A later format that protects a range of packets adds an accessor to `ProtectionD
 
 | Accessor | Returns | Field guide (section 3.3) and notes |
 |---|---|---|
-| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved, or when the first sample's description is established and the probe could not read or keep it (below) |
+| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved, or when the description that the fields describe is established and the probe could not read or keep it (below) |
 | `candidates()` | `&[CodecCandidate]` | While the description of the first sample is unproven, each description that could hold it and that the probe read and kept, in index order; empty otherwise (below) |
-| `has_every_candidate()` | `bool` | Whether the probe read and kept every description that could hold the first sample: false when one is missing, including the one that the first sample is known to use, and true otherwise (below) |
+| `has_every_candidate()` | `bool` | Whether the probe read and kept every description that the fields need: false when one is missing, including the one that the first sample is known to use and the fallback of a track without samples, and true otherwise (below) |
 | `name()` | `Option<&str>` | `name`: the library's name for a known codec; absent for an unknown or unresolved one |
 | `raw_identifiers()` | `&[RawCodecIdentifier]` | `raw_identifiers`: those of the reported description, and while it is unproven, every candidate's, in candidate order. Each has `namespace() -> &CodecNamespace` (`MatroskaCodecIdentifier`, `RiffFourCharacterCode`, `WaveFormatTag`, `IsoSampleEntry`, `Mpeg4ObjectType`, `QuickTimeCode` and the namespaces of later phases) and `value() -> &str` as written |
 | `profile()`, `profile_provenance()` | `Option<&Profile>`, `Option<&Provenance>` | `profile` |
@@ -500,12 +532,12 @@ A later format that protects a range of packets adds an accessor to `ProtectionD
 **Which description the codec fields describe.** An ISO track can declare several sample descriptions. Plan Phase 6, task 7 decides which one the codec fields describe, in three cases:
 
 - **The first sample's description is established.** The fields describe it, and `candidates()` is empty. The probe may still have failed to read that description, or to keep it within the retained-data limit, as when the first fragment selects description 2 after the limit kept only description 1. No other description can hold the first sample, so a kept one is no candidate and lends nothing. `codec()`, `name()` and every field that the description supplies are absent, `candidates()` is empty, `has_every_candidate()` is false, and the details keep the index (below).
-- **The track is proven to have no sample,** as an initialization segment on its own is once the probe has examined all of it: empty sample tables, and no fragment up to the end of the input. The fields describe the first declared description, as a fallback that the details label, and `candidates()` is empty. Nothing is unresolved: no sample exists that could select another description.
+- **The track is proven to have no sample,** as an initialization segment on its own is once the probe has examined all of it: empty sample tables, and no fragment up to the end of the input. The fields describe the first declared description, as a fallback that the details label, and `candidates()` is empty. Nothing is unresolved: no sample exists that could select another description. The probe can still have failed to keep that description within the retained-data limit, while the sample tables proved the track empty. Then `codec()`, `name()` and every field that the description supplies are absent, `candidates()` is empty and `has_every_candidate()` is false, as for a known description that was lost; the details still label the fallback.
 - **Otherwise the first sample's description is unproven.** A description may have been observed in use while the first sample's selection was not, or the probe stopped before it could establish either, as a read limit that ends before the first fragment does. The fields that depend on the first sample are unresolved. `candidates()` lists each description that could hold the first sample, and the details say which descriptions were observed in use. A stopped probe has not observed a description in use, yet the first sample can still select any declared one, so no fallback applies.
 
 Any declared description can hold the first sample until the selection is established. A probe can fail to read a description, because the input or a limit cut the sample descriptions short, or fail to keep one within the retained-data limit. `candidates()` then lacks it, and `has_every_candidate()` is false.
 
-**The index in the details.** The ISO family's details keep the selection once it is established, whether or not the probe kept the description it selects. `IsoBaseMediaDetails::track(stream_index)` gives a track's details. Their `first_sample_description_index() -> Option<u32>` is the `sample_description_index` that selects the first sample's description, at its coded width: from the sample-to-chunk table, the track-extends default or a track-fragment override (ISO/IEC 14496-12:2015, 8.7.4, 8.8.3 and 8.8.7). It is absent while the selection is unproven, and for a track proven to have no sample, whose fallback the details label. So a known description that was lost reads apart from an unresolved selection whose candidates were all lost: both have no codec, no candidates and `has_every_candidate()` false, and only the first has an index. Phase 6 designs the rest of these details.
+**The index in the details.** The ISO family's details keep the selection once it is established, whether or not the probe kept the description it selects. `IsoBaseMediaDetails::track(stream_index)` gives a track's details. Their `first_sample_description_index() -> Option<u32>` is the `sample_description_index` that selects the first sample's description, at its coded width: from the sample-to-chunk table, the track-extends default or a track-fragment override (ISO/IEC 14496-12:2015, 8.7.4, 8.8.3 and 8.8.7). It is absent while the selection is unproven, and for a track proven to have no sample, whose fallback the details label. So three cases that all have no codec, no candidates and `has_every_candidate()` false read apart in the details: a known description that was lost has its index, a lost fallback of a track without samples has its label, and an unresolved selection whose candidates were all lost has neither. In each, the stream's headers are cut short with the limit or the truncation named (section 5.4). Phase 6 designs the rest of these details.
 
 A `CodecCandidate` has `sample_description_index() -> u64`, `codec() -> &Codec` and `raw_identifiers() -> &[RawCodecIdentifier]`. Its identifiers are its own, so a protected entry's code and the code of its original format stay with their description. In the third case, as the maintainer chose on 2026-11-22, a missing codec is `None`, as every missing value is (section 1, rule 2):
 
@@ -521,7 +553,7 @@ A `CodecCandidate` has `sample_description_index() -> u64`, `codec() -> &Codec` 
 - `Codec::Unknown`: the file names a codec that this version does not know. `raw_identifiers()` keeps what it wrote.
 - `Codec::Unrecognized(UnrecognizedValue)`: a serialized name that a newer version wrote. The library never produces it itself.
 
-`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). An unresolved codec displays each candidate in the same way, by its codec's name or else its own first raw identifier, separated by " or ", such as "H.264 or H.265". When a candidate is missing, the display ends with "or a description that was not read". With no candidate kept, as for a known description that was lost, the display is "a description that was not read".
+`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). An unresolved codec displays each candidate in the same way, by its codec's name or else its own first raw identifier, separated by " or ", such as "H.264 or H.265". When a candidate is missing, the display ends with "or a description that was not read". With no candidate kept, as for a known description or a fallback that was lost, the display is "a description that was not read".
 
 **`Format`** has one variant per entry of the detection inventory frozen at G3.5, and one per family: `Matroska`, `WebM`, `Mp4`, `ThreeGpp`, `ThreeGpp2`, `F4v`, `QuickTime`, `Avi`, and the formats of the later phases. The families `IsoBaseMedia` and `Riff` are reported when detection is certain of the family only (plan section 8.6). `Format::Unrecognized` is the catch-all. Its accessors:
 
@@ -606,13 +638,13 @@ The report's `duration()` is the segment's and is never replaced by an edition's
 
 | Accessor | Returns | Notes |
 |---|---|---|
-| `unique_identifier()`, `string_identifier()` | `Option<&Identifier>`, `Option<&str>` | |
+| `unique_identifier()`, `string_identifier()` | `Option<&Identifier>`, `Option<&str>` | `string_identifier()` is a textual identifier as written, such as a Matroska `ChapterStringUID` (RFC 9559 5.1.7.1.4.2), and stays its own text in JSON (section 12) |
 | `start()`, `end()` | `Option<Seconds>` | Segment time; with `_provenance()` each. A point without an end keeps the end absent. |
 | `segment_reference()` | `Option<&SegmentReference>` | `segment() -> &Identifier`, `edition() -> Option<&Identifier>`; the segment is never opened |
 | `titles()` | `&[LocalizedText]` | |
 | `is_hidden()`, `is_enabled()` | `Option<bool>` | |
 | `playback_position()` | `Option<Seconds>` | Ordered editions only |
-| `children()` | `&[Chapter]` | Nesting is bounded by the nesting-depth limit, so no input can make the tree deeper than the limit allows |
+| `children()` | `&[Chapter]` | A probe bounds the nesting by the nesting-depth limit, which a caller can raise, and a document can hold a tree of any depth (section 12). No operation on the tree recurses on its depth (section 3.3). |
 
 ### 6.9 Tags
 
@@ -653,9 +685,9 @@ A `TargetReference` is one of three things, told apart by `kind() -> &TargetRefe
 | `key()` | `Option<&TagKey>` | The normalized key, below |
 | `languages()`, `countries()` | `&[Language]`, `&[String]` | Sets that may be empty |
 | `is_default()` | `Option<bool>` | |
-| `value()` | `Option<&TagValue>` | F25: `Text(String)`, `Binary(BinaryValue)`, `Integer(IntegerValue)`, `FloatingPoint(FloatingPointValue)`, `Boolean(bool)`, `Guid(Guid)`, and the catch-all `Unrecognized` of rule 5. `BinaryValue` has `size() -> u64` and `data() -> Option<&[u8]>`, the bytes when they were kept within the retained-data limit. `IntegerValue` holds any 64-bit signed or unsigned value, with `to_i64()` and `to_u64()`, each an `Option`. |
+| `value()` | `Option<&TagValue>` | F25: `Text(String)`, `Binary(BinaryValue)`, `Integer(IntegerValue)`, `FloatingPoint(FloatingPointValue)`, `Boolean(bool)`, `Guid(Guid)`, and the catch-all `Unrecognized` of rule 5. `BinaryValue` has `size() -> u64` and `data() -> Option<&[u8]>`, the bytes when they were kept within the retained-data limit. `IntegerValue` holds any 64-bit signed or unsigned value, with `to_i64()` and `to_u64()`, each an `Option`. Serialized, a value is a map of its kind and the member named after it (section 12); the catch-all keeps the name of a kind that a newer version wrote, and `as_str()` gives the kind's name. |
 | `native_type()` | `Option<&str>` | The value's type name as written |
-| `children()` | `&[Tag]` | A node may have children and no value |
+| `children()` | `&[Tag]` | A node may have children and no value. As for chapters, no operation on the tree recurses on its depth (section 3.3). |
 
 **Lookups.** The flat views most callers want keep the hierarchy intact. A wildcard target applies to every entity of its kind. Nodes without a value are skipped by the value lookups.
 
@@ -771,7 +803,9 @@ For `ExpectedCompanion`, `identifier()` is the validated identifier, and `locati
 - `raw() -> Option<&RawPath>`, present exactly when the path is lossy, which has `encoding() -> &RawPathEncoding` (`UnixBytes` or `WindowsWide`) and `data() -> &str`, the path's bytes or its 16-bit units in lowercase hexadecimal, two digits a byte or four a unit (plan section 8.8), and for an encoding that a newer version wrote, the data as written;
 - `to_native() -> Option<PathBuf>`. A path that is not lossy is rebuilt from its display string on every platform, since Unicode text converts to a native path without loss. A lossy path is rebuilt from its raw form only when that encoding belongs to the running platform, and gives `None` otherwise.
 
-Reading never fails because a path is foreign, but it checks the data of a known encoding wherever it was written: whole units of lowercase hexadecimal digits, two for each byte of `unix_bytes` and four for each unit of `windows_wide`. Other data fails as malformed input does, so a path of the running platform's encoding always rebuilds. A foreign path that passes is kept, and the data of an encoding that a newer version wrote is kept as written. Serialized, a path is not a value of its own: the map that holds it writes its display string under the path's name, and a lossy path adds its flag and its raw form beside it (section 12).
+**One path.** A path is lossy exactly when its native form is not valid Unicode: bytes that are not UTF-8 for `unix_bytes`, or 16-bit units with an unpaired surrogate for `windows_wide`. Its display string is then that form decoded with U+FFFD in place of what is not valid, as the standard library's `String::from_utf8_lossy` and `String::from_utf16_lossy` decode it. The display string, the flag and the raw form therefore describe one path, and reading checks that they do (section 12).
+
+Reading never fails because a path is foreign, but it checks the data of a known encoding wherever it was written, on every platform: whole units of lowercase hexadecimal digits, two for each byte of `unix_bytes` and four for each unit of `windows_wide`, that are not valid Unicode and that decode to the display string. Other data fails as malformed input does, so a path of the running platform's encoding always rebuilds, and to the path that its display string shows. A foreign path that passes is kept, and the data of an encoding that a newer version wrote is kept as written. Serialized, a path is not a value of its own and has neither trait: the map that holds it writes its display string under the path's name, and a lossy path adds its flag and its raw form beside it (section 12).
 
 ## 7. Normalized values
 
@@ -798,13 +832,13 @@ The rules of plan section 8.4 and the field guide's section 2 decide every value
 | `outcome()` | `&DetectionOutcome` | `Identified`, `FamilyOnly`, `Ambiguous`, `HintOnly`, `InsufficientData`, `Unknown` |
 | `format()` | `Option<&Format>` | The identified format or the family. A hinted format is under `hint()`, never here. |
 | `confidence()` | `Option<Confidence>` | For an identification |
-| `candidates()` | `&[Candidate]` | For an ambiguous outcome, by falling confidence; each with `format()` and `confidence()` |
+| `candidates()` | `&[Candidate]` | For an ambiguous outcome, in the rank of section 5.1, which falls with the confidence; each with `format()` and `confidence()` |
 | `hint()` | `Option<&Hint>` | `format() -> &Format` and `origin() -> &HintOrigin` (`FileName`, `FormatOption`). Marked as not verified. |
 | `bytes_needed()` | `Option<u64>` | For insufficient data, when known |
 | `insufficient_reason()` | `Option<&Reason>` | Whether the input ended or a named limit was reached |
 | `usage()` | `&Usage` | |
 
-`Confidence` wraps a number from 0 to 100, with named constants for its levels. A number keeps the candidates ordered and leaves room for finer levels later. `Format::support()` says whether an identified format is probed or detect-only. Detection never opens a companion, and on a forward-only source it reads only from the pinned prefix.
+`Confidence` wraps a number from 0 to 100, with named constants for its levels. `value() -> u8` returns the number, `Display` writes it, as in `100`, and JSON holds it as a number. A number keeps the candidates ordered and leaves room for finer levels later. The CLI prints it for an identified format and for each candidate (`cli.md` section 8.5). `Format::support()` says whether an identified format is probed or detect-only. Detection never opens a companion, and on a forward-only source it reads only from the pinned prefix.
 
 ## 9. The async surface
 
@@ -824,7 +858,7 @@ Tokio and futures-io define different `AsyncRead` and `AsyncSeek` traits, so eac
   - Tokio runs every file operation on its blocking pool. An open or read that `asynchronous::tokio::probe_file` started, or that a caller's `tokio::fs::File` started, keeps running there until it ends. Its result is discarded, and the file closes once no operation is in flight (Tokio's `fs` documentation, "Cancellation"; `tokio::fs::File`).
   - A caller's own source or resolver decides the same for its own work.
   - The library spawns no task of its own.
-- A reader that is not `Unpin` can be passed as `Box::pin(reader)`.
+- A reader that is not `Unpin` can be passed as `Box::pin(reader)`, and so can a source of section 9.3, which can also be pinned in place.
 - The same functions exist on the handles of `Prober`: `prober.tokio().probe_reader(reader).await`, `prober.futures().detect_stream(reader).await`, `prober.asynchronous().probe_source(source).await`. Each handle borrows the prober (`TokioProber<'prober>`, `FuturesProber<'prober>`, `AsynchronousProber<'prober>`).
 - The seekable path reads positionally, as a seek followed by a read, through the block cache. The forward-only path uses the sliding window of D9.
 
@@ -859,7 +893,12 @@ The rules of section 4.4 apply unchanged.
 
 **Repeated requests.** Within one probe, after a call returns `Poll::Pending`, the probe's next call to the same method repeats the request: the same `position` and a buffer of the same length. The probe makes no other request of that source in between, and it gives up a pending request only by being dropped. The promise ends with the probe. A dropped probe never calls again, and nothing tells the source that its request was abandoned. A source that outlives a probe, as one passed as `&mut source` does, can be handed to a second probe while it still holds the first probe's request. Such a source therefore keeps the range of its request in flight and starts a new request when a call asks for another range, as the source of section 15.7 does. The I/O spike of Phase 3 confirms that the block cache and the forward-only window keep this promise (G3.1).
 
-The library implements the trait for `&mut Source` and `Pin<Box<Source>>`. A caller with an `async` read function can keep its future in the source and poll it from `poll_read_at`. The trait needs neither runtime feature. Its companion-resolver counterpart arrives with lookup (section 13).
+The library implements the trait three times, with the bounds that futures-io gives its own `AsyncRead`:
+
+- for `&mut Source` and `Box<Source>`, where `Source: AsyncPositionalSource + Unpin + ?Sized`, since a borrowed or boxed source is polled through `Pin::new`;
+- for `Pin<Pointer>`, where `Pointer: DerefMut + Unpin` and `Pointer::Target: AsyncPositionalSource`. This covers `Pin<Box<Source>>` and `Pin<&mut Source>` for a source that is not `Unpin`, so such a source is passed as `Box::pin(source)`, or pinned in place with `std::pin::pin!` and passed as `pinned.as_mut()`.
+
+A caller with an `async` read function can keep its future in the source and poll it from `poll_read_at`; such a source is often not `Unpin`. The trait needs neither runtime feature. Its companion-resolver counterpart arrives with lookup (section 13).
 
 ## 10. Errors
 
@@ -963,9 +1002,10 @@ The format-specific fields that the conflict compared also stay in their detail 
 | `further_segments()` | `&[FurtherSegment]` | The position of each further segment (plan Phase 5, task 4) |
 | `tracks()`, `track(stream_index)` | `&[MatroskaTrackDetails]`, `Option<&MatroskaTrackDetails>` | One per reported track |
 
-`MatroskaTrackDetails` has `stream_index()`, `track_number()` and `track_unique_identifier()`. Its other accessors:
+`MatroskaTrackDetails` has `stream_index() -> usize`, the library's own, and the elements of the track entry. A track entry cut short keeps the elements read before the cut, and EBML fixes no order among the children of a master element, so the cut can fall before any of them. RFC 9559 makes `TrackNumber`, `TrackUID` and `CodecID` mandatory (5.1.4.1.1, 5.1.4.1.2 and 5.1.4.1.21), and each can still be absent from a track entry cut short:
 
-- `codec_identifier() -> &str` and `codec_name() -> Option<&str>`;
+- `track_number() -> Option<u64>` and `track_unique_identifier() -> Option<&Identifier>`;
+- `codec_identifier() -> Option<&str>` and `codec_name() -> Option<&str>`;
 - `codec_private_data() -> Option<&[u8]>`, charged to the retained data;
 - `codec_delay()` and `seek_pre_roll()`, default 0, as `Option<&StoredValue<u64>>`, and `default_duration() -> Option<u64>`, which has no default, each in nanoseconds as stored;
 - `flag_default()` and `flag_enabled()`, default 1, as `Option<&StoredValue<bool>>`. A track entry cut short before `FlagEnabled` leaves `flag_enabled()` absent, and with it the normalized `is_enabled()`;
@@ -1003,8 +1043,12 @@ The H.264 phase states for each binding which case applies. For `avc3`, sets tha
 
 **The primary set** is established in one of two ways:
 
-- **Observed.** The probe read the first slice header of the first picture, or that access unit's buffering-period SEI message, and so knows which set it activates.
-- **One candidate.** The probe has every candidate, and they are one set. Copies with the same content count as one.
+- **Observed.** The probe followed the chain of identifiers that the first picture activates, each link to a set that it read and kept:
+  - from the first slice header, its `pic_parameter_set_id` (7.3.3), to the picture parameter set with that identifier, and from that set's `seq_parameter_set_id` (7.3.2.2) to the sequence parameter set;
+  - or from that access unit's buffering-period SEI message, whose `seq_parameter_set_id` names the sequence parameter set directly (D.1.2).
+
+  The set of each identifier is the last one with that identifier before the slice in decoding order, those of the configuration record first, since a later set replaces the earlier one's content (7.4.1.2.1). A link that the probe could not follow, because the picture parameter set was not read or kept, or was cut short before its `seq_parameter_set_id`, or because no sequence parameter set with the identifier was available, establishes nothing: the slice header alone never chooses a sequence parameter set.
+- **One candidate.** The probe has every candidate, and they are one set. Copies with the same content count as one. This holds whether or not a chain could be followed.
 
 Otherwise `primary_sequence_parameter_set()` is absent, and no set is chosen by its position, which could describe a picture that was never coded:
 
@@ -1027,15 +1071,23 @@ if let Some(CodecDetails::H264(h264)) = stream.codec_details() {
 
 ## 12. Serialization
 
-With the `serde` feature, every model type implements `Serialize` and `Deserialize`, and the form is part of the public API (plan section 8.8). Task 5 writes its full contract in `docs/guide/json-output.md`. What this specification fixes:
+With the `serde` feature, every model type implements `Serialize` and `Deserialize`, except the two of section 3.3 that their parents write, and the form is part of the public API (plan section 8.8). Task 5 writes its full contract in `docs/guide/json-output.md`. What this specification fixes:
 
-- **Root records.** `Document`, `MediaReport`, `Detection` and `ErrorRecord` carry `schema_version`, a `SchemaVersion` with `major()` and `minor()`, serialized as `"1.0"`. `SchemaVersion::CURRENT` is the version this release writes. Reading a root record checks the version before anything else is decoded, wherever the member appears, also through plain Serde on a bare `MediaReport`. Every other type is nested only, carries no version and has no guarantee across major versions when read alone.
+- **Root records.** `Document`, `MediaReport`, `Detection` and `ErrorRecord` carry `schema_version`, a `SchemaVersion` with `major()` and `minor()`, serialized as `"1.0"`. `SchemaVersion::CURRENT` is the version this release writes. Reading a root record checks the version before anything else is decoded, wherever the member appears, also through plain Serde on a bare `MediaReport`. The version error therefore comes before any other failure, such as a generator that does not decode, in each of the four root records. Every other type is nested only, carries no version and has no guarantee across major versions when read alone.
+- **A bare error record** holds its partial report at its own version, as a document holds its records at the document's: reading a bare `ErrorRecord` checks the partial report against the record's version. A record of version 1.0 whose partial report is of version 1.1 or 2.0 is the version error, read on its own or in a document.
 - **Shape.** A struct is a map. A field that is absent is omitted, and reads as `None`. A unit-like enum value is a `snake_case` string. A catch-all reads any unknown string and writes it back unchanged. A typed detail is a map with `kind`.
-- **Numbers.** Identifiers are strings at every coded width (R24): a value whose meaning is identity is a decimal string, or lowercase hexadecimal for a binary one, wherever it appears. In the typed details this rule comes before the rule for narrower integers below. A 32-bit ISO `track_ID` that the observations of an inventory error keep is therefore `"4294967295"`, while its Rust accessor returns the `u32`. So is `SourceIdentifier`, although it wraps a `u32`. Quantities are numbers within 2^53 − 1. A `Rational` is a map of `numerator` and `denominator`, and so is `Seconds`. Every other number stays exact by one of three rules, as RFC 7493 section 2.2 recommends for values beyond that range:
-  - *Twins.* The quantities that a record cannot omit are numbers when they fit. Beyond that, the number is omitted and an `_exact` twin carries the decimal string. This covers the offsets in diagnostics and errors, the usage counters and the bytes read in the source table (plan section 8.8). A tag's integer value is data, not a measured quantity, so it gets the same twin when it lies beyond the range.
+- **Enums that carry data.** An enum with a variant that carries a value, such as `TagValue`, `ObservedValue`, `ChromaFormat` and `TextEncoding`, is a map, like a typed detail. Its `kind` member holds the variant's `snake_case` name, and the value is the member named after the kind, as in `{"kind": "text", "text": "Title"}` or `{"kind": "count", "count": "1200"}`. A variant without a value has `kind` alone. A value with a twin keeps the twin's suffix, as in `{"kind": "integer", "integer_exact": "18446744073709551615"}`. Reading needs the member that a known kind names, and no member of another known kind. A kind that a newer version wrote reads into the catch-all, which keeps the kind's name; its members are ignored as any unknown member is, so the order of the members never matters, and the catch-all writes back the kind alone. An enum that is a string in one release stays a string: a variant with a value never joins it, since an older reader expects a string.
+- **Trees.** As the maintainer chose at the sixth review, a tree that the input shapes is one flat array: an edition's `chapters` and a tag set's `tags`. The array holds every node in depth-first order, each with its own members and with `parent`, the position of its parent in the same array; a top-level node has no `parent`, and no node has `children`. Reading builds the tree from the array and needs each node's parent to come before it, so any other `parent` fails as malformed input; the order of the array gives the order of siblings. So a document's nesting depth is fixed by its schema, whatever the depth of a tree, and every reader with a recursion limit, such as serde_json's default of 128 levels, reads it. A later structure whose depth the input decides takes the same form. In Rust the trees keep `children()` (section 3.3).
+- **Numbers.** Identifiers are strings at every coded width (R24): a value whose meaning is identity is a decimal string for an integer, lowercase hexadecimal for a binary one, and its own text for a textual one, such as a Matroska `ChapterStringUID` (section 6.8), wherever it appears. In the typed details this rule comes before the rule for narrower integers below. A 32-bit ISO `track_ID` that the observations of an inventory error keep is therefore `"4294967295"`, while its Rust accessor returns the `u32`. So is `SourceIdentifier`, although it wraps a `u32`. Quantities are numbers within 2^53 − 1. A `Rational` is a map of `numerator` and `denominator`, and so is `Seconds`. Each reads back only in the form that `Rational::new` gives: a denominator of at least 1, both parts within 2^53 − 1 in magnitude, and reduced. A zero denominator, a part beyond the range or a fraction that is not reduced fails as malformed input. Every other number stays exact by one of three rules, as RFC 7493 section 2.2 recommends for values beyond that range:
+  - *Twins.* The quantities that a record cannot omit are numbers when they fit. Beyond that, the number is omitted and an `_exact` twin carries the decimal string. This covers the offsets in diagnostics, errors and source offsets (section 6.3), the usage counters and the bytes read in the source table (plan section 8.8). A tag's integer value is data, not a measured quantity, so it gets the same twin when it lies beyond the range. Reading takes the value from exactly one of the two, each in its own range: a number within 2^53 − 1 in magnitude, or a twin beyond it in canonical decimal, which is digits with a minus sign for a negative value and no leading zero or plus sign. A number beyond the range, a twin within it or not canonical, and both members at once fail as malformed input; neither leaves an optional quantity absent.
   - *Wide fields are strings.* In the typed details, every integer whose type is 64 bits wide (`u64`, `i64`) is always a decimal string, so its JSON type never depends on its value. Matroska's `DateUTC` in nanoseconds is an example, and so is an observed count. Narrower integers that are not identifiers are numbers. The fixed-size record's `omitted_diagnostics` and `omitted_declarations` are decimal strings too. The maintainer chose this on 2026-11-22.
   - *Bit patterns are hexadecimal.* A `FloatingPointValue` is a map of its `width` and its `bits` in lowercase hexadecimal: 8 digits for single precision and 16 for double, as in `"3ff0000000000000"` for 1.0.
-- **Paths.** A `PortablePath` is written as its display string under the member's own name, so an entry's input reads `"input": "movie.mkv"`, as plan section 8.9 shows. A lossy path adds two members beside it, named after it, as the twins of large quantities are: `<name>_lossy` with `true`, and `<name>_raw`, a map of `encoding` (`unix_bytes` or `windows_wide`) and `data` (plan section 8.8). A path that is not lossy has neither, so an entry has `input`, `input_lossy` and `input_raw`, and a source-table entry `path`, `path_lossy` and `path_raw`. Reading takes the flag and the raw form only together, and a member with one but not the other fails as malformed input does. So does the data of a known encoding that is not whole units of lowercase hexadecimal digits, two a byte or four a unit, such as `"gg"`, an odd number of digits for `unix_bytes`, or a sign (section 6.15).
+- **Paths.** A `PortablePath` is written as its display string under the member's own name, so an entry's input reads `"input": "movie.mkv"`, as plan section 8.9 shows. A lossy path adds two members beside it, named after it, as the twins of large quantities are: `<name>_lossy` with `true`, and `<name>_raw`, a map of `encoding` (`unix_bytes` or `windows_wide`) and `data` (plan section 8.8). A path that is not lossy has neither, so an entry has `input`, `input_lossy` and `input_raw`, and a source-table entry `path`, `path_lossy` and `path_raw`. The flag is written only as `true`. Reading takes the flag and the raw form only together, and a member with one but not the other fails as malformed input does, and so does a flag of `false`. For a known encoding, on every platform, the three members must describe one path (section 6.15):
+  - the data is whole units of lowercase hexadecimal digits, two a byte or four a unit, so `"gg"`, an odd number of digits for `unix_bytes`, or a sign fails;
+  - the data is not valid Unicode, since a path that is valid Unicode is never lossy, so the bytes `6f74686572`, which spell `other`, fail;
+  - the display string is the data decoded with U+FFFD in place of what is not valid, so `input.bin` beside the bytes `ff2e62696e` fails, and `�.bin` reads.
+
+  The data of an encoding that a newer version wrote is kept as written, unchecked.
 - **Unknown members** are ignored on input. No type denies unknown fields.
 - **`Document`** is what the CLI writes and what a library user can write too. A document holds either results or a usage error, never both (plan section 8.9). Its two constructors keep it so, and it has no method that adds an entry later:
   - `Document::from_results(generator: Generator, results: Vec<DocumentEntry>)`. With no entries it is the document of `--json --version`.
@@ -1043,30 +1095,43 @@ With the `serde` feature, every model type implements `Serialize` and `Deseriali
 
   `Generator::new(name, version)` and `UsageError::new(message)` build the parts. A `UsageError` is an object with `message() -> &str`, as plan section 8.9 writes it, so that it can gain members later.
 - **Entries.** An entry is built by one of three constructors. They are not named `report`, `detection` and `error`, because those are the names of the getters below. `PortablePath::from_path(path: &Path)` gives the input.
-  - `DocumentEntry::from_report(index: usize, input: PortablePath, report: MediaReport) -> Result<DocumentEntry, UnderivableOutcome>`;
-  - `DocumentEntry::from_detection(index, input, detection: Detection) -> Result<DocumentEntry, UnderivableOutcome>`;
-  - `DocumentEntry::from_error(index, input, record: ErrorRecord) -> DocumentEntry`.
+  - `DocumentEntry::from_report(input: PortablePath, report: MediaReport) -> Result<DocumentEntry, UnderivableOutcome>`;
+  - `DocumentEntry::from_detection(input, detection: Detection) -> Result<DocumentEntry, UnderivableOutcome>`;
+  - `DocumentEntry::from_error(input, record: ErrorRecord) -> DocumentEntry`.
 
   The entry's `outcome` follows from what it holds, by the table of plan section 8.9:
   - a report gives `ok` when it is complete and `partial` otherwise;
   - a detection gives `ok` when the format was identified, `partial` for a family only, an ambiguous result or a hint only, and `error` for insufficient data or an unknown format;
   - an error record gives `error`. A source that fails during detection is such a record.
-- **An outcome that cannot be derived.** A record read from a newer version can hold a value that decides the outcome and that this version does not know: a completeness status of a report, or a detection outcome. A newer table may decide it differently, so a derived outcome could make a newer reader reject the document. As the maintainer chose on 2026-11-22, `from_report` and `from_detection` then return `UnderivableOutcome` instead of guessing. It keeps the entry's parts behind one pointer. Its `with_outcome(outcome: EntryOutcome) -> DocumentEntry` builds the entry with an outcome that the caller gives, such as the one that a document recorded for the same record. It implements `std::error::Error`. A report or detection that this version's own probe made always gives its outcome.
-- **Reading a document.** `Document` has `schema_version() -> SchemaVersion`, `generator() -> &Generator` with `name()` and `version()`, `usage_error() -> Option<&UsageError>` and `results() -> &[DocumentEntry]`. A `DocumentEntry` has `index() -> usize` and `input() -> &PortablePath`. It also has `outcome() -> &EntryOutcome` (`Ok`, `Partial`, `Error` and the catch-all of rule 5), and `report()`, `detection()` and `error()`, of which exactly one is `Some` for an outcome this version knows. Section 15.6 reads a document back. Reading checks three rules, and input that breaks one fails as malformed input does:
+- **The index is the position.** As the maintainer chose at the sixth review, an entry has no index of its own. A document writes each entry's position in `results`, from 0, as its `index`, in `from_results` and in the writer below, and reading fails on an entry whose `index` is not its position, so no two entries share one. The CLI writes an entry for each input in the order of the command line, so the position is the input's place there (plan section 8.8). The writer stops with an error before a position beyond 2^53 − 1, so an index is always an exact number; a reader holds as many entries as its memory allows, which on a 32-bit platform is far fewer than `usize` counts.
+- **An outcome that cannot be derived.** A record read from a newer version can hold a value that this version does not know: a completeness status of a report, or a detection outcome. A newer table may decide the outcome differently, so a derived outcome could make a newer reader reject the document. An unfamiliar value suspends only the decision that depends on it. A report with a shortfall in a status that this version knows is `partial` whatever its newer statuses say, since no newer status makes it complete. Only a report whose known statuses are all complete beside a newer one, and a detection outcome of a newer version, leave the outcome open. As the maintainer chose on 2026-11-22, `from_report` and `from_detection` then return `UnderivableOutcome` instead of guessing. It keeps the entry's parts behind one pointer and implements `std::error::Error`. Its `with_outcome(outcome: EntryOutcome) -> Result<DocumentEntry, UnderivableOutcome>` builds the entry with an outcome that the caller gives, such as the one that a document recorded for the same record. It refuses an outcome that the record rules out, `error` for a report, and gives the refusal back unchanged, so every entry that it builds reads back. A report or detection that this version's own probe made always gives its outcome.
+- **Reading a document.** `Document` has `schema_version() -> SchemaVersion`, `generator() -> &Generator` with `name()` and `version()`, `usage_error() -> Option<&UsageError>` and `results() -> &[DocumentEntry]`, in which an entry's position is its index. A `DocumentEntry` has `input() -> &PortablePath`. It also has `outcome() -> &EntryOutcome` (`Ok`, `Partial`, `Error` and the catch-all of rule 5), and `report()`, `detection()` and `error()`, of which exactly one is `Some` for an outcome this version knows. Section 15.6 reads a document back. Reading checks four rules, and input that breaks one fails as malformed input does:
   - A document with a usage error has an empty `results` array.
+  - Each entry's `index` is its position.
   - An entry of a known outcome holds exactly one of the three records.
-  - That record warrants the outcome, by the table above. An error record labeled `ok` fails, and so does an incomplete report labeled `ok` or a detection of a family only labeled `error`. The check applies where this version can derive the outcome. A report whose statuses include one from a newer version, and a detection outcome from a newer version, keep the outcome that was written, since a newer table may decide them differently. So does an outcome from a newer version, whatever its entry holds.
+  - That record allows the outcome, by the table above. An error record labeled `ok` fails, and so does an incomplete report labeled `ok` or a detection of a family only labeled `error`. Where an unfamiliar value leaves the outcome open, the outcomes it could still take are allowed and the rest still fail: a report beside a newer status allows `ok` and `partial` but never `error`, which only an error record warrants, and a detection outcome of a newer version allows any outcome. An outcome from a newer version is kept, whatever its entry holds.
 - **Nested root records.** A report, detection result or error record inside a document carries the document's version as its own `schema_version` (plan section 8.8), and so does the partial report inside an error record, through `ErrorRecord::partial_report()`. A document gives each record it holds its own version, whatever version the record was read with: `from_results` and the writer below set it on every entry, down to the partial report. So a document rebuilt from the entries of a document of version 1.1 is a document of version 1.0 throughout. Reading checks every nested record of every entry against the document's version, the partial report of an error record included, and each record of an entry of a newer outcome that holds several. A nested record of another version is the version error.
 - **Writing as it goes.** `Document::serialize_results(generator: &Generator, entries: impl IntoIterator<Item = DocumentEntry>, serializer: impl Serializer)` writes a document of results to any Serde serializer, one entry at a time, as the maintainer chose on 2026-11-22. It answers the question that G2.3 had left open:
   - it writes what `Document::from_results` with the same entries writes, also for no entries;
-  - each entry is written with the document's version, and released before the next one is taken;
+  - each entry is written with the document's version and its position as its index, and released before the next one is taken;
   - the first error of the serializer ends the document, and no further entry is taken, so a caller who probes in the sequence stops probing;
   - the results are a sequence of unknown length, so a serializer that needs the length of a sequence up front cannot write them (Serde, `Serializer::serialize_seq`);
   - it writes nothing after the document's closing. A caller who ends the document with a line break, or whose output is buffered, writes the break and flushes through the same output, and returns a failure of either as it returns a failure of the writer. An output that fails at its last byte therefore fails as one that fails inside an entry does (section 15.6).
 
   The CLI writes its document with it, so a scan of any length holds one report at a time and has the framing of every other document (plan section 8.9). `from_results` stays for callers who hold their entries.
 
-The stub of section 15 writes this form for every member that its document carries: the version as `"1.0"`, an input as its display string with its flag and raw form for a lossy path, outcomes and error kinds as `snake_case` strings with their catch-alls, a version on each nested record, the stable I/O error kind, identifiers as strings, and no member for an absent value. Its tests read the entry form of plan section 8.9 back, including a lossy input and a 32-bit identifier kept in an error's observations. They check the three rules and every nested version, the partial report of an error record included, in a document that is read and in one rebuilt from version 1.1 by either writer. A raw path of a known encoding whose data is not whole units of lowercase hexadecimal digits fails, while a foreign path and an encoding of a newer version are kept. They also check that the writer writes what `from_results` writes, for no entries and for mixed ones, and that an output failure leaves the next entry untaken. The rest of the stub's model keeps the default form of Serde's derive, the detail enums' tagging included, since the stub builds no report; task 5 fixes the complete form.
+The stub of section 15 writes this form for every member that its document carries: the version as `"1.0"`, an input as its display string with its flag and raw form for a lossy path, outcomes and error kinds as `snake_case` strings with their catch-alls, a version on each nested record, the stable I/O error kind, identifiers as strings, and no member for an absent value. Its tests read the entry form of plan section 8.9 back, including a lossy input and a 32-bit identifier kept in an error's observations. They check the three rules and every nested version, the partial report of an error record included, in a document that is read and in one rebuilt from version 1.1 by either writer. A raw path of a known encoding whose data is not whole units of lowercase hexadecimal digits fails, while a foreign path and an encoding of a newer version are kept. They also check that the writer writes what `from_results` writes, for no entries and for mixed ones, and that an output failure leaves the next entry untaken. Since the sixth review the stub also writes and checks:
+
+- each entry's position as its index, and the refusal of an index that skips or repeats a position;
+- the outcomes that a report allows beside a status of a newer version, and `with_outcome`, which refuses `error` for a report;
+- a path whose three members describe one path, on Unix and on Windows data alike;
+- the flat form of chapters and tags, read back with serde_json's default recursion limit for a chain of 200,000 tags, which a recursive drop would not survive;
+- the map form of `TagValue`, a kind of a newer version, and the twin `integer_exact`;
+- the twin `bytes_read_exact` of a source entry, read only in its own range;
+- `Rational`, read back only in the form that `Rational::new` gives;
+- the version of a bare report and of a bare error record's partial report.
+
+The stub decodes the members of a record in the order written, so its version error comes first only where the version does; the neutral form of plan section 8.8, which reads the version first wherever it stands, is task 5's to show. The rest of the stub's model keeps the default form of Serde's derive, the detail enums' tagging included, since the stub builds no report; task 5 fixes the complete form.
 
 ## 13. Companion lookup
 
@@ -1150,7 +1215,7 @@ The rules of plan section 8.10 apply to every item above. This section names the
 
 Traits the library does not intend callers to implement are sealed. Compile-fail tests prove that an exhaustive match and a struct literal on a public type do not compile (plan section 8.10). `cargo-semver-checks` compares the API with the last release at the level "no breaking change", with all features, the defaults and none.
 
-**In the serialized form:** a field added after `0.1.0` is optional and defaults to absent. No field is removed, renamed or given a new meaning within a schema major version. An old reader ignores unknown members, reads unknown enum strings into the catch-all, and reads unknown detail kinds into `UnrecognizedDetails`. Root records reject another major version before decoding anything else.
+**In the serialized form:** a field added after `0.1.0` is optional and defaults to absent. No field is removed, renamed or given a new meaning within a schema major version. An old reader ignores unknown members, reads unknown enum strings into the catch-all, reads unknown detail kinds into `UnrecognizedDetails`, and reads an unknown kind of an enum that carries data into its catch-all, ignoring the value (section 12). Root records reject another major version before decoding anything else.
 
 **Reported values can improve.** A later release that parses more fills more fields and can change a header status. `docs/guide/stability.md` defines these output changes as compatible, and each is listed in the changelog (plan section 9.6).
 
@@ -1443,7 +1508,7 @@ fn time(value: Option<Seconds>) -> String {
 
 ### 15.6 JSON
 
-A report is a root record on its own. The document form is the one the CLI writes, and a library caller writes it the same way, one entry at a time, so a scan holds one report at a time. An error enters a document as its record. Standard output carries only the document, so it stays valid JSON, and the summaries go to standard error. The line break after the document and the flush fail as the document does, so an output that fails at its last byte ends the program with an error, not a panic. An earlier catalog read back gives each entry's input and what it holds: a report, a detection or an error record. Only an outcome that a newer version wrote falls to the catch-all. A missing catalog is skipped, and one that cannot be read is an error.
+A report is a root record on its own. The document form is the one the CLI writes, and a library caller writes it the same way, one entry at a time, so a scan holds one report at a time. An error enters a document as its record, and the document numbers its entries by their positions. Standard output carries only the document, so it stays valid JSON, and the summaries go to standard error. The line break after the document and the flush fail as the document does, so an output that fails at its last byte ends the program with an error, not a panic. An earlier catalog read back gives each entry's input and what it holds: a report, a detection or an error record. Only an outcome that a newer version wrote falls to the catch-all. A missing catalog is skipped, and one that cannot be read is an error.
 
 ```rust
 use std::io::{self, Write};
@@ -1466,17 +1531,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   }
 
   // Several inputs in the document form that the CLI writes, an error among them. The writer takes one entry at a
-  // time and releases it before the next input is probed, so a scan of any length holds one report at a time.
-  let entries = ["movie.mkv", "notes.txt"].into_iter().enumerate().map(|(index, path)| {
+  // time and releases it before the next input is probed, so a scan of any length holds one report at a time. The
+  // document writes each entry's position as its index.
+  let entries = ["movie.mkv", "notes.txt"].into_iter().map(|path| {
     let input = PortablePath::from_path(Path::new(path));
     match probe_file(path) {
-      Ok(report) => match DocumentEntry::from_report(index, input, report) {
-        Ok(entry) => entry,
-        // Only a report read from a newer version can hold a status that decides the outcome, never one that this
-        // version's probe made. Refused, it takes the outcome given, as this version would label it.
-        Err(refused) => refused.with_outcome(EntryOutcome::Partial),
-      },
-      Err(error) => DocumentEntry::from_error(index, input, error.to_record()),
+      Ok(report) => report_entry(input, report),
+      Err(error) => DocumentEntry::from_error(input, error.to_record()),
     }
   });
   let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
@@ -1510,6 +1571,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   }
   Ok(())
+}
+
+/// The entry of a report. This version's own probe always gives a report whose outcome it derives. Only a report
+/// read from a newer version can be refused, when only a status of that version decides its outcome; it then takes
+/// an outcome that the caller gives, and `with_outcome` refuses only `error`, which no report allows.
+fn report_entry(input: PortablePath, report: MediaReport) -> DocumentEntry {
+  DocumentEntry::from_report(input, report)
+    .or_else(|refused| refused.with_outcome(EntryOutcome::Partial))
+    .expect("every report allows the outcome partial")
 }
 ```
 
@@ -1816,7 +1886,7 @@ fn print_partial_data(error: &Error) {
 
 ### 15.10 Format-specific details
 
-The details are reached through the two open enums. A caller matches the variant it knows, and a stored flag tells a stored value from a default. A parameter set cut short keeps the fields read before the cut, so each of them is optional. Conflicts are read the same way for every format.
+The details are reached through the two open enums. A caller matches the variant it knows, and a stored flag tells a stored value from a default. A track entry or a parameter set cut short keeps the fields read before the cut, so each of them is optional, even an element that the specification makes mandatory. Conflicts are read the same way for every format.
 
 ```rust
 use cc_media_probe::details::{CodecDetails, FormatDetails};
@@ -1838,10 +1908,14 @@ fn main() -> Result<(), Error> {
         Some(flag) => format!("{} (the default)", flag.value()),
         None => "unknown, the track entry was cut short".to_owned(),
       };
+      // A track entry cut short can end before any element, `TrackNumber` and `CodecID` included.
+      let number = track
+        .track_number()
+        .map_or_else(|| "not read".to_owned(), |number| number.to_string());
+      let codec = track.codec_identifier().unwrap_or("not read");
       println!(
-        "#{}: TrackNumber {}, FlagDefault {flag}",
-        stream.index(),
-        track.track_number()
+        "#{}: TrackNumber {number}, CodecID {codec}, FlagDefault {flag}",
+        stream.index()
       );
     }
   }
@@ -1970,7 +2044,7 @@ Writing and checking the scenarios revised the specification as follows. G2.1 ap
   - paths: `RawPathEncoding`, and the members `input_lossy`, `input_raw`, `path_lossy` and `path_raw` with the encodings `unix_bytes` and `windows_wide`;
   - lookup: `SourceIdentityToken::new()` and `as_bytes()`.
 
-**After G2.2.** Writing the CLI contract (plan Phase 2, task 4) found that a partial report could not name why a source failure left its parts incomplete, since no reason said that a source failed. On 2026-11-23 the maintainer chose to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (section 5.5). A new variant of an open set is compatible, so the approval stands.
+**After G2.2.** Writing the CLI contract (plan Phase 2, task 4) found that a partial report could not name why a source failure left its parts incomplete, since no reason said that a source failed. On 2026-11-23 the maintainer chose to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (section 5.5). A new variant of an open set is compatible, so the approval stands. The sixth review amended the approved specification further, below; the joint review of G2.3 confirms those amendments. Its new names are `Confidence::value()`, `SourceOffset` with `source_identifier()`, `offset()` and `logical_offset()`, `LimitRecord::first_reason()` and `omitted_reasons()`, and `TagValue::as_str()`. It removes `DocumentEntry::index()` and the index argument of the three entry constructors, and changes the return types of `UnderivableOutcome::with_outcome()`, of the three track accessors of section 11.4 and of the two endpoints of `DeclarationRange`.
 
 **The first review.** On 2026-11-22 the maintainer's review held back the approval on 21 findings. Each was checked against the plan, the field guide and the stored sources, and each one holds. The specification changed as follows:
 
@@ -2063,6 +2137,38 @@ The review also noted that the spike's document was not in the wire form of sect
 | A catalog that could not be read was treated as missing | Only a missing catalog is skipped, and any other failure to read it is returned | 15.6 |
 
 The review raised the last four under G2.3. Three of them carry into the joint review of tasks 4 and 5: the last-byte failure is a test of the CLI contract, and the partial report's version and the raw data are rules of the JSON contract (plan sections 8.8 and 8.9).
+
+**The sixth review.** On 2026-11-23 the maintainer's review of revision 39 (`5447dea`) found cases in the approved specification where two implementations could report differently, and held G2.3 open. It raised eight findings under G2.2 and seven under G2.3, and named two evidence gaps for task 5. Each was checked against the plan, RFC 9559, ITU-T H.264, futures-io's and Serde's documentation and the spike, and each one holds. Tests written first reproduced every archive case of the review: the three labels accepted beside a known shortfall, a report labeled `error`, the path `other`, a tree of 61 tags that serde_json's default limit refused in a document, a bare report of version 2.0, a bare error record with a partial report of version 2.0, a zero denominator and an unread twin. The amendments change the approved specification, so the joint review of G2.3 confirms them (plan section 1.2). The specification changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| A header read that a source failure interrupted after its first field had no state | The two byte-shortage states take `SourceFailed` in an error's partial report, and so does `NotAttempted`; `reasons()` names the stream and the source | 5.4, 5.5 |
+| A full budget could drop the only reason of an incomplete part, and the diagnostic that names an unchecked candidate | The record keeps the first reason of each part and counts the reasons not kept; reasons, their text and diagnostics are kept within their limits, and the CLI falls back to the record (the maintainer's choice) | 5.3 |
+| Two validated candidates could tie, and a check that needs bytes outside a forward-only prefix had no completeness result | Candidates are ranked by confidence, the format hint, the file-name hint and the inventory's order, checked in that rank, and the first that validates is used; a candidate ranked ahead that a limit or an unavailable range left unchecked makes detection incomplete (the maintainer's choice) | 5.1, 5.3, 8 |
+| A track proven to have no sample could have lost its fallback description | The codec and its fields are absent, `has_every_candidate()` is false, and the details still label the fallback, so three cases without a codec read apart | 6.4 |
+| A slice header alone was taken to establish the primary sequence parameter set | The chain from `pic_parameter_set_id` through the picture parameter set, or the buffering-period SEI message, must be followed; a missing link establishes nothing | 11.5 |
+| A detection's confidence could not be read | `Confidence::value() -> u8` and `Display`; a number in JSON | 3.3, 8 |
+| A Matroska track entry cut short before `CodecID` still had to return one | `codec_identifier()`, `track_number()` and `track_unique_identifier()` are optional | 11.4, 15.10 |
+| A declaration range's offsets named no source | Each endpoint is a `SourceOffset` with its source, its offset and its logical offset, and the two can lie in different sources | 3.2, 6.3, 12 |
+| The blanket implementation for `&mut Source` omitted its `Unpin` bound | `&mut Source` and `Box<Source>` need `Unpin`; `Pin<Pointer>` serves a source that is not, as futures-io does | 9.1, 9.3 |
+| A reader accepted `ok`, `partial` and `error` for a report with a known shortfall beside a newer status | An unfamiliar status suspends only the decision that depends on it: a known shortfall gives `partial`, and a report never allows `error` | 12 |
+| A display string and raw bytes that spell different paths read back, and so did a flag of `false` | The three members describe one path: the data is not valid Unicode and decodes to the display, and the flag is only `true` | 6.15, 12 |
+| An index could pass the exact range, overflow a 32-bit `usize`, or repeat | The index is the entry's position, which the document writes and reading checks; the constructors lose their index (the maintainer's choice) | 12, 15.6 |
+| Each level of a tree took two levels of JSON, so serde_json's default limit refused a document of 61 tag levels | Chapters and tags are flat arrays with a parent position on each node (the maintainer's choice), and no operation on a tree recurses on its depth | 3.3, 6.8, 6.9, 12 |
+| The wire form of an enum that carries data was not specified | A map of `kind` and the member named after the kind; an unknown kind keeps its name and its payload is ignored | 6.9, 12 |
+| The number rule had no place for an identifier that is text | A textual identifier stays its own text | 6.8, 12 |
+| `PortablePath` was promised both traits and given a form only inside its parent | It is named, with `DocumentEntry`, as a type that its parent writes and that implements neither trait | 3.3, 6.15, 12 |
+| Evidence gap: a bare error record's partial report and version precedence | A bare error record checks its partial report's version; the version error comes before any other failure in each root record, and task 5 shows the neutral form that reads it first wherever it stands | 12 |
+| Evidence gap: a zero denominator read back, and a valid twin read as absent | `Rational` reads back only in the form `Rational::new` gives; a twin is read, each form only in its own range | 12 |
+
+**Found while revising the sixth review:**
+
+- **An entry that its own reader refuses.** `with_outcome()` could label a report `error`, which the stricter reading refuses. It now returns a `Result` and refuses an outcome that the record rules out.
+- **Recursion on a tree.** The derived `Drop`, `Clone`, `PartialEq`, `Hash` and `Debug` of a chapter or tag recurse on its depth. A probe with a raised nesting limit could already build a tree too deep for them, and the flat form lets any document hold one. They walk the tree with an explicit stack now, as plan section 7.6 requires of input-driven work; the spike drops and clones a chain of 200,000 tags.
+- **The other mandatory elements of a track entry.** `TrackNumber` and `TrackUID` can be cut off as `CodecID` can, so they are optional too.
+- **A boxed async source.** The blocking trait had `Box<Source>` and the async one did not; it has it now.
+- **The stub's `IntegerValue::to_i64()`** could not return `i64::MIN`, which the twin's test found.
+- **The order of members.** `serde_json::Value` orders a map's members by name, so a test built with it puts `generator` before `schema_version`. The stub decodes members in that order, so only the neutral form of task 5 can show the version error first for every order.
 
 **Open points found while writing:**
 

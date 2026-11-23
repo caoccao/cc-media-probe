@@ -25,9 +25,10 @@ use serde::{Serialize, Serializer};
 use super::contents::{Document, Generator};
 use super::entry::DocumentEntry;
 use super::version::SchemaVersion;
+use super::wire::PositionedEntry;
 use crate::constants::{
-  DOCUMENT_NAME, ENTRIES_TAKEN_MESSAGE, GENERATOR_MEMBER, RESULTS_DOCUMENT_MEMBER_COUNT, RESULTS_MEMBER,
-  SCHEMA_VERSION_MEMBER,
+  DOCUMENT_NAME, ENTRIES_TAKEN_MESSAGE, GENERATOR_MEMBER, LARGEST_EXACT, POSITION_RANGE_MESSAGE,
+  RESULTS_DOCUMENT_MEMBER_COUNT, RESULTS_MEMBER, SCHEMA_VERSION_MEMBER,
 };
 
 impl Document {
@@ -62,9 +63,14 @@ impl<Entries: Iterator<Item = DocumentEntry>> Serialize for Results<Entries> {
       .take()
       .ok_or_else(|| Output::Error::custom(ENTRIES_TAKEN_MESSAGE))?;
     let mut sequence = serializer.serialize_seq(None)?;
-    for entry in entries {
+    for (index, entry) in entries.enumerate() {
+      // An index is always exact: the writer stops before one beyond 2^53 - 1.
+      if u64::try_from(index).map_or(true, |index| index > LARGEST_EXACT) {
+        return Err(Output::Error::custom(POSITION_RANGE_MESSAGE));
+      }
       // The entry goes out of scope before the next one is taken, and `?` stops at the first output error.
-      sequence.serialize_element(&entry.with_schema_version(SchemaVersion::CURRENT))?;
+      let entry = entry.with_schema_version(SchemaVersion::CURRENT);
+      sequence.serialize_element(&PositionedEntry { index, entry: &entry })?;
     }
     sequence.end()
   }

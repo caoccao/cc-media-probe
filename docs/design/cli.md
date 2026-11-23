@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. |
+| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day. |
 | **Plan** | [Section 8.9](../plans/plan-init-project.md#89-command-line-contract) fixes the command line, the JSON document, the outcomes and the exit statuses, on the rules of R21 and R23. This document fixes the rest: the order in which the command line is read, the messages, the help and version texts, the text layout and what goes to each output. |
 | **API** | [`docs/design/api.md`](api.md), approved at G2.2 on 2026-11-23: the entry points and options (section 4), the outcomes (section 5), the report model (section 6), detection (section 8), the error record (section 10) and the document with its writer (section 12). |
 
@@ -220,7 +220,7 @@ An input that cannot be opened gets the outcome `error`, like an input that open
 - **One document.** Standard output gets exactly one document followed by one line feed, and nothing else. Standard error gets only usage messages and output failures: no per-input errors, no warnings and no diagnostics, since the document holds them all (plan section 8.9).
 - **Its shape.** The document of plan section 8.9 and `api.md` section 12. Task 5 fixes every member in `docs/guide/json-output.md`. The `generator` is `cc-media-probe-cli` with the tool's version.
 - **Written as it goes.** `Document::serialize_results` writes the document, one entry as each input finishes, to the pretty serializer of `serde_json`: two spaces of indentation for each level, a colon and a space after each member's name, and each member and each array element on lines of its own. The tool then writes the line feed and flushes, through the same output (`api.md` section 12).
-- **Entries.** `index` counts the inputs from 0, in the order of the command line; options do not count. `input` is the input as written, so standard input is `"-"`. An input that is not valid Unicode has its display string with `input_lossy` and `input_raw` beside it (plan section 8.8). Then come `outcome` and the entry's record: `report`, `detection` or `error`.
+- **Entries.** `index` counts the inputs from 0, in the order of the command line; options do not count. Every input gets an entry in that order, so the index is the entry's position in `results`, which the document writes (`api.md` section 12). `input` is the input as written, so standard input is `"-"`. An input that is not valid Unicode has its display string with `input_lossy` and `input_raw` beside it (plan section 8.8). Then come `outcome` and the entry's record: `report`, `detection` or `error`.
 - **Records.** Each record is a root record that carries the document's version, down to the partial report of an error record (plan section 8.8).
 
 Three inputs of different outcomes, with each record cut to the members that this section discusses:
@@ -353,6 +353,14 @@ The header status has no line of its own. A state that is not final is a shortfa
 
 A reason is the part's stable name, with ` of stream N` for a stream's headers and ` of source N` where it names a source other than the primary input, as a companion's request does. A colon and the reason's kind follow, then the limit's name or the feature's name in parentheses where the reason names one, and a colon with the detail where it has one. A report that is incomplete only through a status of a newer version reads `no` with no further line.
 
+**When the budget was full.** `reasons()` is kept within the retained-data limit, so it can lack the reason of a part that fell short. The fixed-size record keeps the first reason of each part whatever the limits (`api.md` section 5.3). For each part that falls short and that no reason of `reasons()` names, the line is the record's `first_reason()` for that part, in the same form; it has no detail, since the record keeps none. When `omitted_reasons()` is more than zero, a last line follows, as `3 more reasons were counted and not kept`:
+
+```text
+  complete     no
+               discovery: truncated_input
+               3 more reasons were counted and not kept
+```
+
 ### 8.5 A detection
 
 With `--detect`, each detection result has a block of its own:
@@ -367,9 +375,9 @@ movie.mkv
 
 | Outcome | Lines after `outcome` |
 |---|---|
-| `identified` | `format`; `support`, which is `probed` or `detect_only`; `confidence` |
+| `identified` | `format`; `support`, which is `probed` or `detect_only`; `confidence`, the number of `Confidence::value()` |
 | `family_only` | `format`, the family's name |
-| `ambiguous` | One `candidate` line for each candidate, by falling confidence: the format's name, then `, confidence` and the number |
+| `ambiguous` | One `candidate` line for each candidate, in the rank of `api.md` section 5.1, which falls with the confidence: the format's name, then `, confidence` and the number of `Confidence::value()` |
 | `hint_only` | `hint`: the hinted format's name, its origin's stable name in parentheses, and `, not verified` |
 | `insufficient_data` | `bytes needed`, where known; `reason`, where known: the reason's kind, with its limit in parentheses where it names one, as in section 8.4 |
 | `unknown` | None |
@@ -458,7 +466,7 @@ And the rules of this document:
 
 - **Reading the command line:** `--help` beside an unknown option and beside a repeated `-`; `--help=1`; `--json=yes`; `--js`; `-json`; an option after an input; a repeated option; `-` after `--`; `--json` after `--`; an empty argument; `--version` with an input, and `--version` beside `-` named twice. The spike's cases of section 12 are the start of this list.
 - **The help and version texts** of section 5, with and without `--json`.
-- **Text mode:** a complete report; an incomplete report, with and without `--strict`; an error without a partial report; an error that carries one; each detection outcome; a report of no streams; an estimated duration; a diagnostic with its stream and offset.
+- **Text mode:** a complete report; an incomplete report, with and without `--strict`; an incomplete report whose `reasons()` the retained-data limit left empty, with the record's reasons and the count of those not kept; an error without a partial report; an error that carries one; each detection outcome, an ambiguous one with two candidates of equal confidence among them; a report of no streams; an estimated duration; a diagnostic with its stream and offset.
 - **Escaping:** a title, a codec identifier as the file wrote it, a diagnostic's message and an input name that hold U+001B, U+0007, U+009B, U+202E and U+2066, each written as its escape; a backslash written as it is.
 - **Paths:** an input that is not valid Unicode, on Unix and on Windows, in both modes.
 
@@ -500,5 +508,6 @@ G2.3 approves this contract together with the JSON contract of task 5 (plan Phas
 - On a closed pipe, exit status 1 with a message, as plan section 8.9 has it, rather than the silent end that the signal would give.
 - A failure to write standard error ignored.
 - The dossier's row for `clap` could drop the features `help` and `usage`, which the tool does not need (section 12). The dossier keeps them until G2.3 decides.
+- The record's reasons printed in the place of the missing ones when the budget was full, with a last line that counts the reasons not kept (section 8.4), after the sixth review of `api.md`.
 
 **Found while writing.** A source failure after the inventory gives an error that carries a partial report (R19). `api.md` section 5.3 records every shortfall against the part it stopped, but no reason said that a source failed, so the partial report of section 8.7 could not say why its remaining parts were incomplete. The maintainer chose on 2026-11-23 to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (`api.md` section 5.5). A new variant of an open set is compatible, so G2.2 stands.

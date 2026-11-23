@@ -85,8 +85,8 @@ impl MatroskaDetails {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MatroskaTrackDetails {
   stream_index: usize,
-  track_number: u64,
-  codec_identifier: String,
+  track_number: Option<u64>,
+  codec_identifier: Option<String>,
   flag_default: Option<StoredValue<bool>>,
   codec_private_data: Option<Vec<u8>>,
 }
@@ -97,14 +97,15 @@ impl MatroskaTrackDetails {
     self.stream_index
   }
 
-  /// `TrackNumber`.
-  pub fn track_number(&self) -> u64 {
+  /// `TrackNumber` (RFC 9559 5.1.4.1.1). Mandatory, yet absent when the track entry was cut short before it: EBML
+  /// fixes no order among a master's children, so a cut can fall before any of them.
+  pub fn track_number(&self) -> Option<u64> {
     self.track_number
   }
 
-  /// `CodecID`.
-  pub fn codec_identifier(&self) -> &str {
-    &self.codec_identifier
+  /// `CodecID` (RFC 9559 5.1.4.1.21); absent, like `TrackNumber`, when the track entry was cut short before it.
+  pub fn codec_identifier(&self) -> Option<&str> {
+    self.codec_identifier.as_deref()
   }
 
   /// `FlagDefault`, default 1; absent when the track entry was cut short before the flag was read, since an

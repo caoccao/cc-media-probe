@@ -35,6 +35,8 @@ mod limits;
 pub mod model;
 mod prober;
 pub mod source;
+#[cfg(feature = "serde")]
+mod twin;
 
 pub use entry_points::{probe_bytes, probe_file, probe_reader, probe_source, probe_stream};
 pub use error::{Error, ErrorKind};

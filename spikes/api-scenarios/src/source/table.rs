@@ -21,14 +21,14 @@ use std::num::ParseIntError;
 
 use super::path::PortablePath;
 #[cfg(feature = "serde")]
-use super::path::is_not_lossy;
-#[cfg(feature = "serde")]
 use super::raw::RawPath;
 use crate::completeness::Reason;
 #[cfg(feature = "serde")]
 use crate::constants::LOSSY_PATH_MESSAGE;
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
+#[cfg(feature = "serde")]
+use crate::twin::{unsigned_members, unsigned_value};
 
 /// Which source of a probe something concerns; 0 is the primary input. Serialized as a decimal string, like every
 /// identifier, although it is 32 bits wide.
@@ -85,6 +85,7 @@ impl SourceEntry {
 }
 
 /// An entry's members: its path is the display string, and a lossy path adds its flag and its raw form beside it.
+/// The bytes read beyond the exact range are the twin `bytes_read_exact` (`api.md` section 12).
 #[cfg(feature = "serde")]
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SourceEntryData {
@@ -94,9 +95,11 @@ struct SourceEntryData {
   #[serde(skip_serializing_if = "Option::is_none")]
   bytes_read: Option<u64>,
   #[serde(skip_serializing_if = "Option::is_none")]
+  bytes_read_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   path: Option<String>,
-  #[serde(default, skip_serializing_if = "is_not_lossy")]
-  path_lossy: bool,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  path_lossy: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
   path_raw: Option<RawPath>,
 }
@@ -106,12 +109,14 @@ impl From<SourceEntry> for SourceEntryData {
   fn from(entry: SourceEntry) -> SourceEntryData {
     let (path, path_lossy, path_raw) = match entry.path.map(PortablePath::into_members) {
       Some((display, lossy, raw)) => (Some(display), lossy, raw),
-      None => (None, false, None),
+      None => (None, None, None),
     };
+    let (bytes_read, bytes_read_exact) = unsigned_members(entry.bytes_read);
     SourceEntryData {
       identifier: entry.identifier,
       reason: entry.reason,
-      bytes_read: entry.bytes_read,
+      bytes_read,
+      bytes_read_exact,
       path,
       path_lossy,
       path_raw,
@@ -123,9 +128,10 @@ impl From<SourceEntry> for SourceEntryData {
 impl TryFrom<SourceEntryData> for SourceEntry {
   type Error = InvalidDocument;
 
-  /// A path's flag and raw form stand only beside its display string.
+  /// A path's flag and raw form stand only beside its display string, and the bytes read come from their number or
+  /// their twin.
   fn try_from(data: SourceEntryData) -> Result<SourceEntry, InvalidDocument> {
-    if data.path.is_none() && (data.path_lossy || data.path_raw.is_some()) {
+    if data.path.is_none() && (data.path_lossy.is_some() || data.path_raw.is_some()) {
       return Err(InvalidDocument::new(LOSSY_PATH_MESSAGE));
     }
     let path = data
@@ -135,7 +141,7 @@ impl TryFrom<SourceEntryData> for SourceEntry {
     Ok(SourceEntry {
       identifier: data.identifier,
       reason: data.reason,
-      bytes_read: data.bytes_read,
+      bytes_read: unsigned_value(data.bytes_read, data.bytes_read_exact)?,
       path,
     })
   }

@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 
 #[cfg(any(unix, feature = "serde"))]
 use super::constants::BYTE_DIGITS;
-#[cfg(any(unix, windows))]
+#[cfg(any(unix, windows, feature = "serde"))]
 use super::constants::HEXADECIMAL_RADIX;
 #[cfg(any(windows, feature = "serde"))]
 use super::constants::UNIT_DIGITS;
@@ -128,6 +128,31 @@ impl RawPath {
   pub(super) fn to_native(&self) -> Option<PathBuf> {
     None
   }
+
+  /// For a known encoding, on every platform: whether the data is valid Unicode, and the data decoded with U+FFFD
+  /// in place of what is not, as the standard library's lossy conversions decode it. `None` for an encoding that a
+  /// newer version wrote.
+  #[cfg(feature = "serde")]
+  pub(super) fn decoded(&self) -> Option<(bool, String)> {
+    match self.encoding {
+      RawPathEncoding::UnixBytes => {
+        let bytes = hexadecimal_units(&self.data, BYTE_DIGITS)?
+          .into_iter()
+          .map(u8::try_from)
+          .collect::<Result<Vec<u8>, _>>()
+          .ok()?;
+        Some((
+          std::str::from_utf8(&bytes).is_ok(),
+          String::from_utf8_lossy(&bytes).into_owned(),
+        ))
+      }
+      RawPathEncoding::WindowsWide => {
+        let units = hexadecimal_units(&self.data, UNIT_DIGITS)?;
+        Some((String::from_utf16(&units).is_ok(), String::from_utf16_lossy(&units)))
+      }
+      RawPathEncoding::Unrecognized(_) => None,
+    }
+  }
 }
 
 /// A raw path as read, before its data is checked.
@@ -168,7 +193,7 @@ fn is_whole_units(data: &str, digits: usize) -> bool {
 }
 
 /// Hexadecimal text read as units of `digits` digits each; `None` for text that is not such units.
-#[cfg(any(unix, windows))]
+#[cfg(any(unix, windows, feature = "serde"))]
 fn hexadecimal_units(data: &str, digits: usize) -> Option<Vec<u16>> {
   if !is_whole_units(data, digits) {
     return None;

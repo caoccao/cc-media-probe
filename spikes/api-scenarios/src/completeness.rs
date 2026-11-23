@@ -84,6 +84,19 @@ impl Completeness {
     &self.record
   }
 
+  /// Whether a status that this version knows records a shortfall, or a reason names one, which rules out a
+  /// complete report whatever a status of a newer version says.
+  #[cfg(feature = "serde")]
+  pub(crate) fn has_known_shortfall(&self) -> bool {
+    self.detection == DetectionStatus::Incomplete
+      || self.discovery == DiscoveryStatus::Incomplete
+      || [&self.tags, &self.chapters, &self.attachments]
+        .into_iter()
+        .any(|status| *status == SectionStatus::Incomplete)
+      || !self.reasons.is_empty()
+      || !self.record.first_reasons.is_empty()
+  }
+
   /// Whether every status is one this version knows, so that `is_complete()` decides as the writer did.
   #[cfg(feature = "serde")]
   pub(crate) fn is_known(&self) -> bool {
@@ -232,16 +245,30 @@ impl Part {
   }
 }
 
-/// The fixed-size record of `api.md` section 5.3, with the two accessors that the scenarios read. The library's
-/// record has a fixed size; the stub keeps two short lists.
+/// The fixed-size record of `api.md` section 5.3, with the accessors that the scenarios and the tests read. The
+/// library's record has a fixed size, one slot per counter and per part; the stub keeps short lists.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LimitRecord {
   exhausted: Vec<Limit>,
   first_stopped: Vec<(Limit, Part)>,
+  #[cfg_attr(feature = "serde", serde(default))]
+  first_reasons: Vec<PartReason>,
+  #[cfg_attr(feature = "serde", serde(default))]
+  omitted_reasons: u64,
 }
 
 impl LimitRecord {
+  /// The first reason recorded against the part, kept whatever the limits, without its detail text.
+  pub fn first_reason(&self, part: &Part) -> Option<&PartReason> {
+    self.first_reasons.iter().find(|first| first.part == *part)
+  }
+
+  /// The reasons recorded but not kept in `Completeness::reasons()`.
+  pub fn omitted_reasons(&self) -> u64 {
+    self.omitted_reasons
+  }
+
   /// Whether the counter ran out.
   pub fn exhausted(&self, limit: &Limit) -> bool {
     self.exhausted.contains(limit)

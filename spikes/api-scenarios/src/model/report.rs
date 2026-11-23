@@ -37,6 +37,7 @@ use crate::source::SourceEntry;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MediaReport {
   #[cfg(feature = "serde")]
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "crate::document::read_current_major"))]
   schema_version: SchemaVersion,
   format: Format,
   media_type: Option<MediaType>,

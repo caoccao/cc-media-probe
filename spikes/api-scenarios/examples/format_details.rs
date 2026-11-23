@@ -36,10 +36,14 @@ fn main() -> Result<(), Error> {
         Some(flag) => format!("{} (the default)", flag.value()),
         None => "unknown, the track entry was cut short".to_owned(),
       };
+      // A track entry cut short can end before any element, `TrackNumber` and `CodecID` included.
+      let number = track
+        .track_number()
+        .map_or_else(|| "not read".to_owned(), |number| number.to_string());
+      let codec = track.codec_identifier().unwrap_or("not read");
       println!(
-        "#{}: TrackNumber {}, FlagDefault {flag}",
-        stream.index(),
-        track.track_number()
+        "#{}: TrackNumber {number}, CodecID {codec}, FlagDefault {flag}",
+        stream.index()
       );
     }
   }

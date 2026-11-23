@@ -143,3 +143,12 @@ pub const CLOCKWISE_90_DEGREES: u16 = 90;
 pub const CLOCKWISE_180_DEGREES: u16 = 180;
 /// The angles of `Rotation`, in degrees.
 pub const CLOCKWISE_270_DEGREES: u16 = 270;
+
+/// The serialized kinds of `TagValue`, each also the name of the member that holds the payload.
+pub const TEXT_KIND: &str = "text";
+/// The serialized kinds of `TagValue`.
+pub const BINARY_KIND: &str = "binary";
+/// The serialized kinds of `TagValue`.
+pub const INTEGER_KIND: &str = "integer";
+/// The serialized kinds of `TagValue`.
+pub const BOOLEAN_KIND: &str = "boolean";

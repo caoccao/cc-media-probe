@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 
 use super::raw::RawPath;
 #[cfg(feature = "serde")]
-use crate::constants::LOSSY_PATH_MESSAGE;
+use crate::constants::{LOSSY_FLAG_MESSAGE, LOSSY_PATH_MESSAGE, PATH_DISAGREES_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
 
@@ -71,29 +71,40 @@ impl PortablePath {
     }
   }
 
-  /// A path read from its members: the display string, the flag and the raw form, which a lossy path needs and only
-  /// a lossy path has.
+  /// A path read from its members, which describe one path. The flag is written only as `true` and only with the
+  /// raw form. For a known encoding, the raw data is not valid Unicode, since a path that is valid Unicode is never
+  /// lossy, and the display string is that data decoded with U+FFFD. The data of a newer encoding is kept unchecked.
   #[cfg(feature = "serde")]
   pub(crate) fn from_members(
     display: String,
-    lossy: bool,
+    lossy: Option<bool>,
     raw: Option<RawPath>,
   ) -> Result<PortablePath, InvalidDocument> {
-    if lossy != raw.is_some() {
-      return Err(InvalidDocument::new(LOSSY_PATH_MESSAGE));
+    match (lossy, raw) {
+      (None, None) => Ok(PortablePath {
+        display,
+        lossy: false,
+        raw: None,
+      }),
+      (Some(true), Some(raw)) => match raw.decoded() {
+        Some((is_unicode, decoded)) if is_unicode || decoded != display => {
+          Err(InvalidDocument::new(PATH_DISAGREES_MESSAGE))
+        }
+        _ => Ok(PortablePath {
+          display,
+          lossy: true,
+          raw: Some(raw),
+        }),
+      },
+      (Some(false), _) => Err(InvalidDocument::new(LOSSY_FLAG_MESSAGE)),
+      _ => Err(InvalidDocument::new(LOSSY_PATH_MESSAGE)),
     }
-    Ok(PortablePath { display, lossy, raw })
   }
 
-  /// The members that a map writes for the path: the display string, the flag and the raw form.
+  /// The members that a map writes for the path: the display string, the flag, written only as `true`, and the raw
+  /// form.
   #[cfg(feature = "serde")]
-  pub(crate) fn into_members(self) -> (String, bool, Option<RawPath>) {
-    (self.display, self.lossy, self.raw)
+  pub(crate) fn into_members(self) -> (String, Option<bool>, Option<RawPath>) {
+    (self.display, self.lossy.then_some(true), self.raw)
   }
-}
-
-/// Whether a path's flag member is left out: it is written only for a lossy path.
-#[cfg(feature = "serde")]
-pub(crate) fn is_not_lossy(lossy: &bool) -> bool {
-  !*lossy
 }

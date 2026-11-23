@@ -15,7 +15,8 @@
 * limitations under the License.
 */
 
-//! A document's entries, `api.md` section 12: what each holds, and the constructors that derive its outcome.
+//! A document's entries, `api.md` section 12: what each holds, and the constructors that derive its outcome. An
+//! entry has no index of its own; the document writes its position as its index.
 
 use super::outcome::EntryOutcome;
 use super::underivable::{UnderivableOutcome, UnderivedRecord};
@@ -24,10 +25,9 @@ use crate::error::ErrorRecord;
 use crate::model::{Detection, MediaReport};
 use crate::source::PortablePath;
 
-/// The result for one input. Its serialized form is in `wire.rs`.
+/// The result for one input. Its serialized form, with its position as its index, is in `wire.rs`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DocumentEntry {
-  pub(super) index: usize,
   pub(super) input: PortablePath,
   pub(super) outcome: EntryOutcome,
   pub(super) report: Option<MediaReport>,
@@ -36,16 +36,13 @@ pub struct DocumentEntry {
 }
 
 impl DocumentEntry {
-  /// An entry that holds a report; its outcome is `ok` or `partial`. A report whose statuses include one from a
-  /// newer version is refused, and the refusal can take the outcome that was recorded for it.
-  pub fn from_report(
-    index: usize,
-    input: PortablePath,
-    report: MediaReport,
-  ) -> Result<DocumentEntry, UnderivableOutcome> {
+  /// An entry that holds a report. Its outcome is `partial` when a status that this version knows records a
+  /// shortfall, whatever the statuses of a newer version say, and `ok` when every status is known and complete. A
+  /// report that only a status of a newer version can decide is refused, and the refusal can take the outcome that
+  /// was recorded for it.
+  pub fn from_report(input: PortablePath, report: MediaReport) -> Result<DocumentEntry, UnderivableOutcome> {
     match EntryOutcome::of_report(&report) {
       Some(outcome) => Ok(DocumentEntry {
-        index,
         input,
         outcome,
         report: Some(report),
@@ -53,7 +50,6 @@ impl DocumentEntry {
         error: None,
       }),
       None => Err(UnderivableOutcome::new(
-        index,
         input,
         UnderivedRecord::Report(Box::new(report)),
       )),
@@ -62,43 +58,28 @@ impl DocumentEntry {
 
   /// An entry that holds a detection; its outcome follows the `--detect` rows of plan section 8.9. A detection
   /// outcome from a newer version is refused, and the refusal can take the outcome that was recorded for it.
-  pub fn from_detection(
-    index: usize,
-    input: PortablePath,
-    detection: Detection,
-  ) -> Result<DocumentEntry, UnderivableOutcome> {
+  pub fn from_detection(input: PortablePath, detection: Detection) -> Result<DocumentEntry, UnderivableOutcome> {
     match EntryOutcome::of_detection(&detection) {
       Some(outcome) => Ok(DocumentEntry {
-        index,
         input,
         outcome,
         report: None,
         detection: Some(detection),
         error: None,
       }),
-      None => Err(UnderivableOutcome::new(
-        index,
-        input,
-        UnderivedRecord::Detection(detection),
-      )),
+      None => Err(UnderivableOutcome::new(input, UnderivedRecord::Detection(detection))),
     }
   }
 
   /// An entry that holds an error record; its outcome is `error`.
-  pub fn from_error(index: usize, input: PortablePath, record: ErrorRecord) -> DocumentEntry {
+  pub fn from_error(input: PortablePath, record: ErrorRecord) -> DocumentEntry {
     DocumentEntry {
-      index,
       input,
       outcome: EntryOutcome::Error,
       report: None,
       detection: None,
       error: Some(record),
     }
-  }
-
-  /// The input's position.
-  pub fn index(&self) -> usize {
-    self.index
   }
 
   /// The input.

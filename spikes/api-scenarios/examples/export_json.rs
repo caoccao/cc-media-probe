@@ -37,17 +37,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   }
 
   // Several inputs in the document form that the CLI writes, an error among them. The writer takes one entry at a
-  // time and releases it before the next input is probed, so a scan of any length holds one report at a time.
-  let entries = ["movie.mkv", "notes.txt"].into_iter().enumerate().map(|(index, path)| {
+  // time and releases it before the next input is probed, so a scan of any length holds one report at a time. The
+  // document writes each entry's position as its index.
+  let entries = ["movie.mkv", "notes.txt"].into_iter().map(|path| {
     let input = PortablePath::from_path(Path::new(path));
     match probe_file(path) {
-      Ok(report) => match DocumentEntry::from_report(index, input, report) {
-        Ok(entry) => entry,
-        // Only a report read from a newer version can hold a status that decides the outcome, never one that this
-        // version's probe made. Refused, it takes the outcome given, as this version would label it.
-        Err(refused) => refused.with_outcome(EntryOutcome::Partial),
-      },
-      Err(error) => DocumentEntry::from_error(index, input, error.to_record()),
+      Ok(report) => report_entry(input, report),
+      Err(error) => DocumentEntry::from_error(input, error.to_record()),
     }
   });
   let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
@@ -81,4 +77,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   }
   Ok(())
+}
+
+/// The entry of a report. This version's own probe always gives a report whose outcome it derives. Only a report
+/// read from a newer version can be refused, when only a status of that version decides its outcome; it then takes
+/// an outcome that the caller gives, and `with_outcome` refuses only `error`, which no report allows.
+fn report_entry(input: PortablePath, report: MediaReport) -> DocumentEntry {
+  DocumentEntry::from_report(input, report)
+    .or_else(|refused| refused.with_outcome(EntryOutcome::Partial))
+    .expect("every report allows the outcome partial")
 }

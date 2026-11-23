@@ -2411,3 +2411,111 @@ The disposable spike [`spikes/cli-arguments/`](../../spikes/cli-arguments/README
 - G2.3, with task 5, the JSON contract and the stability guide;
 - the features of `clap` in the dossier, at G2.3;
 - the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the sixth review of the API specification
+
+The maintainer reviewed revision 39 (`5447dea`), ran the spike's 29 tests and the 8 tests of the CLI spike, and read additional archive cases against the API spike. The review found cases in the approved specification where two implementations could report differently: eight findings under G2.2 (seven of priority 2, one of priority 3) and seven under G2.3 (six of priority 2, one of priority 3), with two gaps in the evidence for task 5. G2.2 stays approved, and G2.3 stays open. Each finding was checked, and each one holds:
+
+- against the plan: section 7.5, which promises only fixed-size facts at a limit; section 7.7, by which every byte offset names its source; sections 8.3, 8.6, 8.8 and 8.9;
+- against `cli.md` sections 7, 8.4 and 8.5, which print a confidence and the reasons of an incomplete report;
+- against RFC 9559, where `TrackNumber`, `TrackUID` and `CodecID` are mandatory (5.1.4.1.1, 5.1.4.1.2, 5.1.4.1.21) and EBML fixes no order among a master's children, and where `ChapterStringUID` is UTF-8 text (5.1.7.1.4.2);
+- against ITU-T H.264 (V16), whose slice header holds `pic_parameter_set_id` (7.3.3), whose picture parameter set holds `seq_parameter_set_id` (7.3.2.2), and whose buffering-period SEI message names the sequence parameter set directly (D.1.2), with activation by the last set of an identifier (7.4.1.2.1);
+- against futures-io's documentation, where `&mut T` and `Box<T>` need `T: Unpin` and `Pin<P>` needs `P: DerefMut + Unpin`; Serde's enum representations, where an internally tagged enum cannot hold a primitive value; serde_json's `disable_recursion_limit`, which needs the `unbounded_depth` feature and a stack-growing crate; and the standard library's lossy conversions, which put U+FFFD in place of what is not valid;
+- by tests written before the fixes, in a new `tests/archive.rs` of the spike. Six failed as the review said:
+  - a report with a discovery shortfall and a tags status of a newer version read back as `ok`, `partial` and `error`;
+  - a newer status alone allowed `error`;
+  - the display `input.bin` beside raw bytes that spell `other` read back, and so did `input_lossy: false`;
+  - a document read 60 nested tags and refused 61; the test's 64 failed with "recursion limit exceeded", in a document and in a bare report;
+  - a bare report of version 2.0 read back, and so did a bare error record of 1.0 whose partial report was 2.0;
+  - a zero denominator read back, and `bytes_read_exact: "9007199254740993"` read as `bytes_read() == None`.
+
+The review's index cases were not rerun as written, since the constructors no longer take an index; a skipped and a repeated position are tested instead. The version error after an undecodable generator was reproduced: `serde_json::Value` orders a map's members by name, so `generator` comes before `schema_version`, and the stub decodes members in that order.
+
+**Decisions of the maintainer.** The agent asked four questions. The maintainer took the recommended option three times and the flat wire form once.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A document entry's index | The position: the constructors drop the index, a document writes each entry's position, and reading fails on an index that is not its entry's position | The caller's index, checked against the position by both writers and the reader; or rising indexes with gaps, at most 2^32 − 1 | The CLI's index is always the input's position, so a second number could only disagree with it. No index can repeat, pass the exact range or overflow a reader. |
+| Trees of chapters and tags against a reader's recursion limit | A flat wire form: one array per tree in depth-first order, each node with its parent's position | A fixed depth of 32 levels in the report, deeper nodes left out with the section incomplete; or keeping the nesting and documenting a reader without a recursion limit, which needs a stack-growing crate through GS.1 | The depth of a document is fixed by its schema, so every reader reads every report, whatever nesting limit the probe had. |
+| What survives a full budget | The first reason of each part in the fixed-size record, without its text, and a count of the reasons not kept | The statuses and counts only, with the CLI printing "reason not kept" | An incomplete report always says why each part fell short, at any limit. |
+| Ties and unavailable ranges in ambiguous detection | Rank by confidence, then the format hint, the file-name hint and the inventory's order; check in that rank and use the first that validates; detection is incomplete only when a candidate ranked ahead was stopped by a limit or needs an unavailable range | The same rank, with every candidate checked and any unchecked one making detection incomplete | No two candidates tie, and only a candidate that a full check could have chosen leaves detection incomplete. This refines the fifth review's choice, which applied to any stopped check; the rule "only a candidate above the chosen one" was one of the alternatives offered then. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **A header that a source failure interrupted.** In an error's partial report, `NotFoundWithinBudget` when no field was read, `PartiallyParsedForLackOfBytes` when some were, and `NotAttempted` when the header was not begun, each with the reason `SourceFailed`; `reasons()` names the stream and the source.
+- **A full budget.** As decided. `LimitRecord` gains `first_reason(part)` and `omitted_reasons()`; `reasons()`, the text of a reason and diagnostics are kept within their limits, and `cli.md` section 8.4 prints the record's reason in place of a missing one.
+- **Ambiguous detection.** As decided. A candidate ranked ahead without a check, a detect-only format, leaves detection complete.
+- **An empty track that lost its fallback.** The codec and its fields are absent, `has_every_candidate()` is false, and the details keep the fallback's label, so three cases without a codec read apart: the known index, the fallback's label, and neither.
+- **The H.264 primary set.** Observed only through the whole chain from `pic_parameter_set_id` to the sequence parameter set, or through the buffering-period SEI message; a missing link establishes nothing, and the rule of one candidate still applies.
+- **The confidence.** `Confidence::value() -> u8`, `Display`, and a number in JSON.
+- **A Matroska track entry cut short.** `codec_identifier()`, `track_number()` and `track_unique_identifier()` are optional; scenario 10 prints "not read".
+- **A declaration range.** Each endpoint is a `SourceOffset` with its source identifier, offset and logical offset.
+- **Borrowed async sources.** `&mut Source` and `Box<Source>` need `Unpin`; `Pin<Pointer>` serves a source that is not.
+- **Outcomes beside an unfamiliar status.** A known shortfall gives `partial`; a report beside only a newer status allows `ok` and `partial`; a report never allows `error`.
+- **Paths.** The data of a known encoding is not valid Unicode and decodes to the display string, and the flag is only `true`.
+- **The index.** As decided; `DocumentEntry::index()` goes, and the writer stops before a position beyond 2^53 − 1.
+- **Trees.** As decided; in Rust, no operation on a tree recurses on its depth.
+- **Enums that carry data.** A map of `kind` and the member named after the kind; an unknown kind keeps its name, and its payload is ignored as an unknown member is.
+- **Textual identifiers** stay their own text.
+- **`PortablePath`** is named, with `DocumentEntry`, as a type that its parent writes and that implements neither trait.
+- **Evidence gaps.** A bare error record checks its partial report's version, and the version error comes before any other failure in each of the four root records. A rational reads back only in its reduced form, and a quantity from its number or its twin, each only in its own range. Phase 2, task 5 shows the neutral form that reads the version first wherever it stands.
+
+**Found while revising.**
+
+- `UnderivableOutcome::with_outcome()` could label a report `error`, which the stricter reading refuses. It returns a `Result` now and gives the refusal back for an outcome that the record rules out.
+- The derived traits of a chapter or tag recurse on the tree's depth. A probe with a raised nesting limit could already build a tree too deep for them, and the flat form lets any document hold one. They walk the tree with an explicit stack now; the spike drops, clones and compares a chain of 200,000 tags.
+- `TrackNumber` and `TrackUID` can be cut off as `CodecID` can.
+- The async source had no implementation for `Box<Source>`, which the blocking one has.
+- The stub's `IntegerValue::to_i64()` could not return `i64::MIN`; the test of the integer twin found it.
+- The stub's version check of a root record now runs on the record's own `schema_version`, also for a bare report, detection or error record. Its two version messages became general, since a record nested in a record can disagree too.
+
+**Choices made without asking,** each open at the gate named:
+
+- No new header state for a source failure: the two byte-shortage states and `NotAttempted` take the reason `SourceFailed`, although the first is named "not found within the budget" (G2.3).
+- `first_reason(part: &Part) -> Option<&PartReason>` and `omitted_reasons() -> u64`, which JSON writes as a decimal string like the other omitted counts (G2.3, task 5).
+- The format hint ranks above the file-name hint, as section 4.3 already orders them, and a detect-only candidate ranked ahead leaves detection complete (G2.3; G3.5 confirms the inventory's order).
+- `has_every_candidate()` is false for a lost fallback, so that a missing codec always comes with it (G2.3, Phase 6).
+- For the H.264 chain, the set of an identifier is the last one before the slice in decoding order, the configuration record's first (G2.3, the H.264 phase).
+- `Confidence::value()` returns `u8`, and `Display` writes the bare number (G2.3).
+- The name `SourceOffset`, with `source_identifier()`, `offset()` and `logical_offset()`, and the two endpoints keep their names `first_offset()` and `last_offset()` (G2.3).
+- `Box<Source>` added beside `&mut Source`, and `Pin<Box<Source>>` generalized to `Pin<Pointer>`, both as futures-io does (G2.3).
+- `with_outcome()` returns `Result<DocumentEntry, UnderivableOutcome>`; scenario 6 handles the refusal of `partial`, which cannot happen, with `expect` and its reason (G2.3).
+- The display of a lossy path is the standard library's lossy conversion, and reading compares it exactly (G2.3, task 5).
+- The writer's error before an index beyond 2^53 − 1 (G2.3).
+- The flat form's member `parent`, depth-first order when written, and any order with each parent first accepted when read (G2.3, task 5).
+- The map of an enum that carries data holds its value under the kind's name, not under a fixed `value`, so that a reader needs no buffer when `kind` comes last; an enum that is a string stays one (G2.3, task 5).
+- A twin is canonical decimal, and a number and its twin together are malformed (G2.3, task 5).
+- A rational that is not reduced fails on reading rather than being reduced (G2.3, task 5).
+- `PortablePath` and `DocumentEntry` implement neither Serde trait (G2.3).
+
+**Plan, revision 40:**
+
+- section 7.4: the header states after a source failure;
+- section 7.5: the first reason of each activity and the count of reasons not kept in the fixed-size record, with the test of a full budget;
+- section 8.3: the validated-candidate row, the detection row of the parts, the fixed-size record row and the activity paragraph;
+- section 8.5: the tests of deep trees;
+- section 8.6: the rank of the candidates;
+- section 8.8: the document shape, with enums that carry data and flat trees; textual identifiers; the reading of twins and rationals; one path from three members; the index as its position; and the tests of versions, future kinds and malformed input;
+- section 8.9: the test of the text when a full budget emptied the list of reasons;
+- Phase 2, task 5: the new forms of the JSON contract, and a spike of the neutral form;
+- G3.5: the order of the inventory's entries;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 7, 8.4, 8.5, 10 and 13, and the field guide in section 4.2 (the lost fallback). The spike's README records the results.
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - 41 tests pass: the 29 earlier ones, adapted to the entries without an index and to the general version messages, and 12 new. The new tests are the ten of `archive.rs`, the full budget in `report.rs`, and a source that is not `Unpin` in `async_source.rs`.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally. `jq` reads its document: the version `"1.0"`, the indexes 0 and 1 written from the positions, the plain-string inputs, and the kind `source_failed` with the nested version `"1.0"`.
+- **Structure.** The structure check of D23 reports 0 findings for the spike. Scenarios 6 and 10 in section 15 of `api.md` match the spike's examples exactly.
+- **Diagrams.** No diagram changed.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision and of `cli.md`, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth review's amendments of `api.md` and shows the neutral form of a root record's version;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.

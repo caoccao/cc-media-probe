@@ -78,18 +78,18 @@ fn a_report_whose_detection_was_cut_short_is_incomplete() {
     Some(&Part::Detection)
   );
   let input = || PortablePath::from_path(Path::new("clip.mp4"));
-  let entry = DocumentEntry::from_report(0, input(), stopped).unwrap();
+  let entry = DocumentEntry::from_report(input(), stopped).unwrap();
   assert_eq!(entry.outcome(), &EntryOutcome::Partial);
   let empty_record = json!({ "exhausted": [], "first_stopped": [] });
   let checked = report(json!("Complete"), json!([]), empty_record.clone());
   assert!(checked.completeness().is_complete());
   assert_eq!(
-    DocumentEntry::from_report(0, input(), checked).unwrap().outcome(),
+    DocumentEntry::from_report(input(), checked).unwrap().outcome(),
     &EntryOutcome::Ok
   );
   // A detection status that a newer version wrote decides an outcome that this version cannot derive.
   let newer = report(json!({ "Unrecognized": "checked_by_content" }), json!([]), empty_record);
-  assert!(DocumentEntry::from_report(0, input(), newer).is_err());
+  assert!(DocumentEntry::from_report(input(), newer).is_err());
 }
 
 fn codec(candidates: Value, has_every_candidate: bool) -> CodecInformation {
@@ -131,4 +131,34 @@ fn a_known_description_that_was_not_kept_leaves_the_codec_absent() {
     false,
   );
   assert_eq!(unresolved.to_string(), "H.264 or a description that was not read");
+}
+
+#[test]
+fn a_full_budget_keeps_the_first_reason_of_each_part_in_the_record() {
+  // The retained-data limit was full when discovery stopped, so `reasons()` holds nothing; the record still says why.
+  let reason = json!({
+    "part": "Discovery",
+    "stream": null,
+    "source_identifier": null,
+    "reason": { "kind": "TruncatedInput", "limit": null, "detail": null },
+  });
+  // The stub's `Limit` has three counters, and the retained data is not among them, so the record leaves the
+  // exhausted counter out.
+  let record = json!({
+    "exhausted": [],
+    "first_stopped": [],
+    "first_reasons": [reason],
+    "omitted_reasons": 3,
+  });
+  let full = report(json!("Complete"), json!([]), record);
+  let completeness = full.completeness();
+  assert!(completeness.reasons().is_empty());
+  let first = completeness.record().first_reason(&Part::Discovery).unwrap();
+  assert_eq!(first.reason().kind().as_str(), "truncated_input");
+  assert_eq!(first.reason().detail(), None, "the record keeps no detail text");
+  assert_eq!(completeness.record().first_reason(&Part::Detection), None);
+  assert_eq!(completeness.record().omitted_reasons(), 3);
+  // A first reason is a known shortfall, so the entry is `partial`, never `ok`.
+  let entry = DocumentEntry::from_report(PortablePath::from_path(Path::new("clip.mp4")), full).unwrap();
+  assert_eq!(entry.outcome(), &EntryOutcome::Partial);
 }

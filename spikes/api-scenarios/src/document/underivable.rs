@@ -25,8 +25,8 @@ use crate::constants::UNDERIVABLE_OUTCOME_MESSAGE;
 use crate::model::{Detection, MediaReport};
 use crate::source::PortablePath;
 
-/// A report or detection whose outcome this version cannot derive, because the record holds a value of a newer
-/// version that decides it. It keeps the entry's parts, behind one pointer, so the outcome can be given.
+/// A report or detection whose outcome this version cannot derive, because only a value of a newer version decides
+/// it. It keeps the entry's parts, behind one pointer, so the outcome can be given.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct UnderivableOutcome {
   parts: Box<UnderivedParts>,
@@ -35,7 +35,6 @@ pub struct UnderivableOutcome {
 /// The parts of an entry that is still without its outcome.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct UnderivedParts {
-  index: usize,
   input: PortablePath,
   record: UnderivedRecord,
 }
@@ -43,7 +42,7 @@ struct UnderivedParts {
 /// The record of such an entry.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) enum UnderivedRecord {
-  /// A report whose statuses include one from a newer version.
+  /// A report that only a status of a newer version decides.
   Report(Box<MediaReport>),
   /// A detection whose outcome a newer version wrote.
   Detection(Detection),
@@ -51,27 +50,35 @@ pub(super) enum UnderivedRecord {
 
 impl UnderivableOutcome {
   /// The refusal of an entry of these parts.
-  pub(super) fn new(index: usize, input: PortablePath, record: UnderivedRecord) -> UnderivableOutcome {
+  pub(super) fn new(input: PortablePath, record: UnderivedRecord) -> UnderivableOutcome {
     UnderivableOutcome {
-      parts: Box::new(UnderivedParts { index, input, record }),
+      parts: Box::new(UnderivedParts { input, record }),
     }
   }
 
-  /// The entry with this outcome, such as the one that a document recorded for the same record.
-  pub fn with_outcome(self, outcome: EntryOutcome) -> DocumentEntry {
-    let UnderivedParts { index, input, record } = *self.parts;
+  /// The entry with this outcome, such as the one that a document recorded for the same record. An outcome that the
+  /// record rules out, `error` for a report, is refused, and the refusal comes back unchanged, so every entry it
+  /// builds reads back.
+  pub fn with_outcome(self, outcome: EntryOutcome) -> Result<DocumentEntry, UnderivableOutcome> {
+    let allowed = match &self.parts.record {
+      UnderivedRecord::Report(report) => outcome.is_allowed_for_report(report),
+      UnderivedRecord::Detection(detection) => outcome.is_allowed_for_detection(detection),
+    };
+    if !allowed {
+      return Err(self);
+    }
+    let UnderivedParts { input, record } = *self.parts;
     let (report, detection) = match record {
       UnderivedRecord::Report(report) => (Some(*report), None),
       UnderivedRecord::Detection(detection) => (None, Some(detection)),
     };
-    DocumentEntry {
-      index,
+    Ok(DocumentEntry {
       input,
       outcome,
       report,
       detection,
       error: None,
-    }
+    })
   }
 }
 

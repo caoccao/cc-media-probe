@@ -46,6 +46,10 @@ name = "probe_with_futures"
 required-features = ["futures-io"]
 
 [[test]]
+name = "archive"
+required-features = ["serde"]
+
+[[test]]
 name = "document"
 required-features = ["serde"]
 

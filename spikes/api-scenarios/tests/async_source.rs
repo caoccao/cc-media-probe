@@ -20,6 +20,7 @@
 
 use std::future::{Future, poll_fn};
 use std::io;
+use std::marker::PhantomPinned;
 use std::pin::{Pin, pin};
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
@@ -136,4 +137,45 @@ fn a_source_reused_after_a_dropped_probe_answers_the_new_request() {
   let error = block_on(probe_source(&mut source)).unwrap_err();
   assert_eq!(error.kind(), &ErrorKind::UnsupportedFormat);
   assert_eq!(source.requests, [(0, 16), (100, 4), (100, 4), (0, 16), (0, 16)]);
+}
+
+/// A source that is not `Unpin`, such as one that holds an `async` block's future.
+struct PinnedSource {
+  requests: Arc<Mutex<Vec<(u64, usize)>>>,
+  _pinned: PhantomPinned,
+}
+
+impl AsyncPositionalSource for PinnedSource {
+  fn poll_read_at(
+    self: Pin<&mut Self>,
+    _context: &mut Context<'_>,
+    position: u64,
+    buffer: &mut [u8],
+  ) -> Poll<io::Result<usize>> {
+    self.requests.lock().unwrap().push((position, buffer.len()));
+    buffer.fill(0x1A);
+    Poll::Ready(Ok(buffer.len()))
+  }
+
+  fn poll_length(self: Pin<&mut Self>, _context: &mut Context<'_>) -> Poll<io::Result<Option<u64>>> {
+    Poll::Ready(Ok(None))
+  }
+}
+
+#[test]
+fn a_source_that_is_not_unpin_is_probed_pinned_in_a_box_or_in_place() {
+  let requests = Arc::new(Mutex::new(Vec::new()));
+  let source = || PinnedSource {
+    requests: Arc::clone(&requests),
+    _pinned: PhantomPinned,
+  };
+  // `Pin<Box<Source>>` and `Pin<&mut Source>` both implement the trait, and both are `Unpin` themselves.
+  let boxed = block_on(probe_source(Box::pin(source()))).unwrap_err();
+  let mut in_place = pin!(source());
+  let borrowed = block_on(probe_source(in_place.as_mut())).unwrap_err();
+  assert_eq!(
+    (boxed.kind(), borrowed.kind()),
+    (&ErrorKind::UnsupportedFormat, &ErrorKind::UnsupportedFormat)
+  );
+  assert_eq!(requests.lock().unwrap().len(), 2);
 }

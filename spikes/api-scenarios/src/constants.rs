@@ -127,10 +127,12 @@ pub const ENTRY_WITHOUT_ONE_RECORD_MESSAGE: &str =
 pub const OUTCOME_DISAGREES_MESSAGE: &str = "an entry's outcome disagrees with the record it holds";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
-pub const OTHER_MAJOR_VERSION_MESSAGE: &str = "the document has a schema major version that this version does not read";
+pub const OTHER_MAJOR_VERSION_MESSAGE: &str =
+  "a root record has a schema major version that this version does not read";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
-pub const NESTED_VERSION_MESSAGE: &str = "a nested record's schema version differs from the document's";
+pub const NESTED_VERSION_MESSAGE: &str =
+  "a nested record's schema version differs from that of the document or record that holds it";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
 pub const SCHEMA_VERSION_TEXT_MESSAGE: &str = "a schema version is two decimal numbers separated by a period";
@@ -141,6 +143,38 @@ pub const LOSSY_PATH_MESSAGE: &str = "a lossy path has a raw form beside its dis
 #[cfg(feature = "serde")]
 pub const RAW_PATH_DATA_MESSAGE: &str = "the data of a raw path is lowercase hexadecimal, two digits a byte for \
                                          unix_bytes and four a unit for windows_wide";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const LOSSY_FLAG_MESSAGE: &str = "a path's lossy flag is written only as true";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const PATH_DISAGREES_MESSAGE: &str = "a lossy path's raw data is not valid Unicode, and its display string is \
+                                          that data decoded with U+FFFD";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const POSITION_MESSAGE: &str = "an entry's index is its position in the results";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const TREE_ORDER_MESSAGE: &str = "a node of a tree's flat form comes after its parent";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const RATIONAL_MESSAGE: &str =
+  "a rational is reduced, with a denominator of at least 1 and both parts at most 2^53 - 1 in magnitude";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const TWIN_MESSAGE: &str = "a quantity is a number within 2^53 - 1, or else its _exact twin, the canonical \
+                                decimal text of a larger value, never both";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const TAG_VALUE_MESSAGE: &str = "a tag value of a known kind holds the member named after its kind, and no \
+                                     member of another known kind";
+
+/// The largest magnitude that every JSON consumer reads exactly, 2^53 - 1 (R24, RFC 7493 section 2.2).
+pub const LARGEST_EXACT: u64 = 9_007_199_254_740_991;
+
+/// Why a document written as it goes stopped: an index beyond the exact range.
+#[cfg(feature = "serde")]
+pub const POSITION_RANGE_MESSAGE: &str = "a document's last index is 2^53 - 1";
 
 /// Why an entry cannot be built from a record alone (`api.md` section 12).
 #[cfg(feature = "serde")]
@@ -169,3 +203,7 @@ pub const RESULTS_DOCUMENT_MEMBER_COUNT: usize = 3;
 /// Between the major and the minor number of a schema version, as in `1.0`.
 #[cfg(feature = "serde")]
 pub const VERSION_SEPARATOR: char = '.';
+
+/// The sign of a negative quantity's twin.
+#[cfg(feature = "serde")]
+pub const MINUS_SIGN: char = '-';

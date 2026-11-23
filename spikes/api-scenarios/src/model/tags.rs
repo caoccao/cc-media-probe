@@ -15,9 +15,11 @@
 * limitations under the License.
 */
 
-//! Tag sets, their targets and tags, `api.md` section 6.9.
+//! Tag sets, their targets and tags, `api.md` section 6.9. A tag set's tree of tags is one flat array in its
+//! serialized form (`tree.rs`); the values are in `tag_value.rs`.
 
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 use super::constants::{
   ALBUM_NAME, ARTIST_NAME, ATTACHMENT_NAME, CHAPTER_NAME, COMMENT_NAME, COPYRIGHT_NAME, DATE_NAME, DISC_NUMBER_NAME,
@@ -25,6 +27,8 @@ use super::constants::{
   TRACK_NUMBER_NAME, WHOLE_FILE_NAME,
 };
 use super::language::Language;
+use super::tag_value::TagValue;
+use super::tree::{self, Branching};
 use super::values::{Identifier, UnrecognizedValue};
 
 /// Tags with the entities they describe.
@@ -37,6 +41,7 @@ pub struct TagSet {
   chapter_targets: Vec<TargetReference>,
   attachment_targets: Vec<TargetReference>,
   target_scope: TargetScope,
+  #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
   tags: Vec<Tag>,
 }
 
@@ -226,41 +231,101 @@ impl EntityKind {
   }
 }
 
-/// One tag.
+/// One tag, with the tags nested below it. No operation on a tag recurses on the depth of its tree (`tree.rs`).
+pub struct Tag {
+  node: TagNode,
+  children: Vec<Tag>,
+}
+
+/// A tag's own members: everything but the tags below it.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Tag {
+pub(crate) struct TagNode {
   name: TagName,
   key: Option<TagKey>,
   languages: Vec<Language>,
   value: Option<TagValue>,
-  children: Vec<Tag>,
 }
 
 impl Tag {
   /// The name as written.
   pub fn name(&self) -> &TagName {
-    &self.name
+    &self.node.name
   }
 
   /// The normalized key, where the library knows the name.
   pub fn key(&self) -> Option<&TagKey> {
-    self.key.as_ref()
+    self.node.key.as_ref()
   }
 
   /// The languages the value applies to.
   pub fn languages(&self) -> &[Language] {
-    &self.languages
+    &self.node.languages
   }
 
   /// The value; absent for a node that only has children.
   pub fn value(&self) -> Option<&TagValue> {
-    self.value.as_ref()
+    self.node.value.as_ref()
   }
 
   /// The nested tags.
   pub fn children(&self) -> &[Tag] {
     &self.children
+  }
+}
+
+impl Branching for Tag {
+  type Node = TagNode;
+
+  fn node(&self) -> &TagNode {
+    &self.node
+  }
+
+  fn branches(&self) -> &[Tag] {
+    &self.children
+  }
+
+  fn branches_mut(&mut self) -> &mut Vec<Tag> {
+    &mut self.children
+  }
+
+  fn from_parts(node: TagNode, branches: Vec<Tag>) -> Tag {
+    Tag {
+      node,
+      children: branches,
+    }
+  }
+}
+
+impl Drop for Tag {
+  fn drop(&mut self) {
+    tree::release(self);
+  }
+}
+
+impl Clone for Tag {
+  fn clone(&self) -> Tag {
+    tree::copy(self)
+  }
+}
+
+impl PartialEq for Tag {
+  fn eq(&self, other: &Tag) -> bool {
+    tree::equal(self, other)
+  }
+}
+
+impl Eq for Tag {}
+
+impl Hash for Tag {
+  fn hash<State: Hasher>(&self, state: &mut State) {
+    tree::hash(self, state);
+  }
+}
+
+impl fmt::Debug for Tag {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    tree::format(self, formatter)
   }
 }
 
@@ -334,78 +399,6 @@ impl TagKey {
       TagKey::TrackNumber => TRACK_NUMBER_NAME,
       TagKey::DiscNumber => DISC_NUMBER_NAME,
       TagKey::Unrecognized(value) => value.as_str(),
-    }
-  }
-}
-
-/// A tag's value, in the format's own type (F25).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum TagValue {
-  /// Text.
-  Text(String),
-  /// Binary data.
-  Binary(BinaryValue),
-  /// An integer.
-  Integer(IntegerValue),
-  /// A Boolean.
-  Boolean(bool),
-  /// A value type that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
-}
-
-/// A binary tag value.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BinaryValue {
-  size: u64,
-  data: Option<Vec<u8>>,
-}
-
-impl BinaryValue {
-  /// The size of the value, in bytes.
-  pub fn size(&self) -> u64 {
-    self.size
-  }
-
-  /// The bytes, when they were kept within the retained-data limit.
-  pub fn data(&self) -> Option<&[u8]> {
-    self.data.as_deref()
-  }
-}
-
-/// Any 64-bit signed or unsigned integer.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct IntegerValue {
-  magnitude: u64,
-  negative: bool,
-}
-
-impl IntegerValue {
-  /// The value as `i64`, when it fits.
-  pub fn to_i64(&self) -> Option<i64> {
-    let magnitude = i64::try_from(self.magnitude).ok()?;
-    Some(if self.negative {
-      magnitude.wrapping_neg()
-    } else {
-      magnitude
-    })
-  }
-
-  /// The value as `u64`, when it is not negative.
-  pub fn to_u64(&self) -> Option<u64> {
-    (!self.negative).then_some(self.magnitude)
-  }
-}
-
-impl fmt::Display for IntegerValue {
-  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if self.negative {
-      write!(formatter, "-{}", self.magnitude)
-    } else {
-      write!(formatter, "{}", self.magnitude)
     }
   }
 }

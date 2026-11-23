@@ -21,6 +21,8 @@ use std::fmt;
 use std::io;
 
 use crate::completeness::{LimitRecord, Reason};
+#[cfg(feature = "serde")]
+use crate::constants::NESTED_VERSION_MESSAGE;
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
   NO_STREAM_INVENTORY_MESSAGE, NO_STREAM_INVENTORY_NAME, SOURCE_FAILED_MESSAGE, SOURCE_FAILED_NAME,
@@ -29,7 +31,7 @@ use crate::constants::{
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
 #[cfg(feature = "serde")]
-use crate::document::SchemaVersion;
+use crate::document::{InvalidDocument, SchemaVersion};
 use crate::model::{Format, MediaReport, UnrecognizedValue, Usage};
 
 /// Why a probe returned no report, `api.md` section 5.1. Serialized as its stable name.
@@ -246,6 +248,7 @@ impl std::error::Error for Error {
 /// The serializable description of an error, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "ErrorRecordData"))]
 pub struct ErrorRecord {
   #[cfg(feature = "serde")]
   schema_version: SchemaVersion,
@@ -257,6 +260,44 @@ pub struct ErrorRecord {
   partial_report: Option<MediaReport>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   observations: Option<Observations>,
+}
+
+/// An error record as read, before its partial report's version is checked.
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct ErrorRecordData {
+  #[serde(deserialize_with = "crate::document::read_current_major")]
+  schema_version: SchemaVersion,
+  kind: ErrorKind,
+  message: String,
+  source_failure_kind: Option<String>,
+  partial_report: Option<MediaReport>,
+  observations: Option<Observations>,
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<ErrorRecordData> for ErrorRecord {
+  type Error = InvalidDocument;
+
+  /// A record whose partial report has the record's own version, also when the record is read on its own: the
+  /// partial report is a root record nested in it.
+  fn try_from(data: ErrorRecordData) -> Result<ErrorRecord, InvalidDocument> {
+    if data
+      .partial_report
+      .as_ref()
+      .is_some_and(|report| report.schema_version() != data.schema_version)
+    {
+      return Err(InvalidDocument::new(NESTED_VERSION_MESSAGE));
+    }
+    Ok(ErrorRecord {
+      schema_version: data.schema_version,
+      kind: data.kind,
+      message: data.message,
+      source_failure_kind: data.source_failure_kind,
+      partial_report: data.partial_report,
+      observations: data.observations,
+    })
+  }
 }
 
 impl ErrorRecord {

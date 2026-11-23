@@ -17,8 +17,13 @@
 
 //! `SchemaVersion`, `api.md` section 12, serialized as text such as `"1.0"`.
 
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer};
+
 use super::invalid::InvalidDocument;
-use crate::constants::{SCHEMA_MAJOR, SCHEMA_MINOR, SCHEMA_VERSION_TEXT_MESSAGE, VERSION_SEPARATOR};
+use crate::constants::{
+  OTHER_MAJOR_VERSION_MESSAGE, SCHEMA_MAJOR, SCHEMA_MINOR, SCHEMA_VERSION_TEXT_MESSAGE, VERSION_SEPARATOR,
+};
 
 /// A schema version, `major.minor`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -44,6 +49,19 @@ impl SchemaVersion {
   pub fn minor(&self) -> u32 {
     self.minor
   }
+}
+
+/// The version of a root record, read on its own or nested: another major version is the version error. The stub
+/// decodes the members in the order written, so the version error comes first only where the version does; the
+/// library reads the version before anything else (plan section 8.8).
+pub(crate) fn read_current_major<'input, Input: Deserializer<'input>>(
+  deserializer: Input,
+) -> Result<SchemaVersion, Input::Error> {
+  let version = SchemaVersion::deserialize(deserializer)?;
+  if version.major() != SchemaVersion::CURRENT.major() {
+    return Err(Input::Error::custom(OTHER_MAJOR_VERSION_MESSAGE));
+  }
+  Ok(version)
 }
 
 impl From<SchemaVersion> for String {

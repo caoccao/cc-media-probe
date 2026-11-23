@@ -30,6 +30,7 @@ use crate::document::SchemaVersion;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Detection {
   #[cfg(feature = "serde")]
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "crate::document::read_current_major"))]
   schema_version: SchemaVersion,
   outcome: DetectionOutcome,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]

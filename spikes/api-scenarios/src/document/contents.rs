@@ -20,6 +20,7 @@
 use super::entry::DocumentEntry;
 use super::invalid::InvalidDocument;
 use super::version::SchemaVersion;
+use super::wire::{EntryData, serialize_results};
 use crate::constants::{NESTED_VERSION_MESSAGE, OTHER_MAJOR_VERSION_MESSAGE, USAGE_ERROR_WITH_RESULTS_MESSAGE};
 
 /// The program that wrote a document.
@@ -77,24 +78,26 @@ pub struct Document {
   generator: Generator,
   #[serde(skip_serializing_if = "Option::is_none")]
   usage_error: Option<UsageError>,
+  #[serde(serialize_with = "serialize_results")]
   results: Vec<DocumentEntry>,
 }
 
 /// A document as read, before its rules are checked.
 #[derive(serde::Deserialize)]
 struct DocumentData {
+  #[serde(deserialize_with = "super::version::read_current_major")]
   schema_version: SchemaVersion,
   generator: Generator,
   usage_error: Option<UsageError>,
-  results: Vec<DocumentEntry>,
+  results: Vec<EntryData>,
 }
 
 impl TryFrom<DocumentData> for Document {
   type Error = InvalidDocument;
 
-  /// A document of this major version, every nested record of which carries its version, and whose usage error
-  /// never stands beside results. The library checks the version before it decodes anything else; the stub checks
-  /// it after.
+  /// A document of this major version, every nested record of which carries its version, whose usage error never
+  /// stands beside results, and whose entries each have their position as their index. The library checks the
+  /// version before it decodes anything else; the stub checks it after.
   fn try_from(data: DocumentData) -> Result<Document, InvalidDocument> {
     if data.schema_version.major() != SchemaVersion::CURRENT.major() {
       return Err(InvalidDocument::new(OTHER_MAJOR_VERSION_MESSAGE));
@@ -102,7 +105,13 @@ impl TryFrom<DocumentData> for Document {
     if data.usage_error.is_some() && !data.results.is_empty() {
       return Err(InvalidDocument::new(USAGE_ERROR_WITH_RESULTS_MESSAGE));
     }
-    let mut nested = data.results.iter().flat_map(DocumentEntry::nested_versions);
+    let results = data
+      .results
+      .into_iter()
+      .enumerate()
+      .map(|(position, entry)| entry.into_entry(position))
+      .collect::<Result<Vec<DocumentEntry>, InvalidDocument>>()?;
+    let mut nested = results.iter().flat_map(DocumentEntry::nested_versions);
     if nested.any(|version| version != data.schema_version) {
       return Err(InvalidDocument::new(NESTED_VERSION_MESSAGE));
     }
@@ -110,7 +119,7 @@ impl TryFrom<DocumentData> for Document {
       schema_version: data.schema_version,
       generator: data.generator,
       usage_error: data.usage_error,
-      results: data.results,
+      results,
     })
   }
 }
@@ -155,7 +164,7 @@ impl Document {
     self.usage_error.as_ref()
   }
 
-  /// The entries, in order.
+  /// The entries, in order; each entry's position is its index.
   pub fn results(&self) -> &[DocumentEntry] {
     &self.results
   }

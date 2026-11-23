@@ -28,7 +28,9 @@ mod language;
 mod lookups;
 mod report;
 mod stream;
+mod tag_value;
 mod tags;
+mod tree;
 mod usage;
 mod values;
 mod video;
@@ -43,9 +45,10 @@ pub use language::{Language, LocalizedText};
 pub use lookups::TagsOf;
 pub use report::MediaReport;
 pub use stream::{Disposition, Stream, StreamKind};
+pub use tag_value::{BinaryValue, IntegerValue, TagValue};
 pub use tags::{
-  BinaryValue, EntityKind, EntityLocation, IntegerValue, Tag, TagKey, TagName, TagSet, TagValue, TargetLevel,
-  TargetReference, TargetReferenceKind, TargetScope,
+  EntityKind, EntityLocation, Tag, TagKey, TagName, TagSet, TargetLevel, TargetReference, TargetReferenceKind,
+  TargetScope,
 };
 pub use usage::Usage;
 pub use values::{

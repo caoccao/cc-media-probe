@@ -28,19 +28,19 @@ use cc_media_probe::probe_bytes;
 use cc_media_probe::source::PortablePath;
 use serde_json::json;
 
-fn error_entry(index: usize) -> DocumentEntry {
+fn error_entry() -> DocumentEntry {
   let record = probe_bytes(b"").unwrap_err().to_record();
-  DocumentEntry::from_error(index, PortablePath::from_path(Path::new("input.bin")), record)
+  DocumentEntry::from_error(PortablePath::from_path(Path::new("input.bin")), record)
 }
 
 /// Two error entries, a detection entry, and an entry read from a document of version 1.1, whose error record
 /// carries a partial report.
 fn mixed_entries() -> Vec<DocumentEntry> {
   let detection = serde_json::from_value(json!({ "schema_version": "1.0", "outcome": "identified" })).unwrap();
-  let detection = DocumentEntry::from_detection(2, PortablePath::from_path(Path::new("clip.mp4")), detection);
+  let detection = DocumentEntry::from_detection(PortablePath::from_path(Path::new("clip.mp4")), detection);
   let mut newer = serde_json::to_value(Document::from_results(
     Generator::new("catalog", "1"),
-    vec![error_entry(3)],
+    vec![error_entry()],
   ))
   .unwrap();
   newer["schema_version"] = json!("1.1");
@@ -67,8 +67,8 @@ fn mixed_entries() -> Vec<DocumentEntry> {
   });
   let newer: Document = serde_json::from_value(newer).unwrap();
   vec![
-    error_entry(0),
-    error_entry(1),
+    error_entry(),
+    error_entry(),
     detection.unwrap(),
     newer.results()[0].clone(),
   ]
@@ -135,11 +135,11 @@ impl Write for FailingOutput {
 fn take_points(allowed: usize) -> Vec<usize> {
   let accepted = Rc::new(Cell::new(0));
   let taken = Rc::new(Cell::new(Vec::new()));
-  let entries = (0..3).map(|index| {
+  let entries = (0..3).map(|_| {
     let mut points = taken.take();
     points.push(accepted.get());
     taken.set(points);
-    error_entry(index)
+    error_entry()
   });
   let output = FailingOutput {
     allowed,
@@ -160,7 +160,9 @@ fn an_output_failure_stops_the_entries() {
   let empty = serde_json::to_string(&Document::from_results(Generator::new("catalog", "1"), Vec::new())).unwrap();
   // Everything up to the opening of the results, and one entry.
   let prefix = empty.len() - "]}".len();
-  let entry = serde_json::to_string(&error_entry(0)).unwrap().len();
+  // A document writes an entry with its position as its index, so the entry's length is what it adds.
+  let one = Document::from_results(Generator::new("catalog", "1"), vec![error_entry()]);
+  let entry = serde_json::to_string(&one).unwrap().len() - empty.len();
   // The output fails inside the first entry: the second is never taken.
   assert_eq!(take_points(prefix + 1), [prefix]);
   // It fails inside the second entry, which was taken only after the first was written.
