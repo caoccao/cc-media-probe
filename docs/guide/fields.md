@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | First version, written in Phase 2, task 1, on 2026-11-22, and revised on the same day, before the API specification. It becomes normative when G2.2 approves the API. Every format phase extends it (plan section 11). |
+| **Status** | First version, written in Phase 2, task 1, on 2026-11-22, and revised on the same day, before the API specification. It became normative when G2.2 approved the API on 2026-11-23. Every format phase extends it (plan section 11). |
 | **Plan** | [Sections 8.3 and 8.4](../plans/plan-init-project.md#84-normalized-values-units-precedence-and-provenance) set the rules; this guide applies them per field and per format. |
 
 This guide lists every field of the normalized model and says, for each format, which element, box or field of the file supplies it. Its unit, precedence and provenance are given too. Two correct implementations of these rules return the same value for the same file (plan section 8.1, principle 6).
@@ -67,7 +67,7 @@ flowchart TD
 
 ## 3. The normalized fields
 
-The maintainer approved the names at G2.1 on 2026-11-22, and a name added since is confirmed at G2.2. The types are decided in `docs/design/api.md`. "Rational" means an exact fraction. Plan section 8.2 lists the types that hold these fields.
+The maintainer approved the names at G2.1 on 2026-11-22, and the names added since at G2.2 on 2026-11-23. The types are decided in `docs/design/api.md`. "Rational" means an exact fraction. Plan section 8.2 lists the types that hold these fields.
 
 ### 3.1 Report
 
@@ -726,7 +726,7 @@ A column lists fields by the entity of section 3 they belong to. A `media_type` 
 
 ## 7. Findings
 
-Writing this guide raised the questions below. Each names where it is decided: the API specification of task 2, approved at G2.2; a standing gate; or an amendment of the plan. Until then, the tables above follow the proposal. On 2026-11-22 the maintainer accepted the six plan amendments and the AVI pages of F13, and made the proposals for G2.2 the baseline of the API specification.
+Writing this guide raised the questions below. Each names where it is decided: the API specification of task 2, approved at G2.2; a standing gate; or an amendment of the plan. Until then, the tables above follow the proposal. On 2026-11-22 the maintainer accepted the six plan amendments and the AVI pages of F13, and made the proposals for G2.2 the baseline of the API specification. On 2026-11-23 G2.2 approved every proposal as the API specification states it, and plan section 8.2 took the amendment of F3 in revision 39.
 
 | # | Finding | Proposal | Decided at |
 |---|---|---|---|

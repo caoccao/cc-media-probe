@@ -343,7 +343,7 @@ registry.transport-stream-types	active	0.3.0		itu-t-h-222-0: 2.4.4.10; itu-t-h-2
 registry.wave-format-tags	active	0.1.0		rfc2361: Appendix A; iana-wave-avi-codec-registry: Registry		2026-11-21
 rule.codec-strings	active	0.1.0		rfc6381: 3		2026-11-21
 rule.language-tags	active	0.1.0		rfc5646: 2; iana-language-subtag-registry: Registry; loc-iso-639-2: Code list		2026-11-21
-rule.media-types	active	0.1.0		rfc6838: 4.2; iana-media-types: Registry		2026-11-21
+rule.media-types	active	0.1.0		rfc6838: 4.2; iana-media-types: Registry; rfc2361: 3; webm-container-guidelines: Naming		2026-11-23
 rule.quicktime-chapter-text-tracks	active	0.1.0		apple-quicktime-file-format: Chapter lists		2026-11-22
 rule.vorbis-chapter-comments	active	0.2.0		xiph-wiki-chapter-extension: Format		2026-11-21
 tags.apev2	active	0.4.0		hydrogenaudio-apev2: Introduction; hydrogenaudio-ape-tags-header: Introduction; hydrogenaudio-ape-tag-item: Introduction; hydrogenaudio-ape-tags-flags: Introduction; hydrogenaudio-ape-key: Introduction; hydrogenaudio-ape-item-value: Introduction		2026-11-21

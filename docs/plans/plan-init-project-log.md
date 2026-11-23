@@ -2297,3 +2297,117 @@ The field guide follows in section 3.3 (`raw_identifiers`) and section 4.2 (the 
 - the maintainer's review of the revision, for G2.2;
 - G2.3, with task 4, the CLI contract, and task 5, the JSON contract, which take the last-byte failure, the partial report's version and the raw path data;
 - the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — G2.2 API approval [CONFIRM]
+
+At the start of the session the maintainer sent the standing brief again, with no review of revision 38. The plan reviews each Phase 2 document before the next one starts, so the agent asked how task 4 should begin. It offered three options: start task 4 while the review of revision 38 continued (its recommendation), approve G2.2 first, or wait for the review. The maintainer approved G2.2.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| G2.2, API approval | Approved for revision 38 of the plan and `docs/design/api.md` at `198991f`, as section 16 of `api.md` lists. That covers the specification as a whole with D10, D11, D20 and D21, and the fifteen field-guide proposals as specified, with the amendment of plan section 8.2 that F3 implies. It also covers the public usage summary, the tags and chapters options, and Tokio's `probe_file` and `detect_file`. The usage scenarios, the revisions of the five reviews with the maintainer's choices at them, and the names added after G2.1 are approved as well. | Start task 4 while the review of revision 38 continued; wait for that review | Revision 38 fixed the findings that the fifth review held G2.2 back on. The maintainer approved it without a further review. |
+
+**Plan, revision 39:**
+
+- section 7.5: the usage summary is public;
+- section 8: the names are approved;
+- section 8.2: the media types of F3;
+- section 8.7: the Tokio convenience is confirmed;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+**Other documents:**
+
+- `api.md` records the approval in its status, its introduction, sections 4.3 and 6.2, and section 16.
+- The field guide records it in its status, section 3 and section 7, and became normative with the approval.
+- The coverage table's row `rule.media-types` names `rfc2361: 3` and `webm-container-guidelines: Naming`. Both sections were confirmed in the stored documents on 2026-11-23. RFC 2361 section 3 writes `video/vnd.avi`, and the WebM guidelines' naming table gives `video/webm` and `audio/webm`.
+
+## 2026-11-23 — Progress: Phase 2, task 4
+
+The draft of [`docs/design/cli.md`](../design/cli.md) is ready for review, before task 5 starts. It fixes what plan section 8.9 leaves to it:
+
+- the order in which the command line is read, and the messages of usage errors;
+- the help and version texts;
+- the entry points and options of each input;
+- the JSON document as the tool writes it;
+- the text layout of reports, detection results, errors and warnings;
+- the escaping of text that reaches a terminal;
+- output failure.
+
+The disposable spike [`spikes/cli-arguments/`](../../spikes/cli-arguments/README.md) checks the command line against the approved `clap`.
+
+**Checks and sources.**
+
+- **`clap` 4.6.8** on docs.rs:
+  - the feature flags: `color` styles the help and error texts, `suggestions` proposes options, and `wrap_help` follows the terminal's width;
+  - `ArgAction::SetTrue` refuses a repeated flag unless `Command::args_override_self` is set;
+  - `try_get_matches_from` neither prints nor exits.
+- **A closed pipe.** The Rust runtime ignores the signal of a closed pipe before `main` runs on Unix. A write to a closed pipe then returns `BrokenPipe`, which `println!` turns into a panic (rust-lang/rust issue 46016 and the Rust internals forum). So the exit status 1 of plan section 8.9 needs no signal handling, and changing the signal would need `unsafe` code, which R15 forbids.
+- **The GNU coding standards** for `--version`: the output on standard output, a constant program name, and the version after the last space.
+- **The POSIX utility syntax guidelines** 9, 10, 11 and 13: options before operands, `--` as the end of the options, the order of options, and `-` as standard input.
+- **Terminal escape injection.** Recent advisories and fixes escape or strip the C0 and C1 controls of untrusted text before it reaches a terminal. The Unicode property `Bidi_Control` lists U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069, the characters of the Trojan Source attack (CVE-2021-42574).
+
+**Decisions of the maintainer.** Besides the order of the documents (the G2.2 entry above), the agent asked three questions about the text mode and, while writing, one about the API. The maintainer took the recommended option for three of them and the alternative for one.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| What text mode prints for a report | A summary: the file's values, one line for each stream, the numbers of chapters, tags and attachments, and the completeness with its reasons | Every normalized field with each chapter, tag and attachment; that and the typed details as well | It is small and has the same shape for every format. The JSON document carries the whole report. |
+| Whether the text layout is a compatibility contract | No. It is for people, may change in any minor release, and each change is listed under "Changed output" | Stable within a major release, as the JSON document is; stable from 1.0 | Programs read the JSON document, whose contract is plan section 8.8. A text layout can then improve as formats are added. |
+| An error that carries a partial report, in text mode | The error goes to standard error. The partial report goes to standard output in the normal layout, with a line naming the error. | The error on standard error only, with the partial report left to the JSON document (the agent's recommendation) | A person sees what was established before the failure, which R19 keeps. The line that names the error keeps the block from reading as a report that succeeded. |
+| A partial report's parts that a source failure stopped | `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (`api.md` section 5.5) | Decide it in Phase 3; leave those parts without a reason | Every shortfall then names its reason (`api.md` section 5.3), and the CLI can print it. A new variant of an open set is compatible, so G2.2 stands. |
+
+**What the spike found** (`cli.md` section 12). In `spikes/cli-arguments/`, with the approved `clap`:
+
+- `-` is an input before and after `--`. Only the tool can count a second one.
+- After `--`, `--json` and `--help` are inputs. Both plain scans stop at the first `--`.
+- A long option is never abbreviated. An unknown option is `UnknownArgument`, whose context names the argument; for `-json` it names `-j`.
+- `--json=yes` and `--json=` are `TooManyValues`, whose context names the option alone.
+- A repeated flag needs `args_override_self`.
+- An empty argument is an input. An input that is not valid Unicode is kept, and an unknown option that is not valid Unicode is named with U+FFFD.
+- With `clap`'s own help and version flags off, `clap` writes nothing to either output, which a test of the spike's program shows.
+- `std` and `error-context` are enough. The dossier also approves `help` and `usage`, which generate texts that the tool never writes. The spike passes with and without them.
+
+**Found while writing.**
+
+- No reason said that a source failed, so a partial report could not say why its remaining parts were incomplete. The maintainer decided it, as above.
+- Plan section 8.9 said that the whole command line is validated before anything is probed. That left open whether `--help` beside an unknown option prints help, and whether `--version` needs an input. The contract answers both: a plain scan for help comes first, and the version comes after the usage errors and before the check for an input. Section 8.9 now says so.
+- R21 says that `--help` always prints help. Without the plain scan, `clap` would report an unknown option that stands before `--help` and print help for one that stands after it.
+
+**Choices made without asking,** each open at G2.3 (`cli.md` section 13):
+
+- the reading order: help before every other step, and the version before the check for an input;
+- no short options, so no `-h`; options accepted after the inputs, and a repeated option accepted;
+- the messages, the three lines of a usage error, and the help and version texts;
+- the JSON document pretty-printed with two spaces and followed by one line feed;
+- the labels, value formats and order of the text layout, with the language as its BCP 47 tag, and the header status shown only through the completeness reasons;
+- diagnostics of the severities `error` and `warning` on standard error in text mode, and none of the severity `information`;
+- the escaping of control characters and bidirectional controls as `\u{…}`, with the backslash left as it is;
+- on a closed pipe, exit status 1 with a message, as plan section 8.9 has it;
+- a failure to write standard error ignored;
+- whether the dossier's row for `clap` drops `help` and `usage`, which it keeps until G2.3.
+
+**Plan, revision 39** (besides the G2.2 changes above):
+
+- section 8.3: the reason "source failed";
+- section 8.9: the text mode with the maintainer's three choices, the plain scan for help, the order of the version, the escaping, and the tests;
+- section 8.10: the stability guide says that the text layout is no compatibility contract;
+- Phase 2, task 5: the same for the stability guide;
+- the Phase 2 progress paragraph and Appendix E.
+
+`api.md` follows in its status, its introduction, sections 5.3 and 5.5, and section 16.
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/cli-arguments/`, Clippy passes with warnings denied and the pedantic lints on, with and without the feature `generated-help`. `rustfmt` reports no difference.
+  - The 8 tests pass both ways: 7 for the command lines and 1 that runs the program.
+  - The structure check of D23 reports 0 findings.
+  - The lock file resolves the four crates of the dossier at its versions: `clap` 4.6.8, `clap_builder` 4.6.7, `clap_lex` 1.1.2 and `anstyle` 1.0.14.
+- **Diagrams.** The new diagram of `cli.md` renders with Mermaid 11.4.1 in headless Chromium, with the 16 diagrams of `api.md`, the plan and `CLAUDE.md`, and none has a syntax error.
+- **Text.** The new text names no multimedia tool and has no British spelling.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of `cli.md`, before task 5 starts;
+- G2.3, with task 5, the JSON contract and the stability guide;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.

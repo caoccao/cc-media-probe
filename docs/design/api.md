@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, tasks 2 and 3, written on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22; the names added since are confirmed at G2.2, together with the API. |
+| **Status** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -10,7 +10,7 @@ This specification describes the public surface of the `cc-media-probe` library:
 
 On 2026-11-22 the maintainer chose the baseline that this draft follows:
 
-- **Field guide proposals.** The fifteen API proposals of the field guide (findings F1 to F8, F14, F18 and F22 to F26) are specified as written. G2.2 confirms or changes them.
+- **Field guide proposals.** The fifteen API proposals of the field guide (findings F1 to F8, F14, F18 and F22 to F26) are specified as written. G2.2 confirmed them as specified.
 - **Async sources.** The async positional source trait is poll-based, like `AsyncRead` (section 9.3).
 - **Thoroughness.** The builder has no thoroughness option in `0.1.0` (section 4.3).
 - **Usage summary.** It is public (section 6.14).
@@ -43,6 +43,10 @@ At the fourth review, the same day, the maintainer approved G2.1 for the names o
 At the fifth review, the same day, the maintainer made one more choice:
 
 - **A candidate's check that a limit stopped.** When a limit stops one candidate's validation check while another candidate validates, the report is incomplete: `Completeness::detection()` is `Incomplete`, and the reason names the limit against `Part::Detection` (section 5.3).
+
+On 2026-11-23 the maintainer approved G2.2 for revision 38 of the plan, which this specification follows. While the CLI contract of task 4 was written, the maintainer made one more choice:
+
+- **A source that failed.** A part that a source failure stopped carries the reason `SourceFailed` in the error's partial report, with the source named (section 5.5).
 
 ## Contents
 
@@ -204,7 +208,7 @@ A payload that the retained-payload limit or the read limit stopped leaves that 
 
 The plan's list of builder options names a "thoroughness level" without defining one. On 2026-11-22 the maintainer chose to leave it out of `0.1.0`: each format phase fixes the bounded work it does, and the limits tune it. A release can add the option when a format needs an opt-in deeper scan, such as the transport-stream scan windows of G10.1. A new setter is a compatible change.
 
-The tags and chapters options are new in this specification. Plan section 8.3 lets a section be "not requested", which only an option can cause; the plan's list of options names only the attachments for that. G2.2 confirms them.
+The tags and chapters options are new in this specification. Plan section 8.3 lets a section be "not requested", which only an option can cause; the plan's list of options names only the attachments for that. G2.2 confirmed them on 2026-11-23.
 
 ### 4.4 Custom blocking sources
 
@@ -300,7 +304,7 @@ An observed format can also reach its inventory with no unit at all, where its e
 | `tags()`, `chapters()`, `attachments()` | `&SectionStatus` | `Complete` (including proven empty), `Incomplete`, `NotRequested`, `NotApplicable` |
 | `timing()` | `&TimingStatus` | `Established`, `NotAvailableByDesign`, `CutShort`, `NotApplicable` |
 | `companions()` | `&CompanionStatus` | `NotApplicable`, `Complete`, `NotEnabled`, `CutShort` |
-| `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, `source_identifier() -> Option<SourceIdentifier>` for a companion's request, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5) |
+| `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, `source_identifier() -> Option<SourceIdentifier>` for a companion's request or a source that failed, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5) |
 | `record()` | `&LimitRecord` | The fixed-size record below |
 
 Each status is a stored enum with a catch-all, so its getter returns it by reference (section 1, rule 7), as `matches!(report.completeness().chapters(), SectionStatus::Complete)` in section 15.5 shows.
@@ -357,7 +361,10 @@ The state is final, as `PendingParser` is: the probe did everything this version
 - `RangeUnavailable`, `TruncatedInput`, `LimitExhausted`, `EndOfInputNotObserved`;
 - `FeatureDisabled`, `CompanionsNotEnabled`, `CompanionNotFound`, `CompanionDeclined`, `CompanionLimited`, `CompanionNameUnavailable`;
 - `UnsupportedStructure`, `DamagedStructure`;
-- `FurtherSegmentsNotExamined`, `MediaSegmentWithoutInitializationData`.
+- `FurtherSegmentsNotExamined`, `MediaSegmentWithoutInitializationData`;
+- `SourceFailed`.
+
+**A source that failed.** A source failure after the inventory ends the probe with an error of kind `SourceFailed`, which carries the report established so far (R19, section 10.1). In that partial report, each part that the failure stopped is incomplete with the reason `SourceFailed`, and `PartReason::source_identifier()` names the source that failed, the primary input or a companion. The error keeps the I/O error itself. So the rule of section 5.3 holds in a partial report too: every shortfall names its reason. A report that a probe returns never holds this reason, since a source failure always gives an error. The maintainer chose this on 2026-11-23, while the CLI contract was written; it adds a variant to an open set, which is compatible.
 
 A format phase adds the reasons it needs; adding a variant is compatible. `Feature` names a Cargo feature that gates parsing. In `0.1.0` that is only `Zlib`: the serialization and async features never make information unavailable. A later feature that gates parsing adds its variant.
 
@@ -388,7 +395,7 @@ These types hold the values of the normalized fields. They are in `model`, excep
 | Accessor | Returns | Field guide (section 3.1) and notes |
 |---|---|---|
 | `format()` | `&Format` | `format`; the family for a family-only detection (section 6.4) |
-| `media_type()` | `Option<&MediaType>` | `media_type`. F3 lets an approved specification of the format name a type that the IANA registry lacks, which amends plan section 8.2 at G2.2. |
+| `media_type()` | `Option<&MediaType>` | `media_type`. F3 lets an approved specification of the format name a type that the IANA registry lacks, as plan section 8.2 says since G2.2 approved it. |
 | `size()` | `Option<u64>` | `size`, in bytes, from the source |
 | `duration()`, `duration_provenance()` | `Option<Seconds>`, `Option<&Provenance>` | `duration` |
 | `bit_rate()`, `bit_rate_provenance()` | `Option<Rational>`, `Option<&Provenance>` | `bit_rate`, in bits per second |
@@ -1898,7 +1905,7 @@ fn main() -> Result<(), Error> {
 
 ### 15.12 What the scenarios changed
 
-Writing and checking the scenarios revised the specification as follows. G2.1 approved the names, and G2.2 confirms the rest.
+Writing and checking the scenarios revised the specification as follows. G2.1 approved the names, and G2.2 the rest.
 
 | Change | Found in | Sections |
 |---|---|---|
@@ -1940,7 +1947,7 @@ Writing and checking the scenarios revised the specification as follows. G2.1 ap
   - tags: `TargetScope` with `WholeFile`, `Entities` and `Incomplete`, and `TagSet::target_scope()`, which replaces `targets_whole_file()`;
   - lookup: `SourceEntry::reason()`, `PartReason::source_identifier()` and `ReasonKind::CompanionNameUnavailable`.
 
-**G2.2, API approval:**
+**G2.2, API approval:** approved by the maintainer on 2026-11-23 for revision 38 of the plan (`198991f`), after the fifth review, for:
 
 - This specification as a whole, with D10 (errors, section 10), D11 (stability mechanics, section 14), D20 (companion files, section 13) and D21 (normalized values, section 7).
 - The fifteen field-guide proposals as specified, and the amendment of plan section 8.2 that F3 implies.
@@ -1962,6 +1969,8 @@ Writing and checking the scenarios revised the specification as follows. G2.1 ap
   - documents: `Document::serialize_results`, and `UnderivableOutcome` with `with_outcome()`;
   - paths: `RawPathEncoding`, and the members `input_lossy`, `input_raw`, `path_lossy` and `path_raw` with the encodings `unix_bytes` and `windows_wide`;
   - lookup: `SourceIdentityToken::new()` and `as_bytes()`.
+
+**After G2.2.** Writing the CLI contract (plan Phase 2, task 4) found that a partial report could not name why a source failure left its parts incomplete, since no reason said that a source failed. On 2026-11-23 the maintainer chose to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (section 5.5). A new variant of an open set is compatible, so the approval stands.
 
 **The first review.** On 2026-11-22 the maintainer's review held back the approval on 21 findings. Each was checked against the plan, the field guide and the stored sources, and each one holds. The specification changed as follows:
 
@@ -2059,4 +2068,4 @@ The review raised the last four under G2.3. Three of them carry into the joint r
 
 - **Item-list track and disc numbers.** Plan Phase 6, task 12 reads the item list "including cover art, track and disc numbers". The approved QuickTime documentation defines the item list only with keys from a `keys` table, and none of its keys is a track or disc number. No approved source defines the four-character item codes that carry them. Until one is approved through GS.2, `TrackNumber` and `DiscNumber` have no source in `0.1.0`, and such items keep their names (section 6.9).
 - **Repeated requests** (G3.1, section 9.3): the I/O spike confirms that the block cache and the forward-only window keep the promise.
-- **The first normalized keys.** `Date` is the date of the content's creation, and Matroska's four dates stay unmapped. The QuickTime key `com.apple.quicktime.year` has no key. G2.2 can add keys; a new key is a compatible change.
+- **The first normalized keys.** `Date` is the date of the content's creation, and Matroska's four dates stay unmapped. The QuickTime key `com.apple.quicktime.year` has no key. G2.2 added none; a later release can, since a new key is a compatible change.
