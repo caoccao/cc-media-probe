@@ -123,6 +123,7 @@ fn report_text(version: &str) -> Value {
     "completeness": {
       "detection": "Complete",
       "discovery": "Complete",
+      "headers": "Complete",
       "tags": "Complete",
       "chapters": "Complete",
       "attachments": "Complete",
@@ -319,6 +320,18 @@ fn an_identifier_is_a_string_at_every_width() {
   let source: SourceIdentifier = serde_json::from_value(json!("7")).unwrap();
   assert_eq!(serde_json::to_value(source).unwrap(), json!("7"));
   assert!(serde_json::from_value::<SourceIdentifier>(json!(7)).is_err());
+  // Since the ninth review a source identifier is 64 bits wide, so every request that the limit allows has one, and
+  // it is read in canonical decimal only.
+  for wide in ["4294967296", "18446744073709551615"] {
+    let source: SourceIdentifier = serde_json::from_value(json!(wide)).unwrap();
+    assert_eq!(serde_json::to_value(source).unwrap(), json!(wide));
+  }
+  for malformed in ["+1", "01", "-1", "18446744073709551616", ""] {
+    assert!(
+      serde_json::from_value::<SourceIdentifier>(json!(malformed)).is_err(),
+      "{malformed}"
+    );
+  }
 }
 
 #[test]

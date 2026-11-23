@@ -32,29 +32,33 @@ use crate::diagnostics::Diagnostic;
 use crate::document::SchemaVersion;
 use crate::source::SourceEntry;
 
-/// What a probe established about one input, a root record: serialized, it carries its schema version.
+/// What a probe established about one input, a root record: serialized, it carries its schema version. Reading one
+/// checks that its headers status agrees with the header states of its streams (`model/report_reading.rs`).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(try_from = "super::report_reading::ReportData")
+)]
 pub struct MediaReport {
   #[cfg(feature = "serde")]
-  #[cfg_attr(feature = "serde", serde(deserialize_with = "crate::document::read_current_major"))]
-  schema_version: SchemaVersion,
-  format: Format,
-  media_type: Option<MediaType>,
-  size: Option<u64>,
-  duration: Option<Seconds>,
-  duration_provenance: Option<Provenance>,
-  estimated_duration: Option<Estimate<Seconds>>,
-  bit_rate: Option<Rational>,
-  streams: Vec<Stream>,
-  chapter_editions: Vec<ChapterEdition>,
-  tag_sets: Vec<TagSet>,
-  attachments: Vec<Attachment>,
-  diagnostics: Vec<Diagnostic>,
-  completeness: Completeness,
-  usage: Usage,
-  sources: Vec<SourceEntry>,
-  format_details: Option<FormatDetails>,
+  pub(super) schema_version: SchemaVersion,
+  pub(super) format: Format,
+  pub(super) media_type: Option<MediaType>,
+  pub(super) size: Option<u64>,
+  pub(super) duration: Option<Seconds>,
+  pub(super) duration_provenance: Option<Provenance>,
+  pub(super) estimated_duration: Option<Estimate<Seconds>>,
+  pub(super) bit_rate: Option<Rational>,
+  pub(super) streams: Vec<Stream>,
+  pub(super) chapter_editions: Vec<ChapterEdition>,
+  pub(super) tag_sets: Vec<TagSet>,
+  pub(super) attachments: Vec<Attachment>,
+  pub(super) diagnostics: Vec<Diagnostic>,
+  pub(super) completeness: Completeness,
+  pub(super) usage: Usage,
+  pub(super) sources: Vec<SourceEntry>,
+  pub(super) format_details: Option<FormatDetails>,
 }
 
 impl MediaReport {

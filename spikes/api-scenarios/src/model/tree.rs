@@ -53,13 +53,27 @@ pub(crate) fn depth_first<Tree: Branching>(roots: &[Tree]) -> Vec<(Option<usize>
   order
 }
 
-/// Whether each node's parent comes before it, as a flat form needs.
+/// Whether the nodes are in depth-first order, the only order that writing gives (ninth review): each node's parent
+/// is the node before it or one of that node's ancestors, so no node returns to a subtree that has closed, and a
+/// top-level node closes every subtree. The path of open nodes is an explicit stack.
 #[cfg(feature = "serde")]
-pub(crate) fn is_ordered<Node>(nodes: &[(Option<usize>, Node)]) -> bool {
-  nodes
-    .iter()
-    .enumerate()
-    .all(|(position, (parent, _))| parent.is_none_or(|parent| parent < position))
+pub(crate) fn is_depth_first<Node>(nodes: &[(Option<usize>, Node)]) -> bool {
+  let mut open: Vec<usize> = Vec::new();
+  for (position, (parent, _)) in nodes.iter().enumerate() {
+    match parent {
+      None => open.clear(),
+      Some(parent) => {
+        while open.last().is_some_and(|last| last != parent) {
+          open.pop();
+        }
+        if open.is_empty() {
+          return false;
+        }
+      }
+    }
+    open.push(position);
+  }
+  true
 }
 
 /// The trees of nodes whose parents come before them, built from the last node to the first, so that no node is
@@ -138,8 +152,8 @@ pub(crate) mod flat {
   use serde::de::Error as _;
   use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-  use super::{Branching, assemble, depth_first, is_ordered};
-  use crate::constants::TREE_ORDER_MESSAGE;
+  use super::{Branching, assemble, depth_first, is_depth_first};
+  use crate::constants::{SUBTREE_MESSAGE, TREE_ORDER_MESSAGE};
 
   /// One node as written: its own members, with the position of its parent beside them.
   #[derive(Serialize)]
@@ -153,6 +167,7 @@ pub(crate) mod flat {
   /// One node as read.
   #[derive(Deserialize)]
   struct NodeData<Node> {
+    #[serde(default, deserialize_with = "crate::presence::present")]
     parent: Option<usize>,
     #[serde(flatten)]
     node: Node,
@@ -171,7 +186,7 @@ pub(crate) mod flat {
     }))
   }
 
-  /// Reads the nodes and builds the trees; a node whose parent does not come before it is malformed.
+  /// Reads the nodes and builds the trees; nodes out of depth-first order are malformed.
   pub(crate) fn deserialize<'input, Tree, Input>(deserializer: Input) -> Result<Vec<Tree>, Input::Error>
   where
     Tree: Branching,
@@ -182,9 +197,34 @@ pub(crate) mod flat {
       .into_iter()
       .map(|data| (data.parent, data.node))
       .collect();
-    if !is_ordered(&nodes) {
+    if !is_depth_first(&nodes) {
       return Err(Input::Error::custom(TREE_ORDER_MESSAGE));
     }
     Ok(assemble(nodes))
+  }
+
+  /// Writes a standalone node as the flat form of its subtree: the node itself first, without a parent, as the
+  /// maintainer chose at the seventh review.
+  pub(crate) fn serialize_subtree<Tree, Output>(tree: &Tree, serializer: Output) -> Result<Output::Ok, Output::Error>
+  where
+    Tree: Branching,
+    Tree::Node: Serialize,
+    Output: Serializer,
+  {
+    serialize(std::slice::from_ref(tree), serializer)
+  }
+
+  /// Reads a standalone node from the flat form of its subtree, which has exactly one root.
+  pub(crate) fn deserialize_subtree<'input, Tree, Input>(deserializer: Input) -> Result<Tree, Input::Error>
+  where
+    Tree: Branching,
+    Tree::Node: Deserialize<'input>,
+    Input: Deserializer<'input>,
+  {
+    let mut roots = deserialize::<Tree, Input>(deserializer)?;
+    match (roots.pop(), roots.is_empty()) {
+      (Some(root), true) => Ok(root),
+      _ => Err(Input::Error::custom(SUBTREE_MESSAGE)),
+    }
   }
 }

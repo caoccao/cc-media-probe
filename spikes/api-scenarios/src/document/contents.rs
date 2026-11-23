@@ -105,10 +105,8 @@ impl TryFrom<DocumentData> for Document {
     if data.usage_error.is_some() && !data.results.is_empty() {
       return Err(InvalidDocument::new(USAGE_ERROR_WITH_RESULTS_MESSAGE));
     }
-    let results = data
-      .results
-      .into_iter()
-      .enumerate()
+    let results = (0_u64..)
+      .zip(data.results)
       .map(|(position, entry)| entry.into_entry(position))
       .collect::<Result<Vec<DocumentEntry>, InvalidDocument>>()?;
     let mut nested = results.iter().flat_map(DocumentEntry::nested_versions);

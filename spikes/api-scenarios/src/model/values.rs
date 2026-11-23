@@ -24,29 +24,12 @@ use super::constants::{
   BITSTREAM_NAME, CONSTANT_BIT_RATE_OVER_SIZE_NAME, DECLARED_NAME, DELIVERY_CLOCK_SPAN_NAME, DERIVED_NAME,
   ENDPOINT_TIMESTAMPS_NAME, INDEX_SIZE_TOTALS_NAME, LAST_UNIT_START_NAME, SECONDS_SYMBOL, SIZE_SEPARATOR,
 };
+use super::unrecognized_value::UnrecognizedValue;
 use crate::constants::LARGEST_EXACT;
 #[cfg(feature = "serde")]
-use crate::constants::RATIONAL_MESSAGE;
+use crate::constants::{RATIONAL_MESSAGE, SIZE_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
-
-/// The text that a newer version wrote for an enum value that this version does not know.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct UnrecognizedValue(String);
-
-impl UnrecognizedValue {
-  /// The text as written.
-  pub fn as_str(&self) -> &str {
-    &self.0
-  }
-
-  /// The text of a value that this version does not know, as a reader keeps it.
-  #[cfg(feature = "serde")]
-  pub(crate) fn new(text: String) -> UnrecognizedValue {
-    UnrecognizedValue(text)
-  }
-}
 
 /// An exact fraction, always reduced, with a denominator of at least 1 and both parts at most 2^53 - 1 in magnitude.
 /// It reads back only in that form (`api.md` section 12).
@@ -161,15 +144,39 @@ impl fmt::Display for Seconds {
   }
 }
 
-/// A width and a height in whole pixels.
+/// A width and a height in whole pixels, each at most 2^53 - 1, so that JSON holds them as exact numbers. It reads
+/// back only in that range (`api.md` sections 6.1 and 12).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "SizeData"))]
 pub struct Size {
   width: u64,
   height: u64,
 }
 
+/// A size as read, before its range is checked.
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct SizeData {
+  width: u64,
+  height: u64,
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<SizeData> for Size {
+  type Error = InvalidDocument;
+
+  fn try_from(data: SizeData) -> Result<Size, InvalidDocument> {
+    Size::new(data.width, data.height).ok_or(InvalidDocument::new(SIZE_MESSAGE))
+  }
+}
+
 impl Size {
+  /// A size, or `None` when the width or the height is beyond 2^53 - 1, which no normalized field holds (R24).
+  pub fn new(width: u64, height: u64) -> Option<Size> {
+    (width <= LARGEST_EXACT && height <= LARGEST_EXACT).then_some(Size { width, height })
+  }
+
   /// The width, in pixels.
   pub fn width(&self) -> u64 {
     self.width
@@ -235,7 +242,8 @@ pub enum Provenance {
   /// Computed from other values.
   Derived,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Provenance>),
 }
 
 impl Provenance {
@@ -286,7 +294,8 @@ pub enum EstimateMethod {
   /// The totals of an index.
   IndexSizeTotals,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<EstimateMethod>),
 }
 
 impl EstimateMethod {

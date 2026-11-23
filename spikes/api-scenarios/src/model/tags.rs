@@ -29,7 +29,8 @@ use super::constants::{
 use super::language::Language;
 use super::tag_value::TagValue;
 use super::tree::{self, Branching};
-use super::values::{Identifier, UnrecognizedValue};
+use super::unrecognized_value::UnrecognizedValue;
+use super::values::Identifier;
 
 /// Tags with the entities they describe.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -96,7 +97,8 @@ pub enum TargetScope {
   /// the targets kept, and empty lists do not mean the whole file.
   Incomplete,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<TargetScope>),
 }
 
 impl TargetScope {
@@ -169,7 +171,8 @@ pub enum TargetReferenceKind {
   /// Every entity of its kind.
   Wildcard,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<TargetReferenceKind>),
 }
 
 /// Where an entity is in the report.
@@ -214,7 +217,8 @@ pub enum EntityKind {
   /// A program.
   Program,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<EntityKind>),
 }
 
 impl EntityKind {
@@ -329,6 +333,21 @@ impl fmt::Debug for Tag {
   }
 }
 
+/// A standalone tag is the flat form of its subtree, the tag itself first (`api.md` section 12).
+#[cfg(feature = "serde")]
+impl serde::Serialize for Tag {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    tree::flat::serialize_subtree(self, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> serde::Deserialize<'input> for Tag {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Tag, Input::Error> {
+    tree::flat::deserialize_subtree(deserializer)
+  }
+}
+
 /// A tag's name as written.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -381,7 +400,8 @@ pub enum TagKey {
   /// The disc number.
   DiscNumber,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<TagKey>),
 }
 
 impl TagKey {

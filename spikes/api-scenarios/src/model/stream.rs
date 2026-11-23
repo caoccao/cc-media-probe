@@ -21,7 +21,8 @@ use super::audio::AudioInformation;
 use super::codec::CodecInformation;
 use super::constants::{AUDIO_NAME, DATA_NAME, SUBTITLE_NAME, UNKNOWN_NAME, VIDEO_NAME};
 use super::language::{Language, LocalizedText};
-use super::values::{Estimate, Provenance, Rational, Seconds, UnrecognizedValue};
+use super::unrecognized_value::UnrecognizedValue;
+use super::values::{Estimate, Provenance, Rational, Seconds};
 use super::video::VideoInformation;
 use crate::completeness::HeaderStatus;
 use crate::details::CodecDetails;
@@ -140,7 +141,8 @@ pub enum StreamKind {
   /// Not known.
   Unknown,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<StreamKind>),
 }
 
 impl StreamKind {

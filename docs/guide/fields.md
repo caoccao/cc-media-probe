@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | First version, written in Phase 2, task 1, on 2026-11-22, and revised on the same day, before the API specification. It became normative when G2.2 approved the API on 2026-11-23. Every format phase extends it (plan section 11). |
+| **Status** | First version, written in Phase 2, task 1, on 2026-11-22, and revised on the same day, before the API specification. It became normative when G2.2 approved the API on 2026-11-23. The ninth review of the API added the rule of the last known good value to sections 1 and 2 on the same day, which G2.3 confirms. Every format phase extends it (plan section 11). |
 | **Plan** | [Sections 8.3 and 8.4](../plans/plan-init-project.md#84-normalized-values-units-precedence-and-provenance) set the rules; this guide applies them per field and per format. |
 
 This guide lists every field of the normalized model and says, for each format, which element, box or field of the file supplies it. Its unit, precedence and provenance are given too. Two correct implementations of these rules return the same value for the same file (plan section 8.1, principle 6).
@@ -24,7 +24,7 @@ Section 7 lists what writing and reviewing this guide found: questions for the A
 - *bitstream*: a codec header states it;
 - *derived*: computed exactly from declared, bitstream or derived inputs (plan section 8.4).
 
-Where several sources can supply a field, they are numbered in order of precedence: use the first applicable source that establishes a value. An unknown sentinel or unread field supplies no value. Use a lower source only when no higher one establishes a value, and never where the format forbids the fallback. For example, the presence of Matroska `LanguageBCP47` suppresses legacy `Language`, even for `und`. Other marks:
+Where several sources can supply a field, they are numbered in order of precedence: use the first applicable source that establishes a value. An unknown sentinel or unread field supplies no value. Use a lower source only when no higher one establishes a value, and never where the format forbids the fallback. For example, a Matroska `LanguageBCP47` that reads suppresses legacy `Language`, even for `und`. A source that is damaged, so that its bytes contradict its syntax, or cut short before its value, establishes no value either. Where the sources are structures of several versions of one specification that state the same property for the same scope, as `LanguageBCP47` of Matroska version 4 and the older `Language` do, a property therefore holds its last known good value: the older structure's, when the newer one is damaged. A diagnostic names the damaged structure, and a suppression rule applies only to a newer value that reads, as the maintainer chose at the ninth review of `api.md` on 2026-11-23 (plan section 8.4). Other marks:
 
 | Mark | Meaning |
 |---|---|
@@ -45,6 +45,7 @@ These rules restate plan section 8.4 and add what the per-format tables need.
 - **Rates.** Sample rates and frame rates are exact rationals per second. Bit rates are bits per second; a derived bit rate is an exact rational.
 - **Sizes.** Sizes are whole pixels. A size computed from a fractional input is rounded to the nearest whole pixel, halves up, as the last step. It is labeled *derived*, and the exact rational stays in the details (plan section 8.4).
 - **Precedence.** Properties of the coded stream follow the parsed header first: coded size, profile, level, bit depth, chroma format, coded sample rate and channel count. Presentation intent follows the container first: display size, aspect ratio, rotation, language, flags and titles. Use a format-specific override only for the components that the overriding source actually states. Duration comes first from the container's declaration or index, then from an exact derivation.
+- **The last known good value.** A structure of a newer version of a specification that is damaged or cut short establishes no value, so the value that a structure of an older version of the same specification read well for the same property and scope is reported, with its provenance and a diagnostic for the damaged one (section 1). An older structure that covers less, such as AVI's first-segment frame count beside the OpenDML total, states a different property and is never such a fallback.
 - **Conflicts.** Compare the same component, scope and stage, after unit conversion and before display rounding. When two sources that should agree do not, the field follows the precedence. Both raw values stay in the details, and a diagnostic records the conflict.
 - **Absence.** A field that no source states, or that could not be established, is absent. Preserve a genuine zero, such as a chapter at time zero or a completed count of zero. Never substitute a zero or empty string for missing evidence. Estimates exist only through the estimate accessors (plan section 8.4, R25).
 - **Range.** A quantity beyond 2^53 − 1 in magnitude is absent. A diagnostic is raised, and the exact value is kept as a string in the details (R24). A rational is reduced first and then checked by its numerator and its denominator, not by its value: 1 ÷ 2^54 is small, but its denominator is beyond the range. Then the field is absent, and both components are kept as strings with the inputs they were computed from (plan section 8.8).
@@ -253,7 +254,7 @@ A file's `DocTypeVersion` must be at least the version of every element it store
 | `unique_identifier` | `TrackUID` (5.1.4.1.2); declared | as Matroska |
 | `kind` | `TrackType` (5.1.4.1.3; values in 27.16): 1 video, 2 audio, 17 subtitle, 18 buttons, 33 metadata; 3 complex, 16 logo and 32 control are kept as written in the details; declared | as Matroska |
 | `raw_identifiers` | `CodecID` (5.1.4.1.21) in the Matroska namespace. For `V_MS/VFW/FOURCC` and `A_MS/ACM`, also preserve the inner `biCompression` or `wFormatTag` and any extensible `SubFormat`, in their respective namespaces. Resolve the codec from that inner identifier (`ietf-draft-cellar-codec` 3.3.18, 3.4.25 and section 4.3 of this guide). Declared | as Matroska; the guidelines name VP8, VP9, Vorbis and Opus, and for WebVTT the identifiers `D_WEBVTT/SUBTITLES`, `D_WEBVTT/CAPTIONS`, `D_WEBVTT/DESCRIPTIONS` and `D_WEBVTT/METADATA` ("Storing WebVTT data in a WebM Track"; finding F19) |
-| `language` | 1. `LanguageBCP47` (5.1.4.1.20). 2. `Language` (5.1.4.1.19), ISO 639-2 bibliographic, possibly followed by a dash and a country, as in `fre-ca` (section 2), *default* `eng`. The first takes precedence when both are present (12); declared | as Matroska |
+| `language` | 1. `LanguageBCP47` (5.1.4.1.20). 2. `Language` (5.1.4.1.19), ISO 639-2 bibliographic, possibly followed by a dash and a country, as in `fre-ca` (section 2), *default* `eng`. The first takes precedence when both are present (12) and it reads as a well-formed BCP 47 tag; a damaged one leaves the second in place, with a diagnostic (section 1, the last known good value); declared | as Matroska |
 | `title` | `Name` (5.1.4.1.18); declared | as Matroska |
 | `duration` | — (no element; the tags draft defines no duration tag, finding F9) | — |
 | `start_time` | — (needs the first presented block; not read) | — |
@@ -320,7 +321,7 @@ A file's `DocTypeVersion` must be at least the version of every element it store
 | Chapter `unique_identifier`, `string_identifier` | `ChapterUID` (5.1.7.1.4.1), `ChapterStringUID` (5.1.7.1.4.2) | as Matroska |
 | Chapter `start`, `end` | `ChapterTimeStart`, `ChapterTimeEnd` (5.1.7.1.4.3, 5.1.7.1.4.4; nanoseconds, 11.1.1; 20.2.1, 20.2.2) | as Matroska |
 | Chapter `segment_reference` | `ChapterSegmentUUID` (5.1.7.1.4.6), with `ChapterSegmentEditionUID` (5.1.7.1.4.7) as the edition to play from it, when present. Also list the external segment reference with its owning chapter (section 3.11) | — |
-| Chapter `titles` | `ChapterDisplay` (5.1.7.1.4.9): `ChapString` (5.1.7.1.4.10). Its language and countries: 1. `ChapLanguageBCP47` (5.1.7.1.4.12), and then `ChapLanguage` and `ChapCountry` are ignored, as that element's definition requires. 2. Otherwise `ChapLanguage` (5.1.7.1.4.11, *default* `eng`) with `ChapCountry` (5.1.7.1.4.13) | as Matroska |
+| Chapter `titles` | `ChapterDisplay` (5.1.7.1.4.9): `ChapString` (5.1.7.1.4.10). Its language and countries: 1. `ChapLanguageBCP47` (5.1.7.1.4.12), and then `ChapLanguage` and `ChapCountry` are ignored, as that element's definition requires when it is used; a damaged one is not, and leaves the second source in place (section 1). 2. Otherwise `ChapLanguage` (5.1.7.1.4.11, *default* `eng`) with `ChapCountry` (5.1.7.1.4.13) | as Matroska |
 | Chapter `hidden` | `ChapterFlagHidden` (5.1.7.1.4.5, *default* 0; 20.2.5) | — (unsupported, so no default applies) |
 | Chapter `enabled` | `ChapterFlagEnabled`, *default* 1 (`matroska-elements`, element 0x4598); declared | — (unsupported) |
 | Chapter `children` | Nested `ChapterAtom` (20.2.3, 20.2.4) | as Matroska |
@@ -335,7 +336,7 @@ All chapter fields are declared, and the playback fields of ordered editions are
 | Tag set `target_level` | `TargetTypeValue` (5.1.8.1.1.1, *default* 50) and `TargetType` (5.1.8.1.1.2; `ietf-draft-cellar-tags` 3.3) | as Matroska |
 | Tag set `targets` | `TagTrackUID`, `TagEditionUID`, `TagChapterUID`, `TagAttachmentUID` (5.1.8.1.1.3 to 5.1.8.1.1.6); the value 0 is the wildcard | `TagTrackUID` only; the other three are unsupported (`webm-container-guidelines`: "Tagging") |
 | Tag `name`, `key` | `TagName` (5.1.8.1.2.1); keys from the names of `ietf-draft-cellar-tags` 4 | as Matroska |
-| Tag `languages` | A set of one: `TagLanguageBCP47` (5.1.8.1.2.3) before `TagLanguage` (5.1.8.1.2.2, *default* `und`) | as Matroska |
+| Tag `languages` | A set of one: `TagLanguageBCP47` (5.1.8.1.2.3) before `TagLanguage` (5.1.8.1.2.2, *default* `und`); a damaged `TagLanguageBCP47` leaves `TagLanguage` in place (section 1) | as Matroska |
 | Tag `default` | `TagDefault` (5.1.8.1.2.4, *default* 1) | as Matroska |
 | Tag `value` | `TagString` (5.1.8.1.2.5) or `TagBinary` (5.1.8.1.2.6) | as Matroska |
 | Tag `children` | Nested `SimpleTag` | as Matroska |

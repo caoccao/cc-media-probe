@@ -22,6 +22,7 @@ use super::outcome::EntryOutcome;
 use super::underivable::{UnderivableOutcome, UnderivedRecord};
 use super::version::SchemaVersion;
 use crate::error::ErrorRecord;
+use crate::kept::KeptMembers;
 use crate::model::{Detection, MediaReport};
 use crate::source::PortablePath;
 
@@ -33,6 +34,9 @@ pub struct DocumentEntry {
   pub(super) report: Option<MediaReport>,
   pub(super) detection: Option<Detection>,
   pub(super) error: Option<ErrorRecord>,
+  /// For an outcome that a newer version wrote, the members that this version does not read, as written, which the
+  /// entry writes back unchanged; empty for an outcome that this version knows (`api.md` section 12).
+  pub(super) kept: KeptMembers,
 }
 
 impl DocumentEntry {
@@ -48,6 +52,7 @@ impl DocumentEntry {
         report: Some(report),
         detection: None,
         error: None,
+        kept: KeptMembers::default(),
       }),
       None => Err(UnderivableOutcome::new(
         input,
@@ -66,6 +71,7 @@ impl DocumentEntry {
         report: None,
         detection: Some(detection),
         error: None,
+        kept: KeptMembers::default(),
       }),
       None => Err(UnderivableOutcome::new(input, UnderivedRecord::Detection(detection))),
     }
@@ -79,6 +85,7 @@ impl DocumentEntry {
       report: None,
       detection: None,
       error: Some(record),
+      kept: KeptMembers::default(),
     }
   }
 

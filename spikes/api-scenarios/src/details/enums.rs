@@ -20,7 +20,8 @@
 use super::h264::H264Details;
 use super::iso_base_media::IsoBaseMediaDetails;
 use super::matroska::MatroskaDetails;
-use super::shared::{Conflict, UnrecognizedDetails};
+use super::shared::Conflict;
+use super::unrecognized_details::UnrecognizedDetails;
 
 /// A format's details.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -32,7 +33,8 @@ pub enum FormatDetails {
   /// The ISO base media family.
   IsoBaseMedia(IsoBaseMediaDetails),
   /// A kind that a newer version wrote.
-  Unrecognized(UnrecognizedDetails),
+  #[cfg_attr(feature = "serde", serde(with = "super::unrecognized_form"))]
+  Unrecognized(UnrecognizedDetails<FormatDetails>),
 }
 
 impl FormatDetails {
@@ -53,7 +55,8 @@ pub enum CodecDetails {
   /// H.264.
   H264(H264Details),
   /// A kind that a newer version wrote.
-  Unrecognized(UnrecognizedDetails),
+  #[cfg_attr(feature = "serde", serde(with = "super::unrecognized_form"))]
+  Unrecognized(UnrecognizedDetails<CodecDetails>),
 }
 
 impl CodecDetails {

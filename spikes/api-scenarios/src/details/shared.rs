@@ -93,17 +93,3 @@ impl ConflictingValue {
     &self.value
   }
 }
-
-/// The details of a kind that a newer version wrote.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct UnrecognizedDetails {
-  kind: String,
-}
-
-impl UnrecognizedDetails {
-  /// The kind name as written.
-  pub fn kind(&self) -> &str {
-    &self.kind
-  }
-}

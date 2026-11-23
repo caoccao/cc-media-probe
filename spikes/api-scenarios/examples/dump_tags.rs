@@ -24,9 +24,7 @@ fn main() -> Result<(), Error> {
   let report = probe_file("concert.mka")?;
   for tag_set in report.tag_sets() {
     println!("{}", describe_targets(&report, tag_set));
-    for tag in tag_set.tags() {
-      print_tag(tag, 1);
-    }
+    print_tags(tag_set.tags());
   }
   // The flat view: the file-level title, whatever name the format gives it.
   if let Some(TagValue::Text(title)) = report.tag(&TagKey::Title).and_then(Tag::value) {
@@ -90,23 +88,27 @@ fn describe(reference: &TargetReference, entity: &str, name: impl Fn(usize, &[us
   }
 }
 
-fn print_tag(tag: &Tag, depth: usize) {
-  let value = match tag.value() {
-    Some(TagValue::Text(text)) => text.clone(),
-    Some(TagValue::Integer(integer)) => integer.to_string(),
-    Some(TagValue::Binary(binary)) => format!("{} bytes", binary.size()),
-    Some(other) => format!("{other:?}"),
-    // A node that only groups its children.
-    None => String::new(),
-  };
-  let key = tag.key().map(|key| format!(" ({})", key.as_str())).unwrap_or_default();
-  println!(
-    "{:indent$}{}{key} = {value}",
-    "",
-    tag.name().as_written(),
-    indent = depth * 2
-  );
-  for child in tag.children() {
-    print_tag(child, depth + 1);
+/// Prints a tree of tags in depth-first order with a stack of its own, since a tree can be as deep as its input
+/// (section 3.3): a call per level could exhaust the call stack.
+fn print_tags(tags: &[Tag]) {
+  // Each node waits with its depth; the children go on in reverse, so the first comes off first.
+  let mut waiting: Vec<(&Tag, usize)> = tags.iter().rev().map(|tag| (tag, 1)).collect();
+  while let Some((tag, depth)) = waiting.pop() {
+    let value = match tag.value() {
+      Some(TagValue::Text(text)) => text.clone(),
+      Some(TagValue::Integer(integer)) => integer.to_string(),
+      Some(TagValue::Binary(binary)) => format!("{} bytes", binary.size()),
+      Some(other) => format!("{other:?}"),
+      // A node that only groups its children.
+      None => String::new(),
+    };
+    let key = tag.key().map(|key| format!(" ({})", key.as_str())).unwrap_or_default();
+    println!(
+      "{:indent$}{}{key} = {value}",
+      "",
+      tag.name().as_written(),
+      indent = depth * 2
+    );
+    waiting.extend(tag.children().iter().rev().map(|child| (child, depth + 1)));
   }
 }

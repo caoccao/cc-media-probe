@@ -16,7 +16,7 @@
 */
 
 //! The spike's program, run as a process: `clap` writes nothing to either output, so each one holds only the
-//! line that the program writes, and a usage error exits with 2.
+//! line that the program writes, and a usage error exits with 2. An output that cannot be written exits with 1.
 
 use std::process::Command;
 
@@ -66,5 +66,38 @@ fn the_parser_writes_nothing_itself() {
   assert_eq!(
     outputs(&["--json", "a"]),
     ("run true false false\ninput a\n".to_owned(), String::new(), Some(0))
+  );
+}
+
+#[test]
+fn an_output_whose_reader_has_gone_fails_with_status_1() {
+  // The eighth review's case. A pipe whose read end is closed before the program writes fails every write, so the
+  // status is 1 on every run. A reader that is still open, as `head` can be for a short output, lets the writes
+  // succeed, and the program then ends normally.
+  let (reader, writer) = std::io::pipe().unwrap();
+  drop(reader);
+  let status = Command::new(env!("CARGO_BIN_EXE_cli-arguments"))
+    .arg("a")
+    .stdout(writer)
+    .status()
+    .unwrap();
+  assert_eq!(status.code(), Some(1));
+}
+
+#[test]
+fn standard_error_escapes_what_a_terminal_acts_on() {
+  // The ninth review's case: a newline and an escape inside an unknown option are written as `\u{…}` on standard
+  // error, in either mode, while the message itself keeps them (`tests/arguments.rs`).
+  assert_eq!(
+    outputs(&["--bo\ngus\u{1b}[2J", "movie.mkv"]),
+    (
+      String::new(),
+      "usage error false: unknown option: --bo\\u{a}gus\\u{1b}[2J\n".to_owned(),
+      Some(2)
+    )
+  );
+  assert_eq!(
+    outputs(&["--json", "--x\u{202e}y"]).1,
+    "usage error true: unknown option: --x\\u{202e}y\n"
   );
 }

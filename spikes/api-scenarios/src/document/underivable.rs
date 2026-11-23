@@ -22,6 +22,7 @@ use std::fmt;
 use super::entry::DocumentEntry;
 use super::outcome::EntryOutcome;
 use crate::constants::UNDERIVABLE_OUTCOME_MESSAGE;
+use crate::kept::KeptMembers;
 use crate::model::{Detection, MediaReport};
 use crate::source::PortablePath;
 
@@ -56,14 +57,16 @@ impl UnderivableOutcome {
     }
   }
 
-  /// The entry with this outcome, such as the one that a document recorded for the same record. An outcome that the
-  /// record rules out, `error` for a report, is refused, and the refusal comes back unchanged, so every entry it
-  /// builds reads back.
+  /// The entry with this outcome, such as the one that a document recorded for the same record. The outcome is one
+  /// that this version knows and that the record allows; an outcome of a newer version can need members that only
+  /// its version builds, so an entry read with it is forwarded as read (ninth review). Any other outcome is refused,
+  /// and the refusal comes back unchanged, so every entry it builds reads back.
   pub fn with_outcome(self, outcome: EntryOutcome) -> Result<DocumentEntry, UnderivableOutcome> {
-    let allowed = match &self.parts.record {
-      UnderivedRecord::Report(report) => outcome.is_allowed_for_report(report),
-      UnderivedRecord::Detection(detection) => outcome.is_allowed_for_detection(detection),
-    };
+    let allowed = !matches!(outcome, EntryOutcome::Unrecognized(_))
+      && match &self.parts.record {
+        UnderivedRecord::Report(report) => outcome.is_allowed_for_report(report),
+        UnderivedRecord::Detection(detection) => outcome.is_allowed_for_detection(detection),
+      };
     if !allowed {
       return Err(self);
     }
@@ -78,6 +81,7 @@ impl UnderivableOutcome {
       report,
       detection,
       error: None,
+      kept: KeptMembers::default(),
     })
   }
 }

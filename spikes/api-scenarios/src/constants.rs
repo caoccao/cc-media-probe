@@ -155,7 +155,8 @@ pub const PATH_DISAGREES_MESSAGE: &str = "a lossy path's raw data is not valid U
 pub const POSITION_MESSAGE: &str = "an entry's index is its position in the results";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
-pub const TREE_ORDER_MESSAGE: &str = "a node of a tree's flat form comes after its parent";
+pub const TREE_ORDER_MESSAGE: &str =
+  "a tree's flat form lists its nodes in depth-first order, each after its parent and within its parent's subtree";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
 pub const RATIONAL_MESSAGE: &str =
@@ -168,6 +169,35 @@ pub const TWIN_MESSAGE: &str = "a quantity is a number within 2^53 - 1, or else 
 #[cfg(feature = "serde")]
 pub const TAG_VALUE_MESSAGE: &str = "a tag value of a known kind holds the member named after its kind, and no \
                                      member of another known kind";
+
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const DECIMAL_MESSAGE: &str = "a count or source identifier that is always a string is canonical decimal: \
+                                   digits with no sign and no leading zero";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const DUPLICATE_MEMBER_MESSAGE: &str = "a map names each member once";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const KEPT_VALUE_EXPECTING: &str = "any value but null, which the form never writes";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const SUBTREE_MESSAGE: &str = "a standalone node is the flat form of its subtree, with exactly one root";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const SIZE_MESSAGE: &str = "a size's width and height are each at most 2^53 - 1";
+
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const CHROMA_FORMAT_MESSAGE: &str = "a chroma format of a known kind holds the member named after its kind when \
+                                         it has a value, and no member of another known kind";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const HEADERS_DISAGREE_MESSAGE: &str = "a report's headers status disagrees with the header states of its streams";
+
+/// The members of an enum that carries data: the kind, which names the member that holds the value.
+#[cfg(feature = "serde")]
+pub const KIND_MEMBER: &str = "kind";
 
 /// The largest magnitude that every JSON consumer reads exactly, 2^53 - 1 (R24, RFC 7493 section 2.2).
 pub const LARGEST_EXACT: u64 = 9_007_199_254_740_991;

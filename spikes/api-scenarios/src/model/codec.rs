@@ -23,7 +23,7 @@ use super::constants::{
   AAC_NAME, AV1_NAME, CANDIDATE_SEPARATOR, H264_NAME, MISSING_CANDIDATE_TEXT, OPUS_NAME, UNKNOWN_CODEC_TEXT, VP9_NAME,
   WEBVTT_NAME,
 };
-use super::values::UnrecognizedValue;
+use super::unrecognized_value::UnrecognizedValue;
 
 /// A codec's identity.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -45,7 +45,8 @@ pub enum Codec {
   /// A codec that the file names and this version does not know; the raw identifiers keep its name.
   Unknown,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Codec>),
 }
 
 impl Codec {
@@ -93,7 +94,8 @@ pub enum CodecNamespace {
   /// An ISO sample entry code.
   IsoSampleEntry,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<CodecNamespace>),
 }
 
 /// A profile, level or tier: the specification's name and the coded value.

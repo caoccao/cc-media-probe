@@ -16,7 +16,8 @@
 */
 
 //! The contract of `api.md` section 9.3: after `Pending`, the same request is repeated within one probe, and a
-//! source that outlives a dropped probe answers the next request for its own range.
+//! source that outlives a dropped probe answers the next request for its own range. Neither kind of probe asks for
+//! zero bytes, so an answer of 0 marks the end (section 4.4).
 
 use std::future::{Future, poll_fn};
 use std::io;
@@ -106,6 +107,32 @@ fn a_pending_read_is_asked_again_with_the_same_request() {
   let requests = requests.lock().unwrap();
   assert_eq!(requests.len(), 2);
   assert_eq!(requests[0], requests[1]);
+  // A probe never asks for zero bytes, so an answer of 0 always marks the end (section 4.4).
+  assert!(requests.iter().all(|(_, length)| *length > 0));
+}
+
+/// Records the length of every buffer it is asked to fill, and answers 0 for an empty one.
+struct RecordingSource {
+  lengths: Vec<usize>,
+}
+
+impl cc_media_probe::source::PositionalSource for RecordingSource {
+  fn read_at(&mut self, _position: u64, buffer: &mut [u8]) -> io::Result<usize> {
+    self.lengths.push(buffer.len());
+    Ok(buffer.len())
+  }
+
+  fn length(&mut self) -> io::Result<Option<u64>> {
+    Ok(None)
+  }
+}
+
+#[test]
+fn a_blocking_probe_never_asks_for_zero_bytes() {
+  let mut source = RecordingSource { lengths: Vec::new() };
+  assert!(cc_media_probe::probe_source(&mut source).is_err());
+  assert!(!source.lengths.is_empty());
+  assert!(source.lengths.iter().all(|length| *length > 0));
 }
 
 #[test]

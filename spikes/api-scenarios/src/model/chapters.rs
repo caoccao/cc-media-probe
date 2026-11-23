@@ -200,3 +200,18 @@ impl fmt::Debug for Chapter {
     tree::format(self, formatter)
   }
 }
+
+/// A standalone chapter is the flat form of its subtree, the chapter itself first (`api.md` section 12).
+#[cfg(feature = "serde")]
+impl serde::Serialize for Chapter {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    tree::flat::serialize_subtree(self, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> serde::Deserialize<'input> for Chapter {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Chapter, Input::Error> {
+    tree::flat::deserialize_subtree(deserializer)
+  }
+}

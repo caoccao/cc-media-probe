@@ -17,8 +17,6 @@
 
 //! The source table, `api.md` section 6.15: one entry for each source the probe requested.
 
-use std::num::ParseIntError;
-
 use super::path::PortablePath;
 #[cfg(feature = "serde")]
 use super::raw::RawPath;
@@ -30,26 +28,13 @@ use crate::document::InvalidDocument;
 #[cfg(feature = "serde")]
 use crate::twin::{unsigned_members, unsigned_value};
 
-/// Which source of a probe something concerns; 0 is the primary input. Serialized as a decimal string, like every
-/// identifier, although it is 32 bits wide.
+/// Which source of a probe something concerns; 0 is the primary input. It is 64 bits wide, so every request that
+/// the companion-request limit allows has an identifier of its own, whatever the limit (ninth review). Serialized as
+/// a string, like every identifier, in canonical decimal, so `"+1"` and `"01"` name no source.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "String", try_from = "String"))]
-pub struct SourceIdentifier(u32);
-
-impl From<SourceIdentifier> for String {
-  fn from(identifier: SourceIdentifier) -> String {
-    identifier.0.to_string()
-  }
-}
-
-impl TryFrom<String> for SourceIdentifier {
-  type Error = ParseIntError;
-
-  fn try_from(text: String) -> Result<SourceIdentifier, ParseIntError> {
-    text.parse().map(SourceIdentifier)
-  }
-}
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct SourceIdentifier(#[cfg_attr(feature = "serde", serde(with = "crate::decimal"))] u64);
 
 /// One source the probe requested.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -90,17 +75,41 @@ impl SourceEntry {
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SourceEntryData {
   identifier: SourceIdentifier,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
   reason: Option<Reason>,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
   bytes_read: Option<u64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
   bytes_read_exact: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
   path: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
   path_lossy: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
   path_raw: Option<RawPath>,
 }
 

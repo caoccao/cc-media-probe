@@ -24,6 +24,10 @@ mod identifier_text;
 pub mod iso_base_media;
 pub mod matroska;
 mod shared;
+mod unrecognized_details;
+#[cfg(feature = "serde")]
+mod unrecognized_form;
 
 pub use enums::{CodecDetails, FormatDetails};
-pub use shared::{Conflict, ConflictingValue, StoredValue, UnrecognizedDetails};
+pub use shared::{Conflict, ConflictingValue, StoredValue};
+pub use unrecognized_details::UnrecognizedDetails;

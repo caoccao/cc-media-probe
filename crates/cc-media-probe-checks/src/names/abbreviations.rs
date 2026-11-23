@@ -57,4 +57,6 @@ pub static FIXED_NAMES: &[&str] = &[
   "partial_cmp",
   "poll_fill_buf",
   "to_str",
+  "visit_seq",
+  "visit_str",
 ];

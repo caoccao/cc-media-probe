@@ -120,6 +120,11 @@ mod tests {
       messages("impl FromStr for Unit { type Err = Error; fn from_str(text: &str) {} }"),
       Vec::<String>::new()
     );
+    // Serde's `Visitor` fixes these method names.
+    assert_eq!(
+      messages("impl Visitor for Reader { fn visit_str(self, text: &str) {} fn visit_seq(self, items: Items) {} }"),
+      Vec::<String>::new()
+    );
   }
 
   #[test]

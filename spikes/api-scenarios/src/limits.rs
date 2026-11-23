@@ -108,7 +108,8 @@ pub enum Limit {
   /// Stream declarations.
   Streams,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Limit>),
 }
 
 impl Limit {

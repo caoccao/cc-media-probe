@@ -219,7 +219,7 @@ pub enum RawPathEncoding {
   /// The 16-bit units of a Windows path.
   WindowsWide,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  Unrecognized(UnrecognizedValue<RawPathEncoding>),
 }
 
 impl RawPathEncoding {

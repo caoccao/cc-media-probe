@@ -50,7 +50,15 @@ name = "archive"
 required-features = ["serde"]
 
 [[test]]
+name = "data_enums"
+required-features = ["serde"]
+
+[[test]]
 name = "document"
+required-features = ["serde"]
+
+[[test]]
+name = "forwarding"
 required-features = ["serde"]
 
 [[test]]
@@ -59,4 +67,12 @@ required-features = ["serde"]
 
 [[test]]
 name = "writer"
+required-features = ["serde"]
+
+[[test]]
+name = "catch_alls"
+required-features = ["serde"]
+
+[[test]]
+name = "flat_trees"
 required-features = ["serde"]

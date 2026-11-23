@@ -152,3 +152,20 @@ pub const BINARY_KIND: &str = "binary";
 pub const INTEGER_KIND: &str = "integer";
 /// The serialized kinds of `TagValue`.
 pub const BOOLEAN_KIND: &str = "boolean";
+/// The exact twin of an integer tag value beyond 2^53 - 1, which holds its canonical decimal text.
+#[cfg(feature = "serde")]
+pub const INTEGER_EXACT_MEMBER: &str = "integer_exact";
+/// The members that the known kinds of `TagValue` hold. After a known kind's own members are taken, none of these may
+/// remain.
+#[cfg(feature = "serde")]
+pub const TAG_VALUE_MEMBERS: [&str; 5] = [TEXT_KIND, BINARY_KIND, INTEGER_KIND, INTEGER_EXACT_MEMBER, BOOLEAN_KIND];
+
+/// The serialized kinds of `ChromaFormat`. The two without a value are a map of `kind` alone.
+pub const MONOCHROME_KIND: &str = "monochrome";
+/// The serialized kinds of `ChromaFormat`.
+pub const CHROMA_420_KIND: &str = "chroma_420";
+/// The serialized kinds of `ChromaFormat`; also the name of the member that holds the subsampling.
+pub const OTHER_KIND: &str = "other";
+/// The members that the known kinds of `ChromaFormat` hold, which no other known kind may leave behind.
+#[cfg(feature = "serde")]
+pub const CHROMA_FORMAT_MEMBERS: [&str; 1] = [OTHER_KIND];

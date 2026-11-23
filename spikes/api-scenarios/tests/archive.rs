@@ -15,16 +15,17 @@
 * limitations under the License.
 */
 
-//! The archive cases of the sixth review of `api.md`: records that a reader must refuse or read exactly. An entry
-//! keeps the outcome constraints that its known statuses decide, a portable path describes one path, a root record
-//! checks its version before anything else, and the numbers of section 12 keep their invariants.
+//! The archive cases of the sixth and seventh reviews of `api.md`: records that a reader must refuse or read exactly.
+//! An entry keeps the outcome constraints that its known statuses decide, a portable path describes one path, a root
+//! record checks its version before anything else, the numbers of section 12 keep their invariants, a member never
+//! holds null, and a standalone chapter or tag is the flat form of its subtree.
 
 use std::path::Path;
 
 use cc_media_probe::MediaReport;
 use cc_media_probe::document::{Document, DocumentEntry, EntryOutcome, Generator};
 use cc_media_probe::error::ErrorRecord;
-use cc_media_probe::model::{Rational, TagValue};
+use cc_media_probe::model::{Chapter, Rational, Tag, TagValue};
 use cc_media_probe::probe_bytes;
 use cc_media_probe::source::{PortablePath, SourceEntry};
 use serde_json::{Value, json};
@@ -50,6 +51,7 @@ fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
   json!({
     "detection": "Complete",
     "discovery": discovery,
+    "headers": "Complete",
     "tags": tags,
     "chapters": "Complete",
     "attachments": "Complete",
@@ -72,9 +74,7 @@ fn report_document(report: Value, outcome: &str) -> Value {
 fn known_shortfall_with_a_newer_status() -> Value {
   let reasons = json!([{
     "part": "Discovery",
-    "stream": null,
-    "source_identifier": null,
-    "reason": { "kind": "LimitExhausted", "limit": "Streams", "detail": null },
+    "reason": { "kind": "LimitExhausted", "limit": "Streams" },
   }]);
   report_text(
     "1.0",
@@ -189,14 +189,13 @@ fn a_portable_path_describes_one_path() {
   );
 }
 
-/// One tag of a flat form, with that parent and that value.
+/// One tag of a flat form, with that parent and that value; a value of `Value::Null` leaves the member out, since the
+/// form writes no null.
 fn flat_tag(parent: Option<usize>, value: Value) -> Value {
-  let mut tag = json!({
-    "name": { "as_written": "NODE", "namespace": null, "bytes": null },
-    "key": null,
-    "languages": [],
-    "value": value,
-  });
+  let mut tag = json!({ "name": { "as_written": "NODE" }, "languages": [] });
+  if !value.is_null() {
+    tag["value"] = value;
+  }
   if let Some(parent) = parent {
     tag["parent"] = json!(parent);
   }
@@ -207,7 +206,6 @@ fn flat_tag(parent: Option<usize>, value: Value) -> Value {
 fn report_with_tags(tags: Vec<Value>) -> Value {
   let mut report = report_text("1.0", completeness("Complete", json!([]), json!("Complete")));
   report["tag_sets"] = json!([{
-    "target_level": null,
     "stream_targets": [],
     "edition_targets": [],
     "chapter_targets": [],
@@ -295,7 +293,7 @@ fn a_tag_value_holds_the_member_named_after_its_kind() {
     value_of(json!({ "kind": "text", "text": "Title" })),
     TagValue::Text("Title".to_owned())
   );
-  // A kind that a newer version wrote keeps its name; its payload is ignored as any unknown member is.
+  // A kind that a newer version wrote keeps its name, and its payload unread (`tests/data_enums.rs`).
   let newer = value_of(json!({ "kind": "geolocation", "geolocation": { "latitude": "1" } }));
   assert!(matches!(&newer, TagValue::Unrecognized(kind) if kind.as_str() == "geolocation"));
   assert_eq!(newer.as_str(), "geolocation");
@@ -396,18 +394,28 @@ fn a_quantity_is_its_number_or_its_exact_twin() {
 }
 
 #[test]
+fn a_member_that_holds_null_is_malformed() {
+  // The form writes no null, so no member reads null as absent (the maintainer's choice at the seventh review).
+  for members in [
+    json!({ "input": "movie.mkv", "input_lossy": null }),
+    json!({ "input": "movie.mkv", "input_raw": null }),
+    json!({ "input": "movie.mkv", "report": null }),
+  ] {
+    let document = input_document(members.clone());
+    assert!(serde_json::from_value::<Document>(document).is_err(), "{members}");
+  }
+  for entry in [
+    json!({ "identifier": "0", "bytes_read": 1, "bytes_read_exact": null }),
+    json!({ "identifier": "0", "path": null }),
+  ] {
+    assert!(serde_json::from_value::<SourceEntry>(entry.clone()).is_err(), "{entry}");
+  }
+}
+
+#[test]
 fn chapters_are_flat_and_a_textual_identifier_stays_its_text() {
   let chapter = |parent: Option<usize>, string_identifier: &str| {
-    let mut chapter = json!({
-      "unique_identifier": "1",
-      "string_identifier": string_identifier,
-      "start": null,
-      "end": null,
-      "titles": [],
-      "hidden": null,
-      "enabled": null,
-      "playback_position": null,
-    });
+    let mut chapter = json!({ "unique_identifier": "1", "string_identifier": string_identifier, "titles": [] });
     if let Some(parent) = parent {
       chapter["parent"] = json!(parent);
     }
@@ -415,11 +423,6 @@ fn chapters_are_flat_and_a_textual_identifier_stays_its_text() {
   };
   let mut report = report_text("1.0", completeness("Complete", json!([]), json!("Complete")));
   report["chapter_editions"] = json!([{
-    "unique_identifier": null,
-    "default": null,
-    "ordered": null,
-    "hidden": null,
-    "playback_duration": null,
     "chapters": [chapter(None, "chapter-one"), chapter(Some(0), "chapter-one-a")],
   }]);
   let read: MediaReport = serde_json::from_value(report).unwrap();
@@ -435,4 +438,30 @@ fn chapters_are_flat_and_a_textual_identifier_stays_its_text() {
     written["chapter_editions"][0]["chapters"][0]["string_identifier"],
     json!("chapter-one")
   );
+  // A standalone chapter is the flat form of its subtree, the chapter itself first and without a parent.
+  let alone = serde_json::to_value(&edition.chapters()[0]).unwrap();
+  assert!(alone[0].get("parent").is_none());
+  assert_eq!(alone[1]["parent"], json!(0));
+  assert_eq!(serde_json::from_value::<Chapter>(alone).unwrap(), edition.chapters()[0]);
+}
+
+#[test]
+fn a_standalone_tag_is_the_flat_form_of_its_subtree_with_one_root() {
+  let text = |value: &str| json!({ "kind": "text", "text": value });
+  let tags = vec![
+    flat_tag(None, Value::Null),
+    flat_tag(Some(0), text("first")),
+    flat_tag(Some(1), text("grandchild")),
+  ];
+  let report: MediaReport = serde_json::from_value(report_with_tags(tags)).unwrap();
+  let child = &report.tag_sets()[0].tags()[0].children()[0];
+  let written = serde_json::to_value(child).unwrap();
+  assert_eq!(written.as_array().unwrap().len(), 2, "the child and the grandchild");
+  assert!(written[0].get("parent").is_none());
+  assert_eq!(written[1]["parent"], json!(0));
+  assert_eq!(&serde_json::from_value::<Tag>(written).unwrap(), child);
+  // An array with no root, or with two, is not one subtree.
+  for malformed in [json!([]), json!([flat_tag(None, text("a")), flat_tag(None, text("b"))])] {
+    assert!(serde_json::from_value::<Tag>(malformed.clone()).is_err(), "{malformed}");
+  }
 }

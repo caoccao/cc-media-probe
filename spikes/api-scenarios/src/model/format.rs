@@ -20,7 +20,7 @@
 use std::fmt;
 
 use super::constants::{AVI_NAME, ISO_BASE_MEDIA_NAME, MATROSKA_NAME, MP4_NAME, QUICKTIME_NAME, RIFF_NAME, WEBM_NAME};
-use super::values::UnrecognizedValue;
+use super::unrecognized_value::UnrecognizedValue;
 
 /// A container format or format family.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -42,7 +42,8 @@ pub enum Format {
   /// The RIFF family, when detection is certain of the family only.
   Riff,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Format>),
 }
 
 /// Whether the library probes a format or only detects it.
@@ -55,7 +56,8 @@ pub enum SupportLevel {
   /// Detected only.
   DetectOnly,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<SupportLevel>),
 }
 
 impl Format {

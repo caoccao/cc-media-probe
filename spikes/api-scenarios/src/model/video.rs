@@ -17,8 +17,10 @@
 
 //! `VideoInformation`, `api.md` section 6.5, with the fields the scenarios read.
 
+use super::chroma_format::ChromaFormat;
 use super::constants::{CLOCKWISE_90_DEGREES, CLOCKWISE_180_DEGREES, CLOCKWISE_270_DEGREES, UPRIGHT_DEGREES};
-use super::values::{Provenance, Rational, Size, UnrecognizedValue};
+use super::unrecognized_value::UnrecognizedValue;
+use super::values::{Provenance, Rational, Size};
 
 /// What a video stream states.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -32,6 +34,7 @@ pub struct VideoInformation {
   frame_rate_mode: FrameRateMode,
   frame_rate_provenance: Option<Provenance>,
   rotation: Option<Rotation>,
+  chroma_format: Option<ChromaFormat>,
 }
 
 impl VideoInformation {
@@ -74,6 +77,11 @@ impl VideoInformation {
   pub fn rotation(&self) -> Option<&Rotation> {
     self.rotation.as_ref()
   }
+
+  /// The chroma format.
+  pub fn chroma_format(&self) -> Option<&ChromaFormat> {
+    self.chroma_format.as_ref()
+  }
 }
 
 /// Whether a frame rate is constant.
@@ -89,7 +97,8 @@ pub enum FrameRateMode {
   #[default]
   Unknown,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<FrameRateMode>),
 }
 
 /// The clockwise rotation a player applies, a multiple of 90 degrees.
@@ -106,7 +115,8 @@ pub enum Rotation {
   /// Three quarter turns clockwise.
   Clockwise270,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Rotation>),
 }
 
 impl Rotation {

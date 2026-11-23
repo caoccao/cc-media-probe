@@ -27,13 +27,15 @@ use super::invalid::InvalidDocument;
 use super::outcome::EntryOutcome;
 use crate::constants::{ENTRY_WITHOUT_ONE_RECORD_MESSAGE, OUTCOME_DISAGREES_MESSAGE, POSITION_MESSAGE};
 use crate::error::ErrorRecord;
+use crate::kept::KeptMembers;
 use crate::model::{Detection, MediaReport};
 use crate::source::{PortablePath, RawPath};
 
-/// An entry's members, as written.
+/// An entry's members, as written. The index is a `u64` on every platform, so a writer on a 32-bit target counts
+/// beyond 2^32 entries as far as 2^53 - 1.
 #[derive(Serialize)]
 struct EntryMembers<'entry> {
-  index: usize,
+  index: u64,
   input: &'entry str,
   #[serde(skip_serializing_if = "Option::is_none")]
   input_lossy: Option<bool>,
@@ -46,11 +48,14 @@ struct EntryMembers<'entry> {
   detection: Option<&'entry Detection>,
   #[serde(skip_serializing_if = "Option::is_none")]
   error: Option<&'entry ErrorRecord>,
+  /// The members of an entry of a newer outcome that this version does not read, written back as read.
+  #[serde(flatten)]
+  kept: &'entry KeptMembers,
 }
 
 /// An entry with its position in the document, which is written as its index.
 pub(super) struct PositionedEntry<'entry> {
-  pub(super) index: usize,
+  pub(super) index: u64,
   pub(super) entry: &'entry DocumentEntry,
 }
 
@@ -66,6 +71,7 @@ impl Serialize for PositionedEntry<'_> {
       report: entry.report.as_ref(),
       detection: entry.detection.as_ref(),
       error: entry.error.as_ref(),
+      kept: &entry.kept,
     }
     .serialize(serializer)
   }
@@ -77,24 +83,33 @@ pub(super) fn serialize_results<Output: Serializer>(
   serializer: Output,
 ) -> Result<Output::Ok, Output::Error> {
   serializer.collect_seq(
-    results
-      .iter()
-      .enumerate()
+    (0_u64..)
+      .zip(results)
       .map(|(index, entry)| PositionedEntry { index, entry }),
   )
 }
 
-/// An entry's members as read, before its rules are checked.
+/// An entry's members as read, before its rules are checked. An optional member that holds null fails, since the
+/// form writes none.
 #[derive(Deserialize)]
 pub(super) struct EntryData {
-  index: usize,
+  index: u64,
   input: String,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   input_lossy: Option<bool>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   input_raw: Option<RawPath>,
   outcome: EntryOutcome,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   report: Option<MediaReport>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   detection: Option<Detection>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   error: Option<ErrorRecord>,
+  /// Every other member, as written. An entry of a newer outcome keeps them, since its outcome can need a member
+  /// that only the newer version knows; an entry of a known outcome ignores them.
+  #[serde(flatten)]
+  kept: KeptMembers,
 }
 
 impl EntryData {
@@ -110,11 +125,12 @@ impl EntryData {
 
   /// The entry at that position of the results. Its index is the position; an entry of an outcome this version
   /// knows holds exactly one record, which allows the outcome; and its input describes one path.
-  pub(super) fn into_entry(self, position: usize) -> Result<DocumentEntry, InvalidDocument> {
+  pub(super) fn into_entry(self, position: u64) -> Result<DocumentEntry, InvalidDocument> {
     if self.index != position {
       return Err(InvalidDocument::new(POSITION_MESSAGE));
     }
-    if !matches!(self.outcome, EntryOutcome::Unrecognized(_)) {
+    let newer = matches!(self.outcome, EntryOutcome::Unrecognized(_));
+    if !newer {
       let records = [self.report.is_some(), self.detection.is_some(), self.error.is_some()];
       if records.into_iter().filter(|present| *present).count() != 1 {
         return Err(InvalidDocument::new(ENTRY_WITHOUT_ONE_RECORD_MESSAGE));
@@ -129,6 +145,7 @@ impl EntryData {
       report: self.report,
       detection: self.detection,
       error: self.error,
+      kept: if newer { self.kept } else { KeptMembers::default() },
     })
   }
 }

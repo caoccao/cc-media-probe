@@ -15,13 +15,14 @@
 * limitations under the License.
 */
 
-//! Two cases of a report that `api.md` sections 5.3 and 6.4 define, read from JSON since the stub builds no report:
-//! a limit that stopped one candidate's validation check while another validated, and the established description
-//! of a track's first sample that the probe could not keep.
+//! Cases of a report that `api.md` sections 5.3 and 6.4 define, read from JSON since the stub builds no report: a
+//! limit that stopped one candidate's validation check while another validated; the established description of a
+//! track's first sample that the probe could not keep; and a full budget, under which `reasons()` is empty while
+//! the record says why each part fell short, and `is_complete()`, `Display` and the entry's outcome all agree.
 
 use std::path::Path;
 
-use cc_media_probe::completeness::{DetectionStatus, Part};
+use cc_media_probe::completeness::{DetectionStatus, LimitRecord, Part};
 use cc_media_probe::details::FormatDetails;
 use cc_media_probe::document::{DocumentEntry, EntryOutcome};
 use cc_media_probe::model::CodecInformation;
@@ -32,6 +33,20 @@ use serde_json::{Value, json};
 /// A report without streams, whose completeness has that detection status, those reasons and that record. The stub
 /// keeps the default form of Serde's derive for the statuses, so a catch-all is written as a tagged value.
 fn report(detection: Value, reasons: Value, record: Value) -> MediaReport {
+  report_with(json!({
+    "detection": detection,
+    "discovery": "Complete",
+    "headers": "Complete",
+    "tags": "Complete",
+    "chapters": "Complete",
+    "attachments": "Complete",
+    "reasons": reasons,
+    "record": record,
+  }))
+}
+
+/// A report without streams, with that completeness.
+fn report_with(completeness: Value) -> MediaReport {
   serde_json::from_value(json!({
     "schema_version": "1.0",
     "format": "Mp4",
@@ -40,15 +55,7 @@ fn report(detection: Value, reasons: Value, record: Value) -> MediaReport {
     "tag_sets": [],
     "attachments": [],
     "diagnostics": [],
-    "completeness": {
-      "detection": detection,
-      "discovery": "Complete",
-      "tags": "Complete",
-      "chapters": "Complete",
-      "attachments": "Complete",
-      "reasons": reasons,
-      "record": record,
-    },
+    "completeness": completeness,
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],
   }))
@@ -62,9 +69,7 @@ fn a_report_whose_detection_was_cut_short_is_incomplete() {
     json!("Incomplete"),
     json!([{
       "part": "Detection",
-      "stream": null,
-      "source_identifier": null,
-      "reason": { "kind": "LimitExhausted", "limit": "WorkingMemory", "detail": null },
+      "reason": { "kind": "LimitExhausted", "limit": "WorkingMemory" },
     }]),
     json!({ "exhausted": ["WorkingMemory"], "first_stopped": [["WorkingMemory", "Detection"]] }),
   );
@@ -94,13 +99,9 @@ fn a_report_whose_detection_was_cut_short_is_incomplete() {
 
 fn codec(candidates: Value, has_every_candidate: bool) -> CodecInformation {
   serde_json::from_value(json!({
-    "codec": null,
     "candidates": candidates,
     "has_every_candidate": has_every_candidate,
     "raw_identifiers": [],
-    "profile": null,
-    "level": null,
-    "codec_string": null,
   }))
   .unwrap()
 }
@@ -136,21 +137,25 @@ fn a_known_description_that_was_not_kept_leaves_the_codec_absent() {
 #[test]
 fn a_full_budget_keeps_the_first_reason_of_each_part_in_the_record() {
   // The retained-data limit was full when discovery stopped, so `reasons()` holds nothing; the record still says why.
-  let reason = json!({
-    "part": "Discovery",
-    "stream": null,
-    "source_identifier": null,
-    "reason": { "kind": "TruncatedInput", "limit": null, "detail": null },
-  });
+  let reason = json!({ "part": "Discovery", "reason": { "kind": "TruncatedInput" } });
   // The stub's `Limit` has three counters, and the retained data is not among them, so the record leaves the
   // exhausted counter out.
   let record = json!({
     "exhausted": [],
     "first_stopped": [],
     "first_reasons": [reason],
-    "omitted_reasons": 3,
+    "omitted_reasons": "3",
   });
-  let full = report(json!("Complete"), json!([]), record);
+  let full = report_with(json!({
+    "detection": "Complete",
+    "discovery": "Incomplete",
+    "headers": "Complete",
+    "tags": "Complete",
+    "chapters": "Complete",
+    "attachments": "Complete",
+    "reasons": [],
+    "record": record,
+  }));
   let completeness = full.completeness();
   assert!(completeness.reasons().is_empty());
   let first = completeness.record().first_reason(&Part::Discovery).unwrap();
@@ -161,4 +166,148 @@ fn a_full_budget_keeps_the_first_reason_of_each_part_in_the_record() {
   // A first reason is a known shortfall, so the entry is `partial`, never `ok`.
   let entry = DocumentEntry::from_report(PortablePath::from_path(Path::new("clip.mp4")), full).unwrap();
   assert_eq!(entry.outcome(), &EntryOutcome::Partial);
+}
+
+#[test]
+fn a_part_that_fell_short_under_a_full_budget_is_incomplete_through_every_accessor() {
+  // The seventh review's case: the tags fell short while the retained-data limit was full, so `reasons()` is empty
+  // and only the record keeps the reason.
+  let short = report_with(json!({
+    "detection": "Complete",
+    "discovery": "Complete",
+    "headers": "Complete",
+    "tags": "Incomplete",
+    "chapters": "Complete",
+    "attachments": "Complete",
+    "reasons": [],
+    "record": {
+      "exhausted": [],
+      "first_stopped": [],
+      "first_reasons": [{ "part": "Tags", "reason": { "kind": "TruncatedInput" } }],
+      "omitted_reasons": "1",
+    },
+  }));
+  let completeness = short.completeness();
+  assert!(completeness.reasons().is_empty());
+  assert!(
+    !completeness.is_complete(),
+    "the boolean that `--strict` and the quick start read"
+  );
+  assert_eq!(completeness.to_string(), "incomplete: truncated_input");
+  let entry = DocumentEntry::from_report(PortablePath::from_path(Path::new("clip.mp4")), short).unwrap();
+  assert_eq!(entry.outcome(), &EntryOutcome::Partial);
+}
+
+#[test]
+fn a_reason_member_that_holds_null_is_malformed() {
+  // The form writes no null, so null is never read as an absent member (the maintainer's choice at the seventh
+  // review).
+  let read = |reason: Value| {
+    serde_json::from_value::<LimitRecord>(json!({
+      "exhausted": [],
+      "first_stopped": [],
+      "first_reasons": [reason],
+    }))
+  };
+  assert!(read(json!({ "part": "Tags", "reason": { "kind": "TruncatedInput" } })).is_ok());
+  for malformed in [
+    json!({ "part": "Tags", "stream": null, "reason": { "kind": "TruncatedInput" } }),
+    json!({ "part": "Tags", "reason": { "kind": "TruncatedInput", "detail": null } }),
+  ] {
+    assert!(read(malformed.clone()).is_err(), "{malformed}");
+  }
+}
+
+#[test]
+fn the_number_of_reasons_not_kept_is_a_decimal_string() {
+  // Like the other two omitted counts, so a reader that holds numbers as binary64 loses no count above 2^53 - 1.
+  let record = |omitted: Value| {
+    serde_json::from_value::<LimitRecord>(json!({
+      "exhausted": [],
+      "first_stopped": [],
+      "omitted_reasons": omitted,
+    }))
+  };
+  let large = record(json!("9007199254740993")).unwrap();
+  assert_eq!(large.omitted_reasons(), 9_007_199_254_740_993);
+  assert_eq!(
+    serde_json::to_value(&large).unwrap()["omitted_reasons"],
+    json!("9007199254740993")
+  );
+  assert!(record(json!(3)).is_err(), "a number is not the form");
+}
+
+/// A report whose one stream has that header status, with that headers status, complete parts otherwise, no reason
+/// and an empty record.
+fn report_with_header_state(header_status: Value, headers: Value) -> Result<MediaReport, serde_json::Error> {
+  let empty_record = json!({ "exhausted": [], "first_stopped": [] });
+  let mut text = serde_json::to_value(report(json!("Complete"), json!([]), empty_record)).unwrap();
+  text["completeness"]["headers"] = headers;
+  text["streams"] = json!([{
+    "index": 0,
+    "kind": "Video",
+    "codec": { "candidates": [], "has_every_candidate": true, "raw_identifiers": [] },
+    "header_status": header_status,
+    "titles": [],
+    "disposition": {},
+  }]);
+  serde_json::from_value(text)
+}
+
+fn outcome(report: MediaReport) -> Option<EntryOutcome> {
+  DocumentEntry::from_report(PortablePath::from_path(Path::new("clip.mp4")), report)
+    .ok()
+    .map(|entry| entry.outcome().clone())
+}
+
+#[test]
+fn the_headers_status_carries_the_header_states_into_completeness() {
+  // The eighth review's case: a header state that is not final is a shortfall, which `is_complete()` sees through
+  // the headers status of the record, since `Completeness` holds no stream.
+  let cut = json!({ "state": "NotFoundWithinBudget", "reason": { "kind": "TruncatedInput" } });
+  let short = report_with_header_state(cut.clone(), json!("Incomplete")).unwrap();
+  assert!(!short.completeness().is_complete());
+  assert_eq!(short.completeness().to_string(), "incomplete");
+  assert_eq!(outcome(short), Some(EntryOutcome::Partial));
+  let parsed = json!({ "state": "Parsed" });
+  assert_eq!(
+    outcome(report_with_header_state(parsed.clone(), json!("Complete")).unwrap()),
+    Some(EntryOutcome::Ok)
+  );
+  // A status that contradicts a state that this version knows is malformed.
+  assert!(report_with_header_state(cut, json!("Complete")).is_err());
+  assert!(report_with_header_state(parsed, json!("Incomplete")).is_err());
+}
+
+#[test]
+fn beside_a_header_state_of_a_newer_version_the_headers_status_is_the_writers_verdict() {
+  // Only the version that wrote the state knows whether it is final, and it wrote the headers status from it.
+  let newer = json!({ "state": { "Unrecognized": "deferred" } });
+  let short = report_with_header_state(newer.clone(), json!("Incomplete")).unwrap();
+  assert!(!short.completeness().is_complete());
+  assert_eq!(outcome(short), Some(EntryOutcome::Partial));
+  let finished = report_with_header_state(newer, json!("Complete")).unwrap();
+  assert!(finished.completeness().is_complete());
+  assert_eq!(outcome(finished), Some(EntryOutcome::Ok));
+  // A headers status of a newer version leaves the outcome open, as any newer status does.
+  let unknown =
+    report_with_header_state(json!({ "state": "Parsed" }), json!({ "Unrecognized": "partly_read" })).unwrap();
+  assert!(!unknown.completeness().is_complete());
+  assert_eq!(outcome(unknown), None);
+}
+
+#[test]
+fn the_number_of_references_not_kept_is_a_decimal_string() {
+  // The eighth review's case: an external reference found after the retained data was full is counted, not listed.
+  let record: LimitRecord = serde_json::from_value(json!({
+    "exhausted": [],
+    "first_stopped": [],
+    "omitted_references": "9007199254740993",
+  }))
+  .unwrap();
+  assert_eq!(record.omitted_references(), 9_007_199_254_740_993);
+  assert_eq!(
+    serde_json::to_value(&record).unwrap()["omitted_references"],
+    json!("9007199254740993")
+  );
 }

@@ -53,7 +53,7 @@ pub enum ErrorKind {
   /// The probe stopped before the stream inventory.
   NoStreamInventory,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  Unrecognized(UnrecognizedValue<ErrorKind>),
 }
 
 impl ErrorKind {
@@ -270,8 +270,11 @@ struct ErrorRecordData {
   schema_version: SchemaVersion,
   kind: ErrorKind,
   message: String,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   source_failure_kind: Option<String>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   partial_report: Option<MediaReport>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   observations: Option<Observations>,
 }
 

@@ -34,6 +34,7 @@ use crate::source::SourceIdentifier;
 pub struct Completeness {
   detection: DetectionStatus,
   discovery: DiscoveryStatus,
+  headers: HeadersStatus,
   tags: SectionStatus,
   chapters: SectionStatus,
   attachments: SectionStatus,
@@ -42,11 +43,18 @@ pub struct Completeness {
 }
 
 impl Completeness {
-  /// The definition of plan section 8.3; the stub checks detection, discovery and the reasons only.
+  /// The definition of plan section 8.3, over the statuses that the stub has: no part fell short. It reads the
+  /// statuses, the headers status among them, and the record's first reasons, which every limit leaves in place, and
+  /// never depends on `reasons()`, which a full budget can leave empty. `Display` and an entry's outcome use the same
+  /// test.
   pub fn is_complete(&self) -> bool {
-    self.detection == DetectionStatus::Complete
-      && self.discovery == DiscoveryStatus::Complete
-      && self.reasons.is_empty()
+    !self.has_known_shortfall() && self.is_known()
+  }
+
+  /// Whether every stream's header state is final, as the library set it while it built the report. Reading a
+  /// report checks it against the states that this version knows (`api.md` section 5.3).
+  pub fn headers(&self) -> &HeadersStatus {
+    &self.headers
   }
 
   /// Whether every candidate's validation check that detection began ran to its end.
@@ -85,11 +93,12 @@ impl Completeness {
   }
 
   /// Whether a status that this version knows records a shortfall, or a reason names one, which rules out a
-  /// complete report whatever a status of a newer version says.
-  #[cfg(feature = "serde")]
+  /// complete report whatever a status of a newer version says. The record's first reasons count, since they stay
+  /// when `reasons()` cannot, and so does a reason of a part that only a newer version knows.
   pub(crate) fn has_known_shortfall(&self) -> bool {
     self.detection == DetectionStatus::Incomplete
       || self.discovery == DiscoveryStatus::Incomplete
+      || self.headers == HeadersStatus::Incomplete
       || [&self.tags, &self.chapters, &self.attachments]
         .into_iter()
         .any(|status| *status == SectionStatus::Incomplete)
@@ -98,22 +107,26 @@ impl Completeness {
   }
 
   /// Whether every status is one this version knows, so that `is_complete()` decides as the writer did.
-  #[cfg(feature = "serde")]
   pub(crate) fn is_known(&self) -> bool {
     !matches!(self.detection, DetectionStatus::Unrecognized(_))
       && !matches!(self.discovery, DiscoveryStatus::Unrecognized(_))
+      && !matches!(self.headers, HeadersStatus::Unrecognized(_))
       && [&self.tags, &self.chapters, &self.attachments]
         .into_iter()
         .all(|status| !matches!(status, SectionStatus::Unrecognized(_)))
   }
 }
 
+/// "complete" exactly when `is_complete()` is true; otherwise the first reason, from `reasons()` or else from the
+/// record.
 impl fmt::Display for Completeness {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.reasons.first() {
-      None if self.is_complete() => formatter.write_str(COMPLETE_TEXT),
-      None => formatter.write_str(INCOMPLETE_TEXT),
+    if self.is_complete() {
+      return formatter.write_str(COMPLETE_TEXT);
+    }
+    match self.reasons.first().or(self.record.first_reasons.first()) {
       Some(first) => write!(formatter, "{INCOMPLETE_TEXT}: {}", first.reason.kind.as_str()),
+      None => formatter.write_str(INCOMPLETE_TEXT),
     }
   }
 }
@@ -131,7 +144,8 @@ pub enum DetectionStatus {
   /// A limit stopped a candidate's check.
   Incomplete,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<DetectionStatus>),
 }
 
 /// Whether every stream was found.
@@ -145,7 +159,24 @@ pub enum DiscoveryStatus {
   /// Some may be missing.
   Incomplete,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<DiscoveryStatus>),
+}
+
+/// Whether every stream's header state is final (`api.md` section 5.4). The record keeps it as the status of the
+/// headers, so `is_complete()` sees the header states without the streams.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
+pub enum HeadersStatus {
+  /// Every stream's header state is final, as in a report of no streams.
+  #[default]
+  Complete,
+  /// At least one stream's header state is not final.
+  Incomplete,
+  /// A value that a newer version wrote.
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<HeadersStatus>),
 }
 
 /// The status of the tags, chapters or attachments.
@@ -163,7 +194,8 @@ pub enum SectionStatus {
   /// The format has no such section.
   NotApplicable,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<SectionStatus>),
 }
 
 impl SectionStatus {
@@ -184,7 +216,23 @@ impl SectionStatus {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PartReason {
   part: Part,
+  #[cfg_attr(
+    feature = "serde",
+    serde(
+      default,
+      deserialize_with = "crate::presence::present",
+      skip_serializing_if = "Option::is_none"
+    )
+  )]
   stream: Option<usize>,
+  #[cfg_attr(
+    feature = "serde",
+    serde(
+      default,
+      deserialize_with = "crate::presence::present",
+      skip_serializing_if = "Option::is_none"
+    )
+  )]
   source_identifier: Option<SourceIdentifier>,
   reason: Reason,
 }
@@ -228,7 +276,8 @@ pub enum Part {
   /// The chapters.
   Chapters,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Part>),
 }
 
 impl Part {
@@ -254,8 +303,12 @@ pub struct LimitRecord {
   first_stopped: Vec<(Limit, Part)>,
   #[cfg_attr(feature = "serde", serde(default))]
   first_reasons: Vec<PartReason>,
-  #[cfg_attr(feature = "serde", serde(default))]
+  /// A decimal string, as the other two omitted counts are (`api.md` section 12).
+  #[cfg_attr(feature = "serde", serde(default, with = "crate::decimal"))]
   omitted_reasons: u64,
+  /// The external references found but not kept within the retained-data limit, a decimal string too.
+  #[cfg_attr(feature = "serde", serde(default, with = "crate::decimal"))]
+  omitted_references: u64,
 }
 
 impl LimitRecord {
@@ -267,6 +320,11 @@ impl LimitRecord {
   /// The reasons recorded but not kept in `Completeness::reasons()`.
   pub fn omitted_reasons(&self) -> u64 {
     self.omitted_reasons
+  }
+
+  /// The external references found but not kept in `MediaReport::external_references()`.
+  pub fn omitted_references(&self) -> u64 {
+    self.omitted_references
   }
 
   /// Whether the counter ran out.
@@ -289,7 +347,23 @@ impl LimitRecord {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Reason {
   kind: ReasonKind,
+  #[cfg_attr(
+    feature = "serde",
+    serde(
+      default,
+      deserialize_with = "crate::presence::present",
+      skip_serializing_if = "Option::is_none"
+    )
+  )]
   limit: Option<Limit>,
+  #[cfg_attr(
+    feature = "serde",
+    serde(
+      default,
+      deserialize_with = "crate::presence::present",
+      skip_serializing_if = "Option::is_none"
+    )
+  )]
   detail: Option<String>,
 }
 
@@ -322,7 +396,8 @@ pub enum ReasonKind {
   /// A limit was reached.
   LimitExhausted,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<ReasonKind>),
 }
 
 impl ReasonKind {
@@ -360,6 +435,12 @@ impl HeaderStatus {
   pub fn is_parsed(&self) -> bool {
     self.state == HeaderState::Parsed
   }
+
+  /// Whether the state is final: the probe did everything that this version can do for the headers. A state that a
+  /// newer version wrote is not final.
+  pub fn is_final(&self) -> bool {
+    matches!(self.state, HeaderState::Parsed)
+  }
 }
 
 impl fmt::Display for HeaderStatus {
@@ -384,7 +465,8 @@ pub enum HeaderState {
   /// The probe stopped before the stream's turn.
   NotAttempted,
   /// A value that a newer version wrote; not final.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<HeaderState>),
 }
 
 impl HeaderState {

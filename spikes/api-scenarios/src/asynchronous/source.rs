@@ -32,7 +32,8 @@ use crate::prober::Prober;
 /// request: the same `position` and a buffer of the same length. The promise ends with the probe: a source that
 /// outlives a dropped probe can still hold its request, and keeps the range of that request to tell it apart.
 pub trait AsyncPositionalSource {
-  /// Reads at most `buffer.len()` bytes starting at `position`. Ready with 0 only at or past the end.
+  /// Reads at most `buffer.len()` bytes starting at `position`. Ready with 0 for an empty buffer, and for a nonempty
+  /// one only at or past the end. The library never asks for zero bytes.
   fn poll_read_at(
     self: Pin<&mut Self>,
     context: &mut Context<'_>,

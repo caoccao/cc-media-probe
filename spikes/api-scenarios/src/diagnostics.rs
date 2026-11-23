@@ -78,7 +78,8 @@ pub enum Severity {
   /// For information.
   Information,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<Severity>),
 }
 
 /// A stable code, such as `matroska.seek_head_disagrees`.

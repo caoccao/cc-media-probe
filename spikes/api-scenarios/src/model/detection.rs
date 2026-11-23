@@ -21,7 +21,7 @@ use super::constants::{
   AMBIGUOUS_NAME, FAMILY_ONLY_NAME, HINT_ONLY_NAME, IDENTIFIED_NAME, INSUFFICIENT_DATA_NAME, UNKNOWN_NAME,
 };
 use super::format::Format;
-use super::values::UnrecognizedValue;
+use super::unrecognized_value::UnrecognizedValue;
 #[cfg(feature = "serde")]
 use crate::document::SchemaVersion;
 
@@ -81,7 +81,7 @@ pub enum DetectionOutcome {
   /// Nothing matched.
   Unknown,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  Unrecognized(UnrecognizedValue<DetectionOutcome>),
 }
 
 impl DetectionOutcome {

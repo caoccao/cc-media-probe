@@ -21,7 +21,8 @@ use std::io;
 
 /// A source that is neither a file nor a reader, such as ranges of a remote object.
 pub trait PositionalSource {
-  /// Reads at most `buffer.len()` bytes starting at `position`. Returns 0 only at or past the end.
+  /// Reads at most `buffer.len()` bytes starting at `position`. Returns 0 for an empty buffer, and for a nonempty one
+  /// only at or past the end. The library never asks for zero bytes.
   fn read_at(&mut self, position: u64, buffer: &mut [u8]) -> io::Result<usize>;
 
   /// The total length, or `None` when the source does not know it.

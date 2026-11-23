@@ -22,6 +22,7 @@
 
 mod command;
 mod constants;
+mod escape;
 mod invocation;
 mod run;
 mod scan;

@@ -56,6 +56,7 @@ fn mixed_entries() -> Vec<DocumentEntry> {
     "completeness": {
       "detection": "Complete",
       "discovery": "Complete",
+      "headers": "Complete",
       "tags": "Complete",
       "chapters": "Complete",
       "attachments": "Complete",

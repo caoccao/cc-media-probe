@@ -34,7 +34,7 @@ fn main() -> Result<(), Error> {
       }
     }
     println!();
-    print_chapters(edition.chapters(), ordered, 1);
+    print_chapters(edition.chapters(), ordered);
   }
   if !matches!(report.completeness().chapters(), SectionStatus::Complete) {
     println!("chapters: {}", report.completeness().chapters().as_str());
@@ -42,8 +42,12 @@ fn main() -> Result<(), Error> {
   Ok(())
 }
 
-fn print_chapters(chapters: &[Chapter], ordered: bool, depth: usize) {
-  for chapter in chapters {
+/// Prints a tree of chapters in depth-first order with a stack of its own, since a tree can be as deep as its input
+/// (section 3.3): a call per level could exhaust the call stack.
+fn print_chapters(chapters: &[Chapter], ordered: bool) {
+  // Each chapter waits with its depth; the children go on in reverse, so the first comes off first.
+  let mut waiting: Vec<(&Chapter, usize)> = chapters.iter().rev().map(|chapter| (chapter, 1)).collect();
+  while let Some((chapter, depth)) = waiting.pop() {
     let title = chapter.titles().first().map_or("(untitled)", |title| title.text());
     // Segment time, as written; a chapter that marks a point has no end.
     print!(
@@ -60,7 +64,7 @@ fn print_chapters(chapters: &[Chapter], ordered: bool, depth: usize) {
       print!(" (hidden)");
     }
     println!();
-    print_chapters(chapter.children(), ordered, depth + 1);
+    waiting.extend(chapter.children().iter().rev().map(|child| (child, depth + 1)));
   }
 }
 

@@ -20,8 +20,10 @@
 /// The program's name, a constant rather than the first argument, as the GNU coding standards ask of `--version`.
 pub const PROGRAM_NAME: &str = "cc-media-probe";
 
-/// The argument that ends the options.
+/// The argument that ends the options, and the start of every long option.
 pub const SEPARATOR: &str = "--";
+/// The sign between a long option and a value given to it, as in `--json=yes`.
+pub const VALUE_SIGN: char = '=';
 /// The input that names standard input.
 pub const STANDARD_INPUT: &str = "-";
 /// The exact argument that turns JSON mode on.
@@ -66,3 +68,10 @@ pub const USAGE_ERROR_LINE: &str = "usage error";
 
 /// The exit status of a usage error (R21).
 pub const USAGE_ERROR_STATUS: u8 = 2;
+
+/// The characters of the Unicode property `Bidi_Control`, which standard error writes escaped (`docs/design/cli.md`
+/// section 8.1): U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069.
+pub const BIDIRECTIONAL_CONTROLS: [char; 12] = [
+  '\u{061c}', '\u{200e}', '\u{200f}', '\u{202a}', '\u{202b}', '\u{202c}', '\u{202d}', '\u{202e}', '\u{2066}',
+  '\u{2067}', '\u{2068}', '\u{2069}',
+];

@@ -43,7 +43,7 @@ fn usage_error(json: bool, message: &str) -> Invocation {
 
 fn check(cases: &[(&[&str], Invocation)]) {
   for (case, expected) in cases {
-    assert_eq!(&parse(arguments(case)), expected, "{case:?}");
+    assert_eq!(&parse(&arguments(case)), expected, "{case:?}");
   }
 }
 
@@ -145,7 +145,7 @@ fn an_argument_that_is_not_unicode_is_kept_or_reported_lossily() {
   let input = OsString::from_vec(vec![b'm', 0xff, b'.', b'm', b'k', b'v']);
   let option = OsString::from_vec(vec![b'-', b'-', 0xff]);
   assert_eq!(
-    parse(vec![input.clone()]),
+    parse(std::slice::from_ref(&input)),
     Invocation::Run {
       json: false,
       detect: false,
@@ -154,7 +154,44 @@ fn an_argument_that_is_not_unicode_is_kept_or_reported_lossily() {
     }
   );
   assert_eq!(
-    parse(vec![option, OsString::from("a")]),
+    parse(&[option, OsString::from("a")]),
     usage_error(false, "unknown option: --\u{fffd}")
   );
+}
+
+#[test]
+fn an_unknown_option_with_a_value_is_named_as_written() {
+  // The eighth review's cases: the message names the whole argument, in either mode.
+  for json in [false, true] {
+    let with_mode = |list: &[&'static str]| {
+      let mut all = if json { vec!["--json"] } else { Vec::new() };
+      all.extend_from_slice(list);
+      all
+    };
+    check(&[
+      (
+        &with_mode(&["--bogus=value", "movie.mkv"]),
+        usage_error(json, "unknown option: --bogus=value"),
+      ),
+      (
+        &with_mode(&["--=x", "movie.mkv"]),
+        usage_error(json, "unknown option: --=x"),
+      ),
+      (
+        &with_mode(&["--bogus=", "movie.mkv"]),
+        usage_error(json, "unknown option: --bogus="),
+      ),
+    ]);
+  }
+}
+
+#[test]
+fn a_message_holds_the_argument_decoded_and_unescaped() {
+  // The ninth review's case: the message that goes into the document holds the newline itself, and only standard
+  // error escapes it (`tests/process.rs`).
+  for json in [false, true] {
+    let mut list = if json { vec!["--json"] } else { Vec::new() };
+    list.extend_from_slice(&["--bo\ngus", "movie.mkv"]);
+    check(&[(&list, usage_error(json, "unknown option: --bo\ngus"))]);
+  }
 }

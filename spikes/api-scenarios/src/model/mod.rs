@@ -20,6 +20,7 @@
 mod attachments;
 mod audio;
 mod chapters;
+mod chroma_format;
 mod codec;
 mod constants;
 mod detection;
@@ -27,10 +28,16 @@ mod format;
 mod language;
 mod lookups;
 mod report;
+#[cfg(feature = "serde")]
+mod report_reading;
 mod stream;
 mod tag_value;
 mod tags;
 mod tree;
+mod unrecognized_kind;
+#[cfg(feature = "serde")]
+pub(crate) mod unrecognized_text;
+mod unrecognized_value;
 mod usage;
 mod values;
 mod video;
@@ -38,6 +45,7 @@ mod video;
 pub use attachments::{Attachment, AttachmentHandling};
 pub use audio::AudioInformation;
 pub use chapters::{Chapter, ChapterEdition};
+pub use chroma_format::{ChromaFormat, ChromaSubsampling};
 pub use codec::{Codec, CodecCandidate, CodecInformation, CodecNamespace, Profile, RawCodecIdentifier};
 pub use detection::{Detection, DetectionOutcome};
 pub use format::{Format, SupportLevel};
@@ -50,8 +58,8 @@ pub use tags::{
   EntityKind, EntityLocation, Tag, TagKey, TagName, TagSet, TargetLevel, TargetReference, TargetReferenceKind,
   TargetScope,
 };
+pub use unrecognized_kind::UnrecognizedKind;
+pub use unrecognized_value::UnrecognizedValue;
 pub use usage::Usage;
-pub use values::{
-  Estimate, EstimateMethod, Identifier, MediaType, Provenance, Rational, Seconds, Size, UnrecognizedValue,
-};
+pub use values::{Estimate, EstimateMethod, Identifier, MediaType, Provenance, Rational, Seconds, Size};
 pub use video::{FrameRateMode, Rotation, VideoInformation};

@@ -25,14 +25,20 @@
 pub mod asynchronous;
 pub mod completeness;
 mod constants;
+#[cfg(feature = "serde")]
+mod decimal;
 pub mod details;
 pub mod diagnostics;
 #[cfg(feature = "serde")]
 pub mod document;
 mod entry_points;
 pub mod error;
+#[cfg(feature = "serde")]
+mod kept;
 mod limits;
 pub mod model;
+#[cfg(feature = "serde")]
+mod presence;
 mod prober;
 pub mod source;
 #[cfg(feature = "serde")]

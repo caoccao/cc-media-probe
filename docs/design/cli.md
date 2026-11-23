@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day. |
+| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. |
 | **Plan** | [Section 8.9](../plans/plan-init-project.md#89-command-line-contract) fixes the command line, the JSON document, the outcomes and the exit statuses, on the rules of R21 and R23. This document fixes the rest: the order in which the command line is read, the messages, the help and version texts, the text layout and what goes to each output. |
 | **API** | [`docs/design/api.md`](api.md), approved at G2.2 on 2026-11-23: the entry points and options (section 4), the outcomes (section 5), the report model (section 6), detection (section 8), the error record (section 10) and the document with its writer (section 12). |
 
@@ -106,7 +106,9 @@ flowchart TD
 | No input | `no input was named` |
 | Any other error that the parser reports | `the command line could not be read` |
 
-- `<argument>` is the argument as written, escaped as section 8.1 says. An argument that is not valid Unicode shows U+FFFD in place of what it cannot decode. In a group of short letters such as `-json`, the argument is its first letter, `-j`, since no letter is an option.
+- `<argument>` is the argument as written, decoded: an argument that is not valid Unicode shows U+FFFD in place of what it cannot decode, and nothing else is changed. In a group of short letters such as `-json`, the argument is its first letter, `-j`, since no letter is an option.
+- A long option keeps its value: `--bogus=value` gives `unknown option: --bogus=value`, and `--=x` gives `unknown option: --=x`, never the separator `--` alone. The parser names only the option (section 12), so the tool takes the first argument before `--` that is that name, or that name followed by `=`.
+- **One message, escaped only for the terminal.** The tool builds the message once, from the decoded argument. Standard error writes it escaped, as section 8.1 says for every message there. In JSON mode the document holds it unescaped, since JSON escapes control characters itself (section 4). So for the argument `--bo`, a line feed and `gus`, standard error shows `unknown option: --bo\u{a}gus`, and the document's `message` holds the line feed, written `\n` by JSON.
 - `<option>` is the option's name without its value: `--json takes no value`.
 - The last row is a fallback. No command line of the spike reaches it.
 
@@ -122,7 +124,7 @@ Try 'cc-media-probe --help' for more information.
 
 - The program's name is the constant `cc-media-probe`, never the first argument, so a renamed binary writes the same bytes.
 - In text mode standard output stays empty.
-- In JSON mode standard output gets the usage-error document, whose `results` array is empty (`Document::from_usage_error`, `api.md` section 12). Its message is the same text, unescaped, since JSON escapes control characters itself (RFC 8259 section 7):
+- In JSON mode standard output gets the usage-error document, whose `results` array is empty (`Document::from_usage_error`, `api.md` section 12). Its message is the message of section 3 as the tool built it, from the decoded argument and without the escaping of standard error, since JSON escapes control characters itself (RFC 8259 section 7):
 
 ```json
 {
@@ -353,12 +355,29 @@ The header status has no line of its own. A state that is not final is a shortfa
 
 A reason is the part's stable name, with ` of stream N` for a stream's headers and ` of source N` where it names a source other than the primary input, as a companion's request does. A colon and the reason's kind follow, then the limit's name or the feature's name in parentheses where the reason names one, and a colon with the detail where it has one. A report that is incomplete only through a status of a newer version reads `no` with no further line.
 
-**When the budget was full.** `reasons()` is kept within the retained-data limit, so it can lack the reason of a part that fell short. The fixed-size record keeps the first reason of each part whatever the limits (`api.md` section 5.3). For each part that falls short and that no reason of `reasons()` names, the line is the record's `first_reason()` for that part, in the same form; it has no detail, since the record keeps none. When `omitted_reasons()` is more than zero, a last line follows, as `3 more reasons were counted and not kept`:
+**When the budget was full.** `reasons()` is kept within the retained-data limit, so it can lack the reason of a part that fell short. The fixed-size record keeps the first reason of each part whatever the limits (`api.md` section 5.3). For each part that falls short and that no reason of `reasons()` names, the line is the record's `first_reason()` for that part, in the same form; it has no detail, since the record keeps none. Each such reason was itself one that `reasons()` did not keep, so it is among those that `omitted_reasons()` counts. The number still unprinted is therefore `omitted_reasons()` less the number of lines taken from the record, and never below zero. When it is more than zero, a last line follows: `1 more reason was not kept`, or `N more reasons were not kept` for more than one. The record kept the discovery reason of this report, and three others were not kept:
 
 ```text
   complete     no
                discovery: truncated_input
-               3 more reasons were counted and not kept
+               3 more reasons were not kept
+```
+
+When the only reason of a report was not kept, the record's line is that reason and nothing follows it, since `omitted_reasons()` is 1 and one line came from the record:
+
+```text
+  complete     no
+               tags: truncated_input
+```
+
+**The order of the lines.** The reasons of `reasons()` come first, in their order. The record's lines follow, one for each part that falls short and that `reasons()` does not name, in the order of `Part` in `api.md` section 5.3: detection, discovery, headers, tags, chapters, attachments, timing and companions. The tool asks the record for these parts by name, so a part that only a newer version knows gives no line from the record, and its reason stays among those counted. The count line comes last. In this report, `reasons()` kept the discovery reason, the retained data was full when the tags and then the chapters fell short, and `omitted_reasons()` is 4: the two reasons printed from the record and two others:
+
+```text
+  complete     no
+               discovery: limit_exhausted (streams)
+               tags: truncated_input
+               chapters: truncated_input
+               2 more reasons were not kept
 ```
 
 ### 8.5 A detection
@@ -379,7 +398,7 @@ movie.mkv
 | `family_only` | `format`, the family's name |
 | `ambiguous` | One `candidate` line for each candidate, in the rank of `api.md` section 5.1, which falls with the confidence: the format's name, then `, confidence` and the number of `Confidence::value()` |
 | `hint_only` | `hint`: the hinted format's name, its origin's stable name in parentheses, and `, not verified` |
-| `insufficient_data` | `bytes needed`, where known; `reason`, where known: the reason's kind, with its limit in parentheses where it names one, as in section 8.4 |
+| `insufficient_data` | `bytes needed`, where known: the least length of the input, from its start, that detection needs, as `Detection::bytes_needed()` gives it (`api.md` section 8), so three bytes of an eight-byte signature show `8`; `reason`, where known: the reason's kind, with its limit in parentheses where it names one, as in section 8.4 |
 | `unknown` | None |
 
 A line whose value is absent is left out. An outcome of the kind `error`, insufficient data or an unknown format, also writes its error line to standard error (section 8.6). A source failure during detection is an error, as in a probe.
@@ -396,9 +415,19 @@ Standard error gets, for each input in turn, after that input's block on standar
   ```
 
   With `--detect`, an outcome of insufficient data or an unknown format writes the input, `: error: ` and the outcome's stable name.
-- **Its warnings.** One line for each diagnostic of the severity `error` or `warning`, in the report's order: the input, `: `, the severity, `: `, the code, `: ` and the message. Where they are known, the stream, the source other than the primary input, and the offset follow in parentheses, as `(stream 2, byte 4096)`. Diagnostics of the severity `information` stay in the JSON document. When the report counted diagnostics that it did not keep, a last line says `<input>: warning: <count> more diagnostics were counted and not kept`.
+- **Its warnings.** One line for each diagnostic of the severity `error` or `warning`, in the report's order: the input, `: `, the severity, `: `, the code, `: ` and the message. Diagnostics of the severity `information` stay in the JSON document. When the report counted diagnostics that it did not keep, a last line says `<input>: warning: <count> more diagnostics were counted and not kept`, or for a count of one, `<input>: warning: 1 more diagnostic was counted and not kept`.
+- **Where a warning points.** After the message, a space and parentheses hold the parts of the diagnostic's location that it has, in this order, separated by `, ` (`api.md` section 6.13):
+  - `stream` and the stream's index, where it names a stream;
+  - `source` and the source's identifier, where the source is not the primary input. The source table of the JSON document gives that source's role and name;
+  - `byte` and the offset, counted from the start of that source;
+  - `logical byte` and the logical offset, where several files form one stream.
 
-The block comes first and the lines on standard error after it, so a terminal that shows both outputs shows each input's messages below its block.
+  A diagnostic of the primary input shows `(stream 2, byte 4096)`. One of a companion, with all three, shows `(stream 0, source 1, byte 4096, logical byte 1052672)`. A diagnostic without any of them has no parentheses.
+- **The warnings of an error.** An error that carries a partial report has that report's warnings (section 8.7). An error that stopped before its inventory carries no report, but its observations can hold diagnostics (`Observations::diagnostics()`, `api.md` section 10.1). They follow the error's lines by the same rule, in the observations' order, and the count line takes its count from the error's record, `record().omitted_diagnostics()`. So an input writes its warnings whether the probe ended before its inventory or after it.
+
+The lines of one input come in this order: the error's line, the lines of its cause chain, its warnings, and the count line.
+
+The block comes first and the lines on standard error after it, so a terminal that shows both outputs shows each input's messages below its block. Standard output is buffered, so the tool flushes it after an input's block and before that input's first line on standard error. A failure of that flush is an output failure (section 9): the tool writes no line of that input to standard error but the failure's own.
 
 ### 8.7 An error that carries a partial report
 
@@ -427,7 +456,7 @@ As the maintainer chose on 2026-11-23, an error that carries a partial report (R
 
   Each part that the failure stopped names the reason `source_failed`, which the maintainer added to `api.md` section 5.5 on 2026-11-23 for this case.
 
-The observations of an error that stopped before its inventory, such as the track identifiers of an ISO media segment (R20), are not a report and have no block. They are in the JSON document.
+The observations of an error that stopped before its inventory, such as the track identifiers of an ISO media segment (R20), are not a report and have no block. They are in the JSON document, and their warnings go to standard error, as section 8.6 says.
 
 ### 8.8 Stability of the text
 
@@ -444,8 +473,9 @@ The text layout is for people, as the maintainer chose on 2026-11-23:
 If standard output cannot be written, as with a closed pipe or a full disk, the tool stops (plan section 8.9):
 
 - It probes no further input, writes `cc-media-probe: standard output failed: ` and the error's message to standard error, escaped as section 8.1 says, and exits with 1. The document or the text on standard output is then incomplete.
-- This holds up to the last byte. The line feed after the document, the line feeds of the text, and the final flush go through the same output and fail in the same way, never with a panic (`api.md` section 12).
-- On Unix the Rust runtime ignores the signal of a closed pipe before `main` runs, so a write to a closed pipe returns an error instead of ending the process. A pipeline such as `cc-media-probe --json *.mkv | head -n 1` therefore ends the tool with status 1 and the message on standard error. Changing the signal's handling would need code outside the standard library and `unsafe`, which R15 forbids.
+- This holds up to the last byte. The line feed after the document, the line feeds of the text, the flush before an input's lines on standard error (section 8.6), and the final flush go through the same output and fail in the same way, never with a panic (`api.md` section 12).
+- On Unix the Rust runtime ignores the signal of a closed pipe before `main` runs, so a write to a closed pipe returns an error instead of ending the process. Changing the signal's handling would need code outside the standard library and `unsafe`, which R15 forbids.
+- Status 1 follows exactly when a write or the flush fails. A reader that closed the pipe before the tool wrote everything makes a later write fail. A reader that is still open can take a short output whole, so in `cc-media-probe --json movie.mkv | head -n 1` every write and the flush can succeed before `head` exits, and the tool then ends with the status that its results decide. A long scan through `head` meets the closed pipe at some write and ends with 1, at a point that depends on timing. The tests therefore close the read end before the tool starts, which fails the first write on every run.
 - A usage error keeps its status 2, and help and the version exit with 1 when their text cannot be written.
 - A failure to write standard error changes nothing: the tool goes on, and the exit status stays what the results and standard output decide.
 
@@ -460,13 +490,13 @@ The snapshot tests of Phase 3, task 21 run the binary and compare standard outpu
 - a path that does not exist among valid inputs;
 - the usage-error document read back as a `Document`;
 - the writer's output equal to that of `Document::from_results`, for no inputs and for mixed ones;
-- an output failure inside an entry, which leaves the next input unprobed, and one at the last byte, each with exit status 1 and its report on standard error.
+- an output failure inside an entry, which leaves the next input unprobed, and one at the last byte, each with exit status 1 and its report on standard error. Each is made deterministic with a pipe whose read end is closed before the tool starts, or with a writer that fails at a chosen byte, never with a reader such as `head` that may still be open.
 
 And the rules of this document:
 
-- **Reading the command line:** `--help` beside an unknown option and beside a repeated `-`; `--help=1`; `--json=yes`; `--js`; `-json`; an option after an input; a repeated option; `-` after `--`; `--json` after `--`; an empty argument; `--version` with an input, and `--version` beside `-` named twice. The spike's cases of section 12 are the start of this list.
+- **Reading the command line:** `--help` beside an unknown option and beside a repeated `-`; `--help=1`; `--json=yes`; `--js`; `-json`; `--bogus=value`, `--bogus=` and `--=x`, in text mode and in JSON mode; an unknown option that holds a line feed and U+001B, escaped on standard error and unescaped in the document's message; an option after an input; a repeated option; `-` after `--`; `--json` after `--`; an empty argument; `--version` with an input, and `--version` beside `-` named twice. The spike's cases of section 12 are the start of this list.
 - **The help and version texts** of section 5, with and without `--json`.
-- **Text mode:** a complete report; an incomplete report, with and without `--strict`; an incomplete report whose `reasons()` the retained-data limit left empty, with the record's reasons and the count of those not kept; an error without a partial report; an error that carries one; each detection outcome, an ambiguous one with two candidates of equal confidence among them; a report of no streams; an estimated duration; a diagnostic with its stream and offset.
+- **Text mode:** a complete report; an incomplete report, with and without `--strict`; a report whose detection the input's end left incomplete, which `--strict` fails (`api.md` section 5.1); an incomplete report whose `reasons()` the retained-data limit left empty, with the record's reasons and the count of those still unprinted; the same with a single reason, which ends with the record's line and no count; `1 more reason was not kept` in the singular; a kept reason beside the record's reasons of two parts, in the order of `Part`, with the count line; an error without a partial report; an error that carries one; an error before its inventory whose observations hold a warning and counted diagnostics that were not kept; each detection outcome, an ambiguous one with two candidates of equal confidence among them, and insufficient data with the bytes needed as a total; a report of no streams; an estimated duration; a diagnostic with its stream and offset; a diagnostic of a companion with its stream, source, offset and logical offset; `1 more diagnostic was counted and not kept` in the singular; a report followed by a warning through a buffered standard output, with the block before the warning, and a flush that fails there with exit status 1.
 - **Escaping:** a title, a codec identifier as the file wrote it, a diagnostic's message and an input name that hold U+001B, U+0007, U+009B, U+202E and U+2066, each written as its escape; a backslash written as it is.
 - **Paths:** an input that is not valid Unicode, on Unix and on Windows, in both modes.
 
@@ -487,10 +517,13 @@ The disposable spike [`spikes/cli-arguments/`](../../spikes/cli-arguments/README
 - `clap` takes `-` as an input, before and after `--`. A second `-` has to be counted by the tool.
 - After `--`, `--json` and `--help` are inputs, and the two plain scans stop at the first `--`, as plan section 8.9 requires.
 - `clap` never abbreviates a long option (`--js`), and an unknown option of any form is the error kind `UnknownArgument`, whose context names the argument (`--jsno`, `---json`, `--JSON`). For `-json` it names `-j`.
+- For an unknown long option with a value, the context names the option without the value: `--bogus` for `--bogus=value`, and the separator `--` for `--=x`. The spike therefore takes the argument as written from the command line, and its tests check `--bogus=value`, `--bogus=` and `--=x` in both modes.
 - A value given to a flag, `--json=yes` or `--json=`, is the error kind `TooManyValues`, whose context names the option alone.
 - A repeated flag is accepted once `args_override_self` is set; without it, `clap` refuses the second occurrence.
 - An empty argument is an input. An input that is not valid Unicode is kept as written, and an unknown option that is not valid Unicode is named with U+FFFD.
 - With `clap`'s own help and version flags turned off, and `--help` and `--version` declared as plain flags, `clap` writes nothing to either output: a test runs the spike's program and finds only the lines that the program writes.
+- A pipe whose read end is closed before the spike's program starts fails its first write, and the program exits with 1 on every run.
+- The spike built its message from the decoded argument but wrote it to standard error unescaped, so a line feed and an escape reached the terminal. Since the ninth review it escapes the message where it writes standard error, and its tests check both: the message holds the line feed, and standard error shows `\u{a}`, `\u{1b}` and `\u{202e}`.
 - The spike needs only the features `std` and `error-context`. `error-context` gives the argument that an error names. The features `help` and `usage` generate texts that the tool never writes; the spike passes with and without them.
 
 ## 13. Decisions for G2.3
@@ -508,6 +541,26 @@ G2.3 approves this contract together with the JSON contract of task 5 (plan Phas
 - On a closed pipe, exit status 1 with a message, as plan section 8.9 has it, rather than the silent end that the signal would give.
 - A failure to write standard error ignored.
 - The dossier's row for `clap` could drop the features `help` and `usage`, which the tool does not need (section 12). The dossier keeps them until G2.3 decides.
-- The record's reasons printed in the place of the missing ones when the budget was full, with a last line that counts the reasons not kept (section 8.4), after the sixth review of `api.md`.
+- The record's reasons printed in the place of the missing ones when the budget was full, with a last line that counts the reasons not kept (section 8.4), after the sixth review of `api.md`. Since the seventh review the line counts only the reasons still unprinted, so a reason that the record printed is not counted again, and its wording, `N more reasons were not kept`, has a singular form.
+- After the eighth review: the record's lines in the order of `Part`, after the kept reasons and before the count (section 8.4); the warnings of an error before its inventory on standard error, with the count from the error's record (section 8.6); and status 1 stated for a write or flush that fails, rather than for any pipeline into `head` (section 9).
+- After the ninth review: a warning's location as `stream`, `source`, `byte` and `logical byte` in that order, with the source named by its identifier alone (section 8.6); a flush of standard output before each input's lines on standard error, rather than dropping the promise of their order; and `bytes needed` as the total that the maintainer chose for `api.md` section 8.
+
+**The eighth review.** On 2026-11-23 the maintainer's review of revision 41 raised four findings on this contract, beside twelve on `api.md` (its section 16). Each holds. A test written first reproduced the first: the spike named `--bogus=value` as `--bogus`. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| An unknown option with `=` lost its value, and `--=x` was named as `--` | The message names the long option as written, value included, in both modes | 3, 10, 12 |
+| The warnings of an error before its inventory had no rule | They follow the error on standard error, by the rule of a report's warnings, with the count from the error's record | 8.6, 8.7, 10 |
+| Several reasons from the record had no order | The kept reasons first, then the record's in the order of `Part`, then the count; a mixed example | 8.4, 10 |
+| A pipe into `head` does not always fail a write | Status 1 follows a write or flush that fails; the tests close the read end before the tool starts | 9, 10, 12 |
+
+**The ninth review.** On 2026-11-23 the maintainer's review of revision 42 raised four findings on this contract, beside fourteen on `api.md` (its section 16). Each holds. A test written first reproduced the first: the spike wrote a line feed and an escape to standard error unescaped. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| The escaping of a usage error's argument differed between standard error and JSON | The message is built from the decoded argument; only standard error escapes it, and the document holds it unescaped | 3, 4, 10, 12 |
+| A buffered standard output could show a warning before its report | The tool flushes standard output before an input's lines on standard error; a failure there is an output failure | 8.6, 9, 10 |
+| A companion's diagnostic had no rule for its source and its two offsets | The location lists the stream, the source by its identifier, the offset in that source and the logical offset, in that order | 8.6, 10 |
+| One omitted diagnostic was counted in the plural | `1 more diagnostic was counted and not kept` | 8.6, 10 |
 
 **Found while writing.** A source failure after the inventory gives an error that carries a partial report (R19). `api.md` section 5.3 records every shortfall against the part it stopped, but no reason said that a source failed, so the partial report of section 8.7 could not say why its remaining parts were incomplete. The maintainer chose on 2026-11-23 to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (`api.md` section 5.5). A new variant of an open set is compatible, so G2.2 stands.

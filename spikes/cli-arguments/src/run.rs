@@ -19,15 +19,18 @@
 //! error on standard error with its exit status. It probes nothing.
 
 use std::env;
+use std::ffi::OsString;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
 use crate::constants::{HELP_LINE, INPUT_LINE, RUN_LINE, USAGE_ERROR_LINE, USAGE_ERROR_STATUS, VERSION_LINE};
+use crate::escape::for_terminal;
 use crate::invocation::{Invocation, parse};
 
 /// Reads the process's arguments and prints what they ask for.
 pub fn run() -> ExitCode {
-  match print(&parse(env::args_os().skip(1).collect())) {
+  let arguments: Vec<OsString> = env::args_os().skip(1).collect();
+  match print(&parse(&arguments)) {
     Ok(status) => status,
     Err(_) => ExitCode::FAILURE,
   }
@@ -50,7 +53,11 @@ fn print(invocation: &Invocation) -> io::Result<ExitCode> {
       }
     }
     Invocation::UsageError { json, message } => {
-      writeln!(io::stderr().lock(), "{USAGE_ERROR_LINE} {json}: {message}")?;
+      writeln!(
+        io::stderr().lock(),
+        "{USAGE_ERROR_LINE} {json}: {}",
+        for_terminal(message)
+      )?;
       return Ok(ExitCode::from(USAGE_ERROR_STATUS));
     }
   }

@@ -81,7 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// The entry of a report. This version's own probe always gives a report whose outcome it derives. Only a report
 /// read from a newer version can be refused, when only a status of that version decides its outcome; it then takes
-/// an outcome that the caller gives, and `with_outcome` refuses only `error`, which no report allows.
+/// an outcome that the caller gives. `with_outcome` refuses `error`, which no report allows, and an outcome of a
+/// newer version, which only the entry as read can pass on.
 fn report_entry(input: PortablePath, report: MediaReport) -> DocumentEntry {
   DocumentEntry::from_report(input, report)
     .or_else(|refused| refused.with_outcome(EntryOutcome::Partial))

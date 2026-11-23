@@ -48,24 +48,34 @@ impl Document {
     let mut document = serializer.serialize_struct(DOCUMENT_NAME, RESULTS_DOCUMENT_MEMBER_COUNT)?;
     document.serialize_field(SCHEMA_VERSION_MEMBER, &SchemaVersion::CURRENT)?;
     document.serialize_field(GENERATOR_MEMBER, generator)?;
-    document.serialize_field(RESULTS_MEMBER, &Results(Cell::new(Some(entries.into_iter()))))?;
+    let results = Results {
+      entries: Cell::new(Some(entries.into_iter())),
+      first_position: 0,
+    };
+    document.serialize_field(RESULTS_MEMBER, &results)?;
     document.end()
   }
 }
 
 /// The entries, taken one at a time while they are written. Serializing takes them, so they are written once.
-struct Results<Entries>(Cell<Option<Entries>>);
+struct Results<Entries> {
+  entries: Cell<Option<Entries>>,
+  /// The position of the first entry: 0 for a document, and near a boundary in the tests below.
+  first_position: u64,
+}
 
 impl<Entries: Iterator<Item = DocumentEntry>> Serialize for Results<Entries> {
   fn serialize<Output: Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
     let entries = self
-      .0
+      .entries
       .take()
       .ok_or_else(|| Output::Error::custom(ENTRIES_TAKEN_MESSAGE))?;
     let mut sequence = serializer.serialize_seq(None)?;
-    for (index, entry) in entries.enumerate() {
-      // An index is always exact: the writer stops before one beyond 2^53 - 1.
-      if u64::try_from(index).map_or(true, |index| index > LARGEST_EXACT) {
+    // A position is a `u64` on every platform, never a `usize` from `enumerate`, which a 32-bit target would let
+    // overflow at 2^32 entries. The writer stops before a position beyond 2^53 - 1, so the counter never comes near
+    // its own end.
+    for (index, entry) in (self.first_position..).zip(entries) {
+      if index > LARGEST_EXACT {
         return Err(Output::Error::custom(POSITION_RANGE_MESSAGE));
       }
       // The entry goes out of scope before the next one is taken, and `?` stops at the first output error.
@@ -73,5 +83,61 @@ impl<Entries: Iterator<Item = DocumentEntry>> Serialize for Results<Entries> {
       sequence.serialize_element(&PositionedEntry { index, entry: &entry })?;
     }
     sequence.end()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::cell::Cell;
+  use std::path::Path;
+
+  use serde_json::{Value, json};
+
+  use super::Results;
+  use crate::constants::LARGEST_EXACT;
+  use crate::document::DocumentEntry;
+  use crate::probe_bytes;
+  use crate::source::PortablePath;
+
+  /// The indexes written for `count` error entries whose first position is `first_position`.
+  fn indexes(first_position: u64, count: usize) -> Result<Vec<Value>, serde_json::Error> {
+    let entries = (0..count).map(|_| {
+      DocumentEntry::from_error(
+        PortablePath::from_path(Path::new("clip.mp4")),
+        probe_bytes(b"").unwrap_err().to_record(),
+      )
+    });
+    let results = Results {
+      entries: Cell::new(Some(entries)),
+      first_position,
+    };
+    let written = serde_json::to_value(&results)?;
+    Ok(
+      written
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|entry| entry["index"].clone())
+        .collect(),
+    )
+  }
+
+  #[test]
+  fn a_position_counts_past_the_32_bit_range() {
+    let first = u64::from(u32::MAX) - 1;
+    assert_eq!(
+      indexes(first, 3).unwrap(),
+      vec![
+        json!(4_294_967_294_u64),
+        json!(4_294_967_295_u64),
+        json!(4_294_967_296_u64)
+      ]
+    );
+  }
+
+  #[test]
+  fn the_writer_stops_before_a_position_beyond_the_exact_range() {
+    assert_eq!(indexes(LARGEST_EXACT, 1).unwrap(), vec![json!(LARGEST_EXACT)]);
+    assert!(indexes(LARGEST_EXACT, 2).is_err());
   }
 }

@@ -62,16 +62,16 @@ pub enum Invocation {
 
 /// Reads a command line, without the program's name.
 #[must_use]
-pub fn parse(arguments: Vec<OsString>) -> Invocation {
-  let json = appears_before_separator(&arguments, JSON_ARGUMENT);
-  if appears_before_separator(&arguments, HELP_ARGUMENT) {
+pub fn parse(arguments: &[OsString]) -> Invocation {
+  let json = appears_before_separator(arguments, JSON_ARGUMENT);
+  if appears_before_separator(arguments, HELP_ARGUMENT) {
     return Invocation::Help;
   }
   match command().try_get_matches_from(arguments) {
     Ok(matches) => decide(json, &matches),
     Err(error) => Invocation::UsageError {
       json,
-      message: message(&error),
+      message: message(&error, arguments),
     },
   }
 }

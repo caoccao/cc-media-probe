@@ -32,7 +32,7 @@ pub enum EntryOutcome {
   /// An error record, or a detection of insufficient data or an unknown format.
   Error,
   /// A value that a newer version wrote.
-  Unrecognized(UnrecognizedValue),
+  Unrecognized(UnrecognizedValue<EntryOutcome>),
 }
 
 impl EntryOutcome {
@@ -46,17 +46,15 @@ impl EntryOutcome {
     }
   }
 
-  /// The outcome that a report warrants. A status that this version knows and that records a shortfall rules out
-  /// `ok`, whatever a newer status says, so the report is `partial`. With every status known, it is `ok` when it is
-  /// complete. `None` for a report that only a status of a newer version can decide, which a newer table may decide
+  /// The outcome that a report warrants, by the same test as `Completeness::is_complete()`: `ok` when it is
+  /// complete. A shortfall that this version can see rules out `ok`, whatever a newer status says, so the report is
+  /// `partial`. `None` for a report that only a status of a newer version can decide, which a newer table may decide
   /// differently: an unfamiliar status suspends only the decision that depends on it.
   pub(super) fn of_report(report: &MediaReport) -> Option<EntryOutcome> {
     let completeness = report.completeness();
-    if completeness.has_known_shortfall() {
-      Some(EntryOutcome::Partial)
-    } else if completeness.is_known() && completeness.is_complete() {
+    if completeness.is_complete() {
       Some(EntryOutcome::Ok)
-    } else if completeness.is_known() {
+    } else if completeness.has_known_shortfall() {
       Some(EntryOutcome::Partial)
     } else {
       None
@@ -64,7 +62,7 @@ impl EntryOutcome {
   }
 
   /// Whether a report allows this outcome: the one it warrants, or for a report that only a newer status decides,
-  /// `ok` or `partial`, never `error`, which only an error record warrants. An outcome from a newer version is allowed.
+  /// `ok` or `partial`, never `error`, which a report never warrants. An outcome from a newer version is allowed.
   pub(super) fn is_allowed_for_report(&self, report: &MediaReport) -> bool {
     match (self, EntryOutcome::of_report(report)) {
       (EntryOutcome::Unrecognized(_), _) => true,

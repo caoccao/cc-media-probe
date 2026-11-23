@@ -2519,3 +2519,312 @@ The review's index cases were not rerun as written, since the constructors no lo
 - G2.3, with task 5, which confirms the sixth review's amendments of `api.md` and shows the neutral form of a root record's version;
 - the features of `clap` in the dossier, at G2.3;
 - the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the seventh review of the API specification
+
+The maintainer reviewed revision 40 (`0902e26`), ran the spike's 41 tests and the 8 tests of the CLI spike, and reproduced the completeness, Serde trait and tagged-value failures with checks of their own. The review raised seven findings under G2.2 (six of priority 2, one of priority 1) and seven under G2.3 (five of priority 2, two of priority 3). G2.2 stays approved, and G2.3 stays open. Each finding was checked, and each one holds:
+
+- against the plan: section 7.5, which promises only fixed-size facts at a limit; section 7.7, whose diagram checks the request limit before a source ID is assigned and whose table still called a failed validation "declined"; and section 8.3, whose definition of `is_complete()` reads statuses, not the list of reasons;
+- against ITU-T H.264 (V16) 7.4.1.2.1: a picture parameter set and a sequence parameter set "shall be available to the decoding process prior to its activation", so a reference that no candidate answers breaks the bitstream, while a stream without a picture activates nothing;
+- against the documentation of `Iterator::enumerate`: "enumerating more than `usize::MAX` elements either produces the wrong result or panics". No 32-bit target is installed here, so a unit test starts the writer's count near each boundary instead of running one;
+- against Serde's documentation of `Visitor`, `IntoDeserializer` and `forward_to_deserialize_any!`, and RFC 7493 section 2.3, which forbids duplicate names in I-JSON;
+- by tests written before the fixes, in `tests/report.rs` and a new `tests/data_enums.rs` of the spike. Four failed as the review said:
+  - a report whose tags are `Incomplete`, with an empty list of reasons and the tags reason in the record, gave `is_complete()` true and the display "complete", while its entry was `partial`;
+  - a kind of a newer version was refused because its `integer` member held a string;
+  - `integer` beside `integer_exact: null`, `text` beside `boolean: null`, and `text: null` were not refused;
+  - `omitted_reasons` was read and written as a number, so `"9007199254740993"` failed to read.
+
+The missing Serde traits of `Tag` and `Chapter` were confirmed in the stub's source: neither node derives them. The other findings concern the text of the specification and were checked by reading.
+
+**Decisions of the maintainer.** The agent asked four questions. The maintainer took the recommended option twice, and the other option twice: null fails everywhere, and a standalone node is the flat array of its subtree.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A kind of a newer version, rewritten by an older version | The catch-all keeps the other members as written, unread, and writes them back unchanged; a typed detail of a newer kind does the same | Refuse to write such a catch-all; or read a known kind that lacks its member into the catch-all | A string enum's catch-all already writes its text back, so a document that an older version rebuilds stays readable by the version that knows the kind. |
+| A member that holds null | Null fails as malformed input in every member | Null counts as present only where presence decides (data enums, twins, paths), and reads as absent elsewhere | The form writes no null, so one rule covers every member and two readers cannot differ. The neutral form of task 5 enforces it in every member. |
+| A sole H.264 set without picture evidence, or against it | Only an observed chain establishes the primary set; a sole candidate gives its values by agreement; a reference to a set that no candidate has is a damaged stream | Keep the sole candidate primary when no picture was read, with an accessor that says how the set was established | A set that no picture activated is not "the set that the first picture activates", and agreement already gives its values. |
+| A standalone `Tag` or `Chapter` | The flat array of its subtree, the node itself first without `parent`, with exactly one root | No Serde form, listed beside `PortablePath` and `DocumentEntry` | Every model type keeps both traits, in the form that its parent already writes. |
+
+**The findings and their changes** (the table in section 16 of `api.md` lists them with their sections):
+
+- **One completeness test.** `is_complete()` is true exactly when no part fell short. It reads the statuses, the header states and the record, never `reasons()`. `Display`, the quick start and an entry's outcome use the same test.
+- **A candidate ranked behind.** `CheckState::Outranked`; it leaves detection complete, and the diagnostic gives every unused candidate a state.
+- **An ambiguous error.** Insufficient data names the end of the input or the limit. An ambiguous `FormatNotDetermined` gives each candidate its own cause, and the error's `reason()` is absent. `detect_*` gives `InsufficientData` where `probe_*` gives the error.
+- **What survives a full budget.** At each site: detection keeps one first reason in the record, so of two checks stopped for different reasons only the first is sure to survive; an interrupted header keeps its reason in its own status; a resolver's decline text is kept within the retained-data limit, and its kind always.
+- **The H.264 primary set.** As decided. The header state of a damaged stream is `Malformed` with `DamagedStructure`, and section 5.4 widens `Malformed` to a reference that has nothing to resolve to.
+- **Companions refused before a request.** With the request limit reached, a companion gets no source ID and no entry, an external reference with its name, and `CompanionLimited` without a source. A stem that fails validation is a name that cannot be built, never "declined".
+- **`Size::new`** returns `Option<Size>`, `None` beyond 2^53 − 1, and reading checks the same.
+- **The writer's positions** are a `u64` on every platform.
+- **Standalone nodes.** As decided.
+- **Kept members and null.** As decided. A reader keeps a data enum's members until it has the kind, so the kind alone decides how they are read; a member named twice fails.
+- **`omitted_reasons`** is a decimal string.
+- **The CLI's count** is the number of reasons still unprinted, with a singular form, and the single-reason case prints the record's line alone.
+- **The reading rules** scope "never `error`" to a `MediaReport`, since a detection warrants `error` for insufficient data and an unknown format.
+
+**Found while revising.**
+
+- The spike's reader of kept values implements Serde's `visit_str` and `visit_seq`, which the name check of D23 flagged as abbreviations. R32 exempts names that a dependency fixes, so the two joined the check's list of fixed names in `crates/cc-media-probe-checks/src/names/abbreviations.rs`, with a test.
+- The sixth review's full-budget test put a first reason of discovery beside a discovery status of `Complete`. It marks discovery incomplete now; a first reason still counts as a shortfall on its own, so such a report is never complete.
+- `BinaryValue` wrote `"data": null` for data that was not kept. It leaves the member out now.
+- The spike's fixtures wrote null for absent members. They leave them out now.
+- The sixth review's entry above listed `omitted_reasons()` as a decimal string, but neither `api.md` nor the stub said so; both do now.
+
+**Choices made without asking,** each open at the gate named:
+
+- The name `Outranked`, and no reason on an outranked candidate (G2.3).
+- No error reason for an ambiguous `FormatNotDetermined`, since each candidate carries its own; `TruncatedInput` as the cause of a check that the input's end cut short (G2.3, Phase 3).
+- A damaged H.264 stream's header state is `Malformed`, which section 5.4 now allows for an unresolved required reference (G2.3, the H.264 phase).
+- A stem that fails validation takes `CompanionNameUnavailable` with a detail, not a new reason kind; the plan's "declined" row drops the failed validation (G2.3, Phase 14).
+- A companion that the request limit refuses gets no source ID and no entry, as the plan's diagram already ordered it (G2.3, Phase 14).
+- The name `UnrecognizedKind` for the catch-all of an enum that carries data, with `as_str()` and no public accessor for the kept members (G2.3, task 5).
+- A member named twice fails as malformed input, by RFC 7493 section 2.3 (G2.3, task 5).
+- A known kind ignores an unknown member beside its own and does not write it back, as a struct does (G2.3, task 5).
+- The CLI's wording `N more reasons were not kept`, with `1 more reason was not kept` (G2.3).
+- `visit_str` and `visit_seq` in the name check's list of fixed names (G2.3; the next review of the checks).
+
+**Plan, revision 41:**
+
+- section 7.5: which facts survive a full budget at each site;
+- section 7.7: a request that the limit refuses, a stem that fails validation, the "declined" row, the diagram and the tests;
+- section 8.3: the four states of a candidate, the ambiguous error's causes, and the definition of `is_complete()`;
+- section 8.8: standalone nodes, kept members, no null, no name twice, the third omitted count, sizes, 64-bit positions, and the tests of future kinds and malformed input;
+- section 8.9: the test of the text when the only reason was not kept;
+- Phase 2, task 5: the seventh review's forms, and a neutral form that refuses null;
+- Phase 3: the tests of an outranked candidate, an ambiguous error without an end or a limit, and a full budget through every accessor;
+- Phase 4: the H.264 row and its two tests;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 8.4, 10 and 13. The field guide needed no change: it does not say how the primary H.264 set is chosen. The spike's README records the results.
+
+**Verification.**
+
+- **Spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - 53 tests pass: the 41 earlier ones, with their fixtures rid of null, and 12 new. The new tests are five in `data_enums.rs`, three in `report.rs`, two in `archive.rs`, and two unit tests of the writer's positions in `src/document/writer.rs`.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally. `jq` reads its document: the indexes 0 and 1, and no null anywhere.
+- **Structure.** The structure check of D23 reports 0 findings for the spike, after the two fixed names; the name check's tests pass.
+- **Diagrams.** The diagrams of `api.md` section 13 and plan section 7.7 changed. All 17 diagrams of the plan, `api.md`, `cli.md` and `CLAUDE.md` render in headless Chromium with Mermaid 11.4.1, without a syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision and of `cli.md`, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth and seventh reviews' amendments of `api.md`, shows the neutral form of a root record's version and refuses null in every member;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the eighth review of the API specification
+
+The maintainer reviewed revision 41, staged on top of `0902e26`, and ran the spike's 53 tests and the 8 tests of the CLI spike. The review raised twelve findings on `api.md` (one of priority 1, eight of priority 2 and three of priority 3) and four on `cli.md` (two of priority 2 and two of priority 3). No gate was recorded as approved: G2.2 stays approved for revision 38, and its amendments, with those of `cli.md`, are confirmed at G2.3 (plan section 1.2). Each finding was checked as follows:
+
+- against the plan: section 7.5, which charges external references to the retained data and keeps only fixed-size facts at a limit; section 7.7, whose "strict pattern" for an identifier had no definition; and section 8.3, whose definition of `is_complete()` needs every stream's state while the completeness data holds no stream;
+- against ITU-T H.264 (V16), stored in `docs/specs/files/video/itu/`:
+  - 7.4.1.2.1: a sequence parameter set is activated when a picture parameter set's activation refers to it "or is referred to by an SEI NAL unit containing a buffering period SEI message", it "shall be available to the decoding process prior to its activation", and a set with the active identifier "shall have the same content" within the coded video sequence;
+  - 7.4.1.2.3: SEI NAL units precede the primary coded picture, while parameter sets may stand anywhere before its first slice, so a set can follow the message;
+  - D.2.2: the message's `seq_parameter_set_id` "shall be equal to" that of the picture parameter set its picture refers to;
+- against Microsoft's "Naming Files, Paths, and Namespaces" on learn.microsoft.com, read once: the reserved characters `< > : " / \ | ? *`, the codes 0 to 31, the device names `CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9` and their superscript forms, which are reserved "followed immediately by an extension" too, and no name that ends with a space or a period;
+- by tests written before the fixes, in `tests/report.rs`, `tests/data_enums.rs`, a new `tests/forwarding.rs` and the CLI spike's `tests/arguments.rs`. Four failed as the review said:
+  - a report whose one stream has the header state `{"Unrecognized": "deferred"}`, beside complete statuses and an empty record, gave `is_complete()` true and an entry `ok`. So did one whose stream's state is `NotFoundWithinBudget`: the stub never read the header states;
+  - `{"kind": "binary", "binary": {"size_exact": "9007199254740993"}}` failed with "missing field `size`";
+  - a document of version 1.1 whose entry is `skipped` with a `skip_reason`, read and written back, lost `skip_reason`, and so did the document rebuilt with `from_results`;
+  - `--bogus=value` gave `unknown option: --bogus`, in both modes.
+
+`UnrecognizedKind` has no Serde implementation in the stub, which confirms the missing traits. The other findings concern the text of the two documents and were checked by reading.
+
+**Decisions of the maintainer.** The agent asked four questions, and the maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| How completeness sees the header states | `Completeness::headers()`, a `HeadersStatus` of `Complete` or `Incomplete` that the library sets and the form carries; reading checks it against the known states, and beside a state of a newer version it is the verdict of the version that wrote the state | `MediaReport::is_complete()` reading the streams, with `Completeness` keeping the parts; or a summary computed on build and on read, outside the form | The record already promises one status per part, and a fixed-size status keeps `is_complete()` on the record alone, standalone `Completeness` included. The version that wrote a newer state knew whether it was final |
+| A check that the input's end cut short, ranked ahead of the one used | Detection incomplete, with `TruncatedInput` as its first reason and no exhausted counter; `--strict` exits with 1 | Detection complete, since no budget could check more | A file of the better-ranked format that was cut short may be what was probed, and a header cut short by the input's end is not final either |
+| An external reference that the retained data cannot hold | Not listed; the record counts it in `omitted_references()`, and the part that found it is incomplete with `RetainedData` named | Drop it silently; or keep one fixed slot with the kind and role of the first | Every shortfall names its part and reason, as for stream declarations beyond a limit (R3) |
+| The stem of a VobSub index | One rule on every platform: valid Unicode, not empty, `.` or `..`, no control character, none of Windows' reserved characters, no trailing space or period, no Windows device name before the first period, and a name of at most 255 bytes of UTF-8 | The minimum plus each platform's own rules; or ASCII only | A probe makes the same request on every platform and never asks for a name that Windows cannot hold, while names in any language stay valid |
+
+**The findings and their changes** (the tables in section 16 of `api.md` and section 13 of `cli.md` list them with their sections):
+
+- **Header states in completeness.** As decided. `is_complete()`, `Display` and an entry's outcome read the headers status; `HeaderStatus::is_final()` still takes a newer state as not final.
+- **An entry of a newer outcome** is kept like a catch-all of an enum that carries data: it keeps every member it does not read and writes them back after its own, also in a rebuilt document, while its input and records are still checked. An entry of a known outcome drops unknown members, and section 14 now says that a minor version adds only members that a reader may drop.
+- **A binary size** is a quantity that a record cannot omit, so it has the twin `size_exact`.
+- **H.264 activation.** Each link resolves where its activation happens: the buffering-period SEI message's at the message, the slice's at the slice. A set first supplied between the message and the slice was not available to it. Two chains that disagree, and a set whose content changes after activation, are damaged streams too. Where both chains were followed, the primary set is the one the message activated.
+- **A check that the input's end cut short.** As decided, in sections 5.1 and 5.3.
+- **References beyond the retained data.** As decided. Section 13 says what a companion refused by the request limit keeps when the retained data is full as well: the status, the first reason and the counter, but not the name.
+- **An empty buffer.** A read into one returns 0 and says nothing about the end. The library never makes one, so only a read of at least one byte establishes the end; both trait comments say so.
+- **The catch-alls' standalone form.** `UnrecognizedKind` and `UnrecognizedDetails` join `PortablePath` and `DocumentEntry` as types without a form of their own, since the enum's map writes them. A catch-all read alone could hold a known kind's name without its members, and the enum would then write a map that no reader takes.
+- **The tree scenarios** print with a stack of their own, in sections 15.4 and 15.5 and in the spike's examples.
+- **A known kind without a value** is its `kind` alone and needs no member. No member that another known kind reads may remain, and a member named after a kind without a value is ignored.
+- **"As written"** means each member's value and the order of the members other than `kind`, which is written first; the spelling of a number or a string is the writer's own. Keeping the spelling would need a reader of one particular format, while the form goes through Serde's format-neutral traits.
+- **The VobSub stem.** As decided, with examples.
+- **CLI, an unknown option with `=`.** The message names a long option as written, value included, in both modes; the tool takes it from the command line, since `clap` names only the option.
+- **CLI, warnings before an inventory.** The diagnostics of an error's observations follow the error on standard error, by the rule of a report's warnings, with the count from the error's record.
+- **CLI, several reasons from the record.** The kept reasons first, then the record's in the order of `Part`, then the count; a mixed example shows it.
+- **CLI, a pipe into `head`.** Status 1 follows a write or flush that fails. A reader that is still open can take a short output whole. The tests close the read end before the tool starts.
+
+**Found while revising.**
+
+- The seventh review's entry above, and the table in `api.md` section 16, said that `is_complete()` reads the header states. Neither the specification nor the stub could: `Completeness` holds no stream, and the stub's test used a report of no streams. This is the second claim of a log entry that did not land, after the sixth review's `omitted_reasons`.
+- The finding named `UnrecognizedKind`; `UnrecognizedDetails` had the same gap.
+- The finding named a companion that the request limit refuses. A companion with lookup off, one whose stem fails validation, and every other kind of external reference need retained data too, and the rule of `api.md` section 6.12 covers them all.
+- Dropping an unknown member of a known struct is safe only for a member that a reader may lose, which section 14 of `api.md` and the compatibility table of plan section 8.8 now require of a minor version.
+- `serde_json::Value` orders a map's members by name, so the spike's test of the order that an entry keeps is written as text.
+- Taking the arguments by reference for the message made pedantic Clippy ask for `parse(&[OsString])`, so the CLI spike's entry function takes a slice now.
+- The stub gained `ChromaFormat` with `ChromaSubsampling` for the case of a known kind without a value, and the helpers of a data enum's map moved into `kept/kinds.rs`, which `TagValue` uses too.
+
+**Choices made without asking,** each open at the gate named:
+
+- The names `headers()`, `HeadersStatus` with `Complete` and `Incomplete`, and `omitted_references()` (G2.3).
+- A report of no streams has the headers status `Complete` (G2.3).
+- The part of an external reference that is not kept, by its owner: the companions, the attachments, the chapters, and discovery for one of the whole file or of a stream (G2.3; the phases that report references).
+- `LimitExhausted` naming `RetainedData` as that part's reason, and the companions status kept at "not enabled" with lookup off (G2.3, Phase 14).
+- An entry of a newer outcome writes its kept members after its own, and a kept member that holds null fails (G2.3, task 5).
+- `UnrecognizedKind` and `UnrecognizedDetails` without a serialized form of their own, rather than a standalone map (G2.3, task 5).
+- A member named after a kind without a value is ignored rather than refused (G2.3, task 5).
+- With both H.264 chains followed, the set that the SEI message activated is the primary set, and a changed content after activation is detected by comparing the sets' bytes (G2.3, the H.264 phase).
+- The device names of the stem rule follow Microsoft's list exactly, without `COM0` and `LPT0` (G2.3, Phase 14).
+- The CLI takes a long option's text from the first argument before `--` that is the option's name, or that name followed by `=`; a short letter keeps `clap`'s name (G2.3).
+- The order of the record's lines by `Part`, and the warnings of observations after the error's cause chain (G2.3).
+
+**Plan, revision 42:**
+
+- section 7.5: the headers status and the count of external references in the fixed-size record, the rule for references beyond a limit, a read of zero bytes, and the zero-and-full test;
+- section 7.7: the stem rule with examples, references beyond the retained data, and the tests;
+- section 8.2: the completeness row of the intended shape;
+- section 8.3: a check that the input's end cut short, the record's headers status and fourth count, and the definition of `is_complete()`;
+- section 8.8: kinds without a value, what a catch-all keeps, an entry of a newer outcome, the twin of a binary size, the fourth omitted count, the compatibility table and the tests;
+- section 8.9: the message of an unknown long option, the destination of warnings before an inventory, a write that fails, and the tests;
+- Phase 2, task 5: the eighth review's forms;
+- Phase 3: the tests of a check cut short by the input's end, a header state that is not final, and a source never asked for zero bytes;
+- Phase 4: the H.264 row and its four activation tests;
+- Phase 14: the VobSub hint `Movie (2026).idx`;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13. The field guide needed no change. The two spikes' READMEs record the results.
+
+**Verification.**
+
+- **API spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - 62 tests pass: the 53 earlier ones, whose report fixtures gained the headers status, and 9 new. The new tests are three in `data_enums.rs`, three in `report.rs`, two in the new `forwarding.rs` and one in `async_source.rs`.
+- **CLI spike.** In `spikes/cli-arguments/`, pedantic Clippy passes with and without `generated-help`, and 10 tests pass both ways: the 8 earlier ones and 2 new, the option with a value and the closed pipe.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally. `jq` finds no null in its document. The code of sections 15.4 and 15.5 is the code of the two examples.
+- **Structure.** The structure check of D23 reports 0 findings for each spike.
+- **Diagrams.** No diagram changed. All 17 diagrams of the plan, `api.md`, `cli.md` and `CLAUDE.md` render in headless Chromium with Mermaid 11.4.1, without a syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth, seventh and eighth reviews' amendments of `api.md` and `cli.md`, shows the neutral form of a root record's version and refuses null in every member;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the ninth review of the API specification
+
+The maintainer reviewed revision 42, staged on top of `0902e26`, ran both scenario suites, and checked cases outside them, reproducing three serialization failures and one discrepancy in tree order. The review raised fourteen findings on `api.md` (four of priority 1, nine of priority 2 and one of priority 3) and four on `cli.md` (three of priority 2 and one of priority 3). No gate was recorded as approved: G2.2 stays approved for revision 38, and its amendments, with those of `cli.md`, are confirmed at G2.3 (plan section 1.2). Each finding was checked as follows:
+
+- against the plan: section 7.5, which counts companion requests and sources opened, and charges every source-table entry to the retained data; section 7.7, which assigns a source ID before the call and bounds requests by a limit of 64 bits; and section 8.8, whose compatibility table says what an old reader keeps;
+- against RFC 9559 in `docs/specs/rfc/`: Table 21 of 5.1.4.1.31.3, where the "next" bit covers "the data inside ContentCompression and/or ContentEncryption" of the next encoding, so its `ContentEncodingType` and `ContentEncodingScope` stay readable; and 5.1.4.1.19, where `Language` "MUST be ignored if the LanguageBCP47 element is used";
+- against ITU-T H.264 (V16): 7.4.1.2.1, which requires a set with the active identifier to "have the same content as that of the active sequence parameter set RBSP", and 7.4.1, by which `nal_ref_idc` "shall not be equal to 0" for a parameter set, so two copies can differ in their header alone;
+- against the Python tracker's message 273344 on DOS device names, read once: Windows removes the extension at the first period and then trailing spaces, so `NUL  .txt` maps to the device `NUL`;
+- against the committed description of ISO/IEC 14496-15, which describes `AVCProfileIndication` as the "profile indication for the configuration" and says no more, and the field guide's precedence, by which a lower source supplies a value only when no higher one establishes it;
+- by a separate crate in the scratchpad, built against the stub, and by tests written before the fixes in a new `tests/catch_alls.rs`, `tests/forwarding.rs`, a new `tests/flat_trees.rs` and the CLI spike's `tests/process.rs`. Six failed as the review said:
+  - `{"kind": "text"}` read as a `ChromaFormat`, its payload moved into `TagValue::Unrecognized` and written, did not read back as a tag value;
+  - a `StreamKind` catch-all holding `error`, moved into `EntryOutcome::Unrecognized` and given to `with_outcome` for a report beside a newer status, built an entry whose document did not read back;
+  - a document of version 1.1 whose `skipped` entry holds a detection of a newer outcome and a `skip_reason`, rebuilt through `from_detection` and `with_outcome` with the recorded outcome, lost `skip_reason`;
+  - the same document with an error record of version 1.1 in a member `skip_detail`, rebuilt with `from_results`, was of version 1.0 with that record still at 1.1;
+  - the parents `[none, none, 0]` read for tags and for chapters, and the tree came back reordered;
+  - the CLI spike wrote an unknown option holding a line feed and U+001B to standard error unescaped.
+
+The other findings concern the text of the two documents and were checked by reading.
+
+**Decisions of the maintainer.** The agent asked four questions, and the maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| How a catch-all is tied to its enum | Each payload takes the owning enum as a type parameter, `UnrecognizedValue<Owner>`, `UnrecognizedKind<Owner>`, `UnrecognizedDetails<Owner>`; a payload exists only from reading its enum | Keep the types, and fail at serialization when a catch-all holds a name its enum knows, with `with_outcome` refusing one | A compile-time error instead of a fallible serializer, matching stays `TagValue::Unrecognized(kind)`, and a type parameter can only be added before `0.1.0` |
+| A record in a member that an entry of a newer outcome keeps | A minor version puts a root record only in `report`, `detection`, `error` and `partial_report`, never in a member that a catch-all keeps | A kept record keeps its own version, and the nested-version rule covers only the members a version defines; or the writers refuse such entries | A rebuilt document then has one version throughout, the strict nested-version rule stays, and the eighth review's forwarding stays |
+| Where a seekable reader's input starts | At its byte 0, wherever it stands; a forward-only reader starts where it stands and is left after exactly the bytes read from it | At the reader's position when it is passed, as for a forward-only reader | The report of a reader equals that of `probe_file` for the same bytes, offsets are the reader's own positions, and an embedded range has `probe_source` |
+| What `bytes_needed()` counts | The least length of the input from its start | The bytes still needed beyond those read | A total does not depend on what was read, and a caller cut short by `BytesRead` can raise the limit to it |
+
+**The maintainer's rule, stated during the revision.** "A property should hold last known good value. That means if property from 1.0 is read successfully, and property from 1.1 is corrupted, the value for property from 1.0 should be the one." Asked whether 1.0 and 1.1 meant schema versions or repeated copies in media, the maintainer answered: "It's the spec version. e.g. MP3 ID tag spec version." So where a file states one property, for the same scope, in structures of several versions of its specification, a newer structure that is damaged or cut short establishes no value, and the older structure's value stands, with a diagnostic for the damaged one. Applied:
+
+- **Precedence.** Plan section 8.4, `api.md` section 7 and the field guide's sections 1 and 2 state the rule. A suppression rule applies only to a newer value that reads, so a damaged Matroska `LanguageBCP47` leaves `Language` in place; RFC 9559 ties the suppression to the newer element being "used". When both read and disagree, the newer one wins, with a recorded conflict.
+- **Tags.** The ID3v2 and ID3v1 tags of an MP3 file are tag sets of their own, newest first, and the value lookups skip a tag without a value, so `tag(key)` gives the last known good value (`api.md` section 6.9; Phase 11, task 1, which fixes the order of ID3v2, ID3v1 and APEv2).
+- **Not a fallback.** An older structure that covers less of the file, such as AVI's first-segment `dwTotalFrames` beside the OpenDML total, states a different property.
+
+**The findings and their changes** (the tables in section 16 of `api.md` and section 13 of `cli.md` list them with their sections):
+
+- **A catch-all that leaves its enum.** As decided. `UnrecognizedValue` joins the types without a serialized form of their own, so a caller cannot read one alone either; section 3.3 lists the five, and sections 3.1 and 12 refer to it.
+- **Recovering an unknown outcome.** `with_outcome` takes only an outcome that this version knows; an entry of a newer outcome is forwarded as it was read, with its members.
+- **Mixed versions after a rebuild.** As decided, in sections 12 and 14.
+- **A companion entry beyond the retained data, and a resolver that opens a source the limit forbids.** Before a source ID is assigned, the probe checks the request limit, the sources-opened limit and the retained data for the source-table entry, which it reserves. A companion that one of them refuses makes no request, is not counted as one, and is cut short with `CompanionLimited` naming that limit.
+- **Source IDs.** `SourceIdentifier` wraps a `u64`, so every request that the limit allows has one, and it is read in canonical decimal.
+- **`NUL .backup`.** The device-name comparison drops the spaces at the end of the part before the first period.
+- **An encoding under a "next" encryption.** Its type and scope are read and kept. An encryption under it leaves its protection unknown; a compression under it declares none, and Phase 5 fixes the header state that its unknown algorithm leaves.
+- **The H.264 comparison.** The RBSP, without the NAL unit header and without emulation prevention bytes.
+- **Profile provenance.** A table in section 11.5 combines `profile_provenance()` with `primary_sequence_parameter_set()`; the record is the next source whenever the sets establish no value, a disagreement included, and its value counts as declared.
+- **A seekable reader's origin, and `bytes_needed()`.** As decided, in sections 4.1 and 8 and in `cli.md` section 8.5.
+- **Trees out of order.** Reading takes depth-first order only: a node's parent is the node before it or an ancestor of that node, and a top-level node closes every subtree.
+- **The scope of the Serde traits.** Section 3.3 holds the one list.
+- **CLI, escaping.** The message is built once from the decoded argument; standard error escapes it and the document does not.
+- **CLI, buffered output.** The tool flushes standard output before an input's lines on standard error, and a failure there is an output failure.
+- **CLI, a companion's diagnostic.** Its location lists `stream`, `source` with the identifier, `byte` in that source and `logical byte`, in that order.
+- **CLI, one diagnostic not kept.** `1 more diagnostic was counted and not kept`.
+
+**Found while revising.**
+
+- Binding a payload by type is not enough while it can be read alone, since a caller could read `UnrecognizedValue<EntryOutcome>` from `error`. `UnrecognizedValue` therefore has no Serde form of its own, and the stub's enums write their catch-alls through `model/unrecognized_text.rs`.
+- `FormatDetails` and `CodecDetails` share `UnrecognizedDetails`, so a format's kind could become a codec's; that payload is bound too, through `details/unrecognized_form.rs`.
+- The old text made every encoding under a "next" encryption leave `is_fully_examined()` false; a compression declares no protection whatever its algorithm.
+- The stub read a source identifier with Rust's integer parser, which takes `"+1"` and `"01"`; it now takes canonical decimal only.
+- The field guide said that the presence of `LanguageBCP47` suppresses `Language`, which the maintainer's rule narrows to a value that reads.
+- `#[non_exhaustive]` on a catch-all variant would have stopped callers from building one, but outside the crate it also forbids the pattern `Unrecognized(kind)`, so the binding is by type parameter.
+
+**Choices made without asking,** each open at the gate named:
+
+- `SourceIdentifier` widened to a `u64` rather than a checked stop at 2^32 − 1 requests (G2.3, Phase 14).
+- The order of the checks before a request, the request limit, then sources opened, then the retained data, with `CompanionLimited` naming the first that failed, and the request decided before the reference is listed (G2.3, Phase 14).
+- No pre-call check for `BytesRead`, since a resolver opens and does not read (G2.3, Phase 14).
+- `with_outcome` refusing every outcome of a newer version, rather than a constructor that copies an entry's kept members (G2.3, task 5).
+- A tree reader that refuses a return to a closed subtree, rather than one that accepts and reorders it (G2.3, task 5).
+- The device-name comparison drops trailing spaces only; leading spaces are not stripped, since the source describes only the trailing ones (G2.3, Phase 14).
+- The header state of a codec header under a compression of unknown algorithm left to Phase 5 (G5.2).
+- The record as the fallback for profile and level after the sets disagree, by the field guide's precedence, since the committed description of ISO/IEC 14496-15 does not say that the record's value holds for every set (G2.3, Phase 4).
+- A warning's location: the source by its identifier alone, the four parts in a fixed order, and no parentheses without any (G2.3).
+- A flush of standard output before each input's lines on standard error, rather than dropping the promise of their order (G2.3).
+- The doc tests that must fail to compile, rather than a new development dependency for compile-fail tests (none needed GS.1).
+
+**Plan, revision 43:**
+
+- section 7.7: 64-bit source IDs, the stem's device names with trailing spaces, the checks before a request, the resolver table and the diagram, and the tests;
+- section 8.2: where a seekable and a forward-only reader start;
+- section 8.4: the last known good value, with its tests;
+- section 8.6: the bytes needed as a total;
+- section 8.8: the bound catch-alls, `with_outcome`, depth-first order, canonical identifiers, no record in a kept member, and the tests;
+- section 8.9: the escaping of a usage error, the flush before warnings, a warning's location, the singular count, and the tests;
+- section 8.10: the type parameter of the catch-alls, fixed before `0.1.0`;
+- Phase 2, task 5: the ninth review's forms, and the minor-version rule for `stability.md`;
+- Phase 4: the RBSP comparison, the profile provenance and their tests;
+- Phase 5: the "next" scope and a damaged `LanguageBCP47`;
+- Phase 11: tag sets newest first, and the ID3 tests;
+- Phase 14: the checks before a request;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13, and the field guide in its status and sections 1, 2 and its three Matroska language rows. The two spikes' READMEs record the results.
+
+**Verification.**
+
+- **API spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - With all features, 68 tests and 7 doc tests pass: the 62 earlier tests, and 6 new, two each in `catch_alls.rs` and `flat_trees.rs` and two in `forwarding.rs`, whose reproductions became tests of the fixed behavior. `document.rs` checks the 64-bit, canonical source identifier in an existing test. Of the doc tests, four must fail to compile, and a crate built against the stub confirmed the reasons: three type mismatches (E0308) and a missing `Deserialize` (E0277). Without a feature, 13 pass.
+- **CLI spike.** In `spikes/cli-arguments/`, pedantic Clippy passes with and without `generated-help`, and 12 tests pass both ways: the 10 earlier ones and 2 new, the message that holds a line feed and standard error that escapes it.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally; `jq` finds no null in its document. The code of section 15.6 is the code of its example, whose comment on `with_outcome` changed.
+- **Structure.** The structure check of D23 reports 0 findings for each spike.
+- **Diagrams.** The diagrams of `api.md` section 13 and plan section 7.7 changed. All 18 diagrams of the plan, `api.md`, `cli.md`, the field guide and `CLAUDE.md` render in headless Chromium with Mermaid 11.4.1, without a syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth to ninth reviews' amendments of `api.md`, `cli.md` and the field guide, shows the neutral form of a root record's version and refuses null in every member;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.

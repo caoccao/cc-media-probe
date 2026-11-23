@@ -17,24 +17,34 @@
 
 //! A tag's value, `api.md` section 6.9 (F25), and its serialized form, section 12. An enum whose variants carry
 //! data is a map of its `kind` and the member named after the kind, as in `{"kind": "text", "text": "Title"}`. A
-//! reader that meets a kind it does not know keeps the kind's name and ignores the payload, as it ignores any
-//! unknown member, so the order of the members never matters.
+//! reader keeps the members as written before it looks at the kind, so the order of the members never matters and
+//! the kind alone decides how they are read. A kind that it does not know keeps its name and its other members,
+//! unread, and writes them back unchanged.
 
 use std::fmt;
 
-use super::constants::{BINARY_KIND, BOOLEAN_KIND, INTEGER_KIND, TEXT_KIND};
-use super::values::UnrecognizedValue;
 #[cfg(feature = "serde")]
-use crate::constants::TAG_VALUE_MESSAGE;
+use serde::de::Error as _;
+#[cfg(feature = "serde")]
+use serde::ser::SerializeMap;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use super::constants::{BINARY_KIND, BOOLEAN_KIND, INTEGER_KIND, TEXT_KIND};
+#[cfg(feature = "serde")]
+use super::constants::{INTEGER_EXACT_MEMBER, TAG_VALUE_MEMBERS};
+use super::unrecognized_kind::UnrecognizedKind;
+#[cfg(feature = "serde")]
+use crate::constants::{KIND_MEMBER, TAG_VALUE_MESSAGE, TWIN_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
 #[cfg(feature = "serde")]
-use crate::twin::{signed_members, signed_value};
+use crate::kept::{read_kind, refuse_other_kinds, write_kept};
+#[cfg(feature = "serde")]
+use crate::twin::{signed_members, signed_value, unsigned_members, unsigned_value};
 
 /// A tag's value, in the format's own type (F25).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "TagValueMembers", try_from = "TagValueMembers"))]
 #[non_exhaustive]
 pub enum TagValue {
   /// Text.
@@ -45,8 +55,8 @@ pub enum TagValue {
   Integer(IntegerValue),
   /// A Boolean.
   Boolean(bool),
-  /// A kind of value that a newer version wrote; it keeps the kind's name, and its payload is not read.
-  Unrecognized(UnrecognizedValue),
+  /// A kind of value that a newer version wrote. It keeps the kind's name and the value's other members, unread.
+  Unrecognized(UnrecognizedKind<TagValue>),
 }
 
 impl TagValue {
@@ -62,92 +72,119 @@ impl TagValue {
   }
 }
 
-/// A tag value's members: its kind, and the payload under the kind's name. An integer beyond the exact range has
-/// the twin `integer_exact` in place of `integer`.
+/// Writes the kind, then the member named after it; a kind of a newer version writes its kept members back.
 #[cfg(feature = "serde")]
-#[derive(serde::Serialize, serde::Deserialize)]
-struct TagValueMembers {
-  kind: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  text: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  binary: Option<BinaryValue>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  integer: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  integer_exact: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  boolean: Option<bool>,
-}
-
-#[cfg(feature = "serde")]
-impl From<TagValue> for TagValueMembers {
-  fn from(value: TagValue) -> TagValueMembers {
-    let mut members = TagValueMembers {
-      kind: value.as_str().to_owned(),
-      text: None,
-      binary: None,
-      integer: None,
-      integer_exact: None,
-      boolean: None,
-    };
-    match value {
-      TagValue::Text(text) => members.text = Some(text),
-      TagValue::Binary(binary) => members.binary = Some(binary),
+impl Serialize for TagValue {
+  fn serialize<Output: Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    if let TagValue::Unrecognized(unrecognized) = self {
+      return write_kept(serializer, unrecognized.as_str(), unrecognized.members());
+    }
+    let mut map = serializer.serialize_map(None)?;
+    map.serialize_entry(KIND_MEMBER, self.as_str())?;
+    match self {
+      TagValue::Text(text) => map.serialize_entry(TEXT_KIND, text)?,
+      TagValue::Binary(binary) => map.serialize_entry(BINARY_KIND, binary)?,
       TagValue::Integer(integer) => {
-        (members.integer, members.integer_exact) = signed_members(integer.magnitude, integer.negative);
+        let (number, exact) = signed_members(integer.magnitude, integer.negative);
+        if let Some(number) = number {
+          map.serialize_entry(INTEGER_KIND, &number)?;
+        }
+        if let Some(exact) = exact {
+          map.serialize_entry(INTEGER_EXACT_MEMBER, &exact)?;
+        }
       }
-      TagValue::Boolean(boolean) => members.boolean = Some(boolean),
+      TagValue::Boolean(boolean) => map.serialize_entry(BOOLEAN_KIND, boolean)?,
       TagValue::Unrecognized(_) => {}
     }
-    members
+    map.end()
   }
 }
 
+/// Keeps the members as written, then reads them as the kind says. A known kind holds the member named after it,
+/// and once its own members are taken out, no member of another known kind may remain; other members are ignored,
+/// as any unknown member is. A kind that this version does not know keeps its other members unread.
 #[cfg(feature = "serde")]
-impl TryFrom<TagValueMembers> for TagValue {
-  type Error = InvalidDocument;
-
-  /// A known kind holds the member named after it and no member of another known kind. An unknown kind keeps its
-  /// name, and its members are ignored.
-  fn try_from(members: TagValueMembers) -> Result<TagValue, InvalidDocument> {
-    let TagValueMembers {
-      kind,
-      text,
-      binary,
-      integer,
-      integer_exact,
-      boolean,
-    } = members;
-    let has_integer = integer.is_some() || integer_exact.is_some();
-    let present = [text.is_some(), binary.is_some(), has_integer, boolean.is_some()]
-      .into_iter()
-      .filter(|present| *present)
-      .count();
+impl<'input> Deserialize<'input> for TagValue {
+  fn deserialize<Input: Deserializer<'input>>(deserializer: Input) -> Result<TagValue, Input::Error> {
+    let (kind, mut members) = read_kind(deserializer, TAG_VALUE_MESSAGE)?;
+    let malformed = || Input::Error::custom(TAG_VALUE_MESSAGE);
     let value = match kind.as_str() {
-      TEXT_KIND => text.map(TagValue::Text),
-      BINARY_KIND => binary.map(TagValue::Binary),
-      INTEGER_KIND if has_integer => {
-        let (magnitude, negative) = signed_value(integer, integer_exact)?;
-        Some(TagValue::Integer(IntegerValue { magnitude, negative }))
+      TEXT_KIND => TagValue::Text(members.take::<_, Input::Error>(TEXT_KIND)?.ok_or_else(malformed)?),
+      BINARY_KIND => TagValue::Binary(members.take::<_, Input::Error>(BINARY_KIND)?.ok_or_else(malformed)?),
+      INTEGER_KIND => {
+        let number = members.take::<_, Input::Error>(INTEGER_KIND)?;
+        let exact = members.take::<_, Input::Error>(INTEGER_EXACT_MEMBER)?;
+        let (magnitude, negative) = signed_value(number, exact).map_err(Input::Error::custom)?;
+        TagValue::Integer(IntegerValue { magnitude, negative })
       }
-      INTEGER_KIND => None,
-      BOOLEAN_KIND => boolean.map(TagValue::Boolean),
-      _ => return Ok(TagValue::Unrecognized(UnrecognizedValue::new(kind))),
+      BOOLEAN_KIND => TagValue::Boolean(members.take::<_, Input::Error>(BOOLEAN_KIND)?.ok_or_else(malformed)?),
+      _ => return Ok(TagValue::Unrecognized(UnrecognizedKind::new(kind, members))),
     };
-    match value {
-      Some(value) if present == 1 => Ok(value),
-      _ => Err(InvalidDocument::new(TAG_VALUE_MESSAGE)),
-    }
+    refuse_other_kinds::<Input::Error>(&members, &TAG_VALUE_MEMBERS, TAG_VALUE_MESSAGE)?;
+    Ok(value)
   }
 }
 
-/// A binary tag value.
+/// A binary tag value. Its size is a quantity that the value cannot omit, so beyond 2^53 - 1 it is the twin
+/// `size_exact` (`api.md` section 12).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(try_from = "BinaryValueData", into = "BinaryValueData")
+)]
 pub struct BinaryValue {
   size: u64,
   data: Option<Vec<u8>>,
+}
+
+/// A binary value's members as written: the size as its number or its twin, and the data when it was kept.
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct BinaryValueData {
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
+  size: Option<u64>,
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
+  size_exact: Option<String>,
+  #[serde(
+    default,
+    deserialize_with = "crate::presence::present",
+    skip_serializing_if = "Option::is_none"
+  )]
+  data: Option<Vec<u8>>,
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<BinaryValueData> for BinaryValue {
+  type Error = InvalidDocument;
+
+  /// Exactly one of the size's number and twin, each in its own range.
+  fn try_from(data: BinaryValueData) -> Result<BinaryValue, InvalidDocument> {
+    match unsigned_value(data.size, data.size_exact)? {
+      Some(size) => Ok(BinaryValue { size, data: data.data }),
+      None => Err(InvalidDocument::new(TWIN_MESSAGE)),
+    }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl From<BinaryValue> for BinaryValueData {
+  fn from(value: BinaryValue) -> BinaryValueData {
+    let (size, size_exact) = unsigned_members(Some(value.size));
+    BinaryValueData {
+      size,
+      size_exact,
+      data: value.data,
+    }
+  }
 }
 
 impl BinaryValue {
