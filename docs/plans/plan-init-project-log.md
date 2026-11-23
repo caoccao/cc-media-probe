@@ -2828,3 +2828,294 @@ The other findings concern the text of the two documents and were checked by rea
 - G2.3, with task 5, which confirms the sixth to ninth reviews' amendments of `api.md`, `cli.md` and the field guide, shows the neutral form of a root record's version and refuses null in every member;
 - the features of `clap` in the dossier, at G2.3;
 - the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the tenth review of the API specification
+
+The maintainer reviewed revision 43, committed as `1fec2b5`, and ran both scenario suites, which pass there. The review found two behaviors that the suites miss and several places where the contracts answer one input in two ways. It raised fifteen findings on `api.md` (eleven of priority 2 and four of priority 3) and four on `cli.md` (two of priority 2 and two of priority 3). No gate was recorded as approved: G2.2 stays approved for revision 38, and its amendments, with those of `cli.md`, are confirmed at G2.3 (plan section 1.2). Each finding was checked as follows:
+
+- against the plan: section 7.5, which keeps the facts that are always reportable in a fixed-size record, and section 8.3, whose discovery covers declarations that were not retained;
+- against RFC 9559 in `docs/specs/rfc/`: Table 21 of 5.1.4.1.31.3, where the scope bits can be combined, and the defaults of `ContentEncodingScope` (1) and `ContentEncodingType` (0);
+- against the Matroska tags draft in `docs/specs/files/`, section 3: "When a SimpleTag is nested within another SimpleTag, the nested SimpleTag becomes an attribute of its parent SimpleTag". Section 4.1 makes `ORIGINAL` a tag that holds the tags of the original work;
+- against ITU-T H.264, 7.3.2.1.1, where `profile_idc`, the constraint flags and `level_idc` come before `seq_parameter_set_id`;
+- against the standard library's documentation, read once: `volume_serial_number()` and `file_index()` of `std::os::windows::fs::MetadataExt` are nightly-only (`windows_by_handle`, issue 63010), while `dev()` and `ino()` of the Unix trait are stable;
+- against the field guide, whose section 2 lets an override supply only the components it states, and whose mastering-display row puts the container first;
+- by a test written before the fix in the CLI spike's `tests/process.rs`, which failed as the review said: with standard error closed, `--jsno` exited with 1 instead of 2.
+
+The stub confirmed three more by reading, without a failing test: the tag lookups saw only the top level, and `tags_with_key` did not exist. `SourceIdentifier` had neither `value()` nor `Display`, and its `Debug` writes `SourceIdentifier(1)`. A `CodecInformation` without a codec, a candidate or an identifier displayed as "unknown codec". The other findings concern the text of the two documents and were checked by reading.
+
+**Decisions of the maintainer.** The agent asked three questions, and the maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| Which part records a shortfall of protection | Discovery, with the stream named by `PartReason::stream()` | The headers, through a header state that is not final; or a new part, `Protection`, with a status of its own | Protection is declared in the stream's declaration, a Matroska `TrackEntry` or an ISO sample entry. R3 already makes discovery incomplete for a declaration not kept, and the header states keep their meaning |
+| Which tag lookups visit descendants | None: `file_tags`, `stream_tags`, `tags_with_key` and `tag` see the top level only, the sets in report order and the tags in stored order | `tags_with_key` alone visits descendants and gives each match its path; or every lookup visits descendants depth-first | A nested tag is an attribute of its parent (tags draft, section 3), so a nested `TITLE` is not the file's title, and the flat views keep that meaning |
+| The origin of a value of a high dynamic range | A provenance accessor for each coordinate, each luminance and each light level | One provenance for each point; or one source for each whole structure | It matches `color()`, and it keeps the field guide's rule that an override supplies only what it states |
+
+**The findings and their changes** (the tables in section 16 of `api.md` and section 13 of `cli.md` list them with their sections):
+
+- **Simultaneous companion limits.** The first limit that failed is the first reason, `CompanionRequests` when both it and `RetainedData` are 0. A reference that the full retained data cannot list is counted on its own, with its own reason.
+- **Protection and completeness.** As decided. A declaration that this version cannot read at all is no shortfall.
+- **Overlapping Matroska scopes.** One kept declaration that covers the configuration makes `is_configuration_clear()` `Some(false)`.
+- **Encoding fields.** Each field read is kept; a diagnostic names each unread field; an encryption whose scope was not read gives a declaration of the new scope `Unread`.
+- **Tag lookups.** As decided.
+- **Provenance of a high dynamic range.** As decided.
+- **The end of a source of unknown length.** A read that returns 0 at P gives the length P only after the byte at P − 1 was delivered.
+- **`bytes_needed()`.** A length, which prescribes no `BytesRead`.
+- **A seekable reader.** It gives the report of the same reader at byte 0, with offsets of the primary input from byte 0 and `size()` within the exact range; no promise of equality with `probe_file`.
+- **H.264 candidates that disagree.** They give no value for the field, and the record supplies the profile and the level.
+- **Hard links.** The device and file numbers alone decide where the standard library gives them; the resolved path alone decides otherwise.
+- **A codec that the input never named.** No codec, name or identifier, every candidate, displayed "a codec that was not read".
+- **The statuses of an error.** They belong to a report; an error without a partial report has none, and its record names the first reason of each part that the stop reached.
+- **The H.264 example.** The primary set always has its profile and level, so the example shows a cut after its identifier, and the profile and level on the sets read.
+- **`Tier`.** In the list of `Display` types, with `SourceIdentifier`.
+- **CLI, a closed standard error.** A failure to write standard error changes nothing, a usage error's included.
+- **CLI, the source's number.** Through `SourceIdentifier::value()` and `Display`.
+- **CLI, the status of an output failure.** 1, except in a usage error; writes that succeed leave the status to the results.
+- **CLI, the lossy-path marker.** On the input's name wherever text mode writes it.
+
+**Found while revising.**
+
+- An encryption under a "next" encryption leaves `is_fully_examined()` false by design. Nothing falls short there, so no part records it, and the report can still be complete, as plan section 8.3 lets a file with an encrypted stream be.
+- An encryption whose algorithm was read and whose scope was not had no scope to carry its scheme, so `ProtectionScope` gains `Unread`.
+- A field omitted from a `ContentEncoding` read in full takes its default, so only a cut makes a field unread.
+- The scenario of `api.md` section 15.10 and the spike's `examples/format_details.rs` printed the same unreachable H.264 branches; both now match section 11.5.
+- A clean end on a source of unknown length (`api.md` section 5.2) rests on the same rule as its length.
+- `PartReason::stream()` names a stream for discovery too, and `cli.md` writes it as `discovery of stream N`.
+- Plan section 7.5 calls the statuses and the counters together the fixed-size record. `api.md` keeps the statuses on `Completeness` and the rest on `LimitRecord`, as the stub does, and section 5.3 now calls the two the fixed-size data.
+- The new `tests/lookups.rs` needed the `serde` feature, so `Cargo.toml` declares it with `required-features`, as the other tests that read JSON are declared.
+
+**Choices made without asking,** each open at the gate named:
+
+- `ProtectionScope::Unread` for an encryption whose scope was not read, rather than no declaration (G2.3, Phase 5).
+- Every cut inside a `ContentEncoding` leaves discovery incomplete for the stream, a compression whose scope was not read included, since the track entry was not read in full (G5.2).
+- The statuses kept on `Completeness` alone, rather than status getters on `LimitRecord` with a value for a part that never started (G2.3).
+- `SourceIdentifier::value()`, named like `Confidence::value()`, rather than `get()` or `as_u64()` (G2.3).
+- The display text "a codec that was not read" (G2.3).
+- On Windows, the resolved path alone, with two hard links as two sources, rather than a crate that reads the file index, which would go through GS.1 (Phase 14).
+- The seekable reader's guarantee narrowed to the same reader at byte 0, rather than restated as `probe_file` with the same hint and lookup off (G2.3).
+- `pic_width_in_mbs_minus1` as the field after the identifier in the H.264 example, since every set has it (G2.3).
+- The lossy-path marker on every line of an input on standard error, rather than only on its first (G2.3).
+- In the CLI spike, a line that stands for the usage-error document on standard output in JSON mode, so that a test can see the document survive a closed standard error (spike only).
+
+**Plan, revision 44:**
+
+- section 7.5: the exact end of a source of unknown length; the statuses of a report and an error's record; protection beyond a limit;
+- section 7.7: the first limit that failed beside a reference not listed; the identity by file numbers alone, or else by path; and the tests;
+- section 8.2: what a seekable reader's guarantee covers;
+- section 8.3: discovery's shortfalls of protection;
+- section 8.4: a provenance for each value of a structure that an override fills value by value;
+- section 8.5: the lookups on the top level only;
+- section 8.6: the bytes needed as no read budget;
+- section 8.9: the status of an output failure, a failed standard error, the source in decimal, the input's name, and the tests;
+- Phase 3: the tests of the gap at the end, the reader at byte 100 and an error's record;
+- Phase 4: the H.264 record when candidates disagree, and the primary set's profile and level;
+- Phase 5, task 8 and its tests: one declaration that protects the configuration, the diagnostic of a covered algorithm, an encoding cut short, and the tests of a declaration not kept, a codec never named, mixed provenance and a nested title;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 8.1 to 8.6, 9, 10, 12 and 13, and the field guide in its status and its rows of `protection`, `codec`, the high dynamic range, a tag's `children` and the Matroska `protection`. The two spikes' READMEs record the results.
+
+**Verification.**
+
+- **API spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - With all features, 72 tests and 7 doc tests pass: the 68 earlier tests, and 4 new: two in `lookups.rs`, and in `report.rs` the codec that the input never named and the companion's diagnostic named through `SourceIdentifier`. Without a feature, 13 pass.
+- **CLI spike.** In `spikes/cli-arguments/`, pedantic Clippy passes with and without `generated-help`, and 14 tests pass both ways: the 12 earlier ones, one of them now expecting the JSON usage error's line on standard output, and 2 new, for a closed standard error and for a usage-error document that cannot be written.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally; `jq` finds no null in its document. The code of section 15.10 is the code of its example.
+- **Structure.** The structure check of D23 reports 0 findings for each spike.
+- **Diagrams.** No diagram changed. The prose beside the companion diagram of `api.md` section 13 still matches it: a refused companion is cut short by the first limit that failed.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth to tenth reviews' amendments of `api.md`, `cli.md` and the field guide, shows the neutral form of a root record's version and refuses null in every member;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the eleventh review of the API specification
+
+The maintainer reviewed revision 44, staged on top of `1fec2b5`, and ran both scenario suites with all features, which pass there. The review raised ten findings on `api.md` (eight of priority 2 and two of priority 3) and three on `cli.md` (one of priority 2 and two of priority 3). No gate was recorded as approved: G2.2 stays approved for revision 38, and its amendments, with those of `cli.md`, are confirmed at G2.3 (plan section 1.2). Each finding was checked as follows:
+
+- against the plan: section 7.7, whose request checks named "the companions' first reason whatever else fails", and Phase 5, task 8, which already decodes a "next" encoding's settings first, before that encoding is used;
+- against RFC 9559 in `docs/specs/rfc/`: Table 21, whose "next" bit covers the data inside `ContentCompression` and `ContentEncryption`; 5.1.4.1.31.5 and 5.1.4.1.31.8, where a `ContentEncryption` "MUST be ignored" unless the type is 1; Table 23, with zlib and header stripping; and 5.1.4.1.31.9 with Table 24, where `ContentEncAlgo` defaults to 0, "not encrypted";
+- against RFC 8794, which fixes the position of a `CRC-32` element and of no other child of a master element, so a `ContentEncryption` can come before its sibling `ContentEncodingType`;
+- against the field guide, whose `coded_size` row puts the parsed header first and the container second, as do `bit_depth` and `chroma_format`;
+- by running the CLI spike into a pipe whose reader had gone: `--json --jsno` wrote `standard output failed: Broken pipe (os error 32)` before the usage error's line and exited with 2, the order that its existing test already asserted.
+
+No case of this review ran as a failing test. The stub models neither companion lookup nor Matroska encodings, and its H.264 details hold data without the rules that choose it. Its display already told an ISO description cut off before its format code apart from a codec that the input never named, through `has_every_candidate()`, while `api.md` section 6.4 had set that flag to true for both. The other findings concern the text of the two documents and were confirmed by reading.
+
+**Decisions of the maintainer.** The agent asked four questions, and the maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| Whether a companion can be an alias of source 0 | Through the built-in resolver only, which takes the identity of the file that `probe_file` opened; a custom resolver's tokens are compared with earlier companions' only | Never, for either resolver; or a token for source 0 through a new builder option | The library opened that file itself, so its identity has the built-in form, while the caller gives every primary input without a token. A token option can come later as a compatible addition |
+| How to test a companion's diagnostic in `0.1.0` | Through the text formatter, on a report read from a JSON document; the binary snapshot joins `0.7.0`, which adds `--companions` | Move the whole case to `0.7.0`, untested until then | No command line of `0.1.0` makes a request, and the layout is part of the contract now |
+| The lines of a cause chain | They continue the error's line, with neither the input's name nor its marker | The name and marker on every line, the cause chain's included | The existing example already wrote them so, and an indented continuation reads as part of the line above |
+| The order of a usage error's two diagnostics when its document cannot be written | The output failure's line first, then the usage error's three lines | The usage error first, then the output failure | The tool writes standard output before standard error, as for every input, so it meets the failure first, and the spike already did so |
+
+**The findings and their changes** (the tables in section 16 of `api.md` and section 13 of `cli.md` list them with their sections):
+
+- **The first reason across companions.** The record's first reason of the companions is the first recorded in the probe, whichever companion gave it. The order of the request checks decides between the limits of one companion only, and a later refusal goes to `reasons()` on its own.
+- **An unread codec identifier and an unread ISO description.** The rule for a codec that the input never named holds for formats without sample descriptions only. An ISO description cut off before its format code is a description that was not read, with `has_every_candidate()` false.
+- **Container evidence beside H.264 sets that disagree.** A field ruled out of the sets takes the next source of its own precedence, the container's coded size, bit depth and chroma format among them.
+- **An observed primary H.264 set.** It decides every field it holds, with the provenance `Bitstream`. Agreement and the fallback apply only while the primary is unknown, and the provenance table no longer allows `Declared` or absent beside it.
+- **Compressed "next" settings.** Settings that this build recovers are read. A disabled `zlib` is a shortfall with `FeatureDisabled`, and an encoding that this version cannot undo leaves them unread by design.
+- **An encryption algorithm of 0.** Read before a type that the cut left unread, it settles that the encoding declares no protection whatever its type, and the cut is still a shortfall of discovery.
+- **A source failure during protection.** It is a cause of a shortfall, with `SourceFailed` naming the stream and the source in the error's partial report, and a cause of an unread field.
+- **An alias of the primary input.** As decided.
+- **An error's reason.** An ambiguous `FormatNotDetermined` has none; its causes are in `candidates()`, in rank.
+- **The companion diagram.** Three branches are marked where the retained data can leave no reference, with a note below the diagram.
+- **CLI, a companion's diagnostic.** As decided.
+- **CLI, the cause chain.** As decided.
+- **CLI, the order of a usage error's diagnostics.** As decided.
+
+**Found while revising.**
+
+- The three choices of the tenth review were missing from the list at the top of `api.md`. They are there now, with the eleventh's.
+- `api.md` section 5.3 said that `PartReason::stream()` names a stream for discovery only where its protection was not established, while section 6.3 records every cut inside a content encoding with the stream. It now names the stream wherever a stream's declaration fell short, and `cli.md` section 8.4 says the same, with `discovery of stream 1: source_failed` for a failed primary input.
+- A codec that the input never named can also be cut off by a source failure, so `api.md` section 6.4 and the field guide's `codec` row list it.
+- An encryption with algorithm 0 under the "next" bit changes nothing, so its covered settings are read. A covering encoding whose type or algorithm a cut left unread recovers nothing.
+- The record's first reason of detection in an ambiguous error had no rule. It is the first cause in rank, as in a report.
+- The plan's companion diagram in section 7.7 had the same omission as `api.md`'s, so it carries the same marks.
+- Another H.264 set can describe another coded video sequence, so a level that differs from an observed primary set's is no conflict. A record that disagrees with the primary set is one, with a diagnostic.
+
+**Choices made without asking,** each open at the gate named:
+
+- Settings of a "next" zlib compression with the feature off as a shortfall with `FeatureDisabled`, as `CompressionUnavailable` is not final (G2.3, G5.2).
+- Covered data that do not inflate as a shortfall with `DamagedStructure` (G5.2).
+- An encoding settled by an algorithm of 0 counted as examined for protection, so `is_fully_examined()` stays as the other structures leave it (G2.3, G5.2).
+- The record's first reason of detection in an ambiguous error, the first cause in rank (G2.3).
+- A mark on three branches of each diagram, with a note, rather than three more branches (G2.3).
+- How the built-in resolver charges the identities it holds, the primary file's among them, and what a probe does when working memory cannot hold one, left to plan Phase 14, task 1 (G14.3).
+- No diagnostic for another H.264 set that differs from an observed primary set (G4.1).
+- The example `Broken pipe (os error 32)` in `cli.md` section 4, the text that the spike wrote on macOS (G2.3).
+
+**Plan, revision 45:**
+
+- section 7.5: an error's reason where one reason stopped it, and the record of an ambiguous detection;
+- section 7.7: the companions' first reason across companions, an alias of source 0 through the built-in resolver only, the marked diagram, and the tests;
+- section 8.3: a source failure, a disabled feature and an algorithm of 0 in the row of stream discovery;
+- section 8.9: the cause chain's lines, the order of a usage error's output failure, and a companion's diagnostic through the formatter;
+- Phase 3: the test of an ambiguous error's record;
+- Phase 4: an observed primary set first, each field's own fallback, and three tests;
+- Phase 5, task 8 and its tests: the "next" settings by covering encoding, the zero algorithm and a source failure;
+- Phase 6: the test of a description cut off before its format code;
+- Phase 14, task 1: the charge of the identities that the built-in resolver holds;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 4, 8.1, 8.4, 8.6, 9, 10, 12 and 13, and the field guide in its status and its rows of `protection`, `codec` and the Matroska `protection`. The two spikes' READMEs record the results.
+
+**Verification.**
+
+- **API spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference.
+  - With all features, 73 tests and 7 doc tests pass: the 72 earlier tests, and one new in `report.rs` for an ISO description cut off before its format code, which passed against the unchanged display. Without a feature, 13 pass. The display's doc comment now names the ISO case.
+- **CLI spike.** In `spikes/cli-arguments/`, pedantic Clippy passes with and without `generated-help`, and the 14 tests pass both ways. The program did not change; a test's comment now names the order.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally; `jq` finds no null in its document.
+- **Structure.** The structure check of D23 reports 0 findings for each spike.
+- **Diagrams.** The two changed diagrams, `api.md` section 13 and plan section 7.7, render with mermaid.js 11.4.1 in headless Chromium without an error, with 14 and 18 nodes and their three marks each.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth to eleventh reviews' amendments of `api.md`, `cli.md` and the field guide, shows the neutral form of a root record's version and refuses null in every member;
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.
+
+## 2026-11-23 — Progress: Phase 2, the twelfth review of the API specification
+
+The maintainer reviewed revision 45, staged on top of `1fec2b5`, and ran both scenario suites, which pass there. The review raised eleven findings on `api.md` (eight of priority 2 and three of priority 3) and one on `cli.md` (priority 2), and reproduced two API mismatches that the suites missed. No gate was recorded as approved: G2.2 stays approved for revision 38, and its amendments, with those of `cli.md`, are confirmed at G2.3 (plan section 1.2). Each finding was checked as follows:
+
+- against the plan: section 8.3, whose `is_complete()` never reads the list of reasons; Phase 5, task 10, which keeps every tags element read; and Phase 4, whose primary set "decides every field it holds";
+- against RFC 9559 in `docs/specs/rfc/`: section 23.2, where in a live stream "the new Tags element MUST reset the previously encountered Tags elements", and a live segment has all bits of its size set to 1; section 5.1.8, whose `Tags` element has no maximum count; and sections 5.1.4.1.31.3 to 5.1.4.1.31.9;
+- against ITU-T H.264: 7.3.2.2, where `pic_parameter_set_id` precedes `seq_parameter_set_id`, and 7.3.3 and D.1.2, for the identifiers that the first picture names;
+- against the field guide, whose `color` and `visible_size` rows let an ISO `colr` or `clap` box, and Matroska's cropping, override the parsed header;
+- against the committed description of ISO/IEC 14496-15, written from public sources, which covers parameter-set tracks not at all, and gives the record's profile, compatibility byte and level only as the values "for the configuration";
+- against the MP4RA registries: the stored registry of sample entries lists `avcp`, "Advanced Video Coding Parameters", and the registry of track references, read once at the stored commit `59a6b51b8c9d`, lists `avcp`, "AVC parameter set stream link". The second registry is not among the stored documents.
+
+The review cites ISO/IEC 14496-15:2024, a paid standard, through a third-party copy. The agent did not open it, and said so in its question to the maintainer. A web search found no public text of the record's rule. In the first version of this revision the agent still adopted the two rules by their section numbers, with their sources as open points. After the report, the maintainer stated the project's rule: paid documents are not read, and only public specifications are collected for the development, as plan section 5.2 already has for the 16 paid standards. So neither rule is adopted from the paid standard. The design rests on what the public sources support: a record that differs from the set that supplies a value is no conflict, and a linked parameter-set track lacks candidates until a public source says which of its samples count (`api.md` section 11.5, field guide F30).
+
+**Reproduced before the fix.** Both API mismatches of the review ran first in a scratch test of the stub: two reports that differ only in a reason of the tags gave `is_complete()` true and false, and a `CodecInformation` of `Unrecognized("future_codec")` without a raw identifier displayed "a codec that was not read". The tests written for them then failed before the fix: the four tests of `tests/agreement.rs` (each case read, where it should fail) and `a_codec_of_a_newer_version_displays_the_name_that_it_wrote` in `tests/report.rs` (left `"a codec that was not read"`, right `"future_codec"`). The tests of the seventh, ninth and eleventh findings did not compile, since the stub lacked `TagSet::is_superseded()`, `picture_parameter_sets()`, `activation()`, `origin()` and `schema_version()` on the bare records. The stub models neither Matroska encodings, H.264 activation nor companion lookup, so the other six findings were confirmed by reading. The CLI finding was confirmed by reasoning about the closed pipe, and the tests that replace it run in process.
+
+**Decisions of the maintainer.** The agent asked four questions. The maintainer took the recommended option three times, and once the alternative: the parameter sets of a linked parameter-set track are read as candidates, rather than leaving such a track with missing candidates in `0.1.0`.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A report whose reasons disagree with its statuses and record | `is_complete()` reads the statuses and the record only, and reading refuses the report, alone, as a partial report or in a document | Accept it as written, with the reasons ignored by `is_complete()` | Accepting it would let a report list a reason while it reads as complete, and an entry be `ok` beside a reason |
+| Tag sets of a live Matroska stream that a later Tags element reset | Kept in `tag_sets()`, marked by `TagSet::is_superseded()`; every lookup skips them | The value lookups skip them while `tags_with_key()` lists them as history; or the report drops them, counted in a diagnostic | RFC 9559 resets them, so no lookup should return them, and the history stays where the report lists its sets |
+| The display of a codec of a newer version without a raw identifier | The serialized name that its version wrote, then the first raw identifier; "a codec that was not read" only for an absent codec, and "an unknown codec" for an `Unknown` without an identifier | The raw identifier first, then the serialized name | The newer version named the codec, and its name is closer to the library's name than the file's identifier |
+| An `avc1` track whose parameter sets are in a parameter-set track linked through `avcp` | Phase 6 reads the linked track's sets as candidates, once a public source states which samples the first picture can use (GS.2) | Treat such a track as having missing candidates in `0.1.0`, so no link is called broken | The maintainer's choice: the linked track holds the sets that the first picture uses |
+
+**The findings and their changes** (the tables in section 16 of `api.md` and section 13 of `cli.md` list them with their sections):
+
+- **Completeness and the list of reasons.** As decided. Section 5.3 states the three agreement rules, and the plan's section 8.3 and its tests follow.
+- **A linked parameter-set track.** As decided. Until the probe has every set that the linked track makes available, and while no public source states which those are, the track lacks candidates, so no link is called broken. A track whose references were not read in full lacks them too.
+- **AVC levels beside the record.** No public source says how the record must relate to the sets, so a record that differs from the set that supplies a value is no conflict: the set's value stands, the details keep both, and no diagnostic calls it a conflict. A record of level 4 beside a primary set of level 3.1 gives 3.1.
+- **Container overrides beside a primary set.** The primary set stands for the parsed header in the precedence of each field, and a source ranked above the parsed header still wins: a `colr` or `clap` box in the ISO family, and Matroska's cropping. Such a field takes the container's value as declared, and the set's values stay in the details.
+- **An encryption with an unread algorithm.** A first encoding over "next" settings declares protection of its own only with a nonzero algorithm that the probe read. The diagnostic names only the fields observed, and an unread field as unread.
+- **Damaged compressed settings.** `DamagedStructure` joins the reasons of a protection shortfall. A field that a cut left unread and settings that stayed undecoded, read in full and not interpreted, are two cases, each with its reason. Section 11.4 says "undecoded" for the algorithm.
+- **Superseded tags.** As decided.
+- **An unfamiliar codec.** As decided.
+- **The picture parameter sets.** `picture_parameter_sets()`, each with its two identifiers, and `activation()`, with the first slice's `pic_parameter_set_id` and the buffering-period SEI message's `seq_parameter_set_id`.
+- **The companion that the record names.** The record names the entry whose reason came first in the probe. A second entry's reason is in `reasons()` within the budget, and on its entry whatever the limits. The diagram's node says the same.
+- **A version on every root record.** `MediaReport`, `Detection` and `ErrorRecord` have `schema_version()`, as `Document` has.
+- **CLI, the positions of an output failure.** The binary test with a closed pipe stays for the status and the failure's line. A failure inside an entry and one at the final line feed are tested in process, through the module that `main` hands over to, with a writer that fails at a chosen byte and inputs that record what was taken.
+
+**Found while revising.**
+
+- A status that records a shortfall without a first reason of its part breaks the same promise, that an incomplete report always says why, so reading refuses it too. Three fixtures of the stub broke one of the rules: a reason of detection in `tests/report.rs` and one of discovery in `tests/archive.rs` without their first reasons, and a headers status of `incomplete` without one. They now hold the rules, and the headers case displays `incomplete: truncated_input`.
+- The profile and the compatibility byte of the record can differ from a set for the same reason as the level, so neither is a conflict either.
+- A first encoding cut before its type or algorithm leaves its covered settings undecoded too, recorded with the cut's own reason.
+- An `Unknown` codec without a raw identifier, which only a record of another writer can hold, needed a display that is not the unread one.
+- With a linked track, the sets of three origins share one list, so both lists of the H.264 details give `origin()`.
+- The CLI spike wrote the output failure's line only for a usage error. A run whose standard output failed exited with 1 and wrote nothing to standard error, against `cli.md` section 9. It now writes the line through `report_output_failure`, which the usage error uses too, and the binary test checks it.
+- `cli.md` section 8.2 did not say whether the `tags` line counts a superseded set. It counts every set of `tag_sets()`.
+
+**Choices made without asking,** each open at the gate named:
+
+- A live segment is a segment of unknown size; there a Tags element read after a Cluster replaces every Tags element read before it, and a segment of known size never supersedes a set (G5.2).
+- The reverse agreement check, a shortfall status without a first reason, refused on reading (G2.3).
+- "An unknown codec" for an `Unknown` codec without a raw identifier (G2.3).
+- `activation()` and `origin()` beside the picture parameter sets (G4.1).
+- No conflict for any difference between the record and a set, the profile and the compatibility byte included (G4.1).
+- A field that `colr`, `clap` or Matroska's cropping takes over the primary set gets the provenance `Declared`, with no conflict recorded (G4.1, G6.2).
+- A track whose references were not read in full lacks candidates (G6.2).
+- `schema_version()` on the root records under the `serde` feature, which defines `SchemaVersion` (G2.3).
+- The `tags` line of the text layout counts superseded sets (G2.3).
+- The CLI spike's `write_inputs` and `report_output_failure` as the shape that the in-process tests drive (G2.3).
+
+**Plan, revision 46:**
+
+- section 8.3: the agreement of the reasons, the first reasons and the statuses, and its tests;
+- section 8.5: superseded tag sets, and the live-stream test;
+- section 8.8: `schema_version()` on each root record, and its tests;
+- section 8.9: the output failure tested through the binary and in process;
+- Phase 3: the tests of the codec displays;
+- Phase 4: the primary set under each field's precedence, a record that differs from a set as no conflict, the details' picture parameter sets and activation, a new test, and the three identifiers in an existing one;
+- Phase 5, task 8 and its tests: undecoded settings with "damaged structure", and an encryption's declaration only with an algorithm read;
+- Phase 5, task 10 and its tests: superseded sets in a segment of unknown size;
+- Phase 6, task 4 and its tests: the linked parameter-set track, and the MP4RA registry of track references for the manifest;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`cli.md` follows in its status and sections 8.2, 8.3, 10, 12 and 13, and the field guide in its status, the Matroska `protection` row, a tags row for superseded sets, the H.264 `profile` and `level` rows, and a new finding F30 for the two sources. The two spikes' READMEs record the results.
+
+**Verification.**
+
+- **API spike.**
+  - In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference, and the documentation builds without a warning.
+  - With all features, 82 tests and 7 doc tests pass: the 73 earlier tests, the four of `tests/agreement.rs`, one more in `tests/report.rs` and one in `tests/lookups.rs`, the two of `tests/root_versions.rs` and the one of `tests/h264.rs`. Without a feature, 13 pass.
+- **CLI spike.** In `spikes/cli-arguments/`, pedantic Clippy passes with and without `generated-help`, and the 17 tests pass both ways: the 14 earlier ones, one of them now checking the failure's line, and the three of `tests/output.rs`.
+- **Programs.** All 13 programs end without a panic, and the JSON scenario exits normally.
+- **Structure.** The structure check of D23 reports 0 findings for each spike.
+- **Diagrams.** The three diagrams of `api.md` and `cli.md`, the changed companion diagram among them, render with mermaid.js 11.4.1 in headless Chromium without an error, with 11, 14 and 11 nodes.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of this revision, before task 5 starts;
+- G2.3, with task 5, which confirms the sixth to twelfth reviews' amendments of `api.md`, `cli.md` and the field guide;
+- a public source for which samples of a linked parameter-set track the first picture can use, through GS.2, before Phase 6 reads them, and one for how the record relates to the sets, should the H.264 phase need more than "no conflict" (field guide F30); paid standards are not read;
+- the MP4RA registry of track references, to be stored with the other MP4RA registries at Phase 6 (GS.2);
+- the features of `clap` in the dossier, at G2.3;
+- the open points of `api.md` section 16, among them the item-list track and disc numbers.

@@ -92,9 +92,10 @@ impl Completeness {
     &self.record
   }
 
-  /// Whether a status that this version knows records a shortfall, or a reason names one, which rules out a
+  /// Whether a status that this version knows records a shortfall, or the record names one, which rules out a
   /// complete report whatever a status of a newer version says. The record's first reasons count, since they stay
-  /// when `reasons()` cannot, and so does a reason of a part that only a newer version knows.
+  /// when `reasons()` cannot, and so does a first reason of a part that only a newer version knows. `reasons()` never
+  /// counts: reading checks that it agrees with the record (twelfth review).
   pub(crate) fn has_known_shortfall(&self) -> bool {
     self.detection == DetectionStatus::Incomplete
       || self.discovery == DiscoveryStatus::Incomplete
@@ -102,7 +103,6 @@ impl Completeness {
       || [&self.tags, &self.chapters, &self.attachments]
         .into_iter()
         .any(|status| *status == SectionStatus::Incomplete)
-      || !self.reasons.is_empty()
       || !self.record.first_reasons.is_empty()
   }
 

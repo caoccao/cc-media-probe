@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. |
+| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. The tenth revised sections 8.1 to 8.6, 9, 10, 12 and 13, the eleventh sections 4, 8.1, 8.4, 8.6, 9, 10, 12 and 13, and the twelfth sections 8.2, 8.3, 10, 12 and 13. |
 | **Plan** | [Section 8.9](../plans/plan-init-project.md#89-command-line-contract) fixes the command line, the JSON document, the outcomes and the exit statuses, on the rules of R21 and R23. This document fixes the rest: the order in which the command line is read, the messages, the help and version texts, the text layout and what goes to each output. |
 | **API** | [`docs/design/api.md`](api.md), approved at G2.2 on 2026-11-23: the entry points and options (section 4), the outcomes (section 5), the report model (section 6), detection (section 8), the error record (section 10) and the document with its writer (section 12). |
 
@@ -13,6 +13,12 @@ On 2026-11-23 the maintainer made three choices for it:
 - **Text layout.** Text mode prints a summary of each report: the file's values, one line for each stream, the number of chapters, tags and attachments, and the completeness (section 8.2). JSON carries the whole report.
 - **Text stability.** The text layout is written for people. It may change in any minor release, and each change is listed in the changelog under "Changed output". Programs read the JSON document (section 8.8).
 - **An error that carries a partial report.** Standard error gets the error, and standard output gets the partial report in the normal layout, headed by the error (section 8.7).
+
+At the eleventh review, also on 2026-11-23, the maintainer made three more:
+
+- **The lines of a cause chain.** They continue the error's line, so they carry neither the input's name nor its marker (sections 8.1 and 8.6).
+- **A usage error whose document cannot be written.** The output failure's line comes first on standard error, before the usage error's three lines (section 4).
+- **A companion's diagnostic in `0.1.0`.** A test of the text formatter covers it with a report read from a JSON document. The binary snapshot waits for the release that adds `--companions` (section 10).
 
 ## Contents
 
@@ -114,7 +120,7 @@ flowchart TD
 
 ## 4. Usage errors
 
-A usage error exits with status 2, in either mode, and always writes three lines to standard error (plan section 8.9):
+A usage error exits with status 2, in either mode, and always writes these three lines to standard error (plan section 8.9):
 
 ```text
 cc-media-probe: unknown option: --jsno
@@ -140,7 +146,14 @@ Try 'cc-media-probe --help' for more information.
 }
 ```
 
-- The status stays 2 when the document cannot be written; standard error then also reports the output failure (section 9).
+- The status stays 2 when the document cannot be written, and standard error then also reports the output failure (section 9). As the maintainer chose at the eleventh review, the output failure's line comes first, and the usage error's three lines follow it. The tool writes standard output before standard error, as it does for every input (section 8.6), so it meets the failure first. With `--json --jsno` and a pipe whose reader has gone, on Unix:
+
+```text
+cc-media-probe: standard output failed: Broken pipe (os error 32)
+cc-media-probe: unknown option: --jsno
+Usage: cc-media-probe [OPTIONS] <INPUT>...
+Try 'cc-media-probe --help' for more information.
+```
 
 ## 5. Help and version
 
@@ -270,7 +283,8 @@ Three inputs of different outcomes, with each record cut to the members that thi
 ### 8.1 Layout rules
 
 - **Blocks.** Standard output gets one block for each input that has something to show: a report, a partial report, or a detection result. A blank line separates two blocks. An input whose error carries no partial report has no block; its error is on standard error (section 8.6).
-- **Lines.** A block starts with the input's display string at the start of its line. Every other line starts with two spaces, then a label padded with spaces to 13 characters, then the value. A label of 13 characters or more is followed by one space. A value that continues on further lines, such as the reasons of an incomplete report, continues after 15 spaces.
+- **The input's name.** Text mode writes an input as its name: the input's display string, followed by ` (the name is not valid Unicode)` when the path is lossy (plan section 8.8). A path that is not valid Unicode shows U+FFFD in its display string, so a file whose name holds a real U+FFFD would otherwise look the same. As the tenth review asked, the name is the same wherever an input appears: the first line of a report, of a partial report and of a detection result, and the start of every line on standard error that begins a message of that input: its error, each warning and the count line (section 8.6). A line of the cause chain continues the error's line above it, so, as the maintainer chose at the eleventh review, it starts with two spaces and carries neither the name nor the marker. Standard input, `-`, is never lossy.
+- **Lines.** A block starts with the input's name at the start of its line. Every other line starts with two spaces, then a label padded with spaces to 13 characters, then the value. A label of 13 characters or more is followed by one space. A value that continues on further lines, such as the reasons of an incomplete report, continues after 15 spaces.
 - **Absent values.** A file-level line whose value is absent says `unknown`. A stream's line lists only the values that are present.
 - **Numbers** are decimal ASCII digits without grouping.
 
@@ -314,7 +328,7 @@ The lines, in this order:
 
 | Label | Value |
 |---|---|
-| (none) | The input's display string. When the path is not valid Unicode, ` (the name is not valid Unicode)` follows. |
+| (none) | The input's name (section 8.1): its display string, with ` (the name is not valid Unicode)` after a path that is not valid Unicode |
 | `error` | Only for the partial report of an error (section 8.7) |
 | `format` | `Format::name()` |
 | `media type` | `MediaReport::media_type()`, or `unknown` |
@@ -323,7 +337,7 @@ The lines, in this order:
 | `bit rate` | `bit_rate()`, with its estimate in the same form as the duration, or `unknown` |
 | `stream N` | One line for each stream in index order (section 8.3). A report of no streams has the line `streams` with `none`. |
 | `chapters` | The number of chapters of every edition, nested ones included, then `in`, the number of editions and `edition` or `editions`; `none` without an edition |
-| `tags` | The number of tags of every tag set, children included, then `in`, the number of sets and `set` or `sets`; `none` without a set |
+| `tags` | The number of tags of every tag set, children included, then `in`, the number of sets and `set` or `sets`; `none` without a set. Every set of `tag_sets()` counts, so a set that a later Tags element of a live stream superseded counts too, as the history it is (`api.md` section 6.9) |
 | `attachments` | The number of attachments, or `none` |
 | `complete` | Section 8.4 |
 
@@ -331,7 +345,7 @@ A section's status follows its count. `Incomplete` adds `, incomplete`, as in `n
 
 ### 8.3 A stream
 
-A stream's line holds its kind by its stable name, a colon, and its codec as `CodecInformation` displays it: the codec's name, else the identifier that the file wrote, and for an unresolved codec the candidates joined by ` or ` (`api.md` section 6.4). Then, separated by `, ` and each only when present:
+A stream's line holds its kind by its stable name, a colon, and its codec as `CodecInformation` displays it: the codec's name, or the serialized name of a codec that a newer version wrote, else the identifier that the file wrote, and for an unresolved codec the candidates joined by ` or ` (`api.md` section 6.4). A codec that the input never named, as in a Matroska track entry cut short before its `CodecID`, displays as `a codec that was not read`, so the line reads `video: a codec that was not read` (tenth review). That text is only for an absent codec: a codec of a newer version without a raw identifier, read from a document, shows by its name, as in `video: future_codec`, and an unknown codec without one as `an unknown codec` (twelfth review). Then, separated by `, ` and each only when present:
 
 1. **Video:** the visible size; `display` with the display size when it differs from the visible size, or when the visible size is absent; the frame rate with `fps`, or `variable frame rate` when the rate is absent and its mode is `Variable`.
 2. **Audio:** the sample rate with `Hz`; the channel count with `channel` or `channels`.
@@ -353,7 +367,7 @@ The header status has no line of its own. A state that is not final is a shortfa
                headers of stream 2: truncated_input
 ```
 
-A reason is the part's stable name, with ` of stream N` for a stream's headers and ` of source N` where it names a source other than the primary input, as a companion's request does. A colon and the reason's kind follow, then the limit's name or the feature's name in parentheses where the reason names one, and a colon with the detail where it has one. A report that is incomplete only through a status of a newer version reads `no` with no further line.
+A reason is the part's stable name, with ` of stream N` where it names a stream and ` of source N` where it names a source other than the primary input, as a companion's request does. A reason names a stream for its headers, and for discovery when the stream's declaration fell short, as when its protection was not established or one of its content encodings was cut short (`api.md` sections 5.3 and 6.3), as in `discovery of stream 1: limit_exhausted (retained_data)`. In the partial report of an error, a primary input that failed there gives `discovery of stream 1: source_failed`. `N` is the stream's index, or the source's identifier as `SourceIdentifier` displays it, in decimal (`api.md` section 6.15). A colon and the reason's kind follow, then the limit's name or the feature's name in parentheses where the reason names one, and a colon with the detail where it has one. A report that is incomplete only through a status of a newer version reads `no` with no further line.
 
 **When the budget was full.** `reasons()` is kept within the retained-data limit, so it can lack the reason of a part that fell short. The fixed-size record keeps the first reason of each part whatever the limits (`api.md` section 5.3). For each part that falls short and that no reason of `reasons()` names, the line is the record's `first_reason()` for that part, in the same form; it has no detail, since the record keeps none. Each such reason was itself one that `reasons()` did not keep, so it is among those that `omitted_reasons()` counts. The number still unprinted is therefore `omitted_reasons()` less the number of lines taken from the record, and never below zero. When it is more than zero, a last line follows: `1 more reason was not kept`, or `N more reasons were not kept` for more than one. The record kept the discovery reason of this report, and three others were not kept:
 
@@ -382,7 +396,7 @@ When the only reason of a report was not kept, the record's line is that reason 
 
 ### 8.5 A detection
 
-With `--detect`, each detection result has a block of its own:
+With `--detect`, each detection result has a block of its own, which starts with the input's name (section 8.1):
 
 ```text
 movie.mkv
@@ -407,18 +421,23 @@ A line whose value is absent is left out. An outcome of the kind `error`, insuff
 
 Standard error gets, for each input in turn, after that input's block on standard output:
 
-- **Its error.** One line: the input's display string, `: error: `, the error's kind, `: ` and its message. Each message of the cause chain follows on a line of its own, as two spaces, `caused by: ` and the message:
+- **Its error.** One line: the input's name (section 8.1), `: error: `, the error's kind, `: ` and its message. Each message of the cause chain follows on a line of its own, as two spaces, `caused by: ` and the message:
 
   ```text
   broken.mkv: error: source_failed: the source failed at byte 1048576
     caused by: Input/output error (os error 5)
   ```
 
-  With `--detect`, an outcome of insufficient data or an unknown format writes the input, `: error: ` and the outcome's stable name.
-- **Its warnings.** One line for each diagnostic of the severity `error` or `warning`, in the report's order: the input, `: `, the severity, `: `, the code, `: ` and the message. Diagnostics of the severity `information` stay in the JSON document. When the report counted diagnostics that it did not keep, a last line says `<input>: warning: <count> more diagnostics were counted and not kept`, or for a count of one, `<input>: warning: 1 more diagnostic was counted and not kept`.
+  With `--detect`, an outcome of insufficient data or an unknown format writes the input's name, `: error: ` and the outcome's stable name. An input whose path is not valid Unicode keeps its marker on every such line, whether or not it has a block. The lines of the cause chain continue the error's line, so they carry neither the name nor the marker (section 8.1), as in an error without a partial report:
+
+  ```text
+  caf�.mkv (the name is not valid Unicode): error: source_failed: the source could not be opened
+    caused by: No such file or directory (os error 2)
+  ```
+- **Its warnings.** One line for each diagnostic of the severity `error` or `warning`, in the report's order: the input's name, `: `, the severity, `: `, the code, `: ` and the message. Diagnostics of the severity `information` stay in the JSON document. When the report counted diagnostics that it did not keep, a last line says `<input>: warning: <count> more diagnostics were counted and not kept`, or for a count of one, `<input>: warning: 1 more diagnostic was counted and not kept`, where `<input>` is the input's name.
 - **Where a warning points.** After the message, a space and parentheses hold the parts of the diagnostic's location that it has, in this order, separated by `, ` (`api.md` section 6.13):
   - `stream` and the stream's index, where it names a stream;
-  - `source` and the source's identifier, where the source is not the primary input. The source table of the JSON document gives that source's role and name;
+  - `source` and the source's identifier, where the source is not the primary input, in decimal as `SourceIdentifier` displays it (`api.md` section 6.15, after the tenth review). The source table of the JSON document gives that source's role and name;
   - `byte` and the offset, counted from the start of that source;
   - `logical byte` and the logical offset, where several files form one stream.
 
@@ -475,13 +494,13 @@ If standard output cannot be written, as with a closed pipe or a full disk, the 
 - It probes no further input, writes `cc-media-probe: standard output failed: ` and the error's message to standard error, escaped as section 8.1 says, and exits with 1. The document or the text on standard output is then incomplete.
 - This holds up to the last byte. The line feed after the document, the line feeds of the text, the flush before an input's lines on standard error (section 8.6), and the final flush go through the same output and fail in the same way, never with a panic (`api.md` section 12).
 - On Unix the Rust runtime ignores the signal of a closed pipe before `main` runs, so a write to a closed pipe returns an error instead of ending the process. Changing the signal's handling would need code outside the standard library and `unsafe`, which R15 forbids.
-- Status 1 follows exactly when a write or the flush fails. A reader that closed the pipe before the tool wrote everything makes a later write fail. A reader that is still open can take a short output whole, so in `cc-media-probe --json movie.mkv | head -n 1` every write and the flush can succeed before `head` exits, and the tool then ends with the status that its results decide. A long scan through `head` meets the closed pipe at some write and ends with 1, at a point that depends on timing. The tests therefore close the read end before the tool starts, which fails the first write on every run.
-- A usage error keeps its status 2, and help and the version exit with 1 when their text cannot be written.
-- A failure to write standard error changes nothing: the tool goes on, and the exit status stays what the results and standard output decide.
+- **The status of an output failure.** As the tenth review asked, a write or a flush of standard output that fails gives the status 1, whatever the results would require, with one exception: a usage error keeps its status 2, and its standard error holds the output failure's line before its own three lines (section 4). Writes that all succeed leave the status to the results (section 6.3), so a strict run with a partial report still exits with 1, and a run whose results all require 0 exits with 0. A reader that closed the pipe before the tool wrote everything makes a later write fail. A reader that is still open can take a short output whole, so in `cc-media-probe --json movie.mkv | head -n 1` every write and the flush can succeed before `head` exits, and the tool then ends with the status that its results decide. A long scan through `head` meets the closed pipe at some write and ends with 1, at a point that depends on timing. The tests therefore close the read end before the tool starts, which fails the first write on every run.
+- Help and the version exit with 1 when their text cannot be written.
+- A failure to write standard error changes nothing, in either mode and for every line, a usage error's included: the tool goes on, and the exit status stays what the results and standard output decide. So a usage error with a closed standard error still exits with 2, and in JSON mode it still writes its document to standard output. The spike of revision 43 let that failure through and exited with 1, as the tenth review found (section 12).
 
 ## 10. Tests
 
-The snapshot tests of Phase 3, task 21 run the binary and compare standard output, standard error and the exit status byte for byte. They cover the cases of plan section 8.9:
+The snapshot tests of Phase 3, task 21 run the binary and compare standard output, standard error and the exit status byte for byte. One case that no command line of `0.1.0` can produce, a companion's, goes through the text formatter instead, and the positions of an output failure, which no pipe can choose, go through the tool's own module in process (below). They cover the cases of plan section 8.9:
 
 - `-` named twice, with and without `--json`;
 - no input, with and without `--json`;
@@ -490,15 +509,20 @@ The snapshot tests of Phase 3, task 21 run the binary and compare standard outpu
 - a path that does not exist among valid inputs;
 - the usage-error document read back as a `Document`;
 - the writer's output equal to that of `Document::from_results`, for no inputs and for mixed ones;
-- an output failure inside an entry, which leaves the next input unprobed, and one at the last byte, each with exit status 1 and its report on standard error. Each is made deterministic with a pipe whose read end is closed before the tool starts, or with a writer that fails at a chosen byte, never with a reader such as `head` that may still be open.
+- an output failure, made deterministic in two ways and never with a reader such as `head` that may still be open. As the twelfth review asked, each way tests what the other cannot:
+  - **Through the binary,** with a pipe whose read end is closed before the tool starts. Its first write fails, wherever buffering puts that write, so the test shows the exit status 1 and the failure's line on standard error, and nothing about which byte failed or which inputs were opened.
+  - **In process,** through the module that `main` hands over to (R30), with a standard output that fails at a chosen byte and a sequence of inputs that records each input it hands out. A failure inside an entry leaves the next input untaken, so the tool never opens or probes it, and a failure at the final line feed comes after every input was taken. A buffered standard output whose final flush fails is a third case. Each gives the status 1 and writes the failure's line to the standard error that the test gives.
 
 And the rules of this document:
 
 - **Reading the command line:** `--help` beside an unknown option and beside a repeated `-`; `--help=1`; `--json=yes`; `--js`; `-json`; `--bogus=value`, `--bogus=` and `--=x`, in text mode and in JSON mode; an unknown option that holds a line feed and U+001B, escaped on standard error and unescaped in the document's message; an option after an input; a repeated option; `-` after `--`; `--json` after `--`; an empty argument; `--version` with an input, and `--version` beside `-` named twice. The spike's cases of section 12 are the start of this list.
 - **The help and version texts** of section 5, with and without `--json`.
-- **Text mode:** a complete report; an incomplete report, with and without `--strict`; a report whose detection the input's end left incomplete, which `--strict` fails (`api.md` section 5.1); an incomplete report whose `reasons()` the retained-data limit left empty, with the record's reasons and the count of those still unprinted; the same with a single reason, which ends with the record's line and no count; `1 more reason was not kept` in the singular; a kept reason beside the record's reasons of two parts, in the order of `Part`, with the count line; an error without a partial report; an error that carries one; an error before its inventory whose observations hold a warning and counted diagnostics that were not kept; each detection outcome, an ambiguous one with two candidates of equal confidence among them, and insufficient data with the bytes needed as a total; a report of no streams; an estimated duration; a diagnostic with its stream and offset; a diagnostic of a companion with its stream, source, offset and logical offset; `1 more diagnostic was counted and not kept` in the singular; a report followed by a warning through a buffered standard output, with the block before the warning, and a flush that fails there with exit status 1.
+- **Text mode:** a complete report; an incomplete report, with and without `--strict`; a report whose detection the input's end left incomplete, which `--strict` fails (`api.md` section 5.1); an incomplete report whose `reasons()` the retained-data limit left empty, with the record's reasons and the count of those still unprinted; the same with a single reason, which ends with the record's line and no count; `1 more reason was not kept` in the singular; a kept reason beside the record's reasons of two parts, in the order of `Part`, with the count line; an error without a partial report; an error that carries one; an error before its inventory whose observations hold a warning and counted diagnostics that were not kept; each detection outcome, an ambiguous one with two candidates of equal confidence among them, and insufficient data with the bytes needed as a total; a report of no streams; an estimated duration; a diagnostic with its stream and offset; `1 more diagnostic was counted and not kept` in the singular; a report followed by a warning through a buffered standard output, with the block before the warning, and a flush that fails there with exit status 1.
 - **Escaping:** a title, a codec identifier as the file wrote it, a diagnostic's message and an input name that hold U+001B, U+0007, U+009B, U+202E and U+2066, each written as its escape; a backslash written as it is.
-- **Paths:** an input that is not valid Unicode, on Unix and on Windows, in both modes.
+- **Paths:** an input that is not valid Unicode, on Unix and on Windows, in both modes, with its marker on the first line of a report, of a partial report and of each detection outcome, and on every line of standard error that begins a message: an error without a partial report, a warning and the count line, with the lines of the error's cause chain written without the name or the marker. Beside each, a file whose name holds a real U+FFFD, shown without the marker.
+- **Standard error that fails:** a usage error with a closed standard error, in text mode and in JSON mode, exiting with 2, with the document on standard output in JSON mode; a JSON usage error whose document cannot be written, exiting with 2, with the output failure's line on standard error before the usage error's three lines; and a report whose warnings cannot be written, exiting with the status of its results.
+- **The completeness lines** of the tenth review: a reason of discovery that names a stream whose protection was not established; and a codec that the input never named, `a codec that was not read`.
+- **A companion through the formatter.** Lookup is off in `0.1.0` (section 6.2), so no command line gives a source other than the primary input. As the maintainer chose at the eleventh review, a test of the text formatter therefore reads a report from a JSON document (`api.md` section 12), whose source table lists a companion as source 1. Its diagnostic names source 1 with its stream, offset and logical offset, and a reason of the companions names that source too. The test compares the formatter's standard output and standard error byte for byte with the layout of sections 8.4 and 8.6, `SourceIdentifier`'s display included. The binary snapshot of the same case joins the tests of the release that adds `--companions` (section 11), `0.7.0` with lookup (plan section 7.7).
 
 ## 11. Not in 0.1.0
 
@@ -524,6 +548,8 @@ The disposable spike [`spikes/cli-arguments/`](../../spikes/cli-arguments/README
 - With `clap`'s own help and version flags turned off, and `--help` and `--version` declared as plain flags, `clap` writes nothing to either output: a test runs the spike's program and finds only the lines that the program writes.
 - A pipe whose read end is closed before the spike's program starts fails its first write, and the program exits with 1 on every run.
 - The spike built its message from the decoded argument but wrote it to standard error unescaped, so a line feed and an escape reached the terminal. Since the ninth review it escapes the message where it writes standard error, and its tests check both: the message holds the line feed, and standard error shows `\u{a}`, `\u{1b}` and `\u{202e}`.
+- The spike let a failure to write standard error decide its status: a usage error with a closed standard error exited with 1. A test written before the fix showed it, as the tenth review said. Since then the spike ignores the result of every write to standard error, and its tests check that a usage error exits with 2 in both modes. In JSON mode it writes a line on standard output that stands for the usage-error document, and a closed standard output keeps the status 2 there too. Its test of that case already found the output failure's line before the usage error's, the order that section 4 states since the eleventh review.
+- A pipe closed before the program starts fails its first write, so it cannot place a failure inside an entry or at the final line feed, as the twelfth review said. Since then the spike writes its inputs through `write_inputs`, which takes any writer and any sequence of inputs and takes an input only once the line before it was written. Three tests of `tests/output.rs` drive it with a writer that fails at a chosen byte and inputs that count what was taken: a failure inside the second line leaves the third input untaken, one at the final line feed comes after all three, and a flush that fails fails as a write does. The binary test with a closed pipe stays and now also checks the failure's line on standard error, which the spike wrote only for a usage error before.
 - The spike needs only the features `std` and `error-context`. `error-context` gives the argument that an error names. The features `help` and `usage` generate texts that the tool never writes; the spike passes with and without them.
 
 ## 13. Decisions for G2.3
@@ -544,6 +570,8 @@ G2.3 approves this contract together with the JSON contract of task 5 (plan Phas
 - The record's reasons printed in the place of the missing ones when the budget was full, with a last line that counts the reasons not kept (section 8.4), after the sixth review of `api.md`. Since the seventh review the line counts only the reasons still unprinted, so a reason that the record printed is not counted again, and its wording, `N more reasons were not kept`, has a singular form.
 - After the eighth review: the record's lines in the order of `Part`, after the kept reasons and before the count (section 8.4); the warnings of an error before its inventory on standard error, with the count from the error's record (section 8.6); and status 1 stated for a write or flush that fails, rather than for any pipeline into `head` (section 9).
 - After the ninth review: a warning's location as `stream`, `source`, `byte` and `logical byte` in that order, with the source named by its identifier alone (section 8.6); a flush of standard output before each input's lines on standard error, rather than dropping the promise of their order; and `bytes needed` as the total that the maintainer chose for `api.md` section 8.
+- After the tenth review: the marker of a lossy path on every line that names the input, rather than only on the first line of each input; `a codec that was not read` for a codec that the input never named; and the source of a warning or a reason written through `SourceIdentifier`'s display, the same canonical decimal as the JSON document.
+- After the twelfth review: the byte at which an output failure occurs and the inputs taken before it tested in process, through the module that `main` hands over to, beside the binary test with a closed pipe, rather than through the binary alone; and the `tags` line counting every set that `tag_sets()` keeps, superseded ones included, rather than only those that the lookups see.
 
 **The eighth review.** On 2026-11-23 the maintainer's review of revision 41 raised four findings on this contract, beside twelve on `api.md` (its section 16). Each holds. A test written first reproduced the first: the spike named `--bogus=value` as `--bogus`. The contract changed as follows:
 
@@ -562,5 +590,36 @@ G2.3 approves this contract together with the JSON contract of task 5 (plan Phas
 | A buffered standard output could show a warning before its report | The tool flushes standard output before an input's lines on standard error; a failure there is an output failure | 8.6, 9, 10 |
 | A companion's diagnostic had no rule for its source and its two offsets | The location lists the stream, the source by its identifier, the offset in that source and the logical offset, in that order | 8.6, 10 |
 | One omitted diagnostic was counted in the plural | `1 more diagnostic was counted and not kept` | 8.6, 10 |
+
+**The tenth review.** On 2026-11-23 the maintainer's review of revision 43, committed as `1fec2b5`, raised four findings on this contract, beside fifteen on `api.md` (its section 16). Each holds. A test written first reproduced the first: the spike exited with 1 when it could not write a usage error to a closed standard error. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| A closed standard error turned a usage error's status 2 into 1 | A failure to write standard error changes nothing, a usage error's included; the spike ignores it, and its tests cover both modes and a closed standard output beside them | 9, 10, 12 |
+| The text needed the decimal number of a companion's source, which the API did not give | `SourceIdentifier::value()` and `Display` (`api.md` section 6.15), written after `source` in a warning and after `of source` in a reason | 8.4, 8.6, 10 |
+| "Status 1 exactly when a write fails" contradicted `--strict` and the usage error | An output failure gives 1 except in a usage error, which keeps 2; writes that succeed leave the status to the results | 9 |
+| The marker of a lossy path was defined only for a report's first line | The input's name carries the marker wherever text mode writes the input: every block's first line and every line on standard error | 8.1, 8.2, 8.5, 8.6, 10 |
+
+Two changes of `api.md` reach this contract too. A reason of discovery can name a stream whose protection was not established, written `discovery of stream N` (section 8.4). A codec that the input never named shows as `a codec that was not read` (section 8.3).
+
+**The eleventh review.** On 2026-11-23 the maintainer's review of revision 44, staged on top of `1fec2b5`, raised three findings on this contract, beside ten on `api.md` (its section 16). Each holds. The spike already showed the third: its test of a usage-error document that cannot be written finds the output failure's line first, an order that this contract did not state. The maintainer chose the answer to each, and the contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| The binary snapshot of a companion's diagnostic had no command line that could produce it, since lookup is off in `0.1.0` | A test of the text formatter reads a report from a JSON document with a companion as source 1; the binary snapshot joins the release that adds `--companions` (the maintainer's choice) | 10 |
+| Every line on standard error was to start with the input's name, while the lines of a cause chain start with two spaces | A line of the cause chain continues the error's line and carries neither the name nor the marker; every line that begins a message carries both (the maintainer's choice) | 8.1, 8.6, 10 |
+| A usage error whose document cannot be written left the order of its two diagnostics open | The output failure's line first, then the usage error's three lines, beside the status 2 (the maintainer's choice) | 4, 9, 10, 12 |
+
+One change of `api.md` reaches this contract too. A reason of discovery names the stream whenever the stream's declaration fell short, a content encoding cut short included, and the partial report of an error names a source that failed there (section 8.4).
+
+**The twelfth review.** On 2026-11-23 the maintainer's review of revision 45, staged on top of `1fec2b5`, raised one finding on this contract, beside eleven on `api.md` (its section 16). It holds: a pipe closed before the tool starts fails the tool's first write, and buffering decides which logical byte that write holds, so it can select neither the middle of an entry nor the final line feed, and the exit status cannot show that the next input stayed unopened. The spike now writes its inputs through a function that takes any writer and any sequence of inputs, and three tests drive it with a writer that fails at a chosen byte, as section 12 says. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| The two precise positions of an output failure were binary snapshots, which a closed pipe cannot place | The binary test with a closed pipe stays; a failure inside an entry and one at the final line feed are tested in process, with a writer that fails at a chosen byte and inputs that record what was taken | 10, 12 |
+
+Three changes of `api.md` reach this contract too. A codec of a newer version shows by the name that its version wrote, and `a codec that was not read` is only for an absent codec (section 8.3). A report whose reasons disagree with its record fails to read, so the formatter's test of a report read from JSON holds one whose reasons agree (section 10). The `tags` line counts every set that `tag_sets()` keeps, a set that a later Tags element of a live Matroska stream superseded included, since it is the history that the report holds and no lookup reads (section 8.2).
+
+**Found while revising the twelfth review.** The spike wrote the output failure's line for a usage error only: a run whose standard output failed exited with 1 and wrote nothing to standard error, against section 9. Its run now writes the line too, and the binary test checks it.
 
 **Found while writing.** A source failure after the inventory gives an error that carries a partial report (R19). `api.md` section 5.3 records every shortfall against the part it stopped, but no reason said that a source failed, so the partial report of section 8.7 could not say why its remaining parts were incomplete. The maintainer chose on 2026-11-23 to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (`api.md` section 5.5). A new variant of an open set is compatible, so G2.2 stands.

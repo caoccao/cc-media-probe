@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). The sixth review, of revision 39, the seventh, of revision 40, the eighth, of revision 41, and the ninth, of revision 42, amended the approved specification where section 16 lists; G2.3 confirms the amendments with the JSON contract. |
+| **Status** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). The sixth review, of revision 39, the seventh, of revision 40, the eighth, of revision 41, the ninth, of revision 42, the tenth, of revision 43, the eleventh, of revision 44, and the twelfth, of revision 45, amended the approved specification where section 16 lists; G2.3 confirms the amendments with the JSON contract. |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -76,6 +76,23 @@ At the ninth review, also on 2026-11-23, the maintainer made four more choices, 
 - **A seekable reader** is the whole input from its byte 0, wherever it stands when it is passed (section 4.1).
 - **Bytes needed** is the least length of the input, from its start, that detection needs (section 8).
 - **The last known good value.** A property that structures of several versions of a specification state keeps the value of the older one when the newer one is damaged or cut short (section 7).
+
+At the tenth review, also on 2026-11-23, the maintainer made three more choices:
+
+- **Shortfalls of protection.** Discovery records each of them and names the stream, since protection belongs to the stream's declaration (section 6.3).
+- **Tag lookups.** Every lookup sees the top level only, since a nested tag is an attribute of its parent (section 6.9).
+- **A high dynamic range.** Each coordinate, luminance and light level has its own provenance (section 6.5).
+
+At the eleventh review, also on 2026-11-23, the maintainer made one more choice:
+
+- **A companion that is the primary input.** Only the built-in resolver can find a companion to be an alias of source 0, through the identity of the file that `probe_file` opened. A custom resolver's tokens are compared with those of earlier companions only (section 13).
+
+At the twelfth review, also on 2026-11-23, the maintainer made four more choices:
+
+- **Reasons that disagree.** `is_complete()` reads only the statuses and the record. Reading a report fails as malformed input when its reasons, the record's first reasons and the statuses disagree part by part (section 5.3).
+- **Tags of a live stream.** A tag set that a later Tags element of a live Matroska segment replaced stays in `tag_sets()`, marked by `TagSet::is_superseded()`, and no lookup sees it (section 6.9).
+- **A codec of a newer version.** It displays the serialized name that the newer version wrote, or else its first raw identifier. "A codec that was not read" is only for an absent codec (section 6.4).
+- **A parameter-set track.** The H.264 parameter sets of a track that an `avc1` track links through `avcp` are candidates too, read once a public source describes that track (section 11.5).
 
 ## Contents
 
@@ -166,7 +183,7 @@ The internal module tree of plan section 7.2 may differ from these paths; the pu
 - Every public type implements `Debug`, with a representation that is never empty (C-DEBUG, C-DEBUG-NONEMPTY).
 - Every model type implements `Clone`, `PartialEq`, `Eq` and `Hash`. A floating-point value is stored by its bits (section 6.1), so equality is exact everywhere.
 - Every model type, `Prober`, `Limits`, `Detection` and `ErrorRecord` is `Send` and `Sync`. `Error` is `Send`, `Sync` and `'static` (C-GOOD-ERR).
-- `Display` exists where a single line of text is useful: `Format`, `Codec`, `CodecInformation`, `CodecCandidate`, `Confidence`, `IntegerValue`, `Rational`, `Seconds`, `Size`, `MediaType`, `Language`, `Identifier`, `Profile`, `Level`, `Timecode`, `Guid`, `HeaderStatus`, `Completeness`, `DiagnosticCode`, `Error`, `ErrorRecord` and `UnderivableOutcome`. Display text is for people. It is not part of the stability contract, except where its documentation says so. Stable text comes from `as_str()` (rule 7).
+- `Display` exists where a single line of text is useful: `Format`, `Codec`, `CodecInformation`, `CodecCandidate`, `Confidence`, `IntegerValue`, `Rational`, `Seconds`, `Size`, `MediaType`, `Language`, `Identifier`, `Profile`, `Level`, `Tier`, `Timecode`, `Guid`, `SourceIdentifier`, `HeaderStatus`, `Completeness`, `DiagnosticCode`, `Error`, `ErrorRecord` and `UnderivableOutcome`. Display text is for people. It is not part of the stability contract, except where its documentation says so. Stable text comes from `as_str()` (rule 7).
 - With the `serde` feature, every model type implements `Serialize` and `Deserialize` (C-SERDE), except the five below. This list is the only one: section 3.1 and section 12 refer to it. The five have no form of their own, because what holds them writes them:
   - `PortablePath`, written as its display string with its flag and raw form beside it;
   - `DocumentEntry`, written with its position in the document as its `index`;
@@ -194,7 +211,7 @@ A report never borrows its input: `MediaReport` is `'static`. No function panics
 
 **Where the input starts.** As the maintainer chose at the ninth review:
 
-- **A seekable reader** is the whole input, from its byte 0, wherever it stands when it is passed. So a `Cursor` at byte 100, or a file of which the caller has already read a few bytes, gives the report that `probe_file` gives for the same bytes. Detection and probing seek to positions from byte 0. Every offset in the report is such a position, `size()` is the reader's length, and the pinned prefix starts at byte 0.
+- **A seekable reader** is the whole input, from its byte 0, wherever it stands when it is passed. So a `Cursor` at byte 100, or a file of which the caller has already read a few bytes, gives the same report as the same reader at byte 0. Detection and probing seek to positions from byte 0, and the pinned prefix starts there. Every offset of the primary input in the report is such a position. The offsets of a companion count from that companion's own start, and a logical offset from the start of the stream that several files form (section 6.3). `size()` is the reader's length, where it lies within the exact range of section 7. That is all the guarantee says. A reader is not a path, so it has no file-name hint unless the builder sets one, and the built-in resolver has no folder to look in (section 13). The report of `probe_file` for the same bytes can therefore differ in what a hint or a companion decides. As the tenth review asked, the guarantee covers only where the input starts.
 - **A forward-only reader** starts where it stands, since it cannot go back. Its offsets count from there, and its length is unknown.
 - **A positional source** (section 4.4) and the bytes of `probe_bytes` start at their own position 0.
 - **Afterwards.** The position of a seekable reader passed as `&mut reader` is unspecified, so a caller who uses it again seeks first. A forward-only reader is left after exactly the bytes read from it, which the primary input's entry in the source table counts (`SourceEntry::bytes_read()`, section 6.15), since every byte it delivers is counted (plan section 7.5).
@@ -273,7 +290,7 @@ pub trait PositionalSource {
 - A short read is allowed. The library asks again for the rest, and retries `ErrorKind::Interrupted` as the standard library's `read_exact` does.
 - Any other error ends the probe with the error of kind `SourceFailed`, which keeps it as its cause (R19).
 - **An empty buffer.** A read into an empty buffer returns 0, at any position, and says nothing about the end, as `Read::read` with an empty buffer does. The library never makes such a read: a read that the remaining allowance clamps to zero bytes is not issued (plan section 7.5). So every 0 that the library receives answers a read of at least one byte.
-- A source of unknown length has ended only when a read of at least one byte returned no bytes (plan section 7.5).
+- A source of unknown length has ended only when a read of at least one byte returned no bytes (plan section 7.5). Such a read at position `P` says only that the source ends at or before `P`, since the trait returns 0 for any read at or past the end. The length is `P` exactly when the source also delivered the byte at `P − 1`, or when `P` is 0. As the tenth review asked, a read that returns 0 beyond a gap, such as one at byte 4096 after a prefix of 1,000 bytes, establishes no length: the source can end anywhere between them. `size()` then stays absent, and no total, clean end or proof that nothing follows rests on that read (section 5.2). A length that the source states, through `length()`, is exact without such a read.
 - The library implements the trait for `&mut Source` and `Box<Source>` where `Source: PositionalSource + ?Sized`. So a caller can keep the source, or pass a `Box<dyn PositionalSource + Send>`.
 - Every read is charged to the shared budget and clamped to the remaining read allowance before it is issued (plan section 7.5).
 
@@ -351,7 +368,7 @@ The three classes of plan section 8.3 decide when the inventory is reached: a de
 An observed format can also reach its inventory with no unit at all, where its entry says so. An FLV file that ends cleanly after its header reports zero streams, while a program stream without a map needs one elementary-stream packet (plan section 8.3). A clean end means that the end of the input was observed at the point where the next unit would start, and how it is observed depends on the source (plan section 7.5):
 
 - **Known length.** The end is where the source's known length ends, as for the slice of `probe_bytes`, a file, or a positional source that states its length. No further read is needed. A header-only FLV file therefore gives its zero-stream report even when its last header byte used up the read allowance.
-- **Unknown length.** The end is observed only when a read at that point returned no bytes. A limit that stops the read at the same byte is not an end. That probe stopped before its inventory, with the error of kind `NoStreamInventory`, which names the limit.
+- **Unknown length.** The end is observed only when a read at that point returned no bytes, after the source had delivered the byte before it, so the end lies exactly there (section 4.4). A limit that stops the read at the same byte is not an end. That probe stopped before its inventory, with the error of kind `NoStreamInventory`, which names the limit.
 
 ### 5.3 Completeness
 
@@ -359,25 +376,33 @@ An observed format can also reach its inventory with no unit at all, where its e
 
 | Accessor | Returns | Values |
 |---|---|---|
-| `is_complete()` | `bool` | The definition of plan section 8.3, which `--strict` uses. True exactly when no part fell short: every status below is complete, final or not applicable as that definition says, the headers status among them, which says whether every stream's header state is final (below), no status holds a value of a newer version, and the record holds no first reason, which a part of a newer version that fell short also leaves (below). It reads the statuses and the record, which every limit leaves in place, and never depends on `reasons()`, which a full budget can leave empty, or on the streams. `Display`, the quick start and an entry's outcome (section 12) use this same test. |
+| `is_complete()` | `bool` | The definition of plan section 8.3, which `--strict` uses. True exactly when no part fell short: every status below is complete, final or not applicable as that definition says, the headers status among them, which says whether every stream's header state is final (below), no status holds a value of a newer version, and the record holds no first reason, which a part of a newer version that fell short also leaves (below). It reads the statuses and the record, which every limit leaves in place, and never depends on `reasons()`, which a full budget can leave empty, or on the streams. Reading a report checks that `reasons()` agrees with them (below). `Display`, the quick start and an entry's outcome (section 12) use this same test. |
 | `detection()` | `&DetectionStatus` | `Complete`, `Incomplete` (below) |
 | `discovery()` | `&DiscoveryStatus` | `Complete`, `Incomplete` |
 | `headers()` | `&HeadersStatus` | `Complete` when every stream's header state is final, as in a report of no streams; `Incomplete` when one is not (below) |
 | `tags()`, `chapters()`, `attachments()` | `&SectionStatus` | `Complete` (including proven empty), `Incomplete`, `NotRequested`, `NotApplicable` |
 | `timing()` | `&TimingStatus` | `Established`, `NotAvailableByDesign`, `CutShort`, `NotApplicable` |
 | `companions()` | `&CompanionStatus` | `NotApplicable`, `Complete`, `NotEnabled`, `CutShort` |
-| `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, `source_identifier() -> Option<SourceIdentifier>` for a companion's request or a source that failed, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5). Kept within the retained-data limit; the record keeps the first reason of each part whatever the limits (below). |
+| `reasons()` | `&[PartReason]` | Each with `part() -> &Part`, `stream() -> Option<usize>` for a stream's headers, and for discovery where a reported stream's declaration fell short, as when its protection was not established or one of its content encodings was cut short (section 6.3), `source_identifier() -> Option<SourceIdentifier>` for a companion's request or a source that failed, which names its entry in the source table (section 6.15), and `reason() -> &Reason` (section 5.5). Kept within the retained-data limit; the record keeps the first reason of each part whatever the limits (below). |
 | `record()` | `&LimitRecord` | The fixed-size record below |
 
 Each status is a stored enum with a catch-all, so its getter returns it by reference (section 1, rule 7), as `matches!(report.completeness().chapters(), SectionStatus::Complete)` in section 15.5 shows.
 
 `Part` names what a reason stopped: `Detection`, `Discovery`, `Headers`, `Tags`, `Chapters`, `Attachments`, `Timing` and `Companions`. The header statuses of the streams count as well (section 5.4). `Completeness` does not repeat them; its headers status sums them up. `Display` writes a one-line summary, such as "incomplete: discovery stopped by the stream limit".
 
-**The headers status.** A stream's header state belongs to the stream, and `Completeness` holds no stream. As the maintainer chose at the eighth review, the record therefore keeps the status of the headers part, as it keeps the status of every other part:
+**The headers status.** A stream's header state belongs to the stream, and `Completeness` holds no stream. As the maintainer chose at the eighth review, `Completeness` therefore keeps the status of the headers part among its fixed-size data, as it keeps the status of every other part (below):
 
 - **Values.** `HeadersStatus::Complete` when every stream's header state is final (section 5.4), as in a report of no streams, and `Incomplete` when at least one is not. The library sets it as it builds the report. It is fixed-size, so every limit leaves it in place, and `is_complete()` reads it.
 - **Reading a report** checks it against the streams. `complete` beside a header state that this version knows and that is not final fails as malformed input. So does `incomplete` while every state is known and final.
 - **Beside a state of a newer version,** either value reads. `HeaderStatus::is_final()` takes such a state as not final, but only the version that wrote it knows, and that version wrote the headers status from it. The status is that version's verdict: `incomplete` gives `partial`, and `complete` gives `ok`. A headers status of a newer version leaves the outcome open, as any status of a newer version does (section 12).
+
+**Reasons, first reasons and statuses agree.** `is_complete()` reads the statuses and the record, and `reasons()` never decides it. A report whose reasons say otherwise would contradict itself, as the twelfth review found: two reports with the same complete statuses and the same empty record, one of which lists a reason of the tags. So, as the maintainer chose at that review, reading a report checks the three against each other, part by part:
+
+- **A reason in `reasons()`** needs a first reason of its part in the record, since the record keeps one for every part that fell short, whatever the limits.
+- **A part that this version knows** has a first reason exactly when its status records a shortfall: `Incomplete` for detection, discovery, the headers and the three sections, `CutShort` for the timing, and `NotEnabled` or `CutShort` for the companions. Its other values record none.
+- **A part or a status of a newer version.** A part that this version does not know has no status here, so its first reason alone says that it fell short. Beside a status of a newer version, either case reads, since only the version that wrote the status knows whether it records a shortfall.
+
+A report that breaks one of these fails as malformed input: read on its own, as the partial report of an error record, or inside a document, which then fails as a whole, whatever outcome its entry states. So two reports that read with the same statuses and the same record never differ in `is_complete()`, an entry's outcome or `--strict`, whatever their `reasons()` hold.
 
 **Detection** is a part of its own, as the maintainer chose on 2026-11-22: detection, with the validation checks of the candidates (section 8; plan section 8.3). A limit that stops it is recorded against it, in an error or in a report:
 
@@ -388,9 +413,8 @@ Each status is a stored enum with a catch-all, so its getter returns it by refer
 
 `detection()` is `Complete` when no candidate ranked ahead of the one used was left unchecked by a limit, an unavailable range or the input's end, as in every report whose detection was not ambiguous.
 
-**The fixed-size record.** `LimitRecord` exists under any limits and is never charged to a counter (plan section 7.5). It holds:
+**The fixed-size data.** Two things exist under any limits and are never charged to a counter (plan section 7.5): the status of each part, which `Completeness` holds and its getters above return, and the record. `LimitRecord` holds:
 
-- the status of each part of a report;
 - `exhausted(limit: &Limit) -> bool` for every counter;
 - `first_stopped(limit: &Limit) -> Option<&Part>`, the part that a counter stopped first;
 - `first_reason(part: &Part) -> Option<&PartReason>`, the first reason recorded against each part, with its kind, limit, feature, stream and source, and without its detail text;
@@ -399,7 +423,10 @@ Each status is a stored enum with a catch-all, so its getter returns it by refer
 - `omitted_reasons() -> u64`, the reasons recorded but not kept in `reasons()`;
 - `omitted_references() -> u64`, the external references found but not kept in `MediaReport::external_references()` (section 6.12).
 
-An error carries the same record (section 10).
+**The fixed-size data of an error.** An error carries a record too, through `Error::record()` (section 10). The statuses are a report's, so as the tenth review asked:
+
+- **An error without a partial report** has no statuses: no report exists whose parts could have one, and nothing reports a status for a part that never started. Its record says what stopped the probe. `first_reason(part)` names the reason of each part that a stop reached, as `Part::Detection` for the error of section 15.9, and is absent for a part that never started. `first_stopped(limit)`, `exhausted(limit)` and the four omitted counts hold as in a report. Where one reason stopped the probe, the error's `reason()` gives it. As the eleventh review asked, the causes can lie elsewhere instead: in the error of kind `FormatNotDetermined` whose candidates did not validate and at least one could not be checked (section 5.1), each candidate carries its own cause, so `reason()` is absent, and a caller reads the causes from `candidates()`, in their rank. The record's first reason of detection is then the cause of the first candidate in that rank that has one, and is absent when none has one, as for candidates without a check.
+- **An error that carries a partial report** has that report's `Completeness`, with the status of every part, and the error's record is that report's record.
 
 **When the budget is full.** Every limit can be zero, and the retained-data and diagnostics limits can already be full when a part falls short (plan section 7.5). As the maintainer chose at the sixth review, the record then still says why each part fell short:
 
@@ -537,7 +564,26 @@ These types hold the values of the normalized fields. They are in `model`, excep
   - the state of its entry, where the list holds that index;
   - `Unknown` for any other index from 1 to the declared count, and for any index from 1 on while the count is unknown, since such a description was not read or its declaration not kept;
   - `None` for an index outside the declared count, and for every index of a format without sample descriptions.
-- `is_configuration_clear() -> Option<bool>`, whether the configuration that the header status describes is clear.
+- `is_configuration_clear() -> Option<bool>`, whether the configuration that the header status describes is clear. One declaration is enough to protect it, so, as the tenth review asked, the value is:
+  - `Some(false)` when a kept declaration covers the configuration, whatever else stays unknown;
+  - `Some(true)` when every structure that could cover it was examined and none does;
+  - `None` otherwise: no kept declaration covers it, and a structure that the probe could not examine, keep or read could.
+
+**What falls short, and where it is recorded.** As the maintainer chose at the tenth review, protection belongs to the stream's declaration: a Matroska `TrackEntry` holds its `ContentEncodings`, and an ISO sample entry holds its `sinf`. So discovery records every shortfall of protection, as it records a declaration that it could not keep (plan section 8.3). This covers each of these causes:
+
+- the input's end, a limit, the reach of a forward-only source or a source failure kept the probe from examining a structure that can declare protection in full;
+- the retained-data limit kept it from keeping a declaration, or the state of a sample description;
+- the settings that a "next" encoding covers stayed undecoded although this build could decode them: the feature that would undo their compression is off, the decompression limit stopped their inflate, or their data do not inflate, which makes them damaged (below).
+
+Then:
+
+- discovery is incomplete;
+- its `PartReason` names the stream with `stream()`, and a reason of `TruncatedInput`, `RangeUnavailable`, `LimitExhausted` with the limit named, `FeatureDisabled` with the feature named, `DamagedStructure` for covered data that do not inflate, as the twelfth review asked, or `SourceFailed`;
+- the record keeps the first reason of discovery, and the counter's `first_stopped()` names discovery unless an earlier part met it first.
+
+**A source that fails during protection.** As the eleventh review asked, a source failure is one of these causes. It ends the probe with an error, and the partial report of that error (section 5.5) has discovery incomplete with the reason `SourceFailed`. That `PartReason` names the stream with `stream()` and the source that failed with `source_identifier()`, so the partial report says both which stream's protection was left unknown and which source failed. The error keeps the I/O error (section 10.1). A report that a probe returns never holds this reason.
+
+So `is_complete()`, an entry's outcome and `--strict` agree, since each reads the discovery status. `is_fully_examined()` is false for each such cause, unless what the probe did read already settles the protection that the unread part could declare, as an encryption algorithm read as 0 does (below). Discovery records the cut all the same, since the declaration was not read in full. `is_fully_examined()` can also be false by design, for a declaration that this version cannot read at all, as an encryption under a "next" encryption below. Nothing fell short there, so no part records it, and the report can still be complete, as plan section 8.3 lets a file with an encrypted stream be.
 
 A `ProtectionDeclaration` has:
 
@@ -548,6 +594,7 @@ A `ProtectionDeclaration` has:
   - `SampleDescription`, the packets that use one sample description;
   - `EncodingSettings`, the settings of another content encoding;
   - `Other`, a scope that the file states and this version does not know;
+  - `Unread`, a scope that the probe could not read, because the input, a limit, the reach of a forward-only source or a source failure ended the structure before it (below);
 - `sample_description_index() -> Option<u64>`, for the scope `SampleDescription`;
 - `encoding_order() -> Option<u64>`, for the scope `EncodingSettings`. It is the `ContentEncodingOrder` of the next encoding, whose `ContentCompression` or `ContentEncryption` the declaration protects, and is absent when the track has no next encoding.
 
@@ -557,11 +604,25 @@ A `ProtectionDeclaration` has:
 - RFC 9559 discourages the "next" scope and still permits it, so it is read (plan Phase 5, task 8).
 - A bit that a later registration defines, and that this version does not know, gives a declaration of the scope `Other`, and the bit stays in the details.
 - A compression, header stripping included, declares no protection, and neither does an encryption whose algorithm is 0, "not encrypted". Both stay in the details (section 11.4), so a clear track that is only compressed has no `Protection`.
-- **An encoding whose settings a "next" encryption covers.** The "next" bit covers only the data inside the next encoding's `ContentCompression` or `ContentEncryption` (Table 21). Its `ContentEncodingType` and `ContentEncodingScope` are siblings of those elements, so the probe reads them, and the details keep that encoding's order, type and scope, with its algorithm absent (section 11.4). What the covered data would decide stays unknown:
-  - **An encryption** declares protection only with a nonzero `ContentEncAlgo`, which the covered data holds. So it gives no declaration, `is_fully_examined()` is false, and where its scope includes `CodecPrivate`, `is_configuration_clear()` is absent. The declaration of the first encoding, of the scope `EncodingSettings` with this encoding's order, still says that its settings are protected.
-  - **A compression** declares no protection whatever its algorithm, so `Protection` is as complete as the other encodings leave it. Its algorithm is unknown, so the bytes it covers cannot be undone. Where its scope covers the bytes that hold the codec header, Phase 5 fixes the header state, with a diagnostic that names the covered algorithm.
+- **An encoding whose settings a "next" encoding covers.** The "next" bit covers only the data inside the next encoding's `ContentCompression` or `ContentEncryption` (Table 21). Its `ContentEncodingType` and `ContentEncodingScope` are siblings of those elements, so the probe reads them whatever covers the rest. Plan Phase 5, task 8 decodes the covered settings first, before that encoding is used. As the eleventh review asked, what the probe can then read depends on the encoding whose "next" bit covers them, called the first encoding here:
+  - **Settings that this build recovers.** The first encoding is a compression that this build undoes, zlib with the `zlib` feature on or header stripping, which needs no feature (plan Phase 5, task 8), or an encryption whose algorithm is 0, which changes nothing (Table 24). The probe undoes it on the covered data, charged to the budget as every transformation is, and reads the next encoding's settings as those of any encoding: an encryption with a nonzero algorithm declares protection for its own scope, and the details keep its algorithm. An inflate that the decompression limit stops leaves the settings unread, a shortfall with `LimitExhausted` naming `DecompressedOutput`. Covered data that do not inflate are damaged, a shortfall with `DamagedStructure` and a diagnostic.
+  - **A disabled feature.** The first encoding is a zlib compression, and the `zlib` feature is off. Enabling the feature would read the settings, so their loss is a shortfall, as `CompressionUnavailable` is not final (section 5.4): discovery is incomplete for the stream, with `FeatureDisabled` naming `Zlib`.
+  - **An encoding that this version cannot undo.** The first encoding is an encryption with a nonzero algorithm, which this version never undoes, or a compression by bzlib or lzo1x (section 5.4). No option of this version would read the settings, so nothing falls short, and no part records it.
 
-  An encoding whose type or scope the probe could not read at all, because the input or a limit cut it short, leaves its scope unknown, so `is_fully_examined()` is false.
+  Where the settings stay undecoded, in the last two cases or after a recovery that failed, or where a cut left the first encoding's type or algorithm unread (below), the details keep the next encoding's order, type and scope, with its algorithm absent (section 11.4). What the settings would decide stays unknown:
+  - **An encryption** declares protection only with a nonzero `ContentEncAlgo`, which the covered data holds. So it gives no declaration, and `is_fully_examined()` is false: by design under an encoding that this version cannot undo, and as the recorded shortfall otherwise. A first encoding that is itself an encryption declares protection of its own only as any encryption does, with a nonzero `ContentEncAlgo` that the probe read, as the twelfth review asked: its declaration is of the scope `EncodingSettings` with this encoding's order, and still says that the settings are protected. A first encoding of type encryption whose algorithm a cut left unread gives no declaration, since its algorithm can still be 0 (below), and one whose algorithm is 0 is a recovery (above). A compression declares nothing of its own. Where the covered encoding's scope includes `CodecPrivate`, `is_configuration_clear()` is absent, unless another declaration already covers the configuration. Then it is `Some(false)`, as the tenth review asked. A first encoding whose scope sets both `Private` and `Next` is such a case: its own declaration of the scope `CodecPrivateData` protects the configuration, whatever the next encoding would add (Table 21).
+  - **A compression** declares no protection whatever its algorithm, so `Protection` is as complete as the other encodings leave it. Its algorithm is unknown, so the bytes it covers cannot be undone. Where its scope covers the bytes that hold the codec header, Phase 5 fixes the header state. The diagnostic cannot name the algorithm, which the probe never read. It says that the algorithm lies under the encoding before it, and names only what the probe observed: each encoding's order where it was read, and the first encoding's algorithm, or the feature that would undo it, where those are known. A field of the first encoding that a cut left unread is named as unread, never given a value, as the twelfth review asked.
+- **Each field as observed.** As the tenth review asked, the probe keeps every field of an encoding that it read, whatever it could not read, and the details keep them (section 11.4). A diagnostic names each field that it could not read, with the encoding's order where that was read. As the twelfth review asked, two cases are kept apart:
+  - **A field that a cut left unread.** The input, a limit, the reach of a forward-only source or a source failure ended the `ContentEncoding` before it, so the element that holds the field was interrupted while it was read. The rules below apply, and the reason is the cut's.
+  - **Settings that stayed undecoded.** The element that holds them, a `ContentCompression` or `ContentEncryption` that a "next" encoding covers, was read in full, and its payload could not be interpreted: the feature that would undo the first encoding is off (`FeatureDisabled`), the decompression limit stopped the inflate (`LimitExhausted` naming `DecompressedOutput`), the data do not inflate (`DamagedStructure`), this version cannot undo the first encoding, which records nothing (above), or a cut left the first encoding's type or algorithm unread, which is that encoding's cut, recorded with its reason. The fields inside the payload are absent, and the diagnostic says why they could not be decoded. No field of the covered element was cut off.
+
+  A field that an encoding read in full omits takes its default (section 11.3): `ContentEncodingType` 0, a compression, and `ContentEncodingScope` 1, the block (5.1.4.1.31.3 and 5.1.4.1.31.4). So:
+  - **The type was read, and the scope was not.** A compression still declares no protection, so `Protection` is as complete as the other encodings leave it. The bytes it covers are unknown, so Phase 5 fixes the header state of a stream whose codec header it might cover. An encryption whose nonzero algorithm was read gives a declaration of the scope `Unread`, with its scheme. `is_fully_examined()` is then false, and `is_configuration_clear()` is absent unless another declaration covers the configuration. An encryption whose algorithm was not read gives no declaration, since its algorithm can still be 0.
+  - **The scope was read, and the type was not.** Unless an algorithm of 0 settles it (below), the encoding could be an encryption, so it gives no declaration, and `is_fully_examined()` is false. The details keep the scope. Where it includes `CodecPrivate`, `is_configuration_clear()` is absent unless another declaration covers the configuration.
+  - **Neither was read.** The encoding gives no declaration. Unless an algorithm of 0 settles it (below), `is_fully_examined()` is false, and `is_configuration_clear()` is absent unless another declaration covers the configuration.
+  - **An algorithm of 0 read before the cut.** EBML fixes no order among the children of a master element (RFC 8794 fixes only where a `CRC-32` element stands), so a `ContentEncryption` can come before its sibling `ContentEncodingType`. As the eleventh review asked, an encoding whose `ContentEncryption` was read with a `ContentEncAlgo` of 0, or read in full without one, which then takes its default 0 (5.1.4.1.31.9), declares no protection whatever its type: as an encryption its data are not encrypted (Table 24), and as a compression it ignores its `ContentEncryption` (5.1.4.1.31.8). So, whether its type, its scope or both were cut off, it gives no declaration, and it leaves `is_fully_examined()` and `is_configuration_clear()` to the other encodings and to the rest of what the cut left unread, such as a later encoding of the same `ContentEncodings`. An encoding whose type was not read can still be a compression, so Phase 5 fixes the header state of a stream whose codec header it might cover.
+
+  In each case the cut is a shortfall, which discovery records with the stream (above), and a diagnostic names each unread field.
 
 A later format that protects a range of packets adds an accessor to `ProtectionDeclaration` (rule 6).
 
@@ -573,7 +634,7 @@ A later format that protects a range of packets adds an accessor to `ProtectionD
 
 | Accessor | Returns | Field guide (section 3.3) and notes |
 |---|---|---|
-| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved, or when the description that the fields describe is established and the probe could not read or keep it (below) |
+| `codec()` | `Option<&Codec>` | `codec`; absent only while the codec is unresolved, when the description that the fields describe is established and the probe could not read or keep it, or when the input never named a codec (below) |
 | `candidates()` | `&[CodecCandidate]` | While the description of the first sample is unproven, each description that could hold it and that the probe read and kept, in index order; empty otherwise (below) |
 | `has_every_candidate()` | `bool` | Whether the probe read and kept every description that the fields need: false when one is missing, including the one that the first sample is known to use and the fallback of a track without samples, and true otherwise (below) |
 | `name()` | `Option<&str>` | `name`: the library's name for a known codec; absent for an unknown or unresolved one |
@@ -607,7 +668,18 @@ A `CodecCandidate` has `sample_description_index() -> u64`, `codec() -> &Codec` 
 - `Codec::Unknown`: the file names a codec that this version does not know. `raw_identifiers()` keeps what it wrote.
 - `Codec::Unrecognized(UnrecognizedValue)`: a serialized name that a newer version wrote. The library never produces it itself.
 
-`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or else its first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). An unresolved codec displays each candidate in the same way, by its codec's name or else its own first raw identifier, separated by " or ", such as "H.264 or H.265". When a candidate is missing, the display ends with "or a description that was not read". With no candidate kept, as for a known description or a fallback that was lost, the display is "a description that was not read".
+`Codec` has `name() -> Option<&str>`, the library's name, which is absent for `Unknown` and `Unrecognized`; `CodecInformation::name()` returns the same. `kind() -> Option<StreamKind>` is the kind a codec implies when the container states none. `CodecInformation` displays the codec's name, or for a codec that a newer version wrote, the serialized name that it wrote, as the maintainer chose at the twelfth review. Without either, it displays the first raw identifier as written, so a listing shows an unknown codec by what the file called it (section 15.1). A codec of a newer version can have no raw identifier, as a codec identified from its content has none, so its own name keeps it from reading as unread: `Unrecognized("future_codec")` displays `future_codec`. An `Unknown` codec without a raw identifier, which the library never produces and a record of another writer can hold, displays "an unknown codec". "A codec that was not read" is only for an absent codec (below). An unresolved codec displays each candidate in the same way, by its codec's name or serialized name, or else its own first raw identifier, separated by " or ", such as "H.264 or H.265". When a candidate is missing, the display ends with "or a description that was not read". With no candidate kept, as for a known description or a fallback that was lost, the display is "a description that was not read".
+
+**A codec that the input never named.** A Matroska track entry cut short before its `CodecID` is still reported (section 11.4), and so is any stream of a format without sample descriptions whose codec identifier the input, a limit, the reach of a forward-only source or a source failure cut off. As the tenth review asked, its `CodecInformation` is:
+
+- `codec()` and `name()` absent, and `raw_identifiers()` empty, since the file named nothing;
+- `candidates()` empty and `has_every_candidate()` true, since the stream has no sample descriptions;
+- every field that a codec would supply absent;
+- displayed as "a codec that was not read", which the CLI's stream line shows (`cli.md` section 8.3).
+
+`Codec::Unknown` never stands for this case, since the file named no codec that this version could fail to know. The stream's header state says that the header was cut short (section 5.4), and the details keep the elements read before the cut.
+
+**A description cut off before its format code.** As the eleventh review asked, the rule above never applies to a track with sample descriptions, such as an ISO track. There the codec identifier is a description's format code, and a description cut off before it is a description that the probe could not read. The three cases of the description that the fields describe decide (above). A track whose first sample is known to select that description has no codec, no name, no identifiers and no candidates, `has_every_candidate()` false and the index in the details, and displays "a description that was not read". While the selection is unproven, the description is a missing candidate.
 
 **`Format`** has one variant per entry of the detection inventory frozen at G3.5, and one per family: `Matroska`, `WebM`, `Mp4`, `ThreeGpp`, `ThreeGpp2`, `F4v`, `QuickTime`, `Avi`, and the formats of the later phases. The families `IsoBaseMedia` and `Riff` are reported when detection is certain of the family only (plan section 8.6). `Format::Unrecognized` is the catch-all. Its accessors:
 
@@ -628,13 +700,15 @@ A `CodecCandidate` has `sample_description_index() -> u64`, `codec() -> &Codec` 
 | `chroma_format()` | `Option<&ChromaFormat>` | `Monochrome`, `Chroma420`, `Chroma422`, `Chroma444`, `Chroma411`, and `Other(ChromaSubsampling)` for a subsampling kept as written |
 | `scan_type()`, `field_order()` | `Option<&ScanType>`, `Option<&FieldOrder>` | `Progressive` or `Interlaced`; `TopFieldFirst` or `BottomFieldFirst` |
 | `color()` | `Option<&ColorDescription>` | `primaries()`, `transfer_characteristics()`, `matrix_coefficients()`, each `Option<u8>`, an ITU-T H.273 code point; `range() -> Option<&ColorRange>` (`Limited`, `Full`). Each component has its own provenance: `primaries_provenance()`, `transfer_characteristics_provenance()`, `matrix_coefficients_provenance()` and `range_provenance()`, each `Option<&Provenance>`. An override supplies only the components it states (field guide section 2), so a QuickTime `nclc` atom can declare the first three while the codec header gives the range. |
-| `mastering_display()` | `Option<&MasteringDisplay>` | `red()`, `green()`, `blue()` and `white_point()`, each `Option<&Chromaticity>`, absent when the file states neither coordinate; a `Chromaticity` has `x()` and `y()`, each `Option<Rational>`. `maximum_luminance()` and `minimum_luminance()` are `Option<Rational>` candelas per square meter. Matroska stores every one of these values as an element of its own (RFC 9559 5.1.4.1.28.31 to 5.1.4.1.28.40), so any subset can be present. |
-| `content_light_level()` | `Option<&ContentLightLevel>` | `maximum_content() -> Option<u64>`, `maximum_frame_average() -> Option<u64>`, candelas per square meter |
+| `mastering_display()` | `Option<&MasteringDisplay>` | `red()`, `green()`, `blue()` and `white_point()`, each `Option<&Chromaticity>`, absent when the file states neither coordinate; a `Chromaticity` has `x()` and `y()`, each `Option<Rational>`, with `x_provenance()` and `y_provenance()`, each `Option<&Provenance>`. `maximum_luminance()` and `minimum_luminance()` are `Option<Rational>` candelas per square meter, with `maximum_luminance_provenance()` and `minimum_luminance_provenance()`. Matroska stores every one of these values as an element of its own (RFC 9559 5.1.4.1.28.31 to 5.1.4.1.28.40), so any subset can be present, and each value has its own provenance (below). |
+| `content_light_level()` | `Option<&ContentLightLevel>` | `maximum_content() -> Option<u64>`, `maximum_frame_average() -> Option<u64>`, candelas per square meter, with `maximum_content_provenance()` and `maximum_frame_average_provenance()`, each `Option<&Provenance>` (below) |
 | `dynamic_range()` | `Option<&DynamicRange>` | F6: `transfer() -> Option<&DynamicRangeTransfer>` (`Standard`, `PerceptualQuantizer`, `HybridLogGamma`); `marks() -> &[DynamicRangeMark]` (`DolbyVision` and later marks), whose profile and level stay in the details |
 | `rotation()` | `Option<&Rotation>` | F7: `Upright`, `Clockwise90`, `Clockwise180`, `Clockwise270`, with `degrees() -> Option<u16>`, absent for a value that a newer version wrote; reported, never applied |
 | `stereo_mode()` | `Option<&StereoMode>` | `layout() -> &StereoLayout`, one variant per value of the Matroska stereo table, and `code() -> &str` as written |
 | `projection()` | `Option<&Projection>` | `kind() -> &ProjectionKind` (`Rectangular`, `Equirectangular`, `Cubemap`, `Mesh`); `yaw()`, `pitch()` and `roll()` in degrees as `Option<Rational>` |
 | `embedded_alpha()`, `supplemental_alpha()` | `Option<bool>` | `alpha`: the two carriages, side by side |
+
+**The origin of each value of a high dynamic range.** The container comes first for the mastering display and the content light level, then the parsed header (field guide section 3.4), and an override supplies only the values it states (field guide section 2). So one structure can hold values from both sources. A Matroska track can state `MaxCLL` while an HEVC header's SEI message supplies the maximum frame-average light level, or state only `PrimaryRChromaticityX` of the red primary. As the maintainer chose at the tenth review, each value therefore has its own provenance accessor, as each component of `color()` has: each coordinate of each `Chromaticity`, each luminance and each light level. A value that is absent has no provenance. The details keep each source's own values (section 11.3).
 
 ### 6.6 `AudioInformation`
 
@@ -711,6 +785,7 @@ The report's `duration()` is the segment's and is never replaced by an edition's
 | `target_scope()` | `&TargetScope` | What the set describes, below |
 | `native_scope()` | `Option<&NativeScope>` | The ISO family's scope (`File`, `Movie`, `Track`, `Media`) with its owner and its `meta` or `udta` source |
 | `tags()` | `&[Tag]` | The top level, in stored order |
+| `is_superseded()` | `bool` | Whether a later element replaced the one that holds this set, as in a live Matroska segment (below). The set stays as history, and no lookup sees it |
 
 **The scope.** A tag set can be cut short, by the input or by a limit, before its target structure was read. RFC 9559 sets no order for the children of a `Tag`, and a `Tag` whose `Targets` is empty or omitted describes the whole segment (5.1.8.1.1). So tags can be read while their targets are not, and only a tag read in full shows that its targets are absent. The four lists are then empty, or hold only the targets kept, and that must not read as the whole file. So, as the maintainer chose on 2026-11-22, `TargetScope` says what the lists mean:
 
@@ -745,10 +820,19 @@ A `TargetReference` is one of three things, told apart by `kind() -> &TargetRefe
 
 **Lookups.** The flat views most callers want keep the hierarchy intact. A wildcard target applies to every entity of its kind. Nodes without a value are skipped by the value lookups.
 
-- `MediaReport::file_tags()`: the tags of every tag set whose scope is `WholeFile`, as `FileTags<'report>`. A set of the scope `Incomplete` is never among them, so a track's title cut off from its target never becomes the file's title.
-- `MediaReport::stream_tags(index)`: the tags that target that stream, directly or by a wildcard, as `StreamTags<'report>`. A set of the scope `Incomplete` takes part through the targets it kept.
-- `MediaReport::tags_with_key(key: &TagKey)`: every tag with that key, at any target and of any scope, as `TagsWithKey<'report>`.
-- `MediaReport::tag(key: &TagKey) -> Option<&Tag>`: the first file-level tag with that key and a value, from `file_tags()`.
+**The top level only.** As the maintainer chose at the tenth review, every lookup sees only the top level of each tag set, the tags that `TagSet::tags()` returns. A nested tag "becomes an attribute of its parent" (Matroska tags draft, section 3), so a key below the top level does not mean what it means there. A `TITLE` inside `ORIGINAL` is the title of the original work (draft section 4.1), never the file's title. A nested tag is reached through its parent's `children()`. Each lookup visits the tag sets that are not superseded (below), in report order, and each set's top-level tags in stored order, and "first" means first in that order:
+
+- `MediaReport::file_tags()`: the top-level tags of every tag set whose scope is `WholeFile`, as `FileTags<'report>`. A set of the scope `Incomplete` is never among them, so a track's title cut off from its target never becomes the file's title.
+- `MediaReport::stream_tags(index)`: the top-level tags of every set that targets that stream, directly or by a wildcard, as `StreamTags<'report>`. A set of the scope `Incomplete` takes part through the targets it kept.
+- `MediaReport::tags_with_key(key: &TagKey)`: every top-level tag with that key, at any target and of any scope, with a value or without one, as `TagsWithKey<'report>`.
+- `MediaReport::tag(key: &TagKey) -> Option<&Tag>`: the first tag of `file_tags()` with that key and a value. A whole-file set whose only `TITLE` is nested has no file title.
+
+**Tags of a live stream.** RFC 9559 lets a live Matroska stream tag its content while it plays: a `Tags` element can stand between the `Cluster` elements whenever needed, and "the new Tags element MUST reset the previously encountered Tags elements and use the new values instead" (section 23.2). A live stream's segment has an unknown size, all bits of its size set to 1 (same section). The probe keeps every `Tags` element that it read, as plan Phase 5, task 10 requires, so the report is the stream's history. As the maintainer chose at the twelfth review:
+
+- **Superseded sets.** In a segment of unknown size, a `Tags` element read after a `Cluster` replaces every `Tags` element read before it. Each tag set of a replaced element has `is_superseded()` true. Every other set has it false, and so does every set of a segment of known size, whose `Tags` elements all hold together wherever they stand.
+- **Lookups.** `file_tags()`, `stream_tags()`, `tags_with_key()` and `tag()` skip the superseded sets. When the first `Tags` element of a live stream holds a `TITLE` and its replacement holds only an `ARTIST`, `tag(&TagKey::Title)` is absent, and `tag(&TagKey::Artist)` gives the new artist.
+- **History.** `tag_sets()` keeps every set read, superseded ones included, in report order, so a caller who wants the earlier values reads them there.
+- **Completeness.** A live stream can hold later `Tags` elements than the probe read, so plan Phase 5, task 10 marks the tags section incomplete when later ones may exist. A set that is not superseded is the newest that the probe read, not proof that no later element replaces it.
 
 **Tags of several versions.** A file can hold tags of several versions of one specification, as an MP3 file can hold an ID3v2 tag and an ID3v1 tag. Each is a tag set of its own, and the set of the newer version comes first. A tag that a damaged or truncated structure left without a value is skipped by the value lookups, so `tag(key)` gives the last known good value: the newer version's where it read, and otherwise the older version's (section 7). `tags_with_key(key)` still lists both, and the diagnostic of the damaged structure says why the newer one gave nothing. Phase 11 fixes the order for ID3v2, ID3v1 and APEv2.
 
@@ -851,11 +935,11 @@ So a caller can rely on the part's status, its first reason, the exhausted count
 
 `MediaReport::sources() -> &[SourceEntry]` lists every source the probe requested (plan section 7.7). Until lookup ships, it has one entry, the primary input. A `SourceEntry` has:
 
-- `identifier() -> SourceIdentifier`, where 0 is the primary input. `SourceIdentifier` wraps a `u64` and is serialized as a string in canonical decimal, like every identifier (section 12). It is 64 bits wide since the ninth review, so every request that the companion-request limit allows has an identifier of its own: the limit is at most `u64::MAX`, and requests take 1 to `u64::MAX`. No probe therefore runs out of identifiers, and no check of its own is needed.
+- `identifier() -> SourceIdentifier`, where 0 is the primary input. `SourceIdentifier` wraps a `u64` and is serialized as a string in canonical decimal, like every identifier (section 12). As the tenth review asked, `value() -> u64` returns the number, and `Display` writes it in the same canonical decimal, such as `1`, which the CLI prints after `source` (`cli.md` section 8.6). `Debug` is no such text: it writes `SourceIdentifier(1)`. It is 64 bits wide since the ninth review, so every request that the companion-request limit allows has an identifier of its own: the limit is at most `u64::MAX`, and requests take 1 to `u64::MAX`. No probe therefore runs out of identifiers, and no check of its own is needed.
 - `role() -> &SourceRole`, which is `Primary` or a companion role.
 - `attempted_identity() -> Option<&AttemptedIdentity>`, with the validated identifier and the requested name.
 - `outcome() -> &SourceOutcome`: `Opened`, `NotFound`, `Declined`, `LimitReached` or `Failed`.
-- `reason() -> Option<&Reason>`, why a requested companion was not opened: `CompanionNotFound`; `CompanionDeclined`, with the reason that the resolver gave as its detail within the retained-data limit; or `CompanionLimited`, with the limit named. The kind of the reason is fixed-size and always kept, while the resolver's text of any length is kept only within that limit (section 5.3). So two companions declined for different reasons keep their entries and their kinds apart, and their texts while the budget allows. It is absent for the primary input, for an opened source, and for a failed one, whose cause the error keeps (R19). The completeness record names the same entry (section 5.3).
+- `reason() -> Option<&Reason>`, why a requested companion was not opened: `CompanionNotFound`; `CompanionDeclined`, with the reason that the resolver gave as its detail within the retained-data limit; or `CompanionLimited`, with the limit named. The kind of the reason is fixed-size and always kept, while the resolver's text of any length is kept only within that limit (section 5.3). So two companions declined for different reasons keep their entries and their kinds apart, and their texts while the budget allows. It is absent for the primary input, for an opened source, and for a failed one, whose cause the error keeps (R19). Each such entry also gives a `PartReason` of `Part::Companions` with its source identifier, kept in `reasons()` within the retained-data limit. The record has one slot for the companions, so it names only the entry whose reason came first in the probe (section 13). As the twelfth review asked: the reason of a second entry, such as a second request that a resolver declined, is in `reasons()` while the budget allows, and on the entry itself whatever the limits, since the source table keeps each requested entry with the kind of its reason.
 - `bytes_read() -> Option<u64>`.
 - `alias_of() -> Option<SourceIdentifier>`.
 - `path() -> Option<&PortablePath>`.
@@ -899,7 +983,7 @@ The rules of plan section 8.4 and the field guide's section 2 decide every value
 | `confidence()` | `Option<Confidence>` | For an identification |
 | `candidates()` | `&[Candidate]` | For an ambiguous outcome, in the rank of section 5.1, which falls with the confidence; each with `format()` and `confidence()` |
 | `hint()` | `Option<&Hint>` | `format() -> &Format` and `origin() -> &HintOrigin` (`FileName`, `FormatOption`). Marked as not verified. |
-| `bytes_needed()` | `Option<u64>` | For insufficient data, when known: the least length of the input, counted from its start, that detection needs to decide, as the maintainer chose at the ninth review. Three bytes of an eight-byte signature give 8, whatever was read. A caller whose read limit stopped detection raises `BytesRead` to at least this value. |
+| `bytes_needed()` | `Option<u64>` | For insufficient data, when known: the least length of the input, counted from its start, that detection needs to decide, as the maintainer chose at the ninth review. Three bytes of an eight-byte signature give 8, whatever was read. It is a length of the input, not a read budget: `BytesRead` counts the bytes delivered (plan section 7.5), and detection can seek to the end of a long input for a few bytes, or read a range twice, so the bytes it delivers can be fewer or more than this length. So, as the tenth review asked, it prescribes no value for `BytesRead`. |
 | `insufficient_reason()` | `Option<&Reason>` | Whether the input ended or a named limit was reached |
 | `usage()` | `&Usage` | |
 
@@ -1075,7 +1159,7 @@ The format-specific fields that the conflict compared also stay in their detail 
 - `codec_private_data() -> Option<&[u8]>`, charged to the retained data;
 - `codec_delay()` and `seek_pre_roll()`, default 0, as `Option<&StoredValue<u64>>`, and `default_duration() -> Option<u64>`, which has no default, each in nanoseconds as stored;
 - `flag_default()` and `flag_enabled()`, default 1, as `Option<&StoredValue<bool>>`. A track entry cut short before `FlagEnabled` leaves `flag_enabled()` absent, and with it the normalized `is_enabled()`;
-- `content_encodings() -> &[MatroskaContentEncoding]`, each with its order, scope, type and algorithm, the compressions among them;
+- `content_encodings() -> &[MatroskaContentEncoding]`, each with its order, scope, type and algorithm, the compressions among them. Each is an `Option<&StoredValue<…>>`, kept as observed whatever else the probe could not read: absent when the input, a limit, the reach of a forward-only source or a source failure ended the encoding before it, and the algorithm also when a "next" encoding covers it and the settings it covers stayed undecoded (section 6.3, tenth to twelfth reviews);
 - `video() -> Option<&MatroskaVideoDetails>`, with the pixel, crop and display elements, `DisplayUnit`, the stereo, alpha and color elements, and a discarded `OldStereoMode`;
 - `audio() -> Option<&MatroskaAudioDetails>`, with `SamplingFrequency` and `OutputSamplingFrequency` as `FloatingPointValue`, and `Channels`, `BitDepth` and `Emphasis`;
 - `version_notes() -> &[ElementVersionNote]`, each an element stored above the file's version (read, with a diagnostic) or past its maximum version (discarded and kept here).
@@ -1094,18 +1178,28 @@ if let Some(FormatDetails::Matroska(matroska)) = report.format_details() {
 
 | Accessor | Returns | Source |
 |---|---|---|
-| `sequence_parameter_sets()` | `&[H264SequenceParameterSetDetails]` | Each set read, in the order read. Each set has `profile_indication()` (`profile_idc`) and `constraint_set_flags()` (`constraint_set0_flag` to `constraint_set5_flag`, bit 7 first). It also has `level_indication()` (`level_idc`), `sequence_parameter_set_identifier()`, `chroma_format_indication()`, `bit_depth_luma_minus_eight()`, `bit_depth_chroma_minus_eight()`, `picture_width_in_macroblocks_minus_one()`, `frame_macroblocks_only_flag()`, the frame cropping offsets and `video_usability_information()`, each an `Option`. |
+| `sequence_parameter_sets()` | `&[H264SequenceParameterSetDetails]` | Each set read, in the order read. Each set has `origin()` (below), `profile_indication()` (`profile_idc`) and `constraint_set_flags()` (`constraint_set0_flag` to `constraint_set5_flag`, bit 7 first). It also has `level_indication()` (`level_idc`), `sequence_parameter_set_identifier()`, `chroma_format_indication()`, `bit_depth_luma_minus_eight()`, `bit_depth_chroma_minus_eight()`, `picture_width_in_macroblocks_minus_one()`, `frame_macroblocks_only_flag()`, the frame cropping offsets and `video_usability_information()`, each an `Option`. |
+| `picture_parameter_sets()` | `&[H264PictureParameterSetDetails]` | Each picture parameter set read, in the order read, as the twelfth review asked. Each set has `origin()`, `picture_parameter_set_identifier()` (`pic_parameter_set_id`) and `sequence_parameter_set_identifier()` (`seq_parameter_set_id`), each identifier an `Option`. The set's own identifier comes first (7.3.2.2), so a set cut short after it keeps it without the sequence set that it names. Phase 4 adds the rest of its fields. |
 | `primary_sequence_parameter_set()` | `Option<&H264SequenceParameterSetDetails>` | The set that the first picture activates, which supplied the normalized fields, one of `sequence_parameter_sets()`. Absent until the probe has observed that activation, below. |
+| `activation()` | `Option<&H264ActivationDetails>` | What the first picture's activation named, as read: `picture_parameter_set_identifier()`, the first slice header's `pic_parameter_set_id` (7.3.3), and `buffering_period_sequence_parameter_set_identifier()`, the `seq_parameter_set_id` of the access unit's buffering-period SEI message (D.1.2), each an `Option`. Absent when no picture was read. |
 | `configuration_record()` | `Option<&H264ConfigurationRecordDetails>` | `AVCDecoderConfigurationRecord`: `configuration_version()`, `profile_indication()` (`AVCProfileIndication`), `profile_compatibility()`, `level_indication()` (`AVCLevelIndication`), `length_size_minus_one()` and the counts of parameter sets, each an `Option` |
+
+**What the details show of an activation.** As the twelfth review asked, a caller who meets a link that resolved to nothing, or that the probe could not follow, reads in `activation()` what the first picture named and in the two lists what was available, with the identifiers of each set as read. `origin() -> &H264ParameterSetOrigin` says where a set of either list was read: `ConfigurationRecord`, `Sample`, or `ParameterSetTrack` (below), with the catch-all of rule 5. A slice that names picture parameter set 0, whose only copy names sequence parameter set 1 beside a record that holds only set 0, shows all three identifiers.
 
 **Which set is primary.** H.264 activates a sequence parameter set in one of two ways: the first coded slice of a picture refers to a picture parameter set that names it, or a buffering-period SEI message of an IDR access unit names it. The set then stays active for the whole coded video sequence. A set must be available to the decoding process before its activation, and a later set with the same identifier replaces the earlier one's content (ITU-T H.264 7.4.1.2.1). So the primary set is the one that the first picture activates.
 
-**The candidates.** The sets that the first picture could activate are those of the configuration record and those that precede the first picture's first slice in the bitstream. The probe has **every candidate** in one of two cases:
+**The candidates.** The sets that the first picture could activate are those of the configuration record, those that precede the first picture's first slice in the bitstream, and, for an ISO track that links a parameter-set track, those of that track that are available to the first picture (below). The probe has **every candidate** in one of two cases:
 
-- the binding keeps parameter sets out of the samples, as `avc1` does, and the probe read the configuration record in full;
+- the binding keeps parameter sets out of the samples, as `avc1` does, the probe read the configuration record in full, and it read every set that a linked parameter-set track makes available to the first picture, or read the track's references in full and found no such link (below);
 - or the probe read the first access unit up to its first slice, with every parameter set before it. `avc3` lets samples carry parameter sets, so it needs this case (ISO/IEC 14496-15 through its committed description; W3C ISO BMFF byte stream format, initialization segments).
 
 The H.264 phase states for each binding which case applies. For `avc3`, sets that agree prove nothing on their own: a set in the first sample can replace the record's, and a probe that stopped before that sample has only seen sets that agree.
+
+**A linked parameter-set track.** The MP4RA registries, which are public, list an AVC parameter-set stream, the sample entry `avcp` ("Advanced Video Coding Parameters"), and a track reference of type `avcp` that links a track to one ("AVC parameter set stream link"). So the sets that a track's pictures use may lie in a linked track, outside its configuration record, and the record alone is not every candidate of such a track: a slice reference that only the linked track could answer may be valid. No public source describes that stream further, and the project reads public specifications only, never a paid standard. As the maintainer chose at the twelfth review:
+
+- **The linked sets are candidates.** Plan Phase 6 reads the linked track's samples under the shared budget and takes each parameter set that the first picture can use as a candidate, of the origin `ParameterSetTrack`, in decoding order with the sets of the stream. Which samples of the linked track the first picture can use needs a public source that states it, which Phase 6 adds through GS.2 before it reads them.
+- **Until the probe has them all,** the track does not have every candidate: when the link is found and its sets were not all read, while no public source states which samples count, and when the track's references were not read in full, so a link may exist unseen. No link is then called broken, and no set establishes a value that a missing candidate could contradict, as for any missing candidate (below). A diagnostic says that the linked track's sets were not read, and why.
+- **The linked track's own stream** is reported as Phase 6 decides for a track of the sample entry `avcp`.
 
 **The primary set** is established only by observation, as the maintainer chose at the seventh review. The probe followed the chain of identifiers that the first picture activates, each link to a set that it read and kept. Each link is resolved where its activation happens, since a set must be available before it is activated (7.4.1.2.1), and the set of an identifier there is the last one with that identifier in decoding order, those of the configuration record first:
 
@@ -1133,27 +1227,51 @@ An `avc1` record whose only sequence parameter set is 0, while its picture param
 
 Otherwise `primary_sequence_parameter_set()` is absent, and no set is chosen by its position, which could describe a picture that was never coded:
 
-- **Every candidate.** A normalized field comes from the sets only where every candidate gives the same value. A sole candidate always does, and so do copies with the same content, so an initialization segment without samples still gives its set's values. The identity of the primary set stays unknown. The fields on which the candidates disagree stay absent, and a diagnostic names them.
+- **Every candidate.** A normalized field comes from the sets only where every candidate gives the same value. A sole candidate always does, and so do copies with the same content, so an initialization segment without samples still gives its set's values. The identity of the primary set stays unknown. Where the candidates disagree on a field, the disagreement rules the sets out as evidence for it, and a diagnostic names the field. As the tenth and eleventh reviews asked, the field then follows its own precedence in the field guide without the sets, and takes the next source there that gives it: the configuration record for the profile and the level, as declared values (below), and the container for the coded size, the bit depth and the chroma format, where it declares them (field guide section 3.4). Two sets that disagree on the coded size of a track whose container declares it therefore give the container's size, as declared. A field stays absent only where no later source of its precedence gives it.
 - **Candidates missing.** No normalized field comes from the sets, since a set that the probe never read could hold the first picture's values. A diagnostic says so, and the details keep every set read.
 
 The normalized profile and level, such as "High" and "1b", are in `CodecInformation`. They come from the primary set, or from a value on which every candidate agrees, or else from the record. The provenance alone cannot tell the first two apart, since both are read from codec headers, so a caller combines it with the details:
 
 | `profile_provenance()` | `primary_sequence_parameter_set()` | Where the profile came from |
 |---|---|---|
-| `Bitstream` | present | The primary set |
+| `Bitstream` | present | The primary set, which always has its profile (below) |
 | `Bitstream` | absent | The value on which every candidate agrees, without the primary set's identity |
-| `Declared` | either | The configuration record's `AVCProfileIndication`, because the sets established no profile |
-| absent | either | Nowhere: neither the sets nor the record gave one |
+| `Declared` | absent | The configuration record's `AVCProfileIndication`, because the sets established no profile |
+| absent | absent | Nowhere: neither the sets nor the record gave one |
 
-The same holds for the level and its provenance. The sets establish no value when the candidates disagree on it, when candidates are missing, and when the set that would supply it was cut short before the field. The record is then the next source, by the precedence of the field guide, and its value counts as declared: a value that the container states for the configuration, not proof of the first picture's set. A diagnostic names a disagreement, and the details keep each set's coded value, so a caller who needs the first picture's own profile reads it only from `primary_sequence_parameter_set()`. The codec details keep the coded values of each source:
+The same holds for the level and its provenance. **An observed primary set is the bitstream's evidence,** as the eleventh review asked. It is the set that the first picture activated, so it stands for the parsed header in the precedence of every field that it holds, whatever the other candidates say: when the first picture selects set 0 and set 1 has another level, the level is set 0's, with the provenance `Bitstream`. Another set may describe another coded video sequence, so it is no conflict. As the twelfth review asked, choosing the set chooses only the source of the bitstream's evidence. Each accessor still applies its own precedence in the field guide, and a source that ranks above the parsed header there still comes first:
+
+- the profile and the level put the parsed header first (field guide section 3.3), so the primary set's values stand over the record's;
+- the coded size, the bit depth and the chroma format put it first too, over the container's declarations (field guide section 3.4);
+- in the ISO family, a `colr` box takes precedence over the color that the set's video usability information states, and a `clap` box over its cropping (ISO/IEC 14496-12, 12.1.5.1 and 12.1.4.1), and Matroska's cropping applies to the decoded frame (RFC 9559 section 15.1; field guide section 3.4). Those fields take the container's values, with the provenance `Declared`, and the set's own values stay in the details.
+
+The primary set always has its profile and level, so with it present their provenance is always `Bitstream`. A field that the primary set lacks, because a cut fell before it, takes the next source of its precedence without the sets, such as the container's coded size; no other candidate stands in for it.
+
+**A record beside the set that supplies a value.** The committed description of ISO/IEC 14496-15, written from public sources, gives the record's `AVCProfileIndication`, `profile_compatibility` and `AVCLevelIndication` as the profile, compatibility byte and level "for the configuration", and no public source says how they must relate to the parameter sets. A record can describe more than one set, so, as the twelfth review asked, a record that differs from the set that supplies a value is no conflict:
+
+- the set's value stands, by the field guide's precedence, with the provenance `Bitstream`: a record of level 4 beside a primary set of level 3.1 gives the level 3.1;
+- the details keep both raw values, the record's in `configuration_record()` and the set's in its own details;
+- no diagnostic calls the difference a conflict, for the profile, the compatibility byte or the level.
+
+The paid standard is never read, so a rule that only it states is not adopted. A public source that states one would come through GS.2, and the H.264 phase would then add what it implies.
+
+**While the primary set is unknown,** the candidates' agreement and the fallback apply. The sets then establish no value when the candidates disagree on it, when candidates are missing, and when a candidate that would supply it was cut short before the field. The record is then the next source for the profile and the level, by the precedence of the field guide, and its value counts as declared: a value that the container states for the configuration, not proof of the first picture's set. A diagnostic names a disagreement, and the details keep each set's coded value, so a caller who needs the first picture's own profile reads it only from `primary_sequence_parameter_set()`.
+
+**Where a set can end.** `profile_idc`, the constraint flags and `level_idc` come before `seq_parameter_set_id` in a sequence parameter set (7.3.2.1.1). The primary set is established through its identifier, so it always has its profile and level, and a cut can only fall after them, such as before `pic_width_in_mbs_minus1`. A set that was cut short before its profile or level never has its identifier, so it is never primary. It is still among `sequence_parameter_sets()`, as each set read is. As the tenth review asked, the example shows the two kinds apart:
 
 ```rust
 if let Some(CodecDetails::H264(h264)) = stream.codec_details() {
     if let Some(set) = h264.primary_sequence_parameter_set() {
+        match set.picture_width_in_macroblocks_minus_one() {
+            Some(width) => println!("primary set: pic_width_in_mbs_minus1 {width}"),
+            None => println!("primary set: it ends before pic_width_in_mbs_minus1"),
+        }
+    }
+    for set in h264.sequence_parameter_sets() {
         match (set.profile_indication(), set.level_indication()) {
-            (Some(profile), Some(level)) => println!("profile_idc {profile}, level_idc {level}"),
-            (Some(profile), None) => println!("profile_idc {profile}; the set ends before level_idc"),
-            _ => println!("the set ends before profile_idc"),
+            (Some(profile), Some(level)) => println!("set read: profile_idc {profile}, level_idc {level}"),
+            (Some(profile), None) => println!("set read: profile_idc {profile}; it ends before level_idc"),
+            _ => println!("set read: it ends before profile_idc"),
         }
     }
 }
@@ -1163,7 +1281,7 @@ if let Some(CodecDetails::H264(h264)) = stream.codec_details() {
 
 With the `serde` feature, every model type implements `Serialize` and `Deserialize`, except the five that section 3.3 lists, which what holds them writes, and the form is part of the public API (plan section 8.8). Task 5 writes its full contract in `docs/guide/json-output.md`. What this specification fixes:
 
-- **Root records.** `Document`, `MediaReport`, `Detection` and `ErrorRecord` carry `schema_version`, a `SchemaVersion` with `major()` and `minor()`, serialized as `"1.0"`. `SchemaVersion::CURRENT` is the version this release writes. Reading a root record checks the version before anything else is decoded, wherever the member appears, also through plain Serde on a bare `MediaReport`. The version error therefore comes before any other failure, such as a generator that does not decode, in each of the four root records. Every other type is nested only, carries no version and has no guarantee across major versions when read alone.
+- **Root records.** `Document`, `MediaReport`, `Detection` and `ErrorRecord` carry `schema_version`, a `SchemaVersion` with `major()` and `minor()`, serialized as `"1.0"`. `SchemaVersion::CURRENT` is the version this release writes. Reading a root record checks the version before anything else is decoded, wherever the member appears, also through plain Serde on a bare `MediaReport`. The version error therefore comes before any other failure, such as a generator that does not decode, in each of the four root records. Each of the four has `schema_version() -> SchemaVersion`, as the twelfth review asked, so a caller who holds a bare `MediaReport`, `Detection` or `ErrorRecord` learns its version without writing it again: the version that the record was read with, or `SchemaVersion::CURRENT` for a record that this version built. A document gives each record that it holds its own version (below), so a record reached through a document gives the document's. The partial report of an error record has the record's version. Every other type is nested only, carries no version and has no guarantee across major versions when read alone.
 - **A bare error record** holds its partial report at its own version, as a document holds its records at the document's: reading a bare `ErrorRecord` checks the partial report against the record's version. A record of version 1.0 whose partial report is of version 1.1 or 2.0 is the version error, read on its own or in a document.
 - **Shape.** A struct is a map. A field that is absent is omitted, and only an absent member reads as `None`. A unit-like enum value is a `snake_case` string. A catch-all reads any unknown string and writes it back unchanged. A typed detail is a map with `kind`. A map names each member once, and a member named twice fails as malformed input, as RFC 7493 section 2.3 requires of I-JSON.
 - **No null.** As the maintainer chose at the seventh review, the form never writes null, and a member that holds null fails as malformed input wherever it stands: an optional member, a member of an enum that carries data, either member of a twin, a path's flag or raw form, and a member that a catch-all keeps. A member is present when its name is, so null never stands for an absent value. In an array, null is no element of any type.
@@ -1303,12 +1421,20 @@ Lookup ships in the release of its first consumer, `0.7.0` with VobSub (R18, pla
 - **The identity of a source.** Two requests can lead to one underlying source, and plan section 7.7 then keeps the first and records the second as its alias (D20). A custom resolver says so with a `SourceIdentityToken`:
   - `SourceIdentityToken::new(bytes: impl Into<Vec<u8>>)` builds one from bytes of the resolver's choosing, such as an object store's key with its version, or a device and a file number. `as_bytes() -> &[u8]` returns them.
   - Two tokens are equal exactly when their bytes are, and that is the only rule: equal tokens name one source. The token derives `Clone`, `PartialEq`, `Eq` and `Hash`.
-  - The library compares a found source's token with the tokens of the sources already open in the same probe, which all come from the probe's one resolver. On a match, the new source is closed again, its entry's `alias_of()` names the first source's identifier, and all further reading uses the first source.
+  - The library compares a found source's token with the tokens of the companions already open in the same probe, which all come from the probe's one resolver. On a match, the new source is closed again, its entry's `alias_of()` names the first source's identifier, and all further reading uses the first source.
+  - The primary input has no token, since the caller gave it without one. As the maintainer chose at the eleventh review, a companion that a custom resolver finds is therefore never an alias of source 0. A resolver that returns another handle to the primary input's data gives a source of its own, which is opened, counted against `SourcesOpened` and read under the shared budget. The async option has only custom resolvers, so an async probe never finds an alias of source 0 either.
   - A source found without a token is distinct from every other.
   - The token is held for the rest of the probe and charged to working memory. A token that cannot be charged closes its source again, with the outcome `LimitReached` and the limit named.
   - It is never written to the report; `alias_of()` is what the source table keeps.
 
-  The built-in resolver uses an identity of its own, the resolved real path with the device and file numbers where the standard library gives them (plan section 7.7).
+  The built-in resolver uses an identity of its own (plan section 7.7). Which fields decide that two sources are one depends on what the standard library gives, as the tenth review asked:
+
+  - **With file numbers.** On Unix, `std::os::unix::fs::MetadataExt` gives an opened file's device and file number, `dev()` and `ino()`. Two sources are one exactly when both numbers are equal, and the path is not compared. So two hard links, whose resolved paths differ, are one source, and the second gets its alias entry.
+  - **Without them.** On Windows, the volume serial number and the file index of `std::os::windows::fs::MetadataExt` are not stable (feature `windows_by_handle`). The resolver therefore compares the resolved real path alone, as `std::fs::canonicalize` gives it. Two names that resolve to one path, such as a link and its target, are one source. Two hard links are two sources there: each is opened and counted, and `SourcesOpened` still bounds them.
+
+  One probe runs on one platform, so all of its identities have the same form.
+
+  - **The primary input.** The built-in resolver serves `probe_file` only (above), and the library opened that file itself. So, as the maintainer chose at the eleventh review, it takes the primary file's identity in the same form as a companion's: the device and file numbers of the opened file where the standard library gives them, and otherwise the resolved real path of the path that the caller gave. A companion with that identity is an alias of source 0, such as a VobSub data file that is a hard link to its own index on Unix. Its entry's `alias_of()` names source 0, and all further reading of it uses the primary input. The identity is held and charged as a companion's is, which plan Phase 14 fixes for both.
 - **Results in the report.** Each request becomes a `SourceEntry` (section 6.15), with the reason of any outcome but `Opened` and `Failed`. Its outcome sets the companions status (section 5.3), whose reason names the entry by its source identifier. A failure gives the error of kind `SourceFailed` (R19).
 - **What a request needs, checked before it is made.** A request is a resolver call, and a resolver can open a source before it answers, which closing the source afterwards cannot undo. A request also needs its `SourceEntry`, which holds the attempted identity: the identifier and the name, text that the report owns. So, as the ninth review asked, a key that was not answered before makes a request only when all three of these hold, checked in this order before a source identifier is assigned (plan section 7.7):
   1. the companion-request limit allows one more request;
@@ -1321,26 +1447,43 @@ Lookup ships in the release of its first consumer, `0.7.0` with VobSub (R18, pla
   - the companions status cut short, with a `PartReason` of `Part::Companions` whose reason is `CompanionLimited`, naming the first limit that failed, `CompanionRequests`, `SourcesOpened` or `RetainedData`, and whose `source_identifier()` is absent;
   - in the record, `exhausted(&limit)` true for that limit, and `first_stopped(&limit)` naming `Part::Companions` unless an earlier part had already met it.
 
-  When the retained-data limit is full, the record still holds the last three: the companions status, their first reason with its kind and limit, and the exhausted counter. The external reference and the `PartReason` in `reasons()` need retained data. Beyond the limit, the reference is counted in `omitted_references()` and the reason in `omitted_reasons()`, and the companions keep their status and first reason (section 6.12). The probe decides about the request before it lists the reference, so with the retained data full, the companions' first reason is `CompanionLimited` naming `RetainedData`. The name that the request would have carried is then not kept anywhere, since the record holds no text.
+  **Several limits at once.** The checks run in the order above and stop at the first that fails, so a refused companion's reason is `CompanionLimited` naming that first limit, as the tenth review asked. With `CompanionRequests` and `RetainedData` both at 0, it names `CompanionRequests`. It names `RetainedData` only when the first two checks passed. This order decides between the limits of one companion, and nothing more. The probe decides about the request before it lists the reference. A retained data that is full then also stops the listing, and that loss is counted on its own:
+
+  - The external reference is not listed. It is counted in `omitted_references()`, and the companions get a second reason, `LimitExhausted` naming `RetainedData`, as for any reference that the limit cannot hold (section 6.12).
+  - Neither `PartReason` fits in `reasons()`, so both are counted in `omitted_reasons()`.
+  - The record keeps the companions status and their first reason: `CompanionLimited` with the first limit that failed, unless an earlier companion already recorded the first reason (below). `exhausted(&limit)` is true for that limit and for `RetainedData`, and `first_stopped()` names the companions for each, unless an earlier part met it first.
+
+  The name that the request would have carried is then not kept anywhere, since the record holds no text.
+
+  **Several companions.** The record has one slot for the first reason of the companions, and it holds the first reason recorded against them in the probe, whichever companion gave it, as the eleventh review asked. A later companion never replaces it. When a resolver declined the first companion and a companion-request limit of 1 then refuses a second one, of another key:
+
+  - the record's first reason of the companions stays `CompanionDeclined`, with the first companion's source identifier;
+  - the second refusal is recorded on its own: a `PartReason` of `CompanionLimited` naming `CompanionRequests`, without a source identifier, in `reasons()` within the retained-data limit and counted in `omitted_reasons()` beyond it;
+  - `exhausted(&Limit::CompanionRequests)` is true, and `first_stopped(&Limit::CompanionRequests)` names `Part::Companions` unless an earlier part met that limit first;
+  - the companions status is cut short once, by both.
+
+  The same holds for any two outcomes of two keys, a refusal before a request or an answer of the resolver: the slot keeps whichever reason came first.
 
   A resolver that answers `limit_reached` is different: its request was made, so it has a source identifier and an entry with the outcome `LimitReached`, which its reason names.
 
 ```mermaid
 flowchart TD
   X["The format expects a companion"] --> EN{"The lookup option of<br/>the entry point's kind"}
-  EN -->|off| NE["External reference listed,<br/>no source-table entry;<br/>companions: not enabled"]
+  EN -->|off| NE["External reference*,<br/>no source-table entry;<br/>companions: not enabled"]
   EN -->|"built-in or custom"| NM{"Can a name be built<br/>from a validated stem?"}
-  NM -->|no| NN["External reference without a name,<br/>no request;<br/>companions: cut short"]
+  NM -->|no| NN["External reference* without a name,<br/>no request;<br/>companions: cut short"]
   NM -->|yes| K{"Key answered before?"}
   K -->|yes| SAME["The same Resolution again"]
   K -->|no| LIM{"Within CompanionRequests and<br/>SourcesOpened, and does the<br/>retained data hold the entry?"}
-  LIM -->|no| LR["No source identifier, no entry,<br/>no resolver call; external reference<br/>with its name; companions: cut short<br/>by the first limit that failed"]
+  LIM -->|no| LR["No source identifier, no entry,<br/>no resolver call; external reference*<br/>with its name; companions: cut short<br/>by the first limit that failed"]
   LIM -->|yes| REQ["Source identifier assigned,<br/>SourceEntry added;<br/>resolver called"]
   REQ --> RES{"Resolution"}
   RES -->|found| READ["Read under the shared budget"]
-  RES -->|"not found, declined,<br/>limit reached"| INC["Report incomplete; the entry<br/>and the record keep the reason"]
+  RES -->|"not found, declined,<br/>limit reached"| INC["Report incomplete; the entry keeps<br/>its reason, the record the first<br/>reason of the companions"]
   RES -->|failed| ERR["ErrorKind::SourceFailed with the aggregate report"]
 ```
+
+\* Listed within the retained-data limit. As the eleventh review asked, the diagram marks the three branches where that applies: beyond the limit, the reference is not listed, `omitted_references()` counts it, and the companions get the reason `LimitExhausted` naming `RetainedData` (section 6.12).
 
 The built-in resolver's containment holds on one condition: nobody else changes the folder tree while the probe runs. Its rustdoc states the condition, as do the README and the vulnerability section of `CONTRIBUTING.md` (plan section 7.7).
 
@@ -2079,8 +2222,16 @@ fn main() -> Result<(), Error> {
     let Some(CodecDetails::H264(h264)) = stream.codec_details() else {
       continue;
     };
+    // The primary set was read up to its identifier, which follows `profile_idc` and `level_idc`, so a cut falls after
+    // them. A set cut short keeps the fields read before the cut.
     if let Some(set) = h264.primary_sequence_parameter_set() {
-      // A set cut short keeps the fields read before the cut.
+      match set.picture_width_in_macroblocks_minus_one() {
+        Some(width) => println!("#{}: primary set, pic_width_in_mbs_minus1 {width}", stream.index()),
+        None => println!("#{}: primary set, cut before pic_width_in_mbs_minus1", stream.index()),
+      }
+    }
+    // Any set read can be cut before its profile or its level; such a set is never primary.
+    for set in h264.sequence_parameter_sets() {
       match (set.profile_indication(), set.level_indication()) {
         (Some(profile), Some(level)) => println!("#{}: profile_idc {profile}, level_idc {level}", stream.index()),
         (Some(profile), None) => println!("#{}: profile_idc {profile}, cut before level_idc", stream.index()),
@@ -2430,6 +2581,146 @@ The four findings on the CLI contract are listed in `cli.md` section 13.
 - **A compression under a "next" encryption.** The old text made every such encoding leave `is_fully_examined()` false. A compression declares no protection whatever its algorithm, so only an encryption leaves the protection unknown.
 - **Identifiers in canonical decimal.** The stub read a source identifier with Rust's integer parser, which takes `"+1"`; it now takes canonical decimal only, as the twins do.
 - **The last known good value and RFC 9559.** The field guide said that the presence of `LanguageBCP47` suppresses `Language`. RFC 9559 ties that to the element being used, so a damaged `LanguageBCP47` now leaves `Language` in place. An older structure that covers less of the file, such as AVI's first-segment frame count beside OpenDML's total, is a different property and no fallback.
+
+**The tenth review.** On 2026-11-23 the maintainer's review of revision 43, committed as `1fec2b5`, raised fifteen findings on this specification and four on `cli.md`. Each was checked against the sources below, and each one holds:
+
+- the plan, the field guide and the two spikes;
+- RFC 9559 5.1.4.1.31.3 and 5.1.4.1.31.4, with Table 21;
+- the Matroska tags draft, sections 3 and 4.1;
+- ITU-T H.264 7.3.2.1.1;
+- the standard library's documentation of `std::os::windows::fs::MetadataExt`.
+
+A test written first reproduced the one case that a spike can run: the CLI spike exited with 1 when a usage error could not be written to a closed standard error. Reading the stub confirmed three more:
+
+- the tag lookups saw only the top level, and `tags_with_key` was missing;
+- `SourceIdentifier` had neither `value()` nor `Display`;
+- a codec that the input never named displayed as "unknown codec", a text that this specification never gave.
+
+The rest were confirmed by reading. The amendments change the approved specification, so the joint review of G2.3 confirms them (plan section 1.2). The specification changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| With `CompanionRequests` and `RetainedData` both at 0, the text named `RetainedData` as the first reason, although the checks stop at the first | The first limit that failed is the first reason. The reference that a full retained data cannot list is counted on its own, with its own reason | 13 |
+| A protection declaration that was not examined or kept fell short against no part | Discovery records every shortfall of protection and names the stream; a declaration that this version cannot read at all is no shortfall (the maintainer's choice) | 5.3, 6.3 |
+| Overlapping Matroska scopes left `is_configuration_clear()` absent although one declaration already protects the configuration | One kept declaration that covers the configuration makes it `Some(false)`, whatever else stays unknown | 6.3 |
+| An encoding cut short lost a readable field, and a diagnostic had to name an algorithm that was never read | Each field is kept as observed, a scope that was not read is `ProtectionScope::Unread`, and the diagnostic names the unread fields | 6.3, 11.4 |
+| The tag lookups did not say whether they visit descendants | Every lookup sees the top level only, in report order and stored order; a nested tag is an attribute of its parent (the maintainer's choice) | 6.9 |
+| A mastering display or content light level from two sources had one origin at most | Each coordinate, luminance and light level has its own provenance accessor (the maintainer's choice) | 6.5 |
+| A read of 0 bytes at a position was taken as the exact end | The length is that position only when the byte before it was delivered; a read beyond a gap establishes no length | 4.4, 5.2 |
+| `bytes_needed()` prescribed a read budget | It is a length of the input and prescribes no value for `BytesRead` | 8 |
+| A seekable reader promised the report of `probe_file` | It promises the report of the same reader at byte 0; offsets of the primary input count from byte 0, companions and logical offsets keep their own origins, and `size()` stays within the exact range | 4.1 |
+| H.264 candidates that disagree left the profile absent while the table took it from the record | A disagreement rules the sets out as evidence, and the profile and level then come from the record | 11.5 |
+| Two hard links with the same device and file numbers were two sources | Where the standard library gives the numbers, they alone decide; without them, on Windows, the resolved path alone decides | 13 |
+| A codec that the input never named had no value or display | No codec, no name, no identifiers and every candidate, displayed as "a codec that was not read" | 6.4 |
+| An error without a partial report was said to hold statuses that no accessor gives | The statuses are a report's; such an error has none, and its record names the first reason of each part that the stop reached | 5.3 |
+| The H.264 example handled a primary set cut before its profile, which cannot happen | The primary set always has its profile and level; the example shows a cut after its identifier, and cuts before the profile or the level on the sets read | 11.5, 15.10 |
+| `Tier` was missing from the list of `Display` types | Added, with `SourceIdentifier`, which the CLI needs | 3.3 |
+
+The four findings on the CLI contract are listed in `cli.md` section 13.
+
+**Found while revising the tenth review:**
+
+- **Encryption that this version cannot read.** An encryption under a "next" encryption leaves `is_fully_examined()` false. Nothing falls short there, so no part records it, and the report can still be complete, as plan section 8.3 lets a file with an encrypted stream be. Section 6.3 says so now.
+- **An encryption whose scope was not read.** Keeping its scheme needed a scope to give it, so `ProtectionScope` gains `Unread`, a compatible variant.
+- **The defaults of a content encoding.** A field omitted from an encoding read in full takes its RFC 9559 default: type 0, a compression, and scope 1, the block. Only a cut makes a field unread.
+- **The scenario of section 15.10** printed the same unreachable branches. It and the spike's example now match section 11.5, and the stub's set gained `picture_width_in_macroblocks_minus_one()`.
+- **A clean end at an unknown length** (section 5.2) rests on the same rule as the length.
+- **The stream of a discovery reason.** `PartReason::stream()` names a stream for discovery too, which `cli.md` writes as `discovery of stream N`.
+- **The record and the statuses.** Plan section 7.5 calls both the fixed-size record. This specification keeps the statuses on `Completeness` and the rest on `LimitRecord`, as the stub has them. Section 5.3 now calls the two together the fixed-size data.
+
+**The eleventh review.** On 2026-11-23 the maintainer's review of revision 44, staged on top of `1fec2b5`, raised ten findings on this specification, eight of priority 2 and two of priority 3, and three on `cli.md`. Each was checked against the sources below, and each one holds:
+
+- the plan, the field guide and the two spikes;
+- RFC 9559 5.1.4.1.31.3 to 5.1.4.1.31.9, with Tables 21, 23 and 24;
+- RFC 8794, which fixes the position of a `CRC-32` element and of no other child of a master element.
+
+The stub models neither companion lookup nor Matroska encodings, and its H.264 details hold data without the rules that choose it, so no spike test could reproduce these findings, and they were confirmed by reading. The stub's display does tell the two cases of the second finding apart through `has_every_candidate()`, which section 6.4 had set to true for both. The maintainer chose the answer to the eighth finding. The amendments change the approved specification, so the joint review of G2.3 confirms them (plan section 1.2). The specification changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| The order of the request checks was applied across companions, so a second companion's refusal took the first-reason slot from an earlier decline | The record's first reason of the companions is the first recorded in the probe, whichever companion gave it; the order decides between the limits of one companion; a later refusal goes to `reasons()` on its own | 13 |
+| The rule for a codec that the input never named covered an ISO track whose selected description was cut off before its format code, giving `has_every_candidate()` true against section 6.4's false | The rule holds for formats without sample descriptions only; such an ISO description is a description that was not read, displayed as such | 6.4 |
+| H.264 candidates that disagreed on the coded size left it absent although the container declares it | A field ruled out of the sets takes the next source of its own precedence, the container's coded size, bit depth and chroma format among them | 11.5 |
+| The provenance table let the record or nothing supply the profile beside an observed primary set, and the rules for disagreeing candidates applied to it | An observed primary set decides every field it holds, with the provenance `Bitstream`; agreement and the fallback apply only while the primary is unknown | 11.5 |
+| Settings that a "next" compression covers had no rule, though zlib can recover them in one build and not in another | Settings that this build recovers are read; a disabled `zlib` is a shortfall with `FeatureDisabled`; an encoding that this version cannot undo leaves them unread by design | 6.3, 11.4 |
+| An encryption algorithm of 0 read before a type that the cut left unread still left the configuration's clarity unknown | That algorithm settles that the encoding declares no protection whatever its type; the cut is still a shortfall of discovery | 6.3 |
+| A source failure during protection discovery was no cause of a shortfall, and no field could be unread because of one | A source failure is a cause, with `SourceFailed` naming the stream and the source in the error's partial report | 6.3, 11.4 |
+| A companion could be compared with source 0, which has no token | Only the built-in resolver, through the identity of the file that `probe_file` opened, can find an alias of source 0; a custom resolver's tokens are compared with earlier companions' only (the maintainer's choice) | 13 |
+| An error's `reason()` was said to give the reason of the stop, while an ambiguous `FormatNotDetermined` has none | Its causes are in `candidates()`, in rank, and the record's first reason of detection is the first of them | 5.3 |
+| The companion diagram showed an external reference in three branches where the retained data can leave none | The three branches are marked, and a note says what happens beyond the limit | 13 |
+
+The three findings on the CLI contract are listed in `cli.md` section 13.
+
+**Found while revising the eleventh review:**
+
+- **The tenth review's choices** were missing from the list at the top of this document. They are there now, with the eleventh's.
+- **The stream of a discovery reason.** Section 5.3 said that `PartReason::stream()` names a stream for discovery only where its protection was not established, while section 6.3 records every cut inside a content encoding with the stream, a compression's included. It now names the stream wherever a stream's declaration fell short, and `cli.md` section 8.4 says the same.
+- **A codec that the input never named** can also be cut off by a source failure, in the partial report of an error, so section 6.4 and the field guide's `codec` row list it.
+- **An encryption with algorithm 0 under the "next" bit** changes nothing (Table 24), so its covered settings are read, and a covering encoding whose type or algorithm a cut left unread recovers nothing.
+- **An ambiguous error's record.** The record's first reason of detection in an error of kind `FormatNotDetermined` had no rule. It is the first cause in rank, as in a report.
+- **The plan's companion diagram** had the same omission, so plan section 7.7 marks the same three branches.
+- **An observed primary set beside other sets.** Another set can describe another coded video sequence, so a different level there is no conflict. A record that disagrees with the primary set is one, with a diagnostic (field guide section 2).
+
+**Choices made without asking in the eleventh review,** each open at the gate named:
+
+- Settings of a "next" zlib compression with the feature off as a shortfall with `FeatureDisabled`, as `CompressionUnavailable` is not final (G2.3, G5.2).
+- Covered data that do not inflate as a shortfall with `DamagedStructure` (G5.2).
+- An encoding settled by an algorithm of 0 counted as examined for protection, so `is_fully_examined()` stays as the other structures leave it (G2.3, G5.2).
+- The record's first reason of detection in an ambiguous error, the first cause in rank (G2.3).
+- A mark on three branches of the diagrams, with a note, rather than three more branches (G2.3).
+- How the built-in resolver charges the identities it holds, the primary file's among them, left to plan Phase 14 (G14.3).
+- No diagnostic for another set that differs from an observed primary set (G4.1).
+
+**The twelfth review.** On 2026-11-23 the maintainer's review of revision 45, staged on top of `1fec2b5`, raised eleven findings on this specification, eight of priority 2 and three of priority 3, and one on `cli.md`. Each was checked against the sources below, and each one holds:
+
+- the plan, the field guide, the committed description of ISO/IEC 14496-15 and the two spikes;
+- RFC 9559 sections 5.1.4.1.31.3 to 5.1.4.1.31.9, 5.1.8 and 23.2;
+- ITU-T H.264 7.3.2.2, 7.3.3 and D.1.2, for the identifiers that the details keep;
+- the MP4RA registries of sample entries (stored) and track references (read at the stored commit, `59a6b51b8c9d`).
+
+The review cites ISO/IEC 14496-15:2024, a paid standard, for two rules: that a record's level may be higher than a set's, and how a linked parameter-set track supplies sets. The project reads public specifications only and never a paid document, so the link that it gave was not opened, and neither rule is adopted from it. What the public sources do support decides instead: a record that differs from a set is no conflict, and a linked track lacks candidates until a public source says which of its samples count. Both stay open for a public source (below).
+
+The review reproduced two findings, and the stub reproduces them too. Before the fix, the four tests of `tests/agreement.rs` failed: the report that lists a reason of the tags beside complete statuses read, and its `is_complete()` was false while its twin's was true. In `tests/report.rs`, `a_codec_of_a_newer_version_displays_the_name_that_it_wrote` failed with "a codec that was not read" where `future_codec` was expected. The surface that the seventh, ninth and eleventh findings add did not compile in the stub before (`is_superseded()`, `picture_parameter_sets()`, `activation()`, and `schema_version()` on the three bare records). The stub models neither Matroska encodings, H.264 activation nor companion lookup, so the other findings were confirmed by reading. The maintainer chose the answers to the first, second, seventh and eighth findings. The amendments change the approved specification, so the joint review of G2.3 confirms them (plan section 1.2). The specification changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| Two reports with the same statuses and the same record differed in `is_complete()` when only `reasons()` differed | `is_complete()` reads the statuses and the record only; reading fails when the reasons, the first reasons and the statuses disagree part by part, in a bare report, a partial report and a document (the maintainer's choice) | 5.3 |
+| An `avc1` track can take its parameter sets from a linked parameter-set track, so a reference that the record does not answer may be valid | The linked track's sets are candidates, read once an approved source describes that track; until the probe has them all, the track lacks candidates and no link is called broken (the maintainer's choice) | 11.5 |
+| A record of level 4 beside a set of level 3.1 was a conflict, though the record may describe more than that set | No public source says how the record must relate to the sets, so a record that differs from the set that supplies a value is no conflict: the set's value stands, and the details keep both | 11.5 |
+| An observed primary set was said to supply every field it holds, against the field guide's overrides by `colr`, `clap` and Matroska's cropping | The primary set stands for the parsed header in each field's precedence; a source ranked above it still comes first | 11.5 |
+| A first encoding of type encryption whose algorithm was unread still declared protection of the settings, though its algorithm can be 0 | Its declaration needs a nonzero algorithm that the probe read; a diagnostic names only the fields observed, and an unread one as unread | 6.3 |
+| Covered settings that do not inflate had no discovery reason in the list, and the definition of an unread field excluded settings that could not be decoded | `DamagedStructure` joins the reasons; a field that a cut left unread and settings that stayed undecoded are two cases, each with its reason | 6.3, 11.4 |
+| In a live Matroska segment, `tag(key)` could return a value that a later Tags element had reset | A set of a replaced element is superseded: `tag_sets()` keeps it as history, and no lookup sees it (the maintainer's choice) | 6.9 |
+| A codec of a newer version without a raw identifier displayed "a codec that was not read" | It displays the serialized name that its version wrote, and the unread text is only for an absent codec (the maintainer's choice) | 6.4 |
+| `H264Details` promised every parameter set read and exposed no picture parameter set | `picture_parameter_sets()` with both identifiers, `activation()` with the identifiers that the first picture named, and `origin()` on each set | 11.5 |
+| `SourceEntry::reason()` said that the record names the same entry, though the record names only the first | The record names the entry whose reason came first; a second one's is in `reasons()` within the budget and on its entry whatever the limits; the diagram says the same | 6.15, 13 |
+| Only `Document` gave its version, so a bare report, detection or error record had to be written again to show its own | Each root record has `schema_version()` | 12 |
+
+The finding on the CLI contract is listed in `cli.md` section 13.
+
+**Found while revising the twelfth review:**
+
+- **The reverse of a reason without its record.** A status that records a shortfall without a first reason of its part breaks the same promise, that an incomplete report always says why (sixth review), so reading refuses it too. Three fixtures of the stub broke one of the two rules (a reason of detection and one of discovery without their first reasons, and a headers status of `incomplete` without one), and they now hold both.
+- **The profile and the compatibility byte** differ from a set for the same reason as the level can, so neither is a conflict either.
+- **A first encoding cut before its type or algorithm** leaves the settings it covers undecoded too, so section 6.3 lists it among the causes, recorded with the cut's own reason.
+- **An `Unknown` codec without a raw identifier,** which only a record of another writer can hold, needed a display that is not the unread one: "an unknown codec".
+- **Where each H.264 set came from.** With a linked track, sets of three origins share one list, so both lists give `origin()`.
+
+**Choices made without asking in the twelfth review,** each open at the gate named:
+
+- A live segment is a segment of unknown size, and there a Tags element read after a Cluster replaces every Tags element read before it; a segment of known size never supersedes a set (G5.2).
+- The reverse check, a status that records a shortfall without a first reason, refused on reading (G2.3).
+- "An unknown codec" for an `Unknown` codec without a raw identifier (G2.3).
+- `activation()` and `origin()` beside the list of picture parameter sets (G4.1).
+- No conflict for any difference between the record and a set, the profile and the compatibility byte included, rather than a conflict for some differences (G4.1).
+- A field that `colr`, `clap` or Matroska's cropping takes from the container gets the provenance `Declared`, with the set's values in the details and no conflict recorded (G4.1, G6.2).
+- A track whose references were not read in full lacks candidates, since a link may exist unseen (G6.2).
+- `schema_version()` on the root records under the `serde` feature, which defines `SchemaVersion` (G2.3).
+
+**Open points of the twelfth review:**
+
+- **Parameter-set tracks and the record's relation to the sets.** No public source describes either. Phase 6 needs one for which samples of a linked track the first picture can use, through GS.2, and until then a linked track's sets stay missing candidates. A public source on the record's relation to the sets would let the H.264 phase say more than "no conflict". The paid standard is not a source.
+- **The MP4RA registry of track references** is not among the stored documents. Its `avcp` row was read at the commit that the stored registries pin, and Phase 6 adds it to `docs/specs/manifest.tsv` (GS.2).
 
 **Open points found while writing:**
 

@@ -329,6 +329,13 @@ impl ErrorRecord {
     self.observations.as_ref()
   }
 
+  /// The schema version that the record was read with, or the current one for a record that this version made; its
+  /// partial report has the same (twelfth review).
+  #[cfg(feature = "serde")]
+  pub fn schema_version(&self) -> SchemaVersion {
+    self.schema_version
+  }
+
   /// The schema versions the record and its partial report were written with, which a document checks against its
   /// own: the partial report is a root record nested in the document too.
   #[cfg(feature = "serde")]

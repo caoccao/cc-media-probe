@@ -18,7 +18,8 @@
 //! How a report is read, `api.md` section 5.3: its members as written, then the check that the headers status agrees
 //! with the header states of the streams. A status of `complete` beside a known state that is not final, or
 //! `incomplete` while every state is known and final, is malformed. Beside a state that a newer version wrote, the
-//! status is the verdict of the version that wrote it.
+//! status is the verdict of the version that wrote it. Then the check that the reasons, the record's first reasons
+//! and the statuses agree part by part, so that `reasons()` never contradicts `is_complete()` (twelfth review).
 
 use super::attachments::Attachment;
 use super::chapters::ChapterEdition;
@@ -28,8 +29,10 @@ use super::stream::Stream;
 use super::tags::TagSet;
 use super::usage::Usage;
 use super::values::{Estimate, MediaType, Provenance, Rational, Seconds};
-use crate::completeness::{Completeness, HeaderState, HeadersStatus};
-use crate::constants::HEADERS_DISAGREE_MESSAGE;
+use crate::completeness::{
+  Completeness, DetectionStatus, DiscoveryStatus, HeaderState, HeadersStatus, Part, SectionStatus,
+};
+use crate::constants::{HEADERS_DISAGREE_MESSAGE, REASONS_DISAGREE_MESSAGE};
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
 use crate::document::{InvalidDocument, SchemaVersion};
@@ -65,6 +68,9 @@ impl TryFrom<ReportData> for MediaReport {
     if !headers_agree(data.completeness.headers(), &data.streams) {
       return Err(InvalidDocument::new(HEADERS_DISAGREE_MESSAGE));
     }
+    if !parts_agree(&data.completeness) {
+      return Err(InvalidDocument::new(REASONS_DISAGREE_MESSAGE));
+    }
     Ok(MediaReport {
       schema_version: data.schema_version,
       format: data.format,
@@ -98,5 +104,60 @@ fn headers_agree(status: &HeadersStatus, streams: &[Stream]) -> bool {
     HeadersStatus::Complete => !known_short,
     HeadersStatus::Incomplete => !every_final,
     HeadersStatus::Unrecognized(_) => true,
+  }
+}
+
+/// Whether the reasons, the record's first reasons and the statuses agree part by part (twelfth review): a kept
+/// reason has the first reason of its part, and a part that this version knows has a first reason exactly when its
+/// status records a shortfall. A status of a newer version agrees either way.
+fn parts_agree(completeness: &Completeness) -> bool {
+  let record = completeness.record();
+  let kept = completeness
+    .reasons()
+    .iter()
+    .all(|reason| record.first_reason(reason.part()).is_some());
+  let statuses = [
+    (Part::Detection, detection_shortfall(completeness.detection())),
+    (Part::Discovery, discovery_shortfall(completeness.discovery())),
+    (Part::Headers, headers_shortfall(completeness.headers())),
+    (Part::Tags, section_shortfall(completeness.tags())),
+    (Part::Chapters, section_shortfall(completeness.chapters())),
+  ];
+  kept
+    && statuses
+      .iter()
+      .all(|(part, shortfall)| shortfall.is_none_or(|expected| expected == record.first_reason(part).is_some()))
+}
+
+/// Whether the status records a shortfall; `None` for a status of a newer version.
+fn detection_shortfall(status: &DetectionStatus) -> Option<bool> {
+  match status {
+    DetectionStatus::Complete => Some(false),
+    DetectionStatus::Incomplete => Some(true),
+    DetectionStatus::Unrecognized(_) => None,
+  }
+}
+
+fn discovery_shortfall(status: &DiscoveryStatus) -> Option<bool> {
+  match status {
+    DiscoveryStatus::Complete => Some(false),
+    DiscoveryStatus::Incomplete => Some(true),
+    DiscoveryStatus::Unrecognized(_) => None,
+  }
+}
+
+fn headers_shortfall(status: &HeadersStatus) -> Option<bool> {
+  match status {
+    HeadersStatus::Complete => Some(false),
+    HeadersStatus::Incomplete => Some(true),
+    HeadersStatus::Unrecognized(_) => None,
+  }
+}
+
+fn section_shortfall(status: &SectionStatus) -> Option<bool> {
+  match status {
+    SectionStatus::Complete | SectionStatus::NotRequested | SectionStatus::NotApplicable => Some(false),
+    SectionStatus::Incomplete => Some(true),
+    SectionStatus::Unrecognized(_) => None,
   }
 }

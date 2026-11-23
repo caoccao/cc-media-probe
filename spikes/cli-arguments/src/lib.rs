@@ -29,4 +29,4 @@ mod scan;
 mod usage;
 
 pub use invocation::{Invocation, parse};
-pub use run::run;
+pub use run::{report_output_failure, run, write_inputs};

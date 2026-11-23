@@ -117,15 +117,25 @@ impl MediaReport {
     &self.tag_sets
   }
 
-  /// The tags of every tag set whose scope was established as the whole file. A set cut short before its targets
-  /// is never among them.
+  /// The top-level tags of every tag set whose scope was established as the whole file. A set cut short before its
+  /// targets is never among them, and a nested tag, an attribute of its parent, never is either.
   pub fn file_tags(&self) -> TagsOf<'_> {
     TagsOf::new(
       self
-        .tag_sets
-        .iter()
+        .effective_tag_sets()
         .filter(|tag_set| matches!(tag_set.target_scope(), TargetScope::WholeFile)),
     )
+  }
+
+  /// Every top-level tag with that key, at any target and of any scope, in the order of `file_tags()`.
+  pub fn tags_with_key(&self, key: &TagKey) -> TagsOf<'_> {
+    TagsOf::with_key(self.effective_tag_sets(), key)
+  }
+
+  /// The tag sets that no later element replaced, which every lookup visits (twelfth review). `tag_sets()` keeps the
+  /// superseded ones as history.
+  fn effective_tag_sets(&self) -> impl Iterator<Item = &TagSet> {
+    self.tag_sets.iter().filter(|tag_set| !tag_set.is_superseded())
   }
 
   /// The attachments of the requested roles.
@@ -133,7 +143,7 @@ impl MediaReport {
     &self.attachments
   }
 
-  /// The first file-level tag with that key and a value.
+  /// The first top-level, file-level tag with that key and a value, from `file_tags()`.
   pub fn tag(&self, key: &TagKey) -> Option<&Tag> {
     self
       .file_tags()
@@ -165,9 +175,10 @@ impl MediaReport {
     self.format_details.as_ref()
   }
 
-  /// The schema version the record was written with, which a document checks against its own.
+  /// The schema version that the record was read with, or the current one for a record that this version made. A
+  /// document gives each record it holds its own, and checks it against its own (twelfth review).
   #[cfg(feature = "serde")]
-  pub(crate) fn schema_version(&self) -> SchemaVersion {
+  pub fn schema_version(&self) -> SchemaVersion {
     self.schema_version
   }
 

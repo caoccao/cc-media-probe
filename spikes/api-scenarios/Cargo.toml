@@ -76,3 +76,19 @@ required-features = ["serde"]
 [[test]]
 name = "flat_trees"
 required-features = ["serde"]
+
+[[test]]
+name = "lookups"
+required-features = ["serde"]
+
+[[test]]
+name = "agreement"
+required-features = ["serde"]
+
+[[test]]
+name = "root_versions"
+required-features = ["serde"]
+
+[[test]]
+name = "h264"
+required-features = ["serde"]

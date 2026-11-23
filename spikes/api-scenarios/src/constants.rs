@@ -194,6 +194,9 @@ pub const CHROMA_FORMAT_MESSAGE: &str = "a chroma format of a known kind holds t
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
 pub const HEADERS_DISAGREE_MESSAGE: &str = "a report's headers status disagrees with the header states of its streams";
+/// A report whose reasons, first reasons and statuses disagree part by part (twelfth review).
+#[cfg(feature = "serde")]
+pub const REASONS_DISAGREE_MESSAGE: &str = "a report's reasons disagree with its statuses or its record";
 
 /// The members of an enum that carries data: the kind, which names the member that holds the value.
 #[cfg(feature = "serde")]

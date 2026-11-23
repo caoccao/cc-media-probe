@@ -17,6 +17,8 @@
 
 //! The source table, `api.md` section 6.15: one entry for each source the probe requested.
 
+use std::fmt;
+
 use super::path::PortablePath;
 #[cfg(feature = "serde")]
 use super::raw::RawPath;
@@ -35,6 +37,20 @@ use crate::twin::{unsigned_members, unsigned_value};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SourceIdentifier(#[cfg_attr(feature = "serde", serde(with = "crate::decimal"))] u64);
+
+impl SourceIdentifier {
+  /// The number, 0 for the primary input, as the CLI prints it after `source` (tenth review).
+  pub fn value(&self) -> u64 {
+    self.0
+  }
+}
+
+impl fmt::Display for SourceIdentifier {
+  /// The number in canonical decimal, the text of its serialized form.
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(formatter, "{}", self.0)
+  }
+}
 
 /// One source the probe requested.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

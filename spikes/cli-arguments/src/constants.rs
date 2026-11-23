@@ -65,6 +65,10 @@ pub const RUN_LINE: &str = "run";
 pub const INPUT_LINE: &str = "input";
 /// The first word of each line that the spike's program prints.
 pub const USAGE_ERROR_LINE: &str = "usage error";
+/// The line that stands for the usage-error document on standard output in JSON mode.
+pub const USAGE_DOCUMENT_LINE: &str = "usage error document";
+/// The line on standard error after standard output failed (`cli.md` section 9).
+pub const OUTPUT_FAILED_LINE: &str = "standard output failed";
 
 /// The exit status of a usage error (R21).
 pub const USAGE_ERROR_STATUS: u8 = 2;

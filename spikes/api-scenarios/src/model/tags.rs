@@ -42,6 +42,8 @@ pub struct TagSet {
   chapter_targets: Vec<TargetReference>,
   attachment_targets: Vec<TargetReference>,
   target_scope: TargetScope,
+  #[cfg_attr(feature = "serde", serde(default))]
+  superseded: bool,
   #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
   tags: Vec<Tag>,
 }
@@ -81,6 +83,13 @@ impl TagSet {
   /// The top-level tags, in stored order.
   pub fn tags(&self) -> &[Tag] {
     &self.tags
+  }
+
+  /// Whether a later element replaced the one that holds this set, as a Tags element between the clusters of a live
+  /// Matroska segment resets the earlier ones (RFC 9559 section 23.2). The set stays as history, and no lookup sees
+  /// it (twelfth review).
+  pub fn is_superseded(&self) -> bool {
+    self.superseded
   }
 }
 

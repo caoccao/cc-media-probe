@@ -50,7 +50,7 @@ fn the_parser_writes_nothing_itself() {
   assert_eq!(
     outputs(&["--json", "-", "-"]),
     (
-      String::new(),
+      "usage error document: standard input (-) was named twice\n".to_owned(),
       "usage error true: standard input (-) was named twice\n".to_owned(),
       Some(2)
     )
@@ -73,15 +73,65 @@ fn the_parser_writes_nothing_itself() {
 fn an_output_whose_reader_has_gone_fails_with_status_1() {
   // The eighth review's case. A pipe whose read end is closed before the program writes fails every write, so the
   // status is 1 on every run. A reader that is still open, as `head` can be for a short output, lets the writes
-  // succeed, and the program then ends normally.
+  // succeed, and the program then ends normally. Since the twelfth review, standard error also gets the failure's line
+  // (`cli.md` section 9); which byte failed and which inputs were taken are for `tests/output.rs`.
   let (reader, writer) = std::io::pipe().unwrap();
   drop(reader);
-  let status = Command::new(env!("CARGO_BIN_EXE_cli-arguments"))
-    .arg("a")
+  let output = Command::new(env!("CARGO_BIN_EXE_cli-arguments"))
+    .args(["a", "b"])
     .stdout(writer)
-    .status()
+    .output()
     .unwrap();
-  assert_eq!(status.code(), Some(1));
+  assert_eq!(output.status.code(), Some(1));
+  let errors = String::from_utf8(output.stderr).unwrap();
+  assert_eq!(errors.lines().count(), 1);
+  assert!(errors.starts_with("standard output failed: "), "{errors}");
+}
+
+/// The status and standard output of the program, run with a standard error whose read end is closed.
+fn without_standard_error(arguments: &[&str]) -> (String, Option<i32>) {
+  let (reader, writer) = std::io::pipe().unwrap();
+  drop(reader);
+  let output = Command::new(env!("CARGO_BIN_EXE_cli-arguments"))
+    .args(arguments)
+    .stderr(writer)
+    .output()
+    .unwrap();
+  (String::from_utf8(output.stdout).unwrap(), output.status.code())
+}
+
+#[test]
+fn a_usage_error_keeps_status_2_when_standard_error_fails() {
+  // The tenth review's case: a failure to write standard error changes nothing (`cli.md` section 9), so a usage
+  // error still exits with 2, and in JSON mode standard output still gets its document.
+  assert_eq!(without_standard_error(&["--jsno"]), (String::new(), Some(2)));
+  assert_eq!(
+    without_standard_error(&["--json", "--jsno"]),
+    ("usage error document: unknown option: --jsno\n".to_owned(), Some(2))
+  );
+  assert_eq!(
+    without_standard_error(&["a"]),
+    ("run false false false\ninput a\n".to_owned(), Some(0))
+  );
+}
+
+#[test]
+fn a_usage_error_keeps_status_2_when_its_document_cannot_be_written() {
+  // `cli.md` section 4: the status stays 2, and standard error also reports the output failure, on the line before
+  // the usage error's, as the maintainer chose at the eleventh review.
+  let (reader, writer) = std::io::pipe().unwrap();
+  drop(reader);
+  let output = Command::new(env!("CARGO_BIN_EXE_cli-arguments"))
+    .args(["--json", "--jsno"])
+    .stdout(writer)
+    .output()
+    .unwrap();
+  assert_eq!(output.status.code(), Some(2));
+  let errors = String::from_utf8(output.stderr).unwrap();
+  let lines: Vec<&str> = errors.lines().collect();
+  assert_eq!(lines.len(), 2);
+  assert!(lines[0].starts_with("standard output failed: "));
+  assert_eq!(lines[1], "usage error true: unknown option: --jsno");
 }
 
 #[test]

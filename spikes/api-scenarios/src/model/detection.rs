@@ -48,9 +48,10 @@ impl Detection {
     self.format.as_ref()
   }
 
-  /// The schema version the record was written with, which a document checks against its own.
+  /// The schema version that the record was read with, or the current one for a record that this version made. A
+  /// document gives each record it holds its own, and checks it against its own (twelfth review).
   #[cfg(feature = "serde")]
-  pub(crate) fn schema_version(&self) -> SchemaVersion {
+  pub fn schema_version(&self) -> SchemaVersion {
     self.schema_version
   }
 

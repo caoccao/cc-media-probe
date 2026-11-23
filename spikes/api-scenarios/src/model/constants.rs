@@ -21,8 +21,12 @@
 pub const SECONDS_SYMBOL: &str = "s";
 /// Between the width and the height in `Size`'s display.
 pub const SIZE_SEPARATOR: &str = "x";
-/// The display of a codec without a name or a raw identifier.
-pub const UNKNOWN_CODEC_TEXT: &str = "unknown codec";
+/// The display of a codec that the input never named, as a Matroska track entry cut short before its `CodecID` is:
+/// no codec, no name and no raw identifier (tenth review).
+pub const UNNAMED_CODEC_TEXT: &str = "a codec that was not read";
+/// The display of a codec that the file named and this version does not know, without a raw identifier to show
+/// (twelfth review). The library always keeps one; a record that another writer built need not.
+pub const UNKNOWN_CODEC_TEXT: &str = "an unknown codec";
 /// Between the candidates in the display of an unresolved codec.
 pub const CANDIDATE_SEPARATOR: &str = " or ";
 /// The display of a candidate that the probe could not read or keep.

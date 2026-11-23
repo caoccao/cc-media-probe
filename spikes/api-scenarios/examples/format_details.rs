@@ -52,8 +52,16 @@ fn main() -> Result<(), Error> {
     let Some(CodecDetails::H264(h264)) = stream.codec_details() else {
       continue;
     };
+    // The primary set was read up to its identifier, which follows `profile_idc` and `level_idc`, so a cut falls after
+    // them. A set cut short keeps the fields read before the cut.
     if let Some(set) = h264.primary_sequence_parameter_set() {
-      // A set cut short keeps the fields read before the cut.
+      match set.picture_width_in_macroblocks_minus_one() {
+        Some(width) => println!("#{}: primary set, pic_width_in_mbs_minus1 {width}", stream.index()),
+        None => println!("#{}: primary set, cut before pic_width_in_mbs_minus1", stream.index()),
+      }
+    }
+    // Any set read can be cut before its profile or its level; such a set is never primary.
+    for set in h264.sequence_parameter_sets() {
       match (set.profile_indication(), set.level_indication()) {
         (Some(profile), Some(level)) => println!("#{}: profile_idc {profile}, level_idc {level}", stream.index()),
         (Some(profile), None) => println!("#{}: profile_idc {profile}, cut before level_idc", stream.index()),

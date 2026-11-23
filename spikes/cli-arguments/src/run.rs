@@ -16,27 +16,38 @@
 */
 
 //! The spike's program: one line for the invocation on standard output, one line for each input, and a usage
-//! error on standard error with its exit status. It probes nothing.
+//! error on standard error with its exit status. In JSON mode a usage error also writes one line on standard output,
+//! which stands for its document. It probes nothing.
 
 use std::env;
 use std::ffi::OsString;
+use std::fmt;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use crate::constants::{HELP_LINE, INPUT_LINE, RUN_LINE, USAGE_ERROR_LINE, USAGE_ERROR_STATUS, VERSION_LINE};
+use crate::constants::{
+  HELP_LINE, INPUT_LINE, OUTPUT_FAILED_LINE, RUN_LINE, USAGE_DOCUMENT_LINE, USAGE_ERROR_LINE, USAGE_ERROR_STATUS,
+  VERSION_LINE,
+};
 use crate::escape::for_terminal;
 use crate::invocation::{Invocation, parse};
 
 /// Reads the process's arguments and prints what they ask for.
 pub fn run() -> ExitCode {
   let arguments: Vec<OsString> = env::args_os().skip(1).collect();
-  match print(&parse(&arguments)) {
-    Ok(status) => status,
-    Err(_) => ExitCode::FAILURE,
+  match parse(&arguments) {
+    Invocation::UsageError { json, message } => usage_error(json, &message),
+    invocation => match print(&invocation) {
+      Ok(()) => ExitCode::SUCCESS,
+      Err(failure) => {
+        report_output_failure(&mut io::stderr().lock(), &failure);
+        ExitCode::FAILURE
+      }
+    },
   }
 }
 
-fn print(invocation: &Invocation) -> io::Result<ExitCode> {
+fn print(invocation: &Invocation) -> io::Result<()> {
   let mut output = io::stdout().lock();
   match invocation {
     Invocation::Help => writeln!(output, "{HELP_LINE}")?,
@@ -48,19 +59,53 @@ fn print(invocation: &Invocation) -> io::Result<ExitCode> {
       inputs,
     } => {
       writeln!(output, "{RUN_LINE} {json} {detect} {strict}")?;
-      for input in inputs {
-        writeln!(output, "{INPUT_LINE} {}", input.to_string_lossy())?;
-      }
+      return write_inputs(&mut output, inputs);
     }
-    Invocation::UsageError { json, message } => {
-      writeln!(
-        io::stderr().lock(),
-        "{USAGE_ERROR_LINE} {json}: {}",
-        for_terminal(message)
-      )?;
-      return Ok(ExitCode::from(USAGE_ERROR_STATUS));
+    Invocation::UsageError { .. } => {}
+  }
+  output.flush()
+}
+
+/// Writes one line for each input and then flushes, taking an input only once the line before it was written. The
+/// first failure ends the output, so no further input is taken, as the tool probes no further input (`cli.md`
+/// section 9). The tests drive it with a writer that fails at a chosen byte and inputs that count what was taken,
+/// which a closed pipe cannot choose (section 10, twelfth review).
+///
+/// # Errors
+///
+/// The first failure of a write or of the final flush, after which no further input is taken.
+pub fn write_inputs<'input>(
+  output: &mut impl Write,
+  inputs: impl IntoIterator<Item = &'input OsString>,
+) -> io::Result<()> {
+  for input in inputs {
+    writeln!(output, "{INPUT_LINE} {}", input.to_string_lossy())?;
+  }
+  output.flush()
+}
+
+/// Writes the line of an output failure to `errors`, escaped. A failure to write it changes nothing (`cli.md`
+/// section 9), so its result is ignored.
+pub fn report_output_failure(errors: &mut impl Write, failure: &io::Error) {
+  let _ = writeln!(errors, "{OUTPUT_FAILED_LINE}: {}", for_terminal(&failure.to_string()));
+}
+
+/// A usage error exits with 2 whatever its outputs do (`cli.md` section 9, tenth review). In JSON mode its document
+/// goes to standard output, and a failure there is reported on standard error, on the line before the usage error's
+/// (eleventh review). The message goes to standard error, escaped there only.
+fn usage_error(json: bool, message: &str) -> ExitCode {
+  if json {
+    let mut output = io::stdout().lock();
+    if let Err(failure) = writeln!(output, "{USAGE_DOCUMENT_LINE}: {message}").and_then(|()| output.flush()) {
+      report_output_failure(&mut io::stderr().lock(), &failure);
     }
   }
-  output.flush()?;
-  Ok(ExitCode::SUCCESS)
+  write_error_line(format_args!("{USAGE_ERROR_LINE} {json}: {}", for_terminal(message)));
+  ExitCode::from(USAGE_ERROR_STATUS)
+}
+
+/// Writes one line to standard error. A failure to write standard error changes nothing (`cli.md` section 9), so its
+/// result is ignored.
+fn write_error_line(line: fmt::Arguments<'_>) {
+  let _ = writeln!(io::stderr().lock(), "{line}");
 }

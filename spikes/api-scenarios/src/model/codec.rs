@@ -20,8 +20,8 @@
 use std::fmt;
 
 use super::constants::{
-  AAC_NAME, AV1_NAME, CANDIDATE_SEPARATOR, H264_NAME, MISSING_CANDIDATE_TEXT, OPUS_NAME, UNKNOWN_CODEC_TEXT, VP9_NAME,
-  WEBVTT_NAME,
+  AAC_NAME, AV1_NAME, CANDIDATE_SEPARATOR, H264_NAME, MISSING_CANDIDATE_TEXT, OPUS_NAME, UNKNOWN_CODEC_TEXT,
+  UNNAMED_CODEC_TEXT, VP9_NAME, WEBVTT_NAME,
 };
 use super::unrecognized_value::UnrecognizedValue;
 
@@ -61,6 +61,22 @@ impl Codec {
       Codec::WebVtt => Some(WEBVTT_NAME),
       Codec::Unknown | Codec::Unrecognized(_) => None,
     }
+  }
+
+  /// What a display writes before the raw identifiers: the library's name, or the serialized name that a newer
+  /// version wrote (twelfth review).
+  fn display_name(&self) -> Option<&str> {
+    match self {
+      Codec::Unrecognized(value) => Some(value.as_str()),
+      known => known.name(),
+    }
+  }
+
+  /// The display of a codec that is present: its name, else its first raw identifier, else the text of an unknown
+  /// codec. "A codec that was not read" is only for an absent codec.
+  fn display_text<'text>(&'text self, raw_identifiers: &'text [RawCodecIdentifier]) -> &'text str {
+    let raw = raw_identifiers.first().map(RawCodecIdentifier::value);
+    self.display_name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT)
   }
 }
 
@@ -151,10 +167,10 @@ impl CodecCandidate {
 }
 
 impl fmt::Display for CodecCandidate {
-  /// The codec's name; for a codec without one, the description's first raw identifier as written.
+  /// The codec's name, or the serialized name of a codec that a newer version wrote; else the description's first
+  /// raw identifier as written; else the text of an unknown codec.
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
-    formatter.write_str(self.codec.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT))
+    formatter.write_str(self.codec.display_text(&self.raw_identifiers))
   }
 }
 
@@ -218,13 +234,19 @@ impl CodecInformation {
 }
 
 impl fmt::Display for CodecInformation {
-  /// The codec's name; for a codec without one, the first raw identifier as written. An unresolved codec writes
-  /// each candidate in the same way, from the candidate's own identifiers, separated by " or ", and ends with a
-  /// description that was not read when a candidate is missing. With no candidate kept, that phrase stands alone.
+  /// The codec's name, or the serialized name of a codec that a newer version wrote (twelfth review); for a codec
+  /// without either, the first raw identifier as written, and "an unknown codec" without one. An unresolved codec
+  /// writes each candidate in the same way, from the candidate's own identifiers, separated by " or ", and ends with
+  /// a description that was not read when a candidate is missing. With no candidate kept, that phrase stands alone,
+  /// as for an ISO description cut off before its format code. An absent codec that a stream without sample
+  /// descriptions never named, with no raw identifier and no candidate missing, is a codec that was not read.
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if self.codec.is_some() || (self.candidates.is_empty() && self.has_every_candidate) {
+    if let Some(codec) = &self.codec {
+      return formatter.write_str(codec.display_text(&self.raw_identifiers));
+    }
+    if self.candidates.is_empty() && self.has_every_candidate {
       let raw = self.raw_identifiers.first().map(RawCodecIdentifier::value);
-      return formatter.write_str(self.name().or(raw).unwrap_or(UNKNOWN_CODEC_TEXT));
+      return formatter.write_str(raw.unwrap_or(UNNAMED_CODEC_TEXT));
     }
     for (position, candidate) in self.candidates.iter().enumerate() {
       if position > 0 {

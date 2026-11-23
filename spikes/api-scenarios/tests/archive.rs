@@ -46,7 +46,8 @@ fn report_text(version: &str, completeness: Value) -> Value {
   })
 }
 
-/// A completeness record with that discovery status, those reasons and that tags status.
+/// A completeness record with that discovery status, those reasons and that tags status. Each reason is the first of
+/// its part, so the record keeps them all, as reading requires since the twelfth review.
 fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
   json!({
     "detection": "Complete",
@@ -55,8 +56,12 @@ fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
     "tags": tags,
     "chapters": "Complete",
     "attachments": "Complete",
-    "reasons": reasons,
-    "record": { "exhausted": ["Streams"], "first_stopped": [["Streams", "Discovery"]] },
+    "reasons": reasons.clone(),
+    "record": {
+      "exhausted": ["Streams"],
+      "first_stopped": [["Streams", "Discovery"]],
+      "first_reasons": reasons,
+    },
   })
 }
 

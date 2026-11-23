@@ -64,14 +64,20 @@ fn report_with(completeness: Value) -> MediaReport {
 
 #[test]
 fn a_report_whose_detection_was_cut_short_is_incomplete() {
-  // The working-memory limit stopped the check of one candidate, and the other candidate validated.
+  // The working-memory limit stopped the check of one candidate, and the other candidate validated. The record keeps
+  // the first reason of detection beside the kept one, as reading requires since the twelfth review.
+  let reason = json!({
+    "part": "Detection",
+    "reason": { "kind": "LimitExhausted", "limit": "WorkingMemory" },
+  });
   let stopped = report(
     json!("Incomplete"),
-    json!([{
-      "part": "Detection",
-      "reason": { "kind": "LimitExhausted", "limit": "WorkingMemory" },
-    }]),
-    json!({ "exhausted": ["WorkingMemory"], "first_stopped": [["WorkingMemory", "Detection"]] }),
+    json!([reason]),
+    json!({
+      "exhausted": ["WorkingMemory"],
+      "first_stopped": [["WorkingMemory", "Detection"]],
+      "first_reasons": [reason],
+    }),
   );
   let completeness = stopped.completeness();
   assert_eq!(completeness.detection(), &DetectionStatus::Incomplete);
@@ -237,11 +243,19 @@ fn the_number_of_reasons_not_kept_is_a_decimal_string() {
   assert!(record(json!(3)).is_err(), "a number is not the form");
 }
 
-/// A report whose one stream has that header status, with that headers status, complete parts otherwise, no reason
-/// and an empty record.
+/// A report whose one stream has that header status, with that headers status and complete parts otherwise. A
+/// headers status of `Incomplete` has the first reason of the headers in the record, as reading requires since the
+/// twelfth review; no other part has a reason.
 fn report_with_header_state(header_status: Value, headers: Value) -> Result<MediaReport, serde_json::Error> {
   let empty_record = json!({ "exhausted": [], "first_stopped": [] });
   let mut text = serde_json::to_value(report(json!("Complete"), json!([]), empty_record)).unwrap();
+  if headers == json!("Incomplete") {
+    text["completeness"]["record"]["first_reasons"] = json!([{
+      "part": "Headers",
+      "stream": 0,
+      "reason": { "kind": "TruncatedInput" },
+    }]);
+  }
   text["completeness"]["headers"] = headers;
   text["streams"] = json!([{
     "index": 0,
@@ -267,7 +281,7 @@ fn the_headers_status_carries_the_header_states_into_completeness() {
   let cut = json!({ "state": "NotFoundWithinBudget", "reason": { "kind": "TruncatedInput" } });
   let short = report_with_header_state(cut.clone(), json!("Incomplete")).unwrap();
   assert!(!short.completeness().is_complete());
-  assert_eq!(short.completeness().to_string(), "incomplete");
+  assert_eq!(short.completeness().to_string(), "incomplete: truncated_input");
   assert_eq!(outcome(short), Some(EntryOutcome::Partial));
   let parsed = json!({ "state": "Parsed" });
   assert_eq!(
@@ -294,6 +308,98 @@ fn beside_a_header_state_of_a_newer_version_the_headers_status_is_the_writers_ve
     report_with_header_state(json!({ "state": "Parsed" }), json!({ "Unrecognized": "partly_read" })).unwrap();
   assert!(!unknown.completeness().is_complete());
   assert_eq!(outcome(unknown), None);
+}
+
+#[test]
+fn a_codec_that_the_input_never_named_has_a_display_of_its_own() {
+  // The tenth review's case: a Matroska track entry cut short before its `CodecID` has no codec, no raw identifier
+  // and no sample descriptions, so it has every candidate it needs and none to show.
+  let unnamed = codec(json!([]), true);
+  assert_eq!(unnamed.codec(), None);
+  assert!(unnamed.raw_identifiers().is_empty());
+  assert_eq!(unnamed.to_string(), "a codec that was not read");
+}
+
+#[test]
+fn a_codec_of_a_newer_version_displays_the_name_that_it_wrote() {
+  // The twelfth review's case, as the maintainer chose: a newer version identified the codec from its content, so it
+  // has no raw identifier, and "a codec that was not read" stays for an absent codec.
+  let read = |codec: Value, raw_identifiers: Value| -> CodecInformation {
+    serde_json::from_value(json!({
+      "codec": codec,
+      "candidates": [],
+      "has_every_candidate": true,
+      "raw_identifiers": raw_identifiers,
+    }))
+    .unwrap()
+  };
+  let newer = json!({ "Unrecognized": "future_codec" });
+  assert_eq!(read(newer.clone(), json!([])).to_string(), "future_codec");
+  // The name that the newer version wrote comes before the identifier that the file wrote.
+  let raw = json!([{ "namespace": "IsoSampleEntry", "value": "fut1" }]);
+  assert_eq!(read(newer.clone(), raw.clone()).to_string(), "future_codec");
+  assert_eq!(read(json!("Unknown"), raw).to_string(), "fut1");
+  assert_eq!(read(json!("Unknown"), json!([])).to_string(), "an unknown codec");
+  // A candidate is written the same way.
+  let candidate = codec(
+    json!([{ "sample_description_index": 1, "codec": newer, "raw_identifiers": [] }]),
+    false,
+  );
+  assert_eq!(candidate.to_string(), "future_codec or a description that was not read");
+}
+
+#[test]
+fn an_iso_description_cut_off_before_its_format_code_is_a_description_that_was_not_read() {
+  // The eleventh review's case: the first sample selects description 1, cut off before its format code. A track with
+  // sample descriptions is never "a codec that the input never named", so a candidate is missing.
+  let cut = codec(json!([]), false);
+  assert_eq!(cut.codec(), None);
+  assert!(cut.raw_identifiers().is_empty());
+  assert!(!cut.has_every_candidate());
+  assert_eq!(cut.to_string(), "a description that was not read");
+  let details: FormatDetails = serde_json::from_value(json!({
+    "IsoBaseMedia": {
+      "fragment_track_identifiers": [],
+      "tracks": [{ "stream_index": 0, "first_sample_description_index": 1 }],
+    },
+  }))
+  .unwrap();
+  let FormatDetails::IsoBaseMedia(iso) = details else {
+    panic!("the ISO details");
+  };
+  assert_eq!(iso.track(0).unwrap().first_sample_description_index(), Some(1));
+}
+
+#[test]
+fn a_companion_diagnostic_names_its_source_in_decimal() {
+  // The tenth review's case: the CLI prints `source 1`, which needs the identifier's number, and `Debug` is no such
+  // text.
+  let mut text = serde_json::to_value(report(
+    json!("Complete"),
+    json!([]),
+    json!({ "exhausted": [], "first_stopped": [] }),
+  ))
+  .unwrap();
+  text["diagnostics"] = json!([{
+    "severity": "Warning",
+    "code": "vobsub.index_disagrees",
+    "message": "the data file is shorter than its index says",
+    "source_identifier": "1",
+    "offset": 4096,
+    "stream": 0,
+  }]);
+  let read: MediaReport = serde_json::from_value(text).unwrap();
+  let diagnostic = &read.diagnostics()[0];
+  let source = diagnostic.source_identifier();
+  assert_eq!(source.value(), 1);
+  assert_eq!(source.to_string(), "1");
+  assert_eq!(format!("{source:?}"), "SourceIdentifier(1)");
+  let location = format!(
+    "(stream {}, source {source}, byte {})",
+    diagnostic.stream().unwrap(),
+    diagnostic.offset().unwrap()
+  );
+  assert_eq!(location, "(stream 0, source 1, byte 4096)");
 }
 
 #[test]
