@@ -3437,3 +3437,569 @@ The same crate found two more cases (below): `1e400` before a version of 2.0 gav
 - G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth to fifteenth reviews made without asking, and the sixth to fifteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
 - `docs/guide/stability.md`, after that review, for G2.4;
 - the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.
+
+## 2026-11-24 — Progress: Phase 2, task 5, the stability policy
+
+The maintainer sent the standing brief again, with no review of revision 50. The agent read the plan's Phase 2, its sections 8.8 to 8.10 and Appendix C.6, and the open items of the fifteenth review's entry. G2.3 waits for that review. `stability.md` and the checklist of task 6 are still to be written, and tasks 11 to 13 wait for G2.3 and G2.4. No gate was recorded as approved.
+
+**Decisions of the maintainer.** The agent asked eight questions in two rounds, after reading the Cargo SemVer guide, the Rust API Guidelines checklist and the Cargo book's resolver chapter. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| The next step while revision 50 waits for its review | Draft `docs/guide/stability.md` for G2.4 now; fold in the review's findings when they arrive | Confirm G2.3 now; write the checklist of task 6 first; wait for the review | `json-output.md` has had three reviews, the thirteenth to the fifteenth |
+| The schema's major version before 1.0 | It stays at 1 through every `0.x` release; G16.1 decides whether 1.0 raises it | A `0.x` minor release may raise it, with a gate decision and a migration | Programs that read the JSON get the contract from 0.1.0, while the Rust API may still break in a `0.x` minor release, and 0.1.0 stays the first release of the major for R27 |
+| The compatible kinds of output change | Improvements and fixes: a fix that brings a value back to its documented rule is compatible even when it changes or removes the value | Improvements only, with such a fix held for a breaking release | Plan section 9.6 makes every change outside the listed kinds a breaking change, so without fixes every correction would wait for a breaking release |
+| What a patch release may change | Fixes only, with the minor line's MSRV | Any compatible change, as Cargo's reading of `z` in `0.y.z` allows | New fields, parsers, formats, options and changed defaults then come only in a minor release |
+| Changing a default limit | Raised in a minor release; lowered only to fix a security problem, which may come in any release | Either way in a minor release; only in a breaking release | A raised default can only let a probe read further, while a lowered one can make a complete report incomplete |
+| The CLI's options | As stable as the Rust API: a new option in a minor release, removal or change only in a breaking release after a deprecation of at least one minor release that warns on standard error | Like the text layout, changed in any minor release | Scripts depend on the command line as they do on the exit statuses |
+| A shortfall newly found by reading further | Compatible, and listed under "Changed output" | A breaking change | The new reason is true of the input, and the changelog shows `--strict` users the change |
+| Which release lines receive fixes | The newest minor line; an older line only for a security problem, at the maintainer's decision | The newest two lines; the newest line with no exception | R12 keeps each line's MSRV fixed, and one maintained line is what a project of this size can carry |
+
+**The draft.** [`docs/guide/stability.md`](../guide/stability.md) covers the following:
+
+- **Versions and releases:** a diagram of which release can carry a change, patch releases, and the lines that receive fixes.
+- **The Rust API:** what is public, how it stays compatible, deprecation, and dependencies.
+- **Cargo features.**
+- **What a probe reports:** compatible changes, breaking changes, and default limits.
+- **The serialized form:** the major version, the rules for every later minor version (with the ninth review's rule that no catch-all keeps a root record), and what the tests keep.
+- **The command-line tool** and the MSRV.
+- **The README's summary.**
+- **Decisions for G2.4.**
+
+**Found while writing:**
+
+- **"A major crate release" had no meaning before 1.0.** Plan section 8.8 lets the schema's major version change only in a major crate release. Cargo's SemVer guide reads a change of `y` in `0.y.z` as major, while G16.1 considers moving the schema to 2.0 only at 1.0. The maintainer's choice settles it, and plan section 8.8 and `json-output.md` sections 4.1 and 9 now say so.
+- **Fixes needed a place.** Plan section 9.6 makes every output change that `stability.md` does not list a breaking change, so the guide lists fixes among the compatible kinds.
+- **The CLI's options had no stated stability.** `cli.md` section 8.8 named the outputs, the exit statuses, the usage errors and the JSON document as stable, but not the options.
+- **Patch releases had no stated owner line.** Appendix C.6 described maintenance lines without saying which lines get patch releases.
+- **Usage numbers change with every parser change.** The usage summary is in the adapter part of every expectation (plan section 9.2). The guide lists its numbers as the work of a run, compatible, and listed when an expectation changes.
+- **The README's summary waits for G2.4.** Plan section 10 gives the README an MSRV and stability summary, complete in Phase 8. G2.4 confirms its wording, so the guide's section 8 holds the text, and `README.md` is unchanged until then.
+- **A link in that quoted text** first used a repository-relative path, which the link check found broken from `docs/guide/`. It now uses the absolute address that the README uses for its links.
+
+**Online check:**
+
+- **The [Cargo SemVer guide](https://doc.rust-lang.org/cargo/reference/semver.html).** It calls a change of the MSRV possibly breaking and recommends treating it as a minor change. Adding a Cargo feature is a minor change; removing one, or removing it from another feature's list, such as `default`, is a major change. For a `0.y.z` version, a change of `y` counts as major and a change of `z` as minor.
+- **The [Rust API Guidelines checklist](https://rust-lang.github.io/api-guidelines/checklist.html).** Its C-STABLE item says that the public dependencies of a stable crate are stable. `api.md` section 14 already gives the rule for futures-io at 0.3, and the guide repeats it.
+- **The Cargo book's [resolver chapter](https://doc.rust-lang.org/cargo/reference/resolver.html) and [configuration reference](https://doc.rust-lang.org/cargo/reference/config.html).** Resolver 3, the default of edition 2024 and supported from Rust 1.84, sets `resolver.incompatible-rust-versions` to `fallback`, which prefers dependency versions whose `rust-version` the project's own Rust version meets. The `[resolver]` table does not apply to `cargo install`.
+
+**Choices made without asking,** each open at G2.4 and listed in `stability.md` section 9:
+
+- a new feature starts off by default, and a feature never leaves the default set in a compatible release;
+- the default of every option other than a limit is part of the API;
+- the `--version` line keeps its form;
+- a deprecated option writes a warning to standard error;
+- the usage numbers are the work of a run;
+- `Debug`, `Display` and message text change without an entry;
+- a private dependency may change its version in a compatible release, within the allow-list and the MSRV;
+- a patch release may change documentation;
+- a security fix that lowers a default is listed under "Security" as well as "Changed output";
+- the README's summary is the text of the guide's section 8.
+
+**Plan, revision 51:**
+
+- section 7.5: when a default limit may change;
+- section 8.8: the schema's major version before 1.0;
+- section 8.9: the stability of the options;
+- section 8.10: the compatible kinds of output change and patch releases;
+- Phase 2, task 5: the maintainer's choice to write `stability.md` before the review of revision 50;
+- Appendix C.6: the lines that receive fixes;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+The other documents follow:
+
+- `json-output.md`: its status and sections 4.1 and 9;
+- `cli.md`: its status and section 8.8;
+- `api.md`: its status, a sentence each in sections 4.5 and 14, and a paragraph in section 16.
+
+None of the changes touches a requirement of plan section 3. R12 and D2 hold as written. No rule that `CLAUDE.md` or `CONTRIBUTING.md` summarizes changed.
+
+**Verification.**
+
+- **Diagrams.** The chart of `stability.md` section 1 renders with mermaid.js 11.4.1 in headless Chromium, with its 10 nodes, no syntax error and no console error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 50, and of the draft of `stability.md` with revision 51;
+- G2.3, as the fifteenth review's entry lists it;
+- G2.4, which confirms the wording of `stability.md` and of the README's summary, with the choices above;
+- the checklist of task 6, `docs/design/api-guidelines-checklist.md`;
+- the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.
+
+## 2026-11-24 — GS.4: R12 and the day of the MSRV (revision 52) [CONFIRM]
+
+**The finding.** The sixteenth review found that the stability guide fixed a minor line's MSRV on the day the release is prepared, while the README's proposed summary said "when a minor line is released". Behind the two stood R12, "the stable version current on its release day", and D2 and Appendix C.6, step 2, which set `rust-version` on the day the release candidate is built. A Rust release between the candidate and its publication would give two different MSRVs, and R12 is a confirmed requirement of plan section 3.
+
+**Decision of the maintainer.** Asked whether the day of the candidate or the day of publication decides, the maintainer chose the day the release candidate is built, the recommended option, which amends R12 through GS.4. The alternative kept R12 and added a check at the go/no-go that rebuilds the candidate when a newer stable Rust came out in between.
+
+**What changed.** R12 now reads "Each minor release (0.2.0, 0.3.0, …) adopts the stable version current on the day its release candidate is built (Appendix C.6, step 2)", with "amended through GS.4 on 2026-11-24" in its history. D2 says the same and adds that CI tests that toolchain and the preflight records it, so a stable release before publication changes nothing. Appendix C.6, step 2, already set `rust-version` "to the stable version current that day" while the candidate is built, so it does not change. `stability.md` section 7 and the README's proposed summary say "when the minor release is prepared". `CLAUDE.md` names the pinned toolchain, not the MSRV rule, and `CONTRIBUTING.md` names neither, so neither changes.
+
+## 2026-11-24 — Progress: Phase 2, the sixteenth review of the API specification
+
+The maintainer's sixteenth review, pasted as code comments, read revision 50 (`51dab2e`) with the staged drafts of revision 51. It raised four findings on `api.md`, six on `json-output.md`, one on `cli.md` and eight on `stability.md`: two of priority 1, fourteen of priority 2 and three of priority 3. It also noted that `stability.md` section 9 listed the deprecation warning among the choices made without asking, though the maintainer had chosen it. No gate was recorded as approved.
+
+**Decisions of the maintainer.** The agent asked four questions after reproducing the cases. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| The private map of serde_json's `arbitrary_precision` feature, which the Serde data model cannot tell from an object of the same shape | A number only where no type is known: a catch-all, a kept member and a member that no type reads take it as its number, and a typed member takes it as the object it is, in either order; the form states the restriction | A number everywhere, typed members included; refusing the name, which would leave no fractional number readable in a catch-all of a build with the feature | The neutral form then holds nothing that the type decides later, so the order of the members and the build decide nothing |
+| The two builds forwarding different doubles for `1.2234567890123456789` | State what holds and test it: the correctly rounded nearest double through the map, which serde_json gives without the feature only with `float_roundtrip` | Let the library's `serde` feature turn `float_roundtrip` on, through a dependency on serde_json that the library does not otherwise use | The library cannot change the double that a format's own parser gives |
+| A deprecated option's warning in JSON mode, which section 7 forbade | Standard error in either mode, one line per deprecated option in the order of the command line, before anything else; a command line with a usage error writes the usage error only | A `warnings` member of the document; no warning in JSON mode | Programs read standard output, and the warning reaches the person who runs the command |
+| The day of a minor line's MSRV, which R12, D2 and the README named differently | The day the release candidate is built, R12 amended through GS.4 (entry above) | The day of publication, with the candidate rebuilt when a newer stable came out | That is the toolchain that CI tests and the preflight records |
+
+**Reproduced first.** A scratch crate in the session's scratchpad, outside the repository, depended on the stub, ciborium 0.2.2 and serde_json 1.0.154, with Cargo features for `arbitrary_precision` and `float_roundtrip`. It reproduced every case that the review reported:
+
+- `{"$serde_json::private::Number": "60"}` as a candidate's confidence read as 60 before the version and was refused after it, in both builds, and in an entry of a newer outcome came back as `60`;
+- with `arbitrary_precision`, `1e400` in a member that no type reads was refused before the version and read after it;
+- `1.2234567890123456789` in an entry of a newer outcome came back as `1.2234567890123456` without the feature and as `1.2234567890123458` with it, which is Rust's correctly rounded parse, and as `1.2234567890123458` without the feature once `float_roundtrip` was on;
+- a CBOR tag and 2^64 before a version of 2.0 gave "invalid type: enum" and "invalid type: integer … as u128", and the version error after it;
+- a detection of 2.0 with an integer key after its version, in a document of 1.0, gave the nested version error when the document's version came first and "a value is one that JSON carries as read" when its results came first;
+- a `source_failed` record without `source_failure_kind` and an `unknown_format` record with `"source_failure_kind": "not_found"` read;
+- a completeness with complete statuses, no first reason and one reason omitted read, with `is_complete()` true;
+- two parts whose first kept reasons both differed from their first reasons read with one reason omitted;
+- incomplete attachments read with no reason at all.
+
+The stub had no feature on a reason, so the case of the feature could not be run. The same crate found one more case (below). The spike's tests were written next and failed before the fixes: two of the five of the new `tests/private_numbers.rs`, the three new tests of `tests/neutral_values.rs`, and the five of the new `tests/record_rules.rs`. The other three of `tests/private_numbers.rs` pin what already held: the number in a kept member, a map of that name beside another member, and the nearest double.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the four on `api.md` and the six on `json-output.md`, `cli.md` section 13 the one on the CLI contract, and `stability.md` section 9 the eight on that guide:
+
+- **The private map** is held as written; a catch-all, a kept member and a member that no type reads take it as its number, and a typed member as the object it is. The guide states the restriction, and serde_json's own `Value` reads such an object the same way with the feature (`api.md` section 12; `json-output.md` sections 2, 10 and 11).
+- **A member that no type reads** is walked by the form's own walker, which reads the private map's number and refuses what JSON does not carry (`api.md` section 12; `json-output.md` section 2).
+- **The nearest double** is correctly rounded through the map, and the guide says when a build gives another (`api.md` section 12; `json-output.md` section 2).
+- **CBOR tags and bignums** are held before the version and refused after it, and a held map keeps a name that is not a string in its place (`api.md` section 12; `json-output.md` sections 2, 4.5 and 10).
+- **The members of a source failure** are for `source_failed` only, and `source_failure_kind` is always there (`api.md` section 10.2; `json-output.md` sections 4.4 and 10).
+- **The text of a record read back** is bounded only by the input (`json-output.md` section 7.2).
+- **The omitted count** covers each first reason that the kept reasons lack or change, the feature included, and reasons omitted need a first reason (`api.md` section 5.3; `json-output.md` sections 7.2 and 10). The rule already named the three sections, so the attachments needed only the stub's fix.
+- **A provided method** keeps its trait dyn compatible and gets a distinct name (`api.md` section 14; `stability.md` section 2.2; plan section 8.10).
+- **The warning of a deprecated option** goes to standard error in either mode, before anything else (`cli.md` sections 7 and 8.8; plan section 8.9).
+- **No 0.x release breaks the serialized form.** The members that the first version of a schema major requires stay in that major (`stability.md` sections 1, 4.2, 5.2 and 5.3; plan sections 8.8 and 8.10).
+- **A shipped default** is lowered only to fix a security problem, by no other release (`stability.md` section 4.3; plan section 8.10).
+- **Cargo's fallback** stays within the requirement, and when nothing fits it picks a version that needs a newer Rust (`stability.md` section 7).
+- **The MSRV** is the stable Rust of the day the release candidate is built, R12 amended through GS.4 (`stability.md` sections 7 and 8).
+- **The exit statuses** keep the usage error's 2 when its document cannot be written (`stability.md` section 6.1).
+- **A message that an expectation records** is listed under "Changed output", as plan section 9.6 requires, and is still no breaking change (`stability.md` sections 4.1, 6.2 and 9).
+- **The README's summary and the chart** send improvements to a minor release and fixes to any, and the chart asks first for a fix or a change of documentation (`stability.md` sections 1 and 8).
+- **`identified`,** the outcome's name, replaces `detected` (`stability.md` section 4.1).
+
+**Found while revising:**
+
+- **A tagged value and 2^64 after a version of 1.0,** in a member that no type reads, read through ciborium. Serde's `IgnoredAny` takes an enum and an integer of 128 bits, while the same member before the version failed. The new walker of `src/neutral/strict/ignored.rs` refuses both in either order.
+- **The stub had no `Part::Attachments`,** so its check of the statuses could not cover the attachments status that it holds. The part joins the declared order after the chapters.
+- **The stub's reasons had no feature,** so the finding on the feature could not be run. The stub gains `ReasonKind::FeatureDisabled`, `Reason::feature()` and `Feature`, with `Zlib` and a catch-all.
+- **The stub's `ErrorRecord` had no `operating_system_error_code()`,** which `api.md` section 10.2 lists. It gains one, from `raw_os_error()`.
+- **A tagged value or 2^64 in an entry of a newer outcome** is refused by Serde's own buffer of the members that the entry keeps, with Serde's message, before the kept value sees it. It is refused, as the rule asks. Task 11 decides whether the skeleton keeps such members without that buffer.
+- **The fifteenth review's wording** of the maintainer's choice, "the number that a build without the feature reads", held only with `float_roundtrip`, so the new choice corrects it.
+- **Fixtures of the stub** set `source_failed` without `source_failure_kind`, in `tests/archive.rs`, `tests/consistency.rs`, `tests/document.rs`, `tests/nested_versions.rs`, `tests/own_checks.rs`, `tests/version_first.rs` and `tests/writer.rs`. They now carry `"source_failure_kind": "not_found"`.
+- **Plan section 8.9** allowed only usage messages and output failures on standard error in JSON mode, as `cli.md` section 7 did, while section 8.9 also had a deprecated option warn there. Both now list the warning.
+- **The "Version numbers" row and the compatibility table of plan section 8.8** still tied the required members to `0.1.0`. They now tie them to the first version of each major, and the row adds that no `0.x` release makes a change that is not additive.
+
+**Online check.**
+
+- **The Rust Reference** on dyn compatibility confirms that a dispatchable method has no type parameters and names `Self` only in its receiver, and that `where Self: Sized` makes a method explicitly non-dispatchable.
+- **The Cargo SemVer guide** lists "adding a trait item that makes the trait non-object safe" as a major change, and "adding a defaulted trait item" as possibly breaking, because of a clash with another trait's method of the same name.
+- **The Cargo resolver chapter** confirms that `fallback` prefers within the version requirement and, when no compatible version matches, picks an incompatible one rather than failing.
+- **RFC 3537** adds that the resolver compares against the workspace members' `rust-version`, or `rustc --version` when none is set.
+- **serde_json's manifest** describes `float_roundtrip` as reading floats with the precision that round-trips, against the default "best-effort precision".
+- **ciborium 0.2.2's source,** read in the local registry, gives a tag to `deserialize_any` as an enum through `TagAccess`, and a bignum of up to 16 bytes as `visit_u128` or `visit_i128`.
+
+Sources:
+
+- [Rust Reference, dyn compatibility](https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility)
+- [Cargo SemVer guide](https://doc.rust-lang.org/cargo/reference/semver.html)
+- [Cargo resolver, Rust version](https://doc.rust-lang.org/cargo/reference/resolver.html#rust-version)
+- [Cargo configuration, `resolver.incompatible-rust-versions`](https://doc.rust-lang.org/cargo/reference/config.html)
+- [RFC 3537](https://rust-lang.github.io/rfcs/3537-msrv-resolver.html)
+- [serde_json's manifest](https://raw.githubusercontent.com/serde-rs/json/master/Cargo.toml)
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16, `cli.md` section 13, `json-output.md` section 11 and `stability.md` section 9:
+
+- a tagged value and an integer beyond 64 bits refused as values that JSON does not carry (G2.3);
+- a held name that is not a string kept in its place (G2.3);
+- a map named like the private number beside another member kept as a map (G2.3);
+- `operating_system_error_code` refused beside a known kind other than `source_failed` (G2.3);
+- reasons omitted refused beside no first reason (G2.3);
+- a new provided method named apart from the methods of common traits (G2.3);
+- the stub's `Feature` with `Zlib` and a catch-all (task 11);
+- the deprecation warnings written only for a command line without a usage error, each line starting with the program's name (G2.3);
+- every breaking kind of output counted as a break of the serialized form (G2.4);
+- text for people that no expectation records kept without a changelog entry (G2.4);
+- `"0.2"` given as the way to an older line (G2.4).
+
+**Plan, revision 52:**
+
+- R12, through GS.4 (entry above), and D2;
+- section 8.8:
+  - the private map;
+  - tagged values, bignums and held names;
+  - the members of a source failure;
+  - the required members of each schema major;
+  - no change before 1.0 that is not additive;
+  - the new malformed cases;
+- section 8.9: where a deprecated option warns;
+- section 8.10: dyn-compatible provided methods, no break of the form in a `0.x` release, and a default lowered only for security;
+- Phase 2, task 5;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+The other documents follow:
+
+- `api.md`: its status, its list of the maintainer's choices, sections 5.3, 10.2, 12 and 14, and section 16;
+- `json-output.md`: its status and sections 2, 4.4, 4.5, 7.2, 10 and 11;
+- `cli.md`: its status and sections 7, 8.8 and 13;
+- `stability.md`: its status and sections 1, 2.2, 4.1 to 4.3, 5.2, 5.3, 6, 7, 8 and 9.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`:
+  - Clippy passes with warnings denied, with no feature, with each feature alone and with all features.
+  - `rustfmt` reports no difference, and the documentation builds without a warning.
+  - With all features, 160 tests and 8 doc tests pass: the 147 earlier tests, some with the fixtures above, and the 13 new ones. Without a feature, 13 pass.
+  - All 13 programs end without a panic, the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Scratch crate.** Every case of the review now gives the version error or is refused, the same in either order and in both builds. The exceptions are as the maintainer chose: the object of the private map's shape in a kept member reads as `60`, and `1.2234567890123456789` comes back as serde_json's own double without the feature.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** The changed chart of `stability.md` section 1 renders with mermaid.js 11.4.1 in headless Chromium, with no syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 52;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth to sixteenth reviews made without asking, and the sixth to sixteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
+- G2.4, which confirms the wording of `stability.md` and of the README's summary;
+- the checklist of task 6, `docs/design/api-guidelines-checklist.md`;
+- the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.
+
+## 2026-11-24 — Progress: Phase 2, the seventeenth review of the API specification
+
+The maintainer's seventeenth review, pasted as code comments, read revision 52, which the maintainer had staged on top of `51dab2e`. It found four defects of the spike's reader, three of them filed against `json-output.md` and one against the stub's `src/completeness/agreement.rs`, and eight findings on the contracts: two on `json-output.md`, one on `api.md`, three on `cli.md` and two on `stability.md`; one of priority 1, six of priority 2 and five of priority 3. The review noted that both spike suites passed and that the CLI spike already exits with 1 for `--json --help` and `--version` with standard output closed. It also listed what stays open: G2.3, G2.4, task 6, field guide F30, the MP4RA registry and the features of `clap`.
+
+**Decisions of the maintainer.** The agent asked two questions after reproducing the defects. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A held number of arbitrary precision reaching a record as the private map, which the Serde data model cannot tell from a literal object of the same shape | The name is reserved: no object of a known type, a record, an enum written as an object or a map that a type reads, has a member named `$serde_json::private::Number`; one that has it is malformed input in every build and either order | Refuse only the one-member shape of a number's text where a type is known, and let the name beside other members stay an unknown member | Simple to state and to check: the reader looks at names only, and no record of the form has that name |
+| The warnings of a repeated or reordered deprecated option, which `cli.md` section 2 says change nothing | One line per deprecated option, in the order of the option table, whatever the order or repetition on the command line | One line per option in the order of its first occurrence; one line per occurrence | Standard error then depends only on which options were given, so section 2 holds exactly |
+
+**Reproduced first.** A scratch crate in the session's scratchpad, outside the repository, depended on the stub, ciborium 0.2.2 and serde_json 1.0.154, with a Cargo feature for `arbitrary_precision`. It reproduced every defect:
+
+- with `arbitrary_precision`, a report whose stream holds `"disposition": 1.25` was refused with the version first ("invalid type: number, expected struct Disposition") and read with the version last; without the feature it was refused in both orders;
+- an identified detection whose confidence of 60 stood in CBOR tag 42 read with the version first and was refused with the version last, and a standalone `Candidate` with that confidence read;
+- in a document of 1.0, a tagged value or 2^64 before a nested detection's version of 2.0 gave the nested version error with the document's version first and "a value is one that JSON carries as read" with its results first; with `arbitrary_precision`, `1e400` there gave the nested version error in both orders;
+- a `LimitRecord` with empty arrays and `"omitted_reasons": "1"` read alone and inside an `ErrorRecord` of kind `format_not_determined`.
+
+It also confirmed the review's statement on integers beyond 64 bits: JSON `18446744073709551617` in a member of a future entry came back as `1.8446744073709552e+19` in both builds, and a CBOR bignum there was refused, through Serde's own buffer and with its message. The spike's tests were written next and failed before the fixes: two of the three new tests of `tests/private_numbers.rs`, the three new tests of `tests/neutral_values.rs`, and the new test of `tests/record_rules.rs`. The third new test of `tests/private_numbers.rs` pins the nearest double of an integer beyond 64 bits, which already held. The tests' own small reader of `tests/neutral_values.rs` now drops a tag on a typed request, as ciborium does, so the in-repository test meets the same case.
+
+**The cause.** The reader held the members before the version through Serde's `deserialize_any`, but passed a typed request, such as `deserialize_u8` or `deserialize_struct`, to the format for a member after it. The format answers the two differently. ciborium drops a tag on every request but `deserialize_any`. serde_json gives a number of arbitrary precision as its private map only to `deserialize_any`, and refuses a number on a request for a record. So the same value reached its type through different calls, depending on where the version stood.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the four defects and the three findings on `json-output.md` and `api.md`, `cli.md` section 13 the three on the CLI contract, and `stability.md` section 9 the two on that guide:
+
+- **Every value read as the format holds it.** The strict reader asks the wrapped deserializer for every value with `deserialize_any` and tells its visitor what the type asked for: no type, a typed value, a record or an enum. A value held before the version and one read after it therefore reach their type through the same calls, and a tag fails around a value of a known type too (`api.md` section 12; `json-output.md` sections 2 and 10).
+- **The private map's name reserved** in an object of a known type, as the maintainer chose; where no type is known, the map stays its number (`api.md` section 12; `json-output.md` sections 2, 10 and 11; plan section 8.8).
+- **Before a nested version,** every value that JSON does not carry is malformed input, in either order of the parent's members: the strict reader now refuses a tag and an integer of 128 bits at once, and a map of no known type refuses the private map of a number that is not finite. Section 4.5 of the guide states the table's precedence (`json-output.md` sections 2, 4.5 and 10).
+- **The omitted count** is the record's own rule: `LimitRecord` refuses an omitted reason without a first reason wherever it is read (`api.md` section 5.3; `json-output.md` sections 7.2 and 10).
+- **The baseline of the required members** is the first version of each schema major in `json-output.md` sections 5.2 and 9 and `api.md` section 14, and the reader advice names the migration of a lower major.
+- **Integers beyond 64 bits:** a CBOR bignum fails everywhere, and a JSON integer beyond 64 bits is the nearest double where no type is known and fails where a type requires an integer (`api.md` section 12; `json-output.md` sections 2 and 10).
+- **The trait rule** gives `where Self: Sized` to a method with type parameters, with `Self` outside its receiver or with an opaque return type, and none to a method generic only over lifetimes (`api.md` section 14; `stability.md` section 2.2; plan section 8.10).
+- **A usage error writes no warning,** keeps an output failure's line before its own three lines, and exits with 2; help writes none either (`cli.md` sections 7 and 8.8; `stability.md` section 6.1; plan section 8.9).
+- **Warnings once each,** in the order of the option table, as the maintainer chose (`cli.md` sections 2 and 8.8; `stability.md` section 6.1).
+- **Help and the version** exit with 0 once their text is written and flushed, and with 1 otherwise, in the prose and the diagram of `cli.md` section 3, in section 5, and in `json-output.md` section 3.
+- **A patch release's documentation** is a correction that keeps every documented rule, in the chart and section 1.1 of `stability.md`.
+- **The README's MSRV** is chosen on the day the release candidate is built (`stability.md` section 8).
+
+**Found while revising:**
+
+- **An enum written as an object with a second member** was refused with the version first, where serde_json checks the end of the object, and read as its first member with the version last, where the held reader did not. A copy of the staged revision 52, exported with `git write-tree` and `git archive` into the scratchpad without touching the index, showed it in a second scratch crate with `{"Unrecognized": "x", "extra": 1}` as a header state. The reader now reads such an object as exactly one member and refuses a second, in either order, with a message of its own; `tests/version_first.rs` checks it.
+- **A tag around a whole record or an enum** read with the version first for the same cause; it fails now too, and `tests/neutral_values.rs` checks a tag around a whole candidate.
+- **2^64 or a tag in an entry of a newer outcome** is refused with the form's own message, before Serde's buffer of the kept members sees it, which the sixteenth review had left to task 11.
+- **The trait rule** also needed the opaque return types that the Rust Reference lists: an `async fn` and a return of `impl Trait`.
+- **Help and the version** had no rule for the warnings of a deprecated option. Help is decided before the options are read, so it writes none, and the version writes them first.
+- **The sixteenth review's walker** of a member that no type reads, `src/neutral/strict/ignored.rs`, is gone: Serde's `IgnoredAny` walks such a member under the strict reader's rules, which now refuse the values that it took. The held reader's own handling of options, newtypes and enums is gone as well, since the strict reader no longer asks for them.
+- **A fixture of `tests/report.rs`** counted reasons omitted without a first reason, which the record now refuses; it gains a first reason.
+
+**Online check.**
+
+- **ciborium 0.2.2's source:** `deserialize_any` gives a tag through `TagAccess` as `visit_enum`, and a bignum of up to 16 bytes as `visit_u128` or `visit_i128`, while `deserialize_map`, `deserialize_str` and the integer helper drop a tag with `Header::Tag(..) => continue`. That is why a tag around a typed value read with the version first.
+- **serde_json 1.0.154's source:** `deserialize_any` reads a number with `parse_any_number`, which with `arbitrary_precision` gives `ParserNumber::String` for anything but an integer within 64 bits, and `-0`, and visits it as the private map. A typed request reads it with `parse_integer`, which never gives that form. So only a held value met the map, until every value was read with `deserialize_any`.
+- **The Rust Reference on dyn compatibility:** a dispatchable function has no type parameters, "although lifetime parameters are allowed", uses `Self` only in its receiver, and has no opaque return type, neither an `async fn` nor a return of `impl Trait`. A `where Self: Sized` bound makes it explicitly non-dispatchable.
+
+Sources:
+
+- [ciborium 0.2.2, `src/de/mod.rs`](https://docs.rs/crate/ciborium/0.2.2/source/src/de/mod.rs)
+- [serde_json 1.0.154, `src/de.rs`](https://docs.rs/crate/serde_json/1.0.154/source/src/de.rs)
+- [Rust Reference, dyn compatibility](https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility)
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16, `cli.md` section 13, `json-output.md` section 11 and `stability.md` section 9:
+
+- every value read with `deserialize_any` and the type's request told to the visitor, rather than a check in each typed request (G2.3, task 11);
+- an enum written as an object read as exactly one member (G2.3);
+- the private map of a number that is not finite refused in every map of no known type that is read strictly, before a nested version included (G2.3);
+- the opaque return types named in the trait rule (G2.3, G2.4);
+- no warning beside help, and the warnings before the version (G2.3, G2.4).
+
+**Plan, revision 53:**
+
+- section 8.8: the private map's name reserved, every value read as the format holds it, values that JSON does not carry before a nested version, and the new malformed cases;
+- section 8.9: the count and the order of the warnings, and none beside help or a usage error;
+- section 8.10: the trait rule scoped to type parameters;
+- Phase 2, task 5;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+The other documents follow:
+
+- `api.md`: its status, its list of the maintainer's choices, sections 5.3, 12 and 14, and section 16;
+- `json-output.md`: its status and Evidence, and sections 2, 3, 4.5, 5.2, 7.2 and 9 to 11;
+- `cli.md`: its status and sections 2, 3, 5, 7, 8.8 and 13;
+- `stability.md`: its status and sections 1, 1.1, 2.2, 6.1, 8 and 9.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`:
+  - Clippy passes with warnings denied, with no feature, with each feature alone and with all features.
+  - `rustfmt` reports no difference, and the documentation builds without a warning.
+  - With all features, 167 tests and 8 doc tests pass: the 160 earlier tests, one with the fixture above, and the 7 new ones. Without a feature, 13 pass.
+  - All 13 programs end without a panic and write what they wrote after the sixteenth review, the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Scratch crates.** Every defect of the review now gives the same result in either order and both builds: the disposition, the tagged confidence and the standalone candidate are refused, the nested cases are malformed input in both parent orders, and the limit record is refused alone and in the error record. The sixteenth review's cases still give what they gave after that review, with `float_roundtrip` too.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** The changed diagrams of `cli.md` section 3 and `stability.md` section 1 render with mermaid.js 11.4.1 in headless Chromium, with no syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 53;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth to seventeenth reviews made without asking, and the sixth to seventeenth reviews' amendments of `api.md`, `cli.md` and the field guide, and decides whether the dossier keeps `clap`'s features `help` and `usage`;
+- G2.4, which confirms the wording of `stability.md` and of the README's summary;
+- the checklist of task 6, `docs/design/api-guidelines-checklist.md`;
+- the open items of the twelfth review's entry: the public sources of field guide F30 and the MP4RA registry of track references, which Phase 6 adds through GS.2.
+
+## 2026-11-24 — Progress: Phase 2, the eighteenth review of the API specification
+
+The maintainer's eighteenth review, pasted as code comments, read revision 53 of all four documents, which the maintainer had staged. It found six defects of the spike's reader, all filed against `json-output.md`, and nine findings on the contracts: five on `json-output.md`, two on `api.md`, one on `stability.md` and one on `cli.md`. Three were of priority 1, nine of priority 2 and three of priority 3. The review noted that the API and CLI spike suites passed. The review's table of open items stayed as it was: G2.3, G2.4, task 6, F30, the MP4RA registry and the `clap` dossier decision.
+
+**Decision of the maintainer.** Reproducing the sixth defect found a wider one, and the agent asked one question about it. The maintainer took the recommended option.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A detection, an entry and an error record held every member that they do not read until the record's end, through Serde's `flatten`, whatever the outcome: about 21 MB for an ignored array of 200,000 numbers in a detection of a known outcome | Hold such a member only until the outcome, or an error record's kind, is known; then keep it for an outcome of a newer version, whose payload it is, and pass it by as it comes for one that this version knows | Keep `flatten` and state that these records hold every unknown member until they end | The outcome is read the way the version is, and writers put it before any member that a newer version adds, so the library's own output holds nothing, as the maintainer chose for the version at task 5 |
+
+**Reproduced first.** A scratch crate in the session's scratchpad, outside the repository, depended on the stub, ciborium 0.2.2 and serde_json 1.0.154, with Cargo features for `arbitrary_precision` and `float_roundtrip`, and counted the peak of memory in use with an allocator of its own. It reproduced every defect, in all three builds unless stated:
+
+- an `ok` document whose report has every status complete, an empty record and `"omitted_references": "1"` read, and `is_complete()` was true;
+- `{"kind": "integer", "integer": {"$serde_json::private::Number": "60"}}` read alone and in a report's tag and came back as `{"kind":"integer","integer":60}`; the same map read as a chapter's `parent`, in a report and in a standalone `Chapter`, and as a binary value's `size`, alone and in a standalone `Tag`;
+- a `TagValue` with the private name beside `kind` read alone and came back without it, and so did one in a report's tag, which the review did not name;
+- CBOR tag 42 around a whole identified `Detection` read with its version first and last, and around a standalone `EntryOutcome` of `ok`;
+- in a document of 1.0, `"$serde_json::private::Number": "hi"` before a nested detection's version of 2.0 gave the name's error with the document's version first and with its results first;
+- `27666741684376230221` in a member of an entry of a newer outcome came back as `2.7666741684376228e+19` in the default build and as `2.766674168437623e+19` with either feature;
+- an ignored member `{"$serde_json::private::Number": [...]}` of 200,000 numbers after the version held about 12 MB in a generator and in a report, where the same member of another name held under 2 KB; in a detection either name held about 21 MB, which led to the question above.
+
+It also confirmed what the contract findings stated: serde_json's limit refused a document of 1.1 whose entry of a newer outcome held 130 nested arrays ("recursion limit exceeded"), and a document of 1.1 whose `generator` held another member read with its version and came back without the member. rustc 1.100.0 refused `&dyn Source` once `Source` had a provided `fn preview<const COUNT: usize>(&self)`, with E0038, and compiled a method generic only over a lifetime and a const-generic one with `where Self: Sized`.
+
+**The causes.** The seventeenth round made `Strict` ask for every value with `deserialize_any`, but four reads still bypassed it or kept a value without its type:
+
+- the root record read alone asked the format itself with `deserialize_map`, and every enum read alone asked with its own typed request, so ciborium dropped a tag around the outermost value;
+- a value kept before its type is known, the members of an enum that carries data before its kind and a tree's node before its `parent`, became a number when it was the private map, and was then read into its type without the strict reader;
+- the nested root record was asked for as a typed map, so the strict map refused the private name before the nested version, where only the record's type, known after the version, refuses it;
+- the strict map held the value of a member of the private name to see whether it spelled a number that is not finite, and Serde's `flatten` held every member that the three records do not read.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the six defects and the seven findings on `json-output.md` and `api.md`, `stability.md` section 9 the one on that guide, and `cli.md` section 13 the one on the CLI contract.
+
+- **An omitted reference** needs `RetainedData` exhausted and the first reason of a part that finds references, which `LimitRecord` checks wherever it is read, so through the rules of the statuses that part records a shortfall (`api.md` sections 5.3 and 6.12; `json-output.md` sections 7.2 and 10).
+- **A value kept before its type is known** stays as written and is read into its type through the strict reader, so the private map fails in a member of a known type there too, and the members that a catch-all keeps become its payload, where the map is its number (`api.md` section 12; `json-output.md` sections 2, 6.2 and 10).
+- **The outermost value** is asked for with `deserialize_any`: a root record alone and nested, and every type read alone, an enum included. A root record in a tag fails at once (`api.md` section 12; `json-output.md` sections 2 and 10).
+- **The private name before a nested version** comes after the version error, as the table of `json-output.md` section 2 already ordered it; the guide's sections 2 and 4.5 say why.
+- **A JSON integer beyond 64 bits** is the nearest double only with `arbitrary_precision` or `float_roundtrip` (`api.md` section 12; `json-output.md` sections 2 and 10).
+- **The value of a member of the private name** streams to its type while the visitor notes whether it spells a number that is not finite (`api.md` section 12; `json-output.md` section 2).
+- **Members held until the outcome is known,** as the maintainer chose (`api.md` section 12; `json-output.md` sections 2 and 11; plan section 8.8).
+- **The rule of an enum's object of one member** is the stub's, for Serde's externally tagged form, which the public form does not write; it leaves `json-output.md` section 10 and the plan's contract tests.
+- **The four provenance rows** give the provenance beside the value as a string (`json-output.md` sections 7.1, 7.3 and 7.4).
+- **Across majors,** `api.md` section 14 names the migration of a lower major, and section 12 lets the format's reader fail first only before the version.
+- **A record that a later minor introduces,** such as the payload of a new kind, has the same compatibility as a record of 1.0 (`api.md` section 14; `json-output.md` section 9; plan section 8.8).
+- **Const parameters** call for `where Self: Sized` as type parameters do (`api.md` section 14; `stability.md` section 2.2; plan section 8.10).
+- **The depth of the flat trees** bounds what the schema defines, not an unknown value kept unread (`api.md`, its baseline and section 12; `json-output.md` section 5.9; plan section 8.8).
+- **An unknown enum string** passes through an older reader; the rest of the document does only where a catch-all keeps it (`json-output.md` section 6.1).
+- **The release chart** asks first whether a change lowers a shipped default limit for a reason other than security, and gives it no release (`stability.md` section 1).
+- **The CLI's note** on help and the version follows step 6, speaks of those two only, and names the usage error's status 2 (`cli.md` section 3).
+
+**Found while revising:**
+
+- **Serde's `flatten`** held every unknown member of an entry, a detection and an error record until the record's end, which became the maintainer's question above. The stub reads the three records through a map of its own that sees which members the derive passes by, `src/kept/outcome.rs` and `src/kept/passing.rs`.
+- **The private name beside a kind in a report's tag** was dropped like the standalone case.
+- **The seventeenth round's note** that a tag around a whole record or an enum fails held only below the outermost value.
+- **Serde's own value deserializers,** such as `MapDeserializer`, answer the newtype request for the scope with the value itself. Once every enum asked for its scope, `tests/data_enums.rs` failed for a tag value read from `MapDeserializer`. The request now takes a map, a string or a number given in answer as the value read alone (`src/neutral/scope.rs`).
+- **The stub lacked `Limit::RetainedData`,** which the rule of an omitted reference names. It gains the limit, with its default of 16 MiB, between the working memory and the streams in the declared order.
+- **`src/model/tags.rs` passed 500 lines** with the strict reading of its enums, so `TagKey` moved to `src/model/tag_key.rs`. The two macros named after records, which now serve enums too, became `strict_traits!` and `checked_strict_traits!`.
+- **A fixture of `tests/report.rs`** counted an omitted reference without the retained data exhausted; it now names the limit and discovery's first reason.
+- **Plan section 8.9 and `cli.md` section 6.3** still gave help and the version the status 0 without the qualification of `cli.md` section 3; both say "once written and flushed" now, as R21 already does.
+- **The count of the seventeenth round** was one short: revision 53 runs 168 tests and 8 doc tests with all features, where its entry said 167.
+
+**Online check.**
+
+- **serde issue #2186,** "Avoid lossy buffering in `#[serde(flatten)]`": a type with a flattened field holds all the map entries that it does not know in memory and reads the flattened value from them at the end; the issue proposes a map that hands the remaining members on, the shape of the stub's reader.
+- **The Rust Reference:** a dispatchable function has no type parameters, "although lifetime parameters are allowed", and items "may be parameterized by types, constants, and lifetimes"; rustc's E0038 above counts a const parameter.
+- **CommonMark 0.31.2, section 5.2:** a list item that interrupts a paragraph must, when ordered, start with 1, so the line `6.` after `cli.md`'s note was paragraph text.
+
+Sources:
+
+- [serde issue #2186](https://github.com/serde-rs/serde/issues/2186)
+- [Rust Reference, dyn compatibility](https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility)
+- [Rust Reference, generic parameters](https://doc.rust-lang.org/reference/items/generics.html)
+- [CommonMark 0.31.2, list items](https://spec.commonmark.org/0.31.2/#list-items)
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16, `json-output.md` section 11 and `stability.md` section 9:
+
+- the private map's value streamed to its type, rather than the guarantee qualified (G2.3);
+- a root record in a tag refused at once, before its version, as an array is (G2.3);
+- every type read alone through the strict reader, an enum included, with the request for the scope answered from a map, a string or a number given in its place (G2.3, task 11);
+- a value kept before its type is known read into its type strictly once the type is known (G2.3);
+- the reader changed rather than the table for the private name before a nested version (G2.3);
+- a part of a newer version accepted as the part that found an omitted reference (G2.3);
+- the chart's first question limited to the change that section 4.3 rules out (G2.4);
+- the stub's limit `RetainedData` (task 11).
+
+**Plan, revision 54:**
+
+- section 8.8: the outermost value, kept values read strictly, the private name before a nested version, members held until the outcome is known, the limits of the depth and of the double, the compatibility of a record that a later minor introduces, and the malformed cases, without the stub's rule of an enum's object;
+- section 8.9: the exit status of help and of `--json --version` qualified;
+- section 8.10: const parameters in the trait rule;
+- Phase 2, task 5;
+- the status line, the Phase 2 progress paragraph, Appendix E and the themes of revision 54.
+
+The other documents follow:
+
+- `api.md`: its status, its list of the maintainer's choices, its baseline, sections 5.3, 6.12, 12 and 14, and section 16;
+- `json-output.md`: its status and Evidence, and sections 2, 4.5, 5.9, 6.1, 6.2, 7.1 to 7.4 and 9 to 11;
+- `cli.md`: its status and sections 3, 6.3 and 13;
+- `stability.md`: its status and sections 1, 2.2 and 9.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`:
+  - Clippy passes with warnings denied, with no feature, with each feature alone and with all features.
+  - `rustfmt` reports no difference, and the documentation builds without a warning.
+  - With all features, 174 tests and 8 doc tests pass: the 168 earlier tests, one with the fixture above, and 6 new ones. The five that reproduce the review failed before the fix; the sixth, in `tests/payloads.rs`, checks what the outcome keeps and passes by, which `flatten` gave too. Without a feature, 13 pass.
+  - All 13 programs end without a panic and write what they wrote after the seventeenth review, the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Scratch crates.** Every defect of the review now gives the contract's answer in all three builds: the omitted reference, the private map in the three typed members and the name beside a kind are refused, the tags around a whole detection and a standalone outcome are refused, and the private name before a nested version gives the version error in both orders. The ignored member of 200,000 numbers now holds under 2 KB in a detection, a report and a generator, either name. The wide integer and the two limits of guarantees behave as the guide now states them. The seventeenth review's cases give what they gave after that review, in all three builds.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** The changed chart of `stability.md` section 1 and the diagram of `cli.md` section 3 render with mermaid.js 11.4.1 in headless Chromium, with no syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 54;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth to eighteenth reviews made without asking, and the sixth to eighteenth reviews' amendments of `api.md`, `cli.md` and the field guide, and decides whether the dossier keeps `clap`'s features `help` and `usage`;
+- G2.4, which confirms the wording of `stability.md` and of the README's summary;
+- the checklist of task 6, `docs/design/api-guidelines-checklist.md`;
+- the open items of the twelfth review's entry: the public sources of field guide F30 and the MP4RA registry of track references, which Phase 6 adds through GS.2.
+
+## 2026-11-24 — Progress: Phase 2, the nineteenth review of the API specification
+
+The maintainer's nineteenth review, pasted as code comments, read revision 54, which the maintainer had staged. It found twelve issues: nine on the API and the JSON reader, filed against `api.md`, `json-output.md` and the spike, one on `cli.md`, and two on the stability rules, filed against `api.md`, `stability.md` and `json-output.md`. It gave no priorities, and noted that both spike suites passed and that separate checks reproduced the reader's discrepancies.
+
+**Decision of the maintainer.** One finding touched a rule that the maintainer chose at the sixteenth review, and the agent asked one question about it. The maintainer took the recommended option.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| With serde_json's `arbitrary_precision`, the number `1.25` at the root reaches the reader as the private map `{"$serde_json::private::Number": "1.25"}`, which the rule of a known type takes as an object, so a root record read so failed as one without its version, while a build without the feature failed it as no object | At the root of a root record, read alone or nested, a map of that one member with a number's text is the number it spells, so the root is no object and fails before the version in every build; a literal object of that shape at the root fails the same way in a build without the feature, so the shape keeps one rule in every build | Keep the rule of a known type at the root, and state in the table that with the feature a number at the root gives the version error | The table of the failures puts a root that is no object first, and the error of a number should not depend on a feature that Cargo turns on for a whole build; the exception stays at the root, where the order of the failures turns on it |
+
+**Reproduced first.** A scratch crate in the session's scratchpad, outside the repository, depended on the stub, serde 1.0.229 and serde_json 1.0.154, with Cargo features for `arbitrary_precision` and `float_roundtrip`. It reproduced every reader finding, in all three builds unless stated:
+
+- `Generator::deserialize` read `["catalog", "1"]`, while `<Generator as Deserialize>::deserialize` refused it as a positional array;
+- through Serde's `SeqDeserializer`, `[{"titles": []}]` failed as a chapter ("invalid type: map, expected a string"), and `["unused", {"name": "catalog", "version": "1"}]` read as the generator `catalog 1`;
+- a limit record of `exhausted` and `first_stopped` alone read and came back with `"first_reasons":[]`, `"omitted_reasons":"0"` and `"omitted_references":"0"`;
+- a completeness with discovery incomplete, the retained data exhausted, one reference omitted, no reason omitted and `TruncatedInput` as discovery's only reason read;
+- a `VideoInformation` with a frame rate and no provenance, and one with a provenance and no frame rate, read and came back as written;
+- `{"kind":"integer","integer":"oops","extension":null}` failed on the null at column 51; without the null, and with the integer before the kind, the integer's error had no line and column;
+- `1.25` read as a `Document` or a `MediaReport` failed as "invalid type: floating point `1.25`" without `arbitrary_precision`, and as "a root record has no schema_version" with it; read as a `Generator`, a `TagValue` or an `EntryOutcome`, it failed as a floating-point number without the feature and as an object of the private name or as a map with it;
+- the rational `1/2` from Serde's `MapDeserializer` read with `u64` parts and failed with `u128` and with `i128` parts, as an integer beyond 64 bits;
+- an entry of a newer outcome in a document of 1.1 kept `{"$serde_json::private::Number": "x", "café": 1}` and wrote it back.
+
+It also confirmed the CLI finding: the stub's entry for a path that does not exist, built as the CLI builds it, holds `error`, `index`, `input` and `outcome`, with no `detection`. rustc 1.100.0 confirmed the trait finding: it dispatches `fn item(&self) -> Option<Self::Item>` and a provided method bounded on `Self::Item` through `&dyn Items<Item = u8>`, refuses `&mut dyn Source` with E0038 once `Source` has a provided `fn copy_from<'other>(&mut self, other: &'other Self)` or a provided method returning `Option<Box<Self>>`, compiles the first with `where Self: Sized`, and dispatches a provided method generic only over a lifetime that does not use `Self`.
+
+**The causes.**
+
+- Serde's derive with `serde(remote = "Self")` gives the type public inherent `serialize` and `deserialize` functions of the item's own visibility (serde_derive 1.0.229), and an inherent function comes before a trait's in a call by the type's name, so `Generator::deserialize` read without the strict reader; the eighteenth round had left them for task 11.
+- The strict reader answered the request for the scope with a sequence of two, the version and itself. Serde's value deserializers hand a newtype request on to `deserialize_any`, so `SeqDeserializer` gave the input's own sequence in its place.
+- The limit record's shadow type gave `first_reasons`, `omitted_reasons` and `omitted_references` defaults.
+- The record alone checked an omitted reference against the retained data and a first reason, which cannot tell whether the part's own reason was kept, and the completeness did not check it.
+- No reader checked a value against its provenance.
+- A tag value and a chroma format read their whole map into kept members before looking at the kind, then read the members from that buffer, after serde_json had passed the place in the input.
+- The root reader took the private map at the root as the map of a root record, by the rule of a known type.
+- The strict visitor, the held value and the kept value refused every integer of 128 bits, whatever its value.
+- The rules of names and of a minor version's members spoke of every name and every member, where a catch-all's payload is the newer writer's.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the nine findings on the API and the JSON reader and the two on the stability rules, `stability.md` section 9 lists those two again, and `cli.md` section 13 lists the CLI finding:
+
+- **One way to read a type.** Every type of the form whose members Serde's derive reads is defined through the new macro `strict_form!` (`src/form.rs`): the type derives `Serialize`, and a private mirror `Form` inside a block derives `Deserialize` through `serde(remote)`, so the derive's inherent `deserialize` belongs to the mirror, which nothing outside the block names. A compile-fail doc test shows that `Generator::deserialize` reaches nothing without the trait in scope; on a copy of revision 54 the same snippet compiled.
+- **The answer to the request for the scope.** `Strict` answers with an enum whose identifier is the private static `READ_SCOPE_TOKEN`, given as borrowed bytes and recognized by its address, which no input and no other deserializer can give; its variant's tuple carries the version and `Strict` itself. A sequence, a null and bytes given in answer are now read alone, as maps, strings and numbers were, and an enum given in answer whose identifier is not the static fails as a value that JSON does not carry, as `Strict` refuses any enum a reader gives.
+- **Required members.** The limit record requires every member. Its siblings, found while revising, too: a tag set's `superseded`, the H.264 details' `picture_parameter_sets` and the ISO base media details' `tracks`, which the writer had left out when empty and now always writes.
+- **The reason of an omitted reference.** The completeness checks that a part that finds references has the reason `LimitExhausted` naming `RetainedData`: kept, as that part's first reason, which the omitted count already covers when it is not kept, or counted in `omitted_reasons` beyond the first reasons that the kept ones lack. The record alone keeps the eighteenth review's check.
+- **A value and its provenance.** `strict_form!` takes a check of the value, which runs wherever the value is read; a video's frame rate, an audio stream's channel count, and a stream's duration and bit rate are checked through it, and a report's duration and bit rate in its `TryFrom`.
+- **A kind's members as they come.** The new trait `KindRead` and `read_by_kind` (`src/kept/kinds.rs`) keep the members before `kind` as written and, once the kind is known, read a known kind's members from the input as they come, pass the others by, refuse one of another known kind, and keep every member as the payload of a kind of a newer version. The review's case now fails on the integer at column 34, before the null; with the integer before the kind, its error comes at column 35, where the kind is read.
+- **A number at the root.** As the maintainer chose, the root reader takes a map of one member of the private name with a number's text as that number, and fails as a root that is no object, with the error that a build without the feature gives, alone and nested.
+- **Integers of 128 bits.** `src/integer_width.rs` narrows one that fits within 64 bits, as unsigned when it is not negative and as signed otherwise, in the strict visitor, the held value and the kept value; only one beyond 64 bits fails.
+- **Names in a payload.** `json-output.md` sections 2 and 5.1 and `api.md` section 12 state the rules of names for what the schema defines, and that a payload a catch-all keeps is written back with its names as read.
+- **The CLI's option table.** `--detect` names the source failure, whose entry holds its error alone (`cli.md` sections 2 and 6.4); plan section 8.9 said the same as the table and now names it too.
+- **The trait rule** is one test in `api.md` section 14, `stability.md` section 2.2 and plan section 8.10: no type or const parameter, a dispatchable receiver, no other use of `Self` and no opaque return type, or `where Self: Sized`.
+- **A minor version's new member** is either an optional member of a known record, which an older reader may drop, or a member of a new outcome or kind, which the catch-all keeps and writes back (`api.md` section 14, `json-output.md` section 9, `stability.md` section 5.3, plan section 8.8).
+
+**Found while revising:**
+
+- The stub's report and stream wrote `bit_rate` without `bit_rate_provenance`, which the guide pairs; both gain the member.
+- With `arbitrary_precision`, a type read alone below no root, such as `1.25` read as a `Generator`, a `TagValue` or an `EntryOutcome`, fails as an object of the private name or as a map; it stays so, since both are malformed input and the order of the failures turns on it only at the root.
+- The macro could not live in the strict reader, which only a build with `serde` has, since it defines the types; it stands in `src/form.rs`.
+- The name that `serde(remote)` takes must be a string literal, and the structure check found it as an argument of the macro, outside a constants module (R33). It now stands in the attribute `#[form(remote = "Name")]`, which the macro consumes, where R33 and the check allow a literal as in any attribute.
+- A doc test in a type's own docs ran twice, since the macro copies them to the mirror, so the compile-fail test stands in the docs of `src/document/contents.rs`.
+- The first answer to an enum given in place of the scope replayed it to be read alone; the strict reader refuses every enum that a reader gives, so the replay could only reach that refusal, and the visitor now refuses it at once.
+- With the kind read as it comes, an error of a member before the kind now has the place where the kind was read, where the buffered map had given none.
+- The fixtures of 17 test files lacked members that are now required: 49 records without their first reasons or counts, four tag sets without `superseded` and two sets of ISO base media details without `tracks`; one report carried a bit rate without its provenance; and `tests/document.rs` now expects an empty `tracks` written back. The scratch crate of the eighteenth review fed records without their counts too; with them added, its cases behave as after that review.
+
+**Online check.**
+
+- Rust Reference, "Dyn compatibility" (https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility): a dispatchable function has no type parameters, "although lifetime parameters are allowed", is a method that does not use `Self` except in the type of its receiver, has a receiver of `&Self`, `&mut Self`, `Box<Self>`, `Rc<Self>`, `Arc<Self>` or `Pin<P>` of one of them, no opaque return type and no `where Self: Sized`; an explicitly non-dispatchable function has that bound. The Reference has no example of an associated type of `Self`; rustc 1.100.0 shows that a projection such as `Self::Item` is dispatchable through a trait object that names the type.
+- serde_derive 1.0.229, read in the local registry: a `remote` derive emits `#vis fn deserialize` and `#vis fn serialize` with the item's own visibility, and names the remote path followed by the item's generics; `remote = "Self"` names the item itself. serde 1.0.229's value deserializers forward a newtype request to `deserialize_any`.
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16, `json-output.md` section 11 and `stability.md` section 9:
+
+- the private mirror derived through `serde(remote)` inside a block, with the name in a consumed attribute, rather than a reader written by hand (task 11);
+- the strict answer as an enum whose identifier is compared by address, rather than a reserved name that input could spell (G2.3, task 11);
+- an enum given in answer to the request for the scope refused as a value that JSON does not carry (G2.3);
+- a kind's member before `kind` still held, its error placed where the kind is read (G2.3);
+- the number at the root only, alone and nested, while a type read alone below no root keeps the rule of a known type (G2.3);
+- an integer within 64 bits taken as unsigned when it is not negative and as signed otherwise (task 11);
+- `bit_rate_provenance` added to the stub's report and stream (task 11);
+- the siblings' lists and flag required, and `tracks` always written (G2.3);
+- the names of a kept payload written back as read, with the rule stated, rather than refused (G2.3);
+- the test of `stability.md` section 2.2 listing every receiver of the Reference, `Pin` included (G2.4).
+
+**Plan, revision 55:**
+
+- section 8.8: the kind's members as they come, integers of 128 bits, the number at the root, one way to read a type, the values of Serde's value deserializers, a value and its provenance, the required members, the kind's reading in the document's shape, a minor version's new member told apart, and the nineteenth review's malformed and well-formed cases;
+- section 8.9: a source failure under `--detect`;
+- section 8.10: the trait rule as one test;
+- Phase 2, task 5;
+- the status line, the Phase 2 progress paragraph, Appendix E and the themes of revision 55.
+
+The other documents follow:
+
+- `api.md`: its status, its list of the maintainer's choices, sections 3.3, 5.3, 6.1, 6.12, 12 and 14, and section 16;
+- `json-output.md`: its status and Evidence, and sections 2, 5.1, 5.2, 6.2, 7.1, 7.2 and 9 to 11;
+- `cli.md`: its status and sections 2 and 13;
+- `stability.md`: its status and sections 2.2, 5.3 and 9;
+- the spike's README.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`:
+  - Clippy passes with warnings denied, with no feature, with each feature alone and with all features.
+  - `rustfmt` reports no difference, and the documentation builds without a warning.
+  - With all features, 185 tests and 9 doc tests pass: the 174 earlier tests and 11 new ones, and the 8 earlier doc tests and the new compile-fail test. On a copy of revision 54, with the current tests, 11 tests failed: the five of `tests/entry_points.rs`, the enum's among them, which read `Incomplete` there through the derive's inherent `DetectionStatus::deserialize`; the three new ones of `tests/record_rules.rs`; the new one of `tests/own_checks.rs`; the new one of `tests/data_enums.rs` that reads a kind's members as they come; and `an_identifier_is_a_string_at_every_width` of `tests/document.rs`, whose fixture now expects an empty `tracks` written. The new doc test failed there too, since its snippet compiled. The other new test of `tests/data_enums.rs`, which checks that a kind of a newer version keeps its members before and after the kind, passed there. Without a feature, 13 pass.
+  - All 13 programs end without a panic and write what they wrote after the eighteenth review, the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Scratch crates.** Every reader finding now gives the contract's answer in all three builds: the generator's own name and the forged sequence refuse the positional array, the chapter array reads through `SeqDeserializer`, the short limit record fails on `first_reasons`, the omitted reference without its reason and the value apart from its provenance are refused, the integer's error comes at its place before the null, `1.25` at the root fails as a floating-point number in every build, and the rational reads with parts of 128 bits. The eighteenth review's cases, with their records completed, give what they gave after that review, in all three builds, and the ignored member of 200,000 numbers still peaks under 2 KB.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** No diagram changed in this round.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 55;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth to nineteenth reviews made without asking, and the sixth to nineteenth reviews' amendments of `api.md`, `cli.md` and the field guide, and decides whether the dossier keeps `clap`'s features `help` and `usage`;
+- G2.4, which confirms the wording of `stability.md` and of the README's summary;
+- the checklist of task 6, `docs/design/api-guidelines-checklist.md`;
+- the open items of the twelfth review's entry: the public sources of field guide F30 and the MP4RA registry of track references, which Phase 6 adds through GS.2.

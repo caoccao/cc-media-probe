@@ -27,7 +27,7 @@ use super::constants::{
 use super::unrecognized_value::UnrecognizedValue;
 use crate::constants::LARGEST_EXACT;
 #[cfg(feature = "serde")]
-use crate::constants::{RATIONAL_MESSAGE, SIZE_MESSAGE};
+use crate::constants::{PROVENANCE_PAIR_MESSAGE, RATIONAL_MESSAGE, SIZE_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
 
@@ -41,7 +41,7 @@ pub struct Rational {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(Rational from RationalData);
+crate::neutral::checked_strict_traits!(Rational from RationalData);
 
 /// A rational as read, before its form is checked.
 #[cfg(feature = "serde")]
@@ -156,7 +156,7 @@ pub struct Size {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(Size from SizeData);
+crate::neutral::checked_strict_traits!(Size from SizeData);
 
 /// A size as read, before its range is checked.
 #[cfg(feature = "serde")]
@@ -234,20 +234,32 @@ impl fmt::Display for MediaType {
   }
 }
 
-/// Where a value came from (plan section 8.4).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum Provenance {
-  /// Stated by the container, including a default that a specification states.
-  Declared,
-  /// Read from a codec header.
-  Bitstream,
-  /// Computed from other values.
-  Derived,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<Provenance>),
+/// Whether a value and its provenance are present together, as `json-output.md` section 7.1 has them: the nineteenth
+/// review read a frame rate without its provenance and a provenance without its frame rate, and wrote both back.
+#[cfg(feature = "serde")]
+pub(crate) fn paired<Value>(value: &Option<Value>, provenance: &Option<Provenance>) -> Result<(), &'static str> {
+  match value.is_some() == provenance.is_some() {
+    true => Ok(()),
+    false => Err(PROVENANCE_PAIR_MESSAGE),
+  }
+}
+
+crate::form::strict_form! {
+  #[form(remote = "Provenance")]
+  /// Where a value came from (plan section 8.4).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum Provenance {
+    /// Stated by the container, including a default that a specification states.
+    Declared,
+    /// Read from a codec header.
+    Bitstream,
+    /// Computed from other values.
+    Derived,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<Provenance>),
+  }
 }
 
 impl Provenance {
@@ -262,36 +274,13 @@ impl Provenance {
   }
 }
 
-/// An estimated value and how it was made (R25).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Estimate<Value> {
-  value: Value,
-  method: EstimateMethod,
-}
-
-#[cfg(feature = "serde")]
-impl<Value: serde::Serialize> serde::Serialize for Estimate<Value> {
-  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
-    Estimate::serialize(self, serializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'input, Value: serde::Deserialize<'input>> crate::neutral::ReadAlone<'input> for Estimate<Value> {
-  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Estimate<Value>, Input::Error> {
-    Estimate::deserialize(deserializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'input, Value: serde::Deserialize<'input>> serde::Deserialize<'input> for Estimate<Value> {
-  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Estimate<Value>, Input::Error> {
-    crate::neutral::read_alone(deserializer)
+crate::form::strict_form! {
+  #[form(remote = "Estimate")]
+  /// An estimated value and how it was made (R25).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Estimate<Value> {
+    value: Value,
+    method: EstimateMethod,
   }
 }
 
@@ -307,24 +296,26 @@ impl<Value: Copy> Estimate<Value> {
   }
 }
 
-/// How an estimate was made (plan section 8.4).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum EstimateMethod {
-  /// A constant bit rate over the size.
-  ConstantBitRateOverSize,
-  /// The span of a delivery clock.
-  DeliveryClockSpan,
-  /// The first and last timestamps.
-  EndpointTimestamps,
-  /// The start of the last unit.
-  LastUnitStart,
-  /// The totals of an index.
-  IndexSizeTotals,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<EstimateMethod>),
+crate::form::strict_form! {
+  #[form(remote = "EstimateMethod")]
+  /// How an estimate was made (plan section 8.4).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum EstimateMethod {
+    /// A constant bit rate over the size.
+    ConstantBitRateOverSize,
+    /// The span of a delivery clock.
+    DeliveryClockSpan,
+    /// The first and last timestamps.
+    EndpointTimestamps,
+    /// The start of the last unit.
+    LastUnitStart,
+    /// The totals of an index.
+    IndexSizeTotals,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<EstimateMethod>),
+  }
 }
 
 impl EstimateMethod {

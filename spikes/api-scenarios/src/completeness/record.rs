@@ -23,13 +23,21 @@
 //! name exactly the exhausted limits, in their order; two limits may first stop the same part (thirteenth review).
 //! The limits and the parts that this version knows keep their declared order, a first reason has no detail, a part
 //! that a limit stopped first has a first reason, and a first reason that names an exhausted limit finds it among
-//! the exhausted ones (fourteenth review).
+//! the exhausted ones (fourteenth review). A record that counts an omitted reason has a first reason for it to belong
+//! to: both members are the record's own, so it checks them wherever it is read, alone, in a completeness, and in an
+//! error record without a partial report, which the seventeenth review read with one reason omitted and none first.
+//! A record that counts an omitted reference has exhausted the retained data and holds the first reason of a part
+//! that finds references, which that reference left incomplete (`api.md` section 6.12): the eighteenth review read
+//! one reference omitted beside an empty record in an `ok` document. The stub has no companions part, so its parts
+//! that find references are discovery, the chapters and the attachments, and a part of a newer version may too. That
+//! the part has the reason that names the retained data needs the kept reasons, so the completeness checks it
+//! (`super::agreement`, nineteenth review).
 
 #[cfg(feature = "serde")]
 use super::constants::{LIMIT_ORDER, PART_ORDER};
 use super::statuses::{Part, PartReason};
 #[cfg(feature = "serde")]
-use crate::constants::LIMIT_RECORD_MESSAGE;
+use crate::constants::{LIMIT_RECORD_MESSAGE, OMITTED_REASONS_MESSAGE, OMITTED_REFERENCES_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
 use crate::limits::Limit;
@@ -46,7 +54,7 @@ pub struct LimitRecord {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(LimitRecord from LimitRecordData);
+crate::neutral::checked_strict_traits!(LimitRecord from LimitRecordData);
 
 /// The record's members as written.
 #[cfg(feature = "serde")]
@@ -54,13 +62,14 @@ crate::neutral::checked_record_traits!(LimitRecord from LimitRecordData);
 struct LimitRecordData {
   exhausted: Vec<Limit>,
   first_stopped: Vec<FirstStopped>,
-  #[serde(default)]
   first_reasons: Vec<PartReason>,
-  /// A decimal string, as the other two omitted counts are (`api.md` section 12).
-  #[serde(default, with = "crate::decimal")]
+  /// A decimal string, as the other two omitted counts are (`api.md` section 12). Required, as every member of the
+  /// record is: the nineteenth review read a record of `exhausted` and `first_stopped` alone, written back with an
+  /// empty `first_reasons` and both counts at `"0"`.
+  #[serde(with = "crate::decimal")]
   omitted_reasons: u64,
   /// The external references found but not kept within the retained-data limit, a decimal string too.
-  #[serde(default, with = "crate::decimal")]
+  #[serde(with = "crate::decimal")]
   omitted_references: u64,
 }
 
@@ -76,9 +85,16 @@ struct FirstStopped {
 impl TryFrom<LimitRecordData> for LimitRecord {
   type Error = InvalidDocument;
 
-  /// Each limit once in `exhausted`, the pairs naming exactly those limits in that order, so each once too, and each
-  /// part once in `first_reasons`.
+  /// Each limit once in `exhausted`, the pairs naming exactly those limits in that order, so each once too, each
+  /// part once in `first_reasons`, a first reason for an omitted count above 0 (seventeenth review), and the retained
+  /// data with a part that finds references for an omitted reference (eighteenth review).
   fn try_from(read: LimitRecordData) -> Result<LimitRecord, InvalidDocument> {
+    if read.omitted_reasons > 0 && read.first_reasons.is_empty() {
+      return Err(InvalidDocument::new(OMITTED_REASONS_MESSAGE));
+    }
+    if read.omitted_references > 0 && !references_belong(&read) {
+      return Err(InvalidDocument::new(OMITTED_REFERENCES_MESSAGE));
+    }
     let pairs_name_the_limits = read.exhausted.len() == read.first_stopped.len()
       && read
         .exhausted
@@ -114,6 +130,23 @@ impl TryFrom<LimitRecordData> for LimitRecord {
       omitted_references: read.omitted_references,
     })
   }
+}
+
+/// Whether an omitted reference has a part to belong to: the retained data exhausted, and the first reason of a part
+/// that finds references (eighteenth review). Which reason that part has, the completeness checks (nineteenth review).
+#[cfg(feature = "serde")]
+fn references_belong(read: &LimitRecordData) -> bool {
+  read.exhausted.contains(&Limit::RetainedData) && read.first_reasons.iter().any(|first| finds_references(first.part()))
+}
+
+/// Whether the part finds external references, as `api.md` section 6.12 lists them: discovery, the chapters and the
+/// attachments, the stub having no companions part, or a part of a newer version, which only that version knows.
+#[cfg(feature = "serde")]
+pub(super) fn finds_references(part: &Part) -> bool {
+  matches!(
+    part,
+    Part::Discovery | Part::Chapters | Part::Attachments | Part::Unrecognized(_)
+  )
 }
 
 /// Whether the values that this version knows come in the declared order, each after the one before it; a value of a

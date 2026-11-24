@@ -67,6 +67,8 @@ fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
       "exhausted": exhausted,
       "first_stopped": first_stopped,
       "first_reasons": reasons,
+      "omitted_reasons": "0",
+      "omitted_references": "0",
     },
   })
 }
@@ -223,6 +225,7 @@ fn report_with_tags(tags: Vec<Value>) -> Value {
     "attachment_targets": [],
     "target_scope": "WholeFile",
     "tags": tags,
+    "superseded": false,
   }]);
   report
 }
@@ -339,6 +342,7 @@ fn every_root_record_checks_its_version() {
   );
   let mut record = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
   record["kind"] = json!("source_failed");
+  record["source_failure_kind"] = json!("not_found");
   for version in ["1.1", "2.0"] {
     record["partial_report"] = report_text(version, complete());
     assert!(

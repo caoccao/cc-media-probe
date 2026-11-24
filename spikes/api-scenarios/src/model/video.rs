@@ -22,37 +22,38 @@ use super::constants::{CLOCKWISE_90_DEGREES, CLOCKWISE_180_DEGREES, CLOCKWISE_27
 use super::unrecognized_value::UnrecognizedValue;
 use super::values::{Provenance, Rational, Size};
 
-/// What a video stream states.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct VideoInformation {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  coded_size: Option<Size>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  visible_size: Option<Size>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  display_size: Option<Size>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  pixel_aspect_ratio: Option<Rational>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  frame_rate: Option<Rational>,
-  frame_rate_mode: FrameRateMode,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  frame_rate_provenance: Option<Provenance>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  rotation: Option<Rotation>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  chroma_format: Option<ChromaFormat>,
+crate::form::strict_form! {
+  #[form(remote = "VideoInformation", check = VideoInformation::check_provenance)]
+  /// What a video stream states.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct VideoInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    coded_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    visible_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    display_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pixel_aspect_ratio: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    frame_rate: Option<Rational>,
+    frame_rate_mode: FrameRateMode,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    frame_rate_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    rotation: Option<Rotation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    chroma_format: Option<ChromaFormat>,
+  }
 }
 
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(VideoInformation);
-
 impl VideoInformation {
+  /// The frame rate and its provenance, present together (nineteenth review).
+  #[cfg(feature = "serde")]
+  fn check_provenance(&self) -> Result<(), &'static str> {
+    super::values::paired(&self.frame_rate, &self.frame_rate_provenance)
+  }
+
   /// The coded size.
   pub fn coded_size(&self) -> Option<Size> {
     self.coded_size
@@ -99,39 +100,43 @@ impl VideoInformation {
   }
 }
 
-/// Whether a frame rate is constant.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum FrameRateMode {
-  /// Every interval is shown to be equal.
-  Constant,
-  /// Two intervals are shown to differ.
-  Variable,
-  /// Neither is shown.
-  #[default]
-  Unknown,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<FrameRateMode>),
+crate::form::strict_form! {
+  #[form(remote = "FrameRateMode")]
+  /// Whether a frame rate is constant.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum FrameRateMode {
+    /// Every interval is shown to be equal.
+    Constant,
+    /// Two intervals are shown to differ.
+    Variable,
+    /// Neither is shown.
+    #[default]
+    Unknown,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<FrameRateMode>),
+  }
 }
 
-/// The clockwise rotation a player applies, a multiple of 90 degrees.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum Rotation {
-  /// No rotation.
-  Upright,
-  /// A quarter turn clockwise.
-  Clockwise90,
-  /// A half turn.
-  Clockwise180,
-  /// Three quarter turns clockwise.
-  Clockwise270,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<Rotation>),
+crate::form::strict_form! {
+  #[form(remote = "Rotation")]
+  /// The clockwise rotation a player applies, a multiple of 90 degrees.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum Rotation {
+    /// No rotation.
+    Upright,
+    /// A quarter turn clockwise.
+    Clockwise90,
+    /// A half turn.
+    Clockwise180,
+    /// Three quarter turns clockwise.
+    Clockwise270,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<Rotation>),
+  }
 }
 
 impl Rotation {

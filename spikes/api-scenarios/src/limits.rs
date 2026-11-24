@@ -15,10 +15,12 @@
 * limitations under the License.
 */
 
-//! `Limits` and `Limit`, `api.md` section 4.5, with three of the counters.
+//! `Limits` and `Limit`, `api.md` section 4.5, with four of the counters. The retained data joined at the eighteenth
+//! review, whose omitted reference exhausts it (section 6.12).
 
 use crate::constants::{
-  BYTES_READ_NAME, DEFAULT_BYTES_READ, DEFAULT_STREAMS, DEFAULT_WORKING_MEMORY, STREAMS_NAME, WORKING_MEMORY_NAME,
+  BYTES_READ_NAME, DEFAULT_BYTES_READ, DEFAULT_RETAINED_DATA, DEFAULT_STREAMS, DEFAULT_WORKING_MEMORY,
+  RETAINED_DATA_NAME, STREAMS_NAME, WORKING_MEMORY_NAME,
 };
 use crate::model::UnrecognizedValue;
 
@@ -28,6 +30,7 @@ use crate::model::UnrecognizedValue;
 pub struct Limits {
   bytes_read: u64,
   working_memory: u64,
+  retained_data: u64,
   streams: u64,
 }
 
@@ -36,6 +39,7 @@ impl Default for Limits {
     Limits {
       bytes_read: DEFAULT_BYTES_READ,
       working_memory: DEFAULT_WORKING_MEMORY,
+      retained_data: DEFAULT_RETAINED_DATA,
       streams: DEFAULT_STREAMS,
     }
   }
@@ -64,6 +68,17 @@ impl Limits {
     self
   }
 
+  /// The bytes of data that a report owns: text, identifiers and references.
+  pub fn retained_data(&self) -> u64 {
+    self.retained_data
+  }
+
+  /// Sets the bytes of data that a report may own.
+  pub fn with_retained_data(mut self, value: u64) -> Limits {
+    self.retained_data = value;
+    self
+  }
+
   /// The stream declarations a probe keeps.
   pub fn streams(&self) -> u64 {
     self.streams
@@ -80,6 +95,7 @@ impl Limits {
     match limit {
       Limit::BytesRead => Some(self.bytes_read),
       Limit::WorkingMemory => Some(self.working_memory),
+      Limit::RetainedData => Some(self.retained_data),
       Limit::Streams => Some(self.streams),
       Limit::Unrecognized(_) => None,
     }
@@ -90,26 +106,31 @@ impl Limits {
     match limit {
       Limit::BytesRead => self.with_bytes_read(value),
       Limit::WorkingMemory => self.with_working_memory(value),
+      Limit::RetainedData => self.with_retained_data(value),
       Limit::Streams => self.with_streams(value),
       Limit::Unrecognized(_) => self,
     }
   }
 }
 
-/// The name of a counter: in the limits, the usage summary, the fixed-size record and the reasons.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum Limit {
-  /// Bytes read.
-  BytesRead,
-  /// Working memory.
-  WorkingMemory,
-  /// Stream declarations.
-  Streams,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<Limit>),
+crate::form::strict_form! {
+  #[form(remote = "Limit")]
+  /// The name of a counter: in the limits, the usage summary, the fixed-size record and the reasons.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum Limit {
+    /// Bytes read.
+    BytesRead,
+    /// Working memory.
+    WorkingMemory,
+    /// The data that a report owns.
+    RetainedData,
+    /// Stream declarations.
+    Streams,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<Limit>),
+  }
 }
 
 impl Limit {
@@ -118,6 +139,7 @@ impl Limit {
     match self {
       Limit::BytesRead => BYTES_READ_NAME,
       Limit::WorkingMemory => WORKING_MEMORY_NAME,
+      Limit::RetainedData => RETAINED_DATA_NAME,
       Limit::Streams => STREAMS_NAME,
       Limit::Unrecognized(value) => value.as_str(),
     }

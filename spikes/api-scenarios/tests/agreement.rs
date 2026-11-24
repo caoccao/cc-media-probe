@@ -64,6 +64,7 @@ fn report_text(tags: Value, reasons: Value, first_reasons: Value) -> Value {
         "first_stopped": [],
         "first_reasons": first_reasons,
         "omitted_reasons": omitted.to_string(),
+        "omitted_references": "0",
       },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },

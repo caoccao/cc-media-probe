@@ -23,18 +23,20 @@ use super::matroska::MatroskaDetails;
 use super::shared::Conflict;
 use super::unrecognized_details::UnrecognizedDetails;
 
-/// A format's details.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum FormatDetails {
-  /// Matroska and WebM.
-  Matroska(MatroskaDetails),
-  /// The ISO base media family.
-  IsoBaseMedia(IsoBaseMediaDetails),
-  /// A kind that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "super::unrecognized_form"))]
-  Unrecognized(UnrecognizedDetails<FormatDetails>),
+crate::form::strict_form! {
+  #[form(remote = "FormatDetails")]
+  /// A format's details.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum FormatDetails {
+    /// Matroska and WebM.
+    Matroska(MatroskaDetails),
+    /// The ISO base media family.
+    IsoBaseMedia(IsoBaseMediaDetails),
+    /// A kind that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "super::unrecognized_form"))]
+    Unrecognized(UnrecognizedDetails<FormatDetails>),
+  }
 }
 
 impl FormatDetails {
@@ -47,16 +49,18 @@ impl FormatDetails {
   }
 }
 
-/// A codec header's details.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum CodecDetails {
-  /// H.264.
-  H264(H264Details),
-  /// A kind that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "super::unrecognized_form"))]
-  Unrecognized(UnrecognizedDetails<CodecDetails>),
+crate::form::strict_form! {
+  #[form(remote = "CodecDetails")]
+  /// A codec header's details.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum CodecDetails {
+    /// H.264.
+    H264(H264Details),
+    /// A kind that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "super::unrecognized_form"))]
+    Unrecognized(UnrecognizedDetails<CodecDetails>),
+  }
 }
 
 impl CodecDetails {

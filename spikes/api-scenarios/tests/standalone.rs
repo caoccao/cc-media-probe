@@ -58,12 +58,18 @@ fn report_with(member: &str, at: Value) -> Value {
       "chapters": "Complete",
       "attachments": "Complete",
       "reasons": [],
-      "record": { "exhausted": [], "first_stopped": [] },
+      "record": { "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],
   });
   report[member] = at;
+  report
+}
+
+/// The report with a provenance beside its value, since the two are present together (nineteenth review).
+fn with_provenance(mut report: Value, member: &str) -> Value {
+  report[member] = json!("Declared");
   report
 }
 
@@ -80,7 +86,10 @@ fn records() -> Vec<Record> {
       name: "Rational",
       valid: json!({ "numerator": 1, "denominator": 2 }),
       read_alone: |text| serde_json::from_str::<Rational>(text).map(drop),
-      holder: document_holding(report_with("bit_rate", json!("@"))),
+      holder: document_holding(with_provenance(
+        report_with("bit_rate", json!("@")),
+        "bit_rate_provenance",
+      )),
     },
     Record {
       name: "Usage",

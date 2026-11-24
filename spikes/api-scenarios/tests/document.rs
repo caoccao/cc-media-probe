@@ -128,7 +128,7 @@ fn report_text(version: &str) -> Value {
       "chapters": "Complete",
       "attachments": "Complete",
       "reasons": [],
-      "record": { "exhausted": [], "first_stopped": [] },
+      "record": { "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],
@@ -324,7 +324,7 @@ fn an_identifier_is_a_string_at_every_width() {
   let mut text = results_document();
   text["results"][0]["error"]["kind"] = json!("no_stream_inventory");
   text["results"][0]["error"]["observations"] = json!({
-    "format_details": { "IsoBaseMedia": { "fragment_track_identifiers": ["1", "4294967295"] } },
+    "format_details": { "IsoBaseMedia": { "fragment_track_identifiers": ["1", "4294967295"], "tracks": [] } },
     "diagnostics": [],
   });
   let read: Document = serde_json::from_value(text.clone()).unwrap();
@@ -365,6 +365,7 @@ fn a_document_rebuilt_from_newer_entries_gives_them_its_version() {
   }
   // Only a source failure carries a partial report (fifteenth review).
   newer["results"][0]["error"]["kind"] = json!("source_failed");
+  newer["results"][0]["error"]["source_failure_kind"] = json!("not_found");
   newer["results"][0]["error"]["partial_report"] = report_text("1.1");
   let read: Document = serde_json::from_value(newer).unwrap();
   assert_eq!(read.schema_version().minor(), 1);
@@ -387,6 +388,7 @@ fn reading_checks_the_partial_report_inside_an_error_record() {
   // A source that fails after the inventory leaves an error that carries the report so far.
   let mut text = results_document();
   text["results"][0]["error"]["kind"] = json!("source_failed");
+  text["results"][0]["error"]["source_failure_kind"] = json!("not_found");
   text["results"][0]["error"]["partial_report"] = report_text("1.0");
   let read: Document = serde_json::from_value(text.clone()).unwrap();
   assert!(read.results()[0].error().unwrap().partial_report().is_some());

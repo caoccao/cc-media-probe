@@ -48,6 +48,7 @@ fn tag_set(scope: &str, tags: Vec<Value>) -> Value {
     "attachment_targets": [],
     "target_scope": scope,
     "tags": tags,
+    "superseded": false,
   })
 }
 
@@ -69,7 +70,7 @@ fn report(tag_sets: Vec<Value>) -> MediaReport {
       "chapters": "Complete",
       "attachments": "Complete",
       "reasons": [],
-      "record": { "exhausted": [], "first_stopped": [] },
+      "record": { "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],

@@ -23,8 +23,8 @@ use std::fmt;
 use super::reason::Reason;
 use super::record::LimitRecord;
 use crate::constants::{
-  CHAPTERS_NAME, COMPLETE_TEXT, DETECTION_NAME, DISCOVERY_NAME, HEADERS_NAME, INCOMPLETE_TEXT, NOT_APPLICABLE_NAME,
-  NOT_ATTEMPTED_NAME, NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME, TAGS_NAME,
+  ATTACHMENTS_NAME, CHAPTERS_NAME, COMPLETE_TEXT, DETECTION_NAME, DISCOVERY_NAME, HEADERS_NAME, INCOMPLETE_TEXT,
+  NOT_APPLICABLE_NAME, NOT_ATTEMPTED_NAME, NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME, TAGS_NAME,
 };
 use crate::model::UnrecognizedValue;
 use crate::source::SourceIdentifier;
@@ -133,71 +133,79 @@ impl fmt::Display for Completeness {
   }
 }
 
-/// Whether detection checked every candidate it began to check. A report exists once one candidate validated; a
-/// limit that stopped another candidate's check leaves detection incomplete, since that candidate could have been
-/// chosen.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum DetectionStatus {
-  /// Every check that detection began ran to its end.
-  #[default]
-  Complete,
-  /// A limit stopped a candidate's check.
-  Incomplete,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<DetectionStatus>),
+crate::form::strict_form! {
+  #[form(remote = "DetectionStatus")]
+  /// Whether detection checked every candidate it began to check. A report exists once one candidate validated; a
+  /// limit that stopped another candidate's check leaves detection incomplete, since that candidate could have been
+  /// chosen.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum DetectionStatus {
+    /// Every check that detection began ran to its end.
+    #[default]
+    Complete,
+    /// A limit stopped a candidate's check.
+    Incomplete,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<DetectionStatus>),
+  }
 }
 
-/// Whether every stream was found.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum DiscoveryStatus {
-  /// Every stream was found.
-  #[default]
-  Complete,
-  /// Some may be missing.
-  Incomplete,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<DiscoveryStatus>),
+crate::form::strict_form! {
+  #[form(remote = "DiscoveryStatus")]
+  /// Whether every stream was found.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum DiscoveryStatus {
+    /// Every stream was found.
+    #[default]
+    Complete,
+    /// Some may be missing.
+    Incomplete,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<DiscoveryStatus>),
+  }
 }
 
-/// Whether every stream's header state is final (`api.md` section 5.4). The record keeps it as the status of the
-/// headers, so `is_complete()` sees the header states without the streams.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum HeadersStatus {
-  /// Every stream's header state is final, as in a report of no streams.
-  #[default]
-  Complete,
-  /// At least one stream's header state is not final.
-  Incomplete,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<HeadersStatus>),
+crate::form::strict_form! {
+  #[form(remote = "HeadersStatus")]
+  /// Whether every stream's header state is final (`api.md` section 5.4). The record keeps it as the status of the
+  /// headers, so `is_complete()` sees the header states without the streams.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum HeadersStatus {
+    /// Every stream's header state is final, as in a report of no streams.
+    #[default]
+    Complete,
+    /// At least one stream's header state is not final.
+    Incomplete,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<HeadersStatus>),
+  }
 }
 
-/// The status of the tags, chapters or attachments.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum SectionStatus {
-  /// Complete, including proven empty.
-  #[default]
-  Complete,
-  /// Some items may be missing.
-  Incomplete,
-  /// The options asked to skip it.
-  NotRequested,
-  /// The format has no such section.
-  NotApplicable,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<SectionStatus>),
+crate::form::strict_form! {
+  #[form(remote = "SectionStatus")]
+  /// The status of the tags, chapters or attachments.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum SectionStatus {
+    /// Complete, including proven empty.
+    #[default]
+    Complete,
+    /// Some items may be missing.
+    Incomplete,
+    /// The options asked to skip it.
+    NotRequested,
+    /// The format has no such section.
+    NotApplicable,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<SectionStatus>),
+  }
 }
 
 impl SectionStatus {
@@ -213,38 +221,33 @@ impl SectionStatus {
   }
 }
 
-/// One shortfall and the part it stopped.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct PartReason {
-  part: Part,
-  #[cfg_attr(
-    feature = "serde",
-    serde(
-      default,
-      deserialize_with = "crate::presence::present",
-      skip_serializing_if = "Option::is_none"
-    )
-  )]
-  stream: Option<usize>,
-  #[cfg_attr(
-    feature = "serde",
-    serde(
-      default,
-      deserialize_with = "crate::presence::present",
-      skip_serializing_if = "Option::is_none"
-    )
-  )]
-  source_identifier: Option<SourceIdentifier>,
-  reason: Reason,
+crate::form::strict_form! {
+  #[form(remote = "PartReason")]
+  /// One shortfall and the part it stopped.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct PartReason {
+    part: Part,
+    #[cfg_attr(
+      feature = "serde",
+      serde(
+        default,
+        deserialize_with = "crate::presence::present",
+        skip_serializing_if = "Option::is_none"
+      )
+    )]
+    stream: Option<usize>,
+    #[cfg_attr(
+      feature = "serde",
+      serde(
+        default,
+        deserialize_with = "crate::presence::present",
+        skip_serializing_if = "Option::is_none"
+      )
+    )]
+    source_identifier: Option<SourceIdentifier>,
+    reason: Reason,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(PartReason);
 
 impl PartReason {
   /// The part the reason stopped.
@@ -267,8 +270,9 @@ impl PartReason {
     &self.reason
   }
 
-  /// Whether the two name the same part, stream, source, kind and limit: the first reason of a part, which the record
-  /// keeps without its detail, and the first kept reason of that part (fifteenth review).
+  /// Whether the two name the same part, stream, source, kind, limit and feature: the first reason of a part, which
+  /// the record keeps without its detail, and the first kept reason of that part (fifteenth review; the feature since
+  /// the sixteenth).
   #[cfg(feature = "serde")]
   pub(crate) fn same_apart_from_detail(&self, other: &PartReason) -> bool {
     self.part == other.part
@@ -276,28 +280,33 @@ impl PartReason {
       && self.source_identifier == other.source_identifier
       && self.reason.kind() == other.reason.kind()
       && self.reason.limit() == other.reason.limit()
+      && self.reason.feature() == other.reason.feature()
   }
 }
 
-/// What a reason stopped.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum Part {
-  /// Detection, with the validation checks of the candidates. An error names it when a limit ended detection, and a
-  /// report when a limit stopped one candidate's check while another validated.
-  Detection,
-  /// Stream discovery.
-  Discovery,
-  /// A stream's headers.
-  Headers,
-  /// The tags.
-  Tags,
-  /// The chapters.
-  Chapters,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<Part>),
+crate::form::strict_form! {
+  #[form(remote = "Part")]
+  /// What a reason stopped.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum Part {
+    /// Detection, with the validation checks of the candidates. An error names it when a limit ended detection, and a
+    /// report when a limit stopped one candidate's check while another validated.
+    Detection,
+    /// Stream discovery.
+    Discovery,
+    /// A stream's headers.
+    Headers,
+    /// The tags.
+    Tags,
+    /// The chapters.
+    Chapters,
+    /// The attachments, which the stub lacked until the sixteenth review found incomplete attachments without a reason.
+    Attachments,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<Part>),
+  }
 }
 
 impl Part {
@@ -309,26 +318,22 @@ impl Part {
       Part::Headers => HEADERS_NAME,
       Part::Tags => TAGS_NAME,
       Part::Chapters => CHAPTERS_NAME,
+      Part::Attachments => ATTACHMENTS_NAME,
       Part::Unrecognized(value) => value.as_str(),
     }
   }
 }
 
-/// The outcome of header parsing for one stream.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct HeaderStatus {
-  state: HeaderState,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  reason: Option<Reason>,
+crate::form::strict_form! {
+  #[form(remote = "HeaderStatus")]
+  /// The outcome of header parsing for one stream.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct HeaderStatus {
+    state: HeaderState,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    reason: Option<Reason>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(HeaderStatus);
 
 impl HeaderStatus {
   /// The state.
@@ -362,21 +367,23 @@ impl fmt::Display for HeaderStatus {
   }
 }
 
-/// The states of header parsing, a subset of `api.md` section 5.4.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum HeaderState {
-  /// Every header field read.
-  Parsed,
-  /// No header field was read before the input ended, a limit ended the search, or the range fell behind the
-  /// forward-only window.
-  NotFoundWithinBudget,
-  /// The probe stopped before the stream's turn.
-  NotAttempted,
-  /// A value that a newer version wrote; not final.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<HeaderState>),
+crate::form::strict_form! {
+  #[form(remote = "HeaderState")]
+  /// The states of header parsing, a subset of `api.md` section 5.4.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum HeaderState {
+    /// Every header field read.
+    Parsed,
+    /// No header field was read before the input ended, a limit ended the search, or the range fell behind the
+    /// forward-only window.
+    NotFoundWithinBudget,
+    /// The probe stopped before the stream's turn.
+    NotAttempted,
+    /// A value that a newer version wrote; not final.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<HeaderState>),
+  }
 }
 
 impl HeaderState {

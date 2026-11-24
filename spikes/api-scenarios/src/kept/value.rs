@@ -18,18 +18,21 @@
 //! One value kept as written, read through the self-describing side of Serde. Null is not among the values: the form
 //! never writes it, so a member that holds null fails as a value of the wrong type, kept or not. Nor is any value that
 //! JSON cannot carry faithfully, a non-finite number or a byte string from a format that has them, as the maintainer
-//! chose at the fourteenth review, so a catch-all forwards from any format only what JSON writes back as read. The
-//! private map of serde_json's `arbitrary_precision` feature is kept as the number it stands for, as the maintainer
-//! chose at the fifteenth review (`number_text`), so a number keeps its JSON type in every build.
+//! chose at the fourteenth review, so a catch-all forwards from any format only what JSON writes back as read; since
+//! the sixteenth review, nor a tagged value or an integer beyond 64 bits, as ciborium gives them. A map is kept as
+//! written, the private map of serde_json's `arbitrary_precision` feature included, until the type that reads it is
+//! known, as the eighteenth review asked: the members of a known kind and of a tree's node are then read into their
+//! types, and the members that a catch-all keeps become its payload, where that map is the number it stands for
+//! (`super::payload`).
 
 use std::fmt;
 
-use serde::de::{Error, MapAccess, SeqAccess, Visitor};
+use serde::de::{EnumAccess, Error, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::members::KeptMembers;
-use crate::constants::{ARBITRARY_PRECISION_NAME, KEPT_VALUE_EXPECTING, NOT_JSON_VALUE_MESSAGE};
-use crate::number_text::{self, NumberText};
+use crate::constants::{KEPT_VALUE_EXPECTING, NOT_JSON_VALUE_MESSAGE};
+use crate::integer_width::{Narrowed, narrow_signed, narrow_unsigned};
 
 /// A value kept as written. A floating-point number is held by its bits, so equality and hashing are exact.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -95,6 +98,16 @@ impl<'input> Visitor<'input> for KeptValueVisitor {
     Ok(KeptValue::Unsigned(value))
   }
 
+  /// An integer given as 128 bits is the integer within 64 bits; beyond them, such as a CBOR bignum, it has no JSON
+  /// number within the form (sixteenth and nineteenth reviews).
+  fn visit_i128<Failure: Error>(self, value: i128) -> Result<KeptValue, Failure> {
+    kept_integer(narrow_signed(value))
+  }
+
+  fn visit_u128<Failure: Error>(self, value: u128) -> Result<KeptValue, Failure> {
+    kept_integer(narrow_unsigned(value))
+  }
+
   /// A finite number; NaN and the infinities have no JSON form, as the maintainer chose at the fourteenth review.
   fn visit_f64<Failure: Error>(self, value: f64) -> Result<KeptValue, Failure> {
     if !value.is_finite() {
@@ -124,18 +137,22 @@ impl<'input> Visitor<'input> for KeptValueVisitor {
     Ok(KeptValue::Sequence(values))
   }
 
-  /// A map, or the number that the private map of serde_json's `arbitrary_precision` feature stands for.
+  /// A tagged value, which ciborium gives as an enum of one value, has no JSON form (sixteenth review).
+  fn visit_enum<Access: EnumAccess<'input>>(self, _access: Access) -> Result<KeptValue, Access::Error> {
+    Err(Access::Error::custom(NOT_JSON_VALUE_MESSAGE))
+  }
+
+  /// A map, as written: the private map of serde_json's `arbitrary_precision` feature too, until a type reads it.
   fn visit_map<Members: MapAccess<'input>>(self, members: Members) -> Result<KeptValue, Members::Error> {
-    let members = KeptMembers::from_map(members)?;
-    let number = match members.as_slice() {
-      [(name, KeptValue::Text(text))] if name == ARBITRARY_PRECISION_NAME => number_text::parse(text),
-      _ => None,
-    };
-    match number {
-      Some(NumberText::Unsigned(value)) => Ok(KeptValue::Unsigned(value)),
-      Some(NumberText::Signed(value)) => Ok(KeptValue::Signed(value)),
-      Some(NumberText::FloatingPoint(value)) => KeptValueVisitor.visit_f64(value),
-      None => Ok(KeptValue::Map(members)),
-    }
+    KeptMembers::from_map(members).map(KeptValue::Map)
+  }
+}
+
+/// An integer within 64 bits, or, beyond them, a value that JSON does not carry.
+fn kept_integer<Failure: Error>(narrowed: Option<Narrowed>) -> Result<KeptValue, Failure> {
+  match narrowed {
+    Some(Narrowed::Unsigned(value)) => Ok(KeptValue::Unsigned(value)),
+    Some(Narrowed::Signed(value)) => Ok(KeptValue::Signed(value)),
+    None => Err(Failure::custom(NOT_JSON_VALUE_MESSAGE)),
   }
 }

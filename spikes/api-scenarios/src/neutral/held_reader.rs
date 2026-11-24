@@ -19,11 +19,12 @@
 //! repeated names included; the root record reads it through `Strict`, which refuses them where they stand, as it
 //! does for a member after the version. So a nested root record held before its parent's version reads its own
 //! version first, exactly as it would from the input (thirteenth review). A value that JSON does not carry fails as
-//! soon as it is decoded (fifteenth review).
+//! soon as it is decoded (fifteenth review). `Strict` asks for every value with `deserialize_any` (seventeenth
+//! review), as it asks the input, so the held value gives every request what it holds.
 
 use std::marker::PhantomData;
 
-use serde::de::value::{MapAccessDeserializer, MapDeserializer, SeqDeserializer};
+use serde::de::value::{MapDeserializer, SeqDeserializer};
 use serde::de::{Error, IntoDeserializer, Visitor};
 use serde::{Deserializer, forward_to_deserialize_any};
 
@@ -74,45 +75,9 @@ impl<'input, Failure: Error> Deserializer<'input> for HeldValueReader<Failure> {
     }
   }
 
-  /// Null is an absent option here, as a self-describing reader gives it; `Strict` refuses it either way.
-  fn deserialize_option<Read: Visitor<'input>>(self, visitor: Read) -> Result<Read::Value, Failure> {
-    match self.value {
-      HeldValue::Null => visitor.visit_none(),
-      _ => visitor.visit_some(self),
-    }
-  }
-
-  fn deserialize_newtype_struct<Read: Visitor<'input>>(
-    self,
-    _name: &'static str,
-    visitor: Read,
-  ) -> Result<Read::Value, Failure> {
-    visitor.visit_newtype_struct(self)
-  }
-
-  fn deserialize_enum<Read: Visitor<'input>>(
-    self,
-    _name: &'static str,
-    _variants: &'static [&'static str],
-    visitor: Read,
-  ) -> Result<Read::Value, Failure> {
-    match self.value {
-      HeldValue::Text(text) => visitor.visit_enum(text.into_deserializer()),
-      // A variant that holds a value, as Serde's derive writes it by default: a map of the variant's name.
-      HeldValue::Map(members) => {
-        visitor.visit_enum(MapAccessDeserializer::new(MapDeserializer::new(members.into_iter())))
-      }
-      value => HeldValueReader::<Failure> {
-        value,
-        failure: PhantomData,
-      }
-      .deserialize_any(visitor),
-    }
-  }
-
   forward_to_deserialize_any! {
     <Read: Visitor<'input>>
-    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf unit unit_struct seq tuple
-    tuple_struct map struct identifier ignored_any
+    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf option unit unit_struct
+    newtype_struct seq tuple tuple_struct map struct enum identifier ignored_any
   }
 }

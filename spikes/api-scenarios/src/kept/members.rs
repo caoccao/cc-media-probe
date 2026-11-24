@@ -16,7 +16,8 @@
 */
 
 //! The members of a map kept as written, in their order. A member is present when its name is, whatever it holds,
-//! and a map that names a member twice fails, as a struct of Serde's derive does.
+//! and a map that names a member twice fails, as a struct of Serde's derive does. A member taken out into its type,
+//! and the members read as one record, are read strictly, as from the input (`crate::neutral::read_kept`).
 
 use std::fmt;
 
@@ -25,6 +26,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::value::KeptValue;
 use crate::constants::{DUPLICATE_MEMBER_MESSAGE, KEPT_VALUE_EXPECTING};
+use crate::neutral::read_kept;
 
 /// The members of a map, in the order written.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
@@ -54,9 +56,9 @@ impl KeptMembers {
     Ok(KeptMembers(members))
   }
 
-  /// Whether a member of that name is present.
-  pub(crate) fn contains(&self, name: &str) -> bool {
-    self.0.iter().any(|(kept_name, _)| kept_name == name)
+  /// Members whose names were already checked, each once.
+  pub(super) fn from_checked(members: Vec<(String, KeptValue)>) -> KeptMembers {
+    KeptMembers(members)
   }
 
   /// Takes the member of that name out and reads it into its type, or `None` when it is absent.
@@ -65,7 +67,7 @@ impl KeptMembers {
     name: &str,
   ) -> Result<Option<Value>, Failure> {
     match self.0.iter().position(|(kept_name, _)| kept_name == name) {
-      Some(position) => Value::deserialize(self.0.remove(position).1.into_deserializer()).map(Some),
+      Some(position) => read_kept(self.0.remove(position).1.into_deserializer()).map(Some),
       None => Ok(None),
     }
   }
@@ -74,7 +76,7 @@ impl KeptMembers {
   pub(crate) fn into_record<'input, Record: Deserialize<'input>, Failure: serde::de::Error>(
     self,
   ) -> Result<Record, Failure> {
-    Record::deserialize(KeptValue::Map(self).into_deserializer())
+    read_kept(KeptValue::Map(self).into_deserializer())
   }
 
   /// The members as a slice, in the order written.

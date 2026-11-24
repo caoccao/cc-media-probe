@@ -23,7 +23,8 @@ use std::io;
 use crate::completeness::{LimitRecord, Reason};
 #[cfg(feature = "serde")]
 use crate::constants::{
-  ERROR_RECORD_MESSAGE, PARTIAL_REPORT_KIND_MESSAGE, REASON_COUNTER_MESSAGE, STOPPING_POINTS_MESSAGE,
+  ERROR_RECORD_MESSAGE, KIND_MEMBER, PARTIAL_REPORT_KIND_MESSAGE, REASON_COUNTER_MESSAGE,
+  SOURCE_FAILURE_MEMBERS_MESSAGE, STOPPING_POINTS_MESSAGE,
 };
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
@@ -40,8 +41,7 @@ use crate::model::{Format, MediaReport, UnrecognizedValue, Usage};
 
 /// Why a probe returned no report, `api.md` section 5.1. Serialized as its stable name.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "String", from = "String"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(into = "String"))]
 #[non_exhaustive]
 pub enum ErrorKind {
   /// A source failed.
@@ -59,6 +59,9 @@ pub enum ErrorKind {
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue<ErrorKind>),
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_strict_traits!(ErrorKind from String);
 
 impl ErrorKind {
   /// The serialized name, or the text of an unrecognized value.
@@ -116,21 +119,16 @@ impl From<ErrorKind> for String {
   }
 }
 
-/// What a probe saw before it stopped short of a stream inventory.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Observations {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  format_details: Option<FormatDetails>,
-  diagnostics: Vec<Diagnostic>,
+crate::form::strict_form! {
+  #[form(remote = "Observations")]
+  /// What a probe saw before it stopped short of a stream inventory.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  pub struct Observations {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    format_details: Option<FormatDetails>,
+    diagnostics: Vec<Diagnostic>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Observations);
 
 impl Observations {
   /// The format's details, such as the track identifiers of an ISO media segment.
@@ -260,7 +258,10 @@ impl std::error::Error for Error {
 /// The serializable description of an error, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "crate::neutral::Rooted<ErrorRecordData>"))]
+#[cfg_attr(
+  feature = "serde",
+  serde(try_from = "crate::neutral::Rooted<crate::kept::WithKept<ErrorRecordData>>")
+)]
 pub struct ErrorRecord {
   #[cfg(feature = "serde")]
   schema_version: SchemaVersion,
@@ -268,6 +269,8 @@ pub struct ErrorRecord {
   message: String,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   source_failure_kind: Option<String>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  operating_system_error_code: Option<i32>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   reason: Option<Reason>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -292,6 +295,8 @@ struct ErrorRecordData {
   #[serde(default, deserialize_with = "crate::presence::present")]
   source_failure_kind: Option<String>,
   #[serde(default, deserialize_with = "crate::presence::present")]
+  operating_system_error_code: Option<i32>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   reason: Option<Reason>,
   #[serde(default, deserialize_with = "crate::presence::present")]
   partial_report: Option<MediaReport>,
@@ -299,13 +304,21 @@ struct ErrorRecordData {
   observations: Option<Observations>,
   usage: Usage,
   record: LimitRecord,
-  /// Every other member, as written: kept for a kind of a newer version, ignored for one that this version knows.
-  #[serde(flatten)]
-  kept: KeptMembers,
+}
+
+/// Every member that an error record does not read is kept for a kind of a newer version and passed by for one that
+/// this version knows, as for an outcome (eighteenth review).
+#[cfg(feature = "serde")]
+impl crate::kept::Outcome for ErrorRecordData {
+  const MEMBER: &'static str = KIND_MEMBER;
+
+  fn is_newer(text: &str) -> bool {
+    matches!(ErrorKind::from(text.to_owned()), ErrorKind::Unrecognized(_))
+  }
 }
 
 #[cfg(feature = "serde")]
-impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
+impl TryFrom<crate::neutral::Rooted<crate::kept::WithKept<ErrorRecordData>>> for ErrorRecord {
   type Error = InvalidDocument;
 
   /// A record as read. Its partial report is a root record nested in it, which compared its version with the
@@ -314,13 +327,24 @@ impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
   /// partial report's record is the error's (`api.md` section 5.3; fourteenth review). Since the fifteenth review,
   /// only a source failure of the known kinds carries a partial report, since nothing else turns a probe that reached
   /// its inventory into an error (`api.md` section 5.1); the error's own limit reason finds its counter in the record;
-  /// and a record of a newer kind keeps the members that it does not read.
-  fn try_from(rooted: crate::neutral::Rooted<ErrorRecordData>) -> Result<ErrorRecord, InvalidDocument> {
-    let data = rooted.body;
+  /// and a record of a newer kind keeps the members that it does not read. Since the sixteenth review, a source
+  /// failure holds the kind of its failure, and no other known kind holds that or an operating system's code.
+  fn try_from(
+    rooted: crate::neutral::Rooted<crate::kept::WithKept<ErrorRecordData>>,
+  ) -> Result<ErrorRecord, InvalidDocument> {
+    let (data, kept) = (rooted.body.data, rooted.body.kept);
     if data.partial_report.is_some() && data.observations.is_some() {
       return Err(InvalidDocument::new(STOPPING_POINTS_MESSAGE));
     }
     let newer = matches!(data.kind, ErrorKind::Unrecognized(_));
+    let source_failure = data.kind == ErrorKind::SourceFailed;
+    let failure_members = (
+      data.source_failure_kind.is_some(),
+      data.operating_system_error_code.is_some(),
+    );
+    if !newer && (failure_members.0 != source_failure || (failure_members.1 && !source_failure)) {
+      return Err(InvalidDocument::new(SOURCE_FAILURE_MEMBERS_MESSAGE));
+    }
     if data.partial_report.is_some() && !newer && data.kind != ErrorKind::SourceFailed {
       return Err(InvalidDocument::new(PARTIAL_REPORT_KIND_MESSAGE));
     }
@@ -343,12 +367,13 @@ impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
       kind: data.kind,
       message: data.message,
       source_failure_kind: data.source_failure_kind,
+      operating_system_error_code: data.operating_system_error_code,
       reason: data.reason,
       partial_report: data.partial_report,
       observations: data.observations,
       usage: data.usage,
       record: data.record,
-      kept: if newer { data.kept } else { KeptMembers::default() },
+      kept,
     })
   }
 }
@@ -367,6 +392,11 @@ impl ErrorRecord {
   /// The I/O error kind as a stable string, such as `permission_denied`.
   pub fn source_failure_kind(&self) -> Option<&str> {
     self.source_failure_kind.as_deref()
+  }
+
+  /// The operating system's error code of a source failure, when it has one.
+  pub fn operating_system_error_code(&self) -> Option<i32> {
+    self.operating_system_error_code
   }
 
   /// Why the probe stopped, where one reason stopped it.
@@ -435,6 +465,7 @@ impl From<&Error> for ErrorRecord {
         .source_failure
         .as_ref()
         .map(|cause| stable_kind_name(cause.kind())),
+      operating_system_error_code: error.data.source_failure.as_ref().and_then(io::Error::raw_os_error),
       reason: error.data.reason.clone(),
       partial_report: error.data.partial_report.clone(),
       observations: error.data.observations.clone(),

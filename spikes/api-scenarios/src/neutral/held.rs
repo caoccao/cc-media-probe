@@ -23,17 +23,23 @@
 //! reader's is, as serde_json's recursion limit bounds it.
 //!
 //! A value that JSON does not carry is held too, as the fifteenth review asked, so that it fails after the version
-//! error rather than before it: a byte string, and a map with a name that is not a string, such as the integer keys
-//! of a CBOR map, which ciborium reads. Once the version is checked, it fails as malformed input where it stands. The
-//! private map of serde_json's `arbitrary_precision` feature is held as the number it stands for (`number_text`).
+//! error rather than before it: a byte string, and a name that is not a string, such as an integer key of a CBOR
+//! map, which ciborium reads. Since the sixteenth review, also a tagged value, which ciborium gives as an enum of one
+//! value, and an integer beyond 64 bits, which it gives from a bignum. Once the version is checked, each fails as
+//! malformed input where it stands. A map keeps a name that is not a string in its place among the others, so a
+//! nested root record held whole still reads its own version before it reaches such a name (sixteenth review).
+//!
+//! The private map of serde_json's `arbitrary_precision` feature is held as written, as the maintainer chose at the
+//! sixteenth review: whether it stands for a number is decided where it is read, by the type that reads it, exactly
+//! as for a member after the version (`json-output.md` section 2).
 
 use std::fmt;
 
-use serde::de::{MapAccess, SeqAccess, Visitor};
+use serde::de::{EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
-use crate::constants::{ARBITRARY_PRECISION_NAME, HELD_VALUE_EXPECTING};
-use crate::number_text::{self, NumberText};
+use crate::constants::HELD_VALUE_EXPECTING;
+use crate::integer_width::{Narrowed, narrow_signed, narrow_unsigned};
 
 /// A value held as read.
 pub(super) enum HeldValue {
@@ -51,10 +57,10 @@ pub(super) enum HeldValue {
   Text(String),
   /// A sequence.
   Sequence(Vec<HeldValue>),
-  /// A map, its members in the order written.
-  Map(Vec<(String, HeldValue)>),
-  /// A value that JSON does not carry, refused once the version is checked: a byte string, or a map with a name that
-  /// is not a string.
+  /// A map, its members in the order written. A name is held as text, or as a value that JSON does not carry.
+  Map(Vec<(HeldValue, HeldValue)>),
+  /// A value that JSON does not carry, refused once the version is checked: a byte string, a tagged value, an
+  /// integer beyond 64 bits, or a member name that is not a string.
   NotJson,
 }
 
@@ -89,6 +95,16 @@ impl<'input> Visitor<'input> for HeldValueVisitor {
     Ok(HeldValue::Unsigned(value))
   }
 
+  /// An integer given as 128 bits: within 64 bits, the integer, and beyond them, such as a CBOR bignum, a value that
+  /// JSON does not carry (sixteenth and nineteenth reviews).
+  fn visit_i128<Failure>(self, value: i128) -> Result<HeldValue, Failure> {
+    Ok(held_integer(narrow_signed(value)))
+  }
+
+  fn visit_u128<Failure>(self, value: u128) -> Result<HeldValue, Failure> {
+    Ok(held_integer(narrow_unsigned(value)))
+  }
+
   fn visit_f64<Failure>(self, value: f64) -> Result<HeldValue, Failure> {
     Ok(HeldValue::FloatingPoint(value))
   }
@@ -117,6 +133,18 @@ impl<'input> Visitor<'input> for HeldValueVisitor {
     HeldValue::deserialize(deserializer)
   }
 
+  fn visit_newtype_struct<Inner: Deserializer<'input>>(self, deserializer: Inner) -> Result<HeldValue, Inner::Error> {
+    HeldValue::deserialize(deserializer)
+  }
+
+  /// A tagged value, which ciborium gives as an enum whose one variant holds the value: it is read whole, so the
+  /// reader stays in place, and held as a value that JSON does not carry (sixteenth review).
+  fn visit_enum<Access: EnumAccess<'input>>(self, access: Access) -> Result<HeldValue, Access::Error> {
+    let (_variant, content): (HeldValue, _) = access.variant()?;
+    content.newtype_variant::<HeldValue>()?;
+    Ok(HeldValue::NotJson)
+  }
+
   fn visit_seq<Items: SeqAccess<'input>>(self, mut items: Items) -> Result<HeldValue, Items::Error> {
     let mut values = Vec::new();
     while let Some(value) = items.next_element()? {
@@ -125,36 +153,25 @@ impl<'input> Visitor<'input> for HeldValueVisitor {
     Ok(HeldValue::Sequence(values))
   }
 
-  /// A map, whose names are read as any value, so that a name that is not a string is held as well.
+  /// A map, whose names are read as any value, so that a name that is not a string is held as well, in its place.
   fn visit_map<Members: MapAccess<'input>>(self, mut members: Members) -> Result<HeldValue, Members::Error> {
     let mut held = Vec::new();
-    let mut textual = true;
     while let Some((name, value)) = members.next_entry::<HeldValue, HeldValue>()? {
-      match name {
-        HeldValue::Text(name) => held.push((name, value)),
-        _ => textual = false,
-      }
+      let name = match name {
+        HeldValue::Text(name) => HeldValue::Text(name),
+        _ => HeldValue::NotJson,
+      };
+      held.push((name, value));
     }
-    if !textual {
-      return Ok(HeldValue::NotJson);
-    }
-    Ok(HeldValue::number_of(&held).unwrap_or(HeldValue::Map(held)))
+    Ok(HeldValue::Map(held))
   }
 }
 
-impl HeldValue {
-  /// The number that the private map of serde_json's `arbitrary_precision` feature stands for, if it is one.
-  fn number_of(members: &[(String, HeldValue)]) -> Option<HeldValue> {
-    let [(name, HeldValue::Text(text))] = members else {
-      return None;
-    };
-    if name != ARBITRARY_PRECISION_NAME {
-      return None;
-    }
-    number_text::parse(text).map(|number| match number {
-      NumberText::Unsigned(value) => HeldValue::Unsigned(value),
-      NumberText::Signed(value) => HeldValue::Signed(value),
-      NumberText::FloatingPoint(value) => HeldValue::FloatingPoint(value),
-    })
+/// An integer within 64 bits, or, beyond them, a value that JSON does not carry.
+fn held_integer(narrowed: Option<Narrowed>) -> HeldValue {
+  match narrowed {
+    Some(Narrowed::Unsigned(value)) => HeldValue::Unsigned(value),
+    Some(Narrowed::Signed(value)) => HeldValue::Signed(value),
+    None => HeldValue::NotJson,
   }
 }

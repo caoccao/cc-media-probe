@@ -43,7 +43,7 @@ pub struct RawPath {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(RawPath from RawPathData);
+crate::neutral::checked_strict_traits!(RawPath from RawPathData);
 
 impl RawPath {
   /// The encoding of the platform that wrote the path.
@@ -212,8 +212,7 @@ fn hexadecimal_units(data: &str, digits: usize) -> Option<Vec<u16>> {
 
 /// The encoding of a raw path. Serialized as its stable name.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "String", from = "String"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(into = "String"))]
 #[non_exhaustive]
 pub enum RawPathEncoding {
   /// The bytes of a Unix path.
@@ -223,6 +222,9 @@ pub enum RawPathEncoding {
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue<RawPathEncoding>),
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_strict_traits!(RawPathEncoding from String);
 
 impl RawPathEncoding {
   /// The serialized name, or the text of an unrecognized value.

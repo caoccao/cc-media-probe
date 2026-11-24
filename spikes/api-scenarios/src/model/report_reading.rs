@@ -29,7 +29,7 @@ use super::report::MediaReport;
 use super::stream::Stream;
 use super::tags::TagSet;
 use super::usage::Usage;
-use super::values::{Estimate, MediaType, Provenance, Rational, Seconds};
+use super::values::{Estimate, MediaType, Provenance, Rational, Seconds, paired};
 use crate::completeness::{Completeness, HeaderState, HeadersStatus, Part};
 use crate::constants::{
   HEADERS_DISAGREE_MESSAGE, LARGEST_EXACT, QUANTITY_MESSAGE, REASONS_DISAGREE_MESSAGE, STREAM_INDEX_MESSAGE,
@@ -50,6 +50,7 @@ pub(super) struct ReportData {
   duration_provenance: Option<Provenance>,
   estimated_duration: Option<Estimate<Seconds>>,
   bit_rate: Option<Rational>,
+  bit_rate_provenance: Option<Provenance>,
   streams: Vec<Stream>,
   chapter_editions: Vec<ChapterEdition>,
   tag_sets: Vec<TagSet>,
@@ -83,6 +84,8 @@ impl TryFrom<Rooted<ReportData>> for MediaReport {
     if data.size.is_some_and(|size| size > LARGEST_EXACT) {
       return Err(InvalidDocument::new(QUANTITY_MESSAGE));
     }
+    paired(&data.duration, &data.duration_provenance).map_err(InvalidDocument::new)?;
+    paired(&data.bit_rate, &data.bit_rate_provenance).map_err(InvalidDocument::new)?;
     Ok(MediaReport {
       schema_version: rooted.version,
       format: data.format,
@@ -92,6 +95,7 @@ impl TryFrom<Rooted<ReportData>> for MediaReport {
       duration_provenance: data.duration_provenance,
       estimated_duration: data.estimated_duration,
       bit_rate: data.bit_rate,
+      bit_rate_provenance: data.bit_rate_provenance,
       streams: data.streams,
       chapter_editions: data.chapter_editions,
       tag_sets: data.tag_sets,

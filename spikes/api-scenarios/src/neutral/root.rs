@@ -29,6 +29,14 @@
 //! A member's name before the version is read as any value, as the fifteenth review asked: a name that is not a
 //! string, such as an integer key of CBOR, is held with its value and fails once the version is checked, as a value
 //! that JSON does not carry.
+//!
+//! The record itself is asked for with `deserialize_any` too, as the eighteenth review asked: ciborium dropped a
+//! tag around a whole detection when the record was asked for as a map, so the detection read in either order. A
+//! root record in a tag is no object, and fails at once as a value that JSON does not carry, as an array fails as no
+//! record. A nested root record is asked for as a value of no known type, since its type is known only once its
+//! version is: the record that holds it refuses a null, a repeated name and a value that JSON does not carry before
+//! that version, and its own body, read as a record, refuses the name of serde_json's private map after the version
+//! error, as the table of `json-output.md` section 2 orders them (eighteenth review).
 
 use std::collections::HashSet;
 use std::fmt;
@@ -36,18 +44,19 @@ use std::marker::PhantomData;
 use std::vec;
 
 use serde::de::value::MapAccessDeserializer;
-use serde::de::{DeserializeSeed, Error, IntoDeserializer, MapAccess, Visitor};
+use serde::de::{DeserializeSeed, EnumAccess, Error, Expected, IntoDeserializer, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
 use super::held::HeldValue;
 use super::scope::{ScopedRead, read_in_scope};
 use super::strict::{Holder, StrictMap};
 use crate::constants::{
-  HOLDER_VERSION_LABEL, MISSING_VERSION_MESSAGE, NESTED_ROOT_VERSION_MESSAGE, NOT_JSON_VALUE_MESSAGE,
-  OTHER_MAJOR_VERSION_MESSAGE, READER_VERSION_LABEL, ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER,
-  SCHEMA_VERSION_TEXT_MESSAGE,
+  ARBITRARY_PRECISION_NAME, HOLDER_VERSION_LABEL, MISSING_VERSION_MESSAGE, NESTED_ROOT_VERSION_MESSAGE,
+  NOT_JSON_VALUE_MESSAGE, OTHER_MAJOR_VERSION_MESSAGE, READER_VERSION_LABEL, ROOT_RECORD_EXPECTING,
+  SCHEMA_VERSION_MEMBER, SCHEMA_VERSION_TEXT_MESSAGE,
 };
 use crate::document::SchemaVersion;
+use crate::number_text;
 
 /// A root record as read: its version, of this major, and the members of its body, which hold no version.
 pub(crate) struct Rooted<Body> {
@@ -68,7 +77,7 @@ impl<'input, Body: Deserialize<'input>> ScopedRead<'input> for RootRead<Body> {
   type Value = Rooted<Body>;
 
   fn alone<Input: Deserializer<'input>>(self, deserializer: Input) -> Result<Rooted<Body>, Input::Error> {
-    deserializer.deserialize_map(RootVisitor {
+    deserializer.deserialize_any(RootVisitor {
       holder: None,
       body: PhantomData,
     })
@@ -79,7 +88,7 @@ impl<'input, Body: Deserialize<'input>> ScopedRead<'input> for RootRead<Body> {
     deserializer: Input,
     holder: Holder,
   ) -> Result<Rooted<Body>, Input::Error> {
-    deserializer.deserialize_map(RootVisitor {
+    deserializer.deserialize_any(RootVisitor {
       holder,
       body: PhantomData,
     })
@@ -99,11 +108,16 @@ impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
     formatter.write_str(ROOT_RECORD_EXPECTING)
   }
 
+  /// A tagged value of ciborium around the whole record, which JSON does not carry (eighteenth review).
+  fn visit_enum<Access: EnumAccess<'input>>(self, _access: Access) -> Result<Rooted<Body>, Access::Error> {
+    Err(Access::Error::custom(NOT_JSON_VALUE_MESSAGE))
+  }
+
   fn visit_map<Members: MapAccess<'input>>(self, mut members: Members) -> Result<Rooted<Body>, Members::Error> {
     let mut held = Vec::new();
     let version = loop {
       let Some(name) = members.next_key::<HeldValue>()? else {
-        return Err(Members::Error::custom(MISSING_VERSION_MESSAGE));
+        return Err(missing_version(&held, &self));
       };
       let name = match name {
         HeldValue::Text(name) if name == SCHEMA_VERSION_MEMBER => {
@@ -126,6 +140,21 @@ impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
     )))?;
     Ok(Rooted { version, body })
   }
+}
+
+/// The version error of a map that ended without a version. A map of the one member that serde_json's
+/// `arbitrary_precision` gives for a number, with a number's text, is that number at the root, so the root is no
+/// object, in every build, as a build without the feature reads it and as the maintainer chose at the nineteenth review:
+/// the review read `1.25` as a document, which failed as no object without the feature and as a root record without
+/// its version with it.
+fn missing_version<Failure: Error>(held: &[(Option<String>, HeldValue)], expected: &dyn Expected) -> Failure {
+  if let [(Some(name), HeldValue::Text(text))] = held
+    && name == ARBITRARY_PRECISION_NAME
+    && let Some(unexpected) = number_text::unexpected(text)
+  {
+    return Failure::invalid_type(unexpected, expected);
+  }
+  Failure::custom(MISSING_VERSION_MESSAGE)
 }
 
 /// The version that a member holds, read as any value so that one of another type, a number or `null` alone, is the

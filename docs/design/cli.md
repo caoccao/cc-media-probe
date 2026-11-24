@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. The tenth revised sections 8.1 to 8.6, 9, 10, 12 and 13, the eleventh sections 4, 8.1, 8.4, 8.6, 9, 10, 12 and 13, the twelfth sections 8.2, 8.3, 10, 12 and 13, the thirteenth, of this contract with the JSON contract and `api.md`, sections 7, 9, 10 and 13, and the fourteenth, on 2026-11-24, sections 9, 10 and 13. The fifteenth, of revision 49, revised sections 5 and 13 on the same day. |
+| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. The tenth revised sections 8.1 to 8.6, 9, 10, 12 and 13, the eleventh sections 4, 8.1, 8.4, 8.6, 9, 10, 12 and 13, the twelfth sections 8.2, 8.3, 10, 12 and 13, the thirteenth, of this contract with the JSON contract and `api.md`, sections 7, 9, 10 and 13, and the fourteenth, on 2026-11-24, sections 9, 10 and 13. The fifteenth, of revision 49, revised sections 5 and 13 on the same day, and the draft of `docs/guide/stability.md` revised section 8.8 at revision 51. The sixteenth, of revision 50 with the drafts of revision 51, revised sections 7, 8.8 and 13 on the same day, at revision 52. The seventeenth, of revision 52, revised sections 2, 3, 5, 7, 8.8 and 13 on the same day, at revision 53. The eighteenth, of revision 53, revised sections 3, 6.3 and 13 on the same day, at revision 54. The nineteenth, of revision 54, revised sections 2 and 13 on the same day, at revision 55. |
 | **Plan** | [Section 8.9](../plans/plan-init-project.md#89-command-line-contract) fixes the command line, the JSON document, the outcomes and the exit statuses, on the rules of R21 and R23. This document fixes the rest: the order in which the command line is read, the messages, the help and version texts, the text layout and what goes to each output. |
 | **API** | [`docs/design/api.md`](api.md), approved at G2.2 on 2026-11-23: the entry points and options (section 4), the outcomes (section 5), the report model (section 6), detection (section 8), the error record (section 10) and the document with its writer (section 12). |
 
@@ -53,12 +53,12 @@ cc-media-probe [OPTIONS] <INPUT>...
 | Option | Effect | Section |
 |---|---|---|
 | `--json` | Write one JSON document to standard output | 7 |
-| `--detect` | Detection only: each entry carries a detection result in place of a report | 6, 8.5 |
+| `--detect` | Detection only: each entry carries a detection result in place of a report, or, for an input that cannot be opened or read, its error alone, of kind `source_failed` | 6, 6.4, 8.5 |
 | `--strict` | An entry of the outcome `partial` requires exit status 1 | 6.3 |
 | `--help` | Print the help text | 5 |
 | `--version` | Print the version | 5 |
 
-`--companions` arrives with the release that ships companion lookup (plan section 8.9, R18). Until then it is an unknown option. A new option is a compatible change.
+`--companions` arrives with the release that ships companion lookup (plan section 8.9, R18). Until then it is an unknown option. A new option is a compatible change. The order of the table is the order of the help text, and of the warnings of deprecated options (section 8.8).
 
 **Inputs.**
 
@@ -83,24 +83,26 @@ The tool reads the whole command line before it opens any input, so a usage erro
 flowchart TD
   A["The arguments"] --> J["1 JSON-mode scan:<br/>the exact --json before any --"]
   J --> H{"2 The exact --help<br/>before any --?"}
-  H -->|yes| HELP["Help text, exit 0"]
+  H -->|yes| HELP["Help text, exit 0<br/>once written"]
   H -->|no| P{"3 Every option known,<br/>and none with a value?"}
   P -->|no| U["Usage error, exit 2"]
   P -->|yes| S{"4 Standard input<br/>named more than once?"}
   S -->|yes| U
   S -->|no| V{"5 --version given?"}
-  V -->|yes| VERSION["Version, exit 0"]
+  V -->|yes| VERSION["Version, exit 0<br/>once written"]
   V -->|no| I{"6 At least one input?"}
   I -->|no| U
   I -->|yes| RUN["Run the inputs, section 6"]
 ```
 
 1. **JSON mode.** It is on when the exact argument `--json` appears before any `--`. A plain scan of the arguments answers it, so the answer does not depend on the rest of the command line being valid (plan section 8.9). A misspelled `--jsno` leaves the run in text mode and is itself the usage error.
-2. **Help.** The exact argument `--help` before any `--` prints the help text and exits with 0, whatever else the command line holds, an unknown option or a repeated `-` included. That is how `--help` always prints help (R21). `--help=1` is not `--help`; it is a usage error.
+2. **Help.** The exact argument `--help` before any `--` prints the help text and exits with 0 once the text is written and flushed, whatever else the command line holds, an unknown option or a repeated `-` included. That is how `--help` always prints help (R21). `--help=1` is not `--help`; it is a usage error.
 3. **Options.** An unknown option, or an option with a value, is a usage error. The first such argument from the left decides the message.
 4. **Standard input.** `-` named more than once, before or after `--`, is a usage error.
-5. **Version.** `--version` prints the version, as text or in JSON mode as the document of section 5, and exits with 0. It needs no input, and inputs beside it are not opened.
+5. **Version.** `--version` prints the version, as text or in JSON mode as the document of section 5, and exits with 0 once it is written and flushed. It needs no input, and inputs beside it are not opened.
 6. **Inputs.** A command line without an input is a usage error.
+
+Help and the version exit with 1 when their text cannot be written, as the seventeenth review asked to qualify here: with standard output closed before the start, the spike exits with 1 for `--json --help` and for `--version`. A usage error keeps its status 2 even when its document cannot be written (section 9). As the eighteenth review found, this note stood between steps 5 and 6, where CommonMark reads the line `6.` as part of the note's paragraph, since an ordered list item that interrupts a paragraph must start with 1 (CommonMark 0.31.2, section 5.2), and it gave every output failure the status 1.
 
 **Messages.** A usage error has one message:
 
@@ -157,7 +159,7 @@ Try 'cc-media-probe --help' for more information.
 
 ## 5. Help and version
 
-**Help.** `--help` writes this text to standard output and exits with 0, with or without `--json` (R21):
+**Help.** `--help` writes this text to standard output and exits with 0 once it is written and flushed, with or without `--json` (R21), and with 1 when it cannot be (section 9):
 
 ```text
 Inspect multimedia files and report what they contain.
@@ -193,7 +195,7 @@ The exit-status line names every cause of status 1 that section 6.3 and section 
 }
 ```
 
-Both exit with 0.
+Both exit with 0 once written and flushed, and with 1 when standard output fails (section 9).
 
 ## 6. Running the inputs
 
@@ -225,7 +227,7 @@ Each input gets one result, with the outcome of plan section 8.9:
 | `--detect` | A family only, an ambiguous result, or a hint only | `partial` | 0; 1 under `--strict` |
 | `--detect` | Insufficient data, an unknown format, or a source failure | `error` | 1 |
 
-The run exits with the highest status that any result requires, or with 1 after an output failure. A usage error exits with 2, and help and the version with 0.
+The run exits with the highest status that any result requires, or with 1 after an output failure. A usage error exits with 2, also when its document cannot be written, and help and the version with 0 once their text is written and flushed, or with 1 (section 9).
 
 ### 6.4 Inputs that fail
 
@@ -233,7 +235,7 @@ An input that cannot be opened gets the outcome `error`, like an input that open
 
 ## 7. JSON mode
 
-- **One document.** Standard output gets exactly one document followed by one line feed, and nothing else. Standard error gets only usage messages and output failures: no per-input errors, no warnings and no diagnostics, since the document holds them all (plan section 8.9).
+- **One document.** Standard output gets exactly one document followed by one line feed, and nothing else. Standard error gets only the warnings of deprecated options, usage messages and output failures: no per-input errors, and no warnings or diagnostics of an input, since the document holds them all (plan section 8.9). A deprecated option warns in either mode, before anything else, as the maintainer chose at the sixteenth review, unless the command line has a usage error or asks for help, which write no warning (section 8.8).
 - **Its shape.** The document of plan section 8.9 and `api.md` section 12. Task 5 fixes every member in [`docs/guide/json-output.md`](../guide/json-output.md), whose draft is under review. That guide states the two cases in which JSON mode writes no whole document or keeps another status: `--help`, which writes the help text and exits with 0 (section 3), and an output failure (section 9). The `generator` is `cc-media-probe-cli` with the tool's version.
 - **Written as it goes.** `Document::serialize_results` writes the document, one entry as each input finishes, to the pretty serializer of `serde_json`: two spaces of indentation for each level, a colon and a space after each member's name, and each member and each array element on lines of its own. The tool then writes the line feed and flushes, through the same output (`api.md` section 12).
 - **Entries.** `index` counts the inputs from 0, in the order of the command line; options do not count. Every input gets an entry in that order, so the index is the entry's position in `results`, which the document writes (`api.md` section 12). `input` is the input as written, so standard input is `"-"`. An input that is not valid Unicode has its display string with `input_lossy` and `input_raw` beside it (plan section 8.8). Then come `outcome` and the entry's record: `report`, `detection` or `error`.
@@ -485,8 +487,13 @@ The text layout is for people, as the maintainer chose on 2026-11-23:
 - It may change in any minor release. Each change is listed in the changelog under "Changed output", and the snapshot tests are updated in the same change (plan section 9.6).
 - It is not a compatibility contract. Programs read the JSON document, whose contract is plan section 8.8.
 - What does hold across releases is this document's rules for the outputs: which output carries what, the exit statuses, the usage errors and the JSON document.
+- The options of section 2 hold as the Rust API does, as the maintainer chose on 2026-11-24. A new option comes in a minor release. An option keeps its name and meaning, and it is removed or changed only in a breaking release, after a deprecation of at least one minor release, during which using it writes a warning to standard error.
+- **Where the warning goes,** as the maintainer chose at the sixteenth review. In either mode, once the command line has been read without a usage error and the reading ends in the version or in a run of the inputs (steps 5 and 6 of section 3), each deprecated option on it writes a line to standard error: `cc-media-probe: `, the warning, escaped as section 8.1 says, and a line feed. The lines come before the version is written or the first input is opened, so before anything else that the run writes to standard error, an output failure's line included.
+- **Once each, in a fixed order,** as the maintainer chose at the seventeenth review. An option given twice is the same as an option given once, and the order of the options does not matter (section 2), so each deprecated option writes one line however often it is given, and the lines follow the order of the table of section 2, which is the order of the help text, whatever the order of the command line. For a future `--old --other-old --old`, standard error holds two lines, in the order in which the table lists the two options.
+- **None with help or a usage error,** as the seventeenth review asked to state. Help is decided before the options are read (section 3, step 2), so `--help` writes the help text and no warning. A command line with a usage error writes no warning either: standard error holds the usage error's three lines, after the output failure's line when the usage-error document cannot be written (sections 4 and 9), and the status is 2.
+- The warning's text is for people; its place, its count and its order are the contract. No option of `0.1.0` is deprecated.
 
-`docs/guide/stability.md` (task 5) states this beside the compatible kinds of output change.
+[`docs/guide/stability.md`](../guide/stability.md) section 6 states this beside the compatible kinds of output change.
 
 ## 9. Output failure
 
@@ -654,5 +661,39 @@ Three changes of `api.md` reach this contract too. A codec of a newer version sh
 **Choice made without asking in the fifteenth review,** open at G2.3: the exit-status line is wrapped into two lines of at most 80 columns, as the rest of the help is, rather than kept as one longer line.
 
 Two changes of `json-output.md` reach this contract too: the record's omitted count covers every first reason that the kept reasons lack, which the reasons of section 8.4 rely on when they print a part's first reason from the record and count it among the reasons not printed, and a reason of a known kind has the members of its kind, so `limit exhausted` always prints its limit in parentheses.
+
+**The sixteenth review.** On 2026-11-24 the maintainer's review of revision 50, committed as `51dab2e`, read with the staged drafts of revision 51, raised one finding on this contract, beside four on `api.md`, six on `json-output.md` (`api.md` section 16) and eight on `docs/guide/stability.md` (its section 9). It holds, confirmed by reading: section 7 allowed only usage messages and output failures on standard error in JSON mode, as plan section 8.9 does, while section 8.8 had a deprecated option warn there. The maintainer chose where the warning goes. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| JSON mode both forbade and required a deprecated option's warning on standard error | The warning goes to standard error in either mode, one line for each deprecated option in the order of the command line, before anything else, and a command line with a usage error writes only the usage error; section 7 and plan section 8.9 list it (the maintainer's choice) | 7, 8.8, 13 |
+
+**Choices made without asking in the sixteenth review,** open at G2.3: the warnings are written only for a command line without a usage error, rather than before its usage error too; and each starts with the program's name, as every other line on standard error does.
+
+**The seventeenth review.** On 2026-11-24 the maintainer's review of revision 52 raised three findings on this contract, beside four defects of the API spike and five findings on the other contracts (`api.md` section 16, `stability.md` section 9). Each holds, confirmed by reading; the review ran the spike with standard output closed and saw status 1 for `--json --help` and `--version`, as section 9 requires. The maintainer chose the count and the order of the warnings. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| Section 8.8 had a usage error write only the usage error, while sections 4 and 9 put an output failure's line first when its document cannot be written, and sections 7 and `stability.md` 6.1 had a deprecated option always warn | A usage error writes no warning, keeps the output failure's line before its own three lines, and exits with 2; sections 7 and 8.8 and `stability.md` section 6.1 say so | 7, 8.8 |
+| A repeated deprecated option had no clear count of warnings, and their order made the order of the options observable, against section 2 | One line per deprecated option, in the order of the table of section 2, whatever the order or repetition on the command line (the maintainer's choice) | 2, 8.8 |
+| Help and the version promised status 0 even when standard output failed | Status 0 once the text is written and flushed, 1 otherwise, in sections 3 and 5 and the diagram of section 3 | 3, 5 |
+
+**Found while revising the seventeenth review:** section 8.8 did not say whether help and the version write the warnings. Help is decided before the options are read, so it writes none; the version is decided after them, so it writes them first.
+
+**Choices made without asking in the seventeenth review,** open at G2.3: no warning beside help, which is decided before the options are read, and the warnings before the version, which is decided after them.
+
+**The eighteenth review.** On 2026-11-24 the maintainer's review of revision 53 raised one finding on this contract, beside six defects of the API spike and eight findings on the other contracts (`api.md` section 16, `stability.md` section 9). It holds: CommonMark 0.31.2 lets an ordered list item interrupt a paragraph only when it starts with 1 ([section 5.2](https://spec.commonmark.org/0.31.2/#list-items)), so the line `6.` after the note was the note's continuation. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| A note between steps 5 and 6 took step 6 out of the list, and gave every output failure the status 1, although a usage error whose document cannot be written keeps 2 | The note follows step 6 and speaks of help and the version, and names the usage error's 2 | 3 |
+
+**Found while revising the eighteenth review:** the summary of section 6.3 still gave help and the version the status 0 without the qualification of section 3, and a usage error 2 without saying that it keeps it when its document cannot be written; it says both now.
+
+**The nineteenth review.** On 2026-11-24 the maintainer's review of revision 54 raised one finding on this contract, beside nine findings on the API and the JSON reader and two on the stability rules (`api.md` section 16, `stability.md` section 9). It holds: `detect_file` and `detect_stream` return an `Error` for a source that cannot be opened or read, their only error, as `api.md` sections 4.1 and 8 define them, so the entry holds that error alone, as section 6.4 already says. The scratch crate of the review wrote such an entry, for a path that does not exist, as `error`, `index`, `input` and `outcome`, with no `detection`.
+
+| Finding | Change | Sections |
+|---|---|---|
+| The option table promised a detection result for every input, while an input that cannot be opened has its error alone | The table names that case and points to section 6.4 | 2 |
 
 **Found while writing.** A source failure after the inventory gives an error that carries a partial report (R19). `api.md` section 5.3 records every shortfall against the part it stopped, but no reason said that a source failed, so the partial report of section 8.7 could not say why its remaining parts were incomplete. The maintainer chose on 2026-11-23 to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (`api.md` section 5.5). A new variant of an open set is compatible, so G2.2 stands.

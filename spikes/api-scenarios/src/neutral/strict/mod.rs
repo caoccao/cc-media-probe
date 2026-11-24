@@ -17,8 +17,10 @@
 
 //! `Strict`, a deserializer that wraps another and refuses, at any depth, a member that holds null and a map that
 //! names a member twice (plan section 8.8; RFC 7493 section 2.3). The form never writes null, so a member is present
-//! when its name is, and null never stands for an absent value. Every other value passes to the wrapped reader as it
-//! came.
+//! when its name is, and null never stands for an absent value. It also refuses a record written as an array, a
+//! value that JSON does not carry, and the name of serde_json's private map in an object of a known type. Since the
+//! seventeenth review it asks for every value with `deserialize_any` and reads it as the type asked for, so a value
+//! held before the version and one read after it meet the same rules through the same calls.
 
 mod access;
 mod deserializer;

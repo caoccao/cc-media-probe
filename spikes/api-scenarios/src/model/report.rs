@@ -22,7 +22,8 @@ use super::chapters::ChapterEdition;
 use super::format::Format;
 use super::lookups::TagsOf;
 use super::stream::Stream;
-use super::tags::{Tag, TagKey, TagSet, TargetScope};
+use super::tag_key::TagKey;
+use super::tags::{Tag, TagSet, TargetScope};
 use super::usage::Usage;
 use super::values::{Estimate, MediaType, Provenance, Rational, Seconds};
 use crate::completeness::Completeness;
@@ -56,6 +57,8 @@ pub struct MediaReport {
   pub(super) estimated_duration: Option<Estimate<Seconds>>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   pub(super) bit_rate: Option<Rational>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) bit_rate_provenance: Option<Provenance>,
   pub(super) streams: Vec<Stream>,
   pub(super) chapter_editions: Vec<ChapterEdition>,
   pub(super) tag_sets: Vec<TagSet>,
@@ -102,6 +105,11 @@ impl MediaReport {
   /// The bit rate, in bits per second.
   pub fn bit_rate(&self) -> Option<Rational> {
     self.bit_rate
+  }
+
+  /// Where the bit rate came from.
+  pub fn bit_rate_provenance(&self) -> Option<&Provenance> {
+    self.bit_rate_provenance.as_ref()
   }
 
   /// The streams, in index order.

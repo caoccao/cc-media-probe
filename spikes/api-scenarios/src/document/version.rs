@@ -22,12 +22,14 @@ use crate::constants::{SCHEMA_MAJOR, SCHEMA_MINOR, SCHEMA_VERSION_TEXT_MESSAGE, 
 use crate::decimal::canonical;
 
 /// A schema version, `major.minor`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(into = "String", try_from = "String")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(into = "String")]
 pub struct SchemaVersion {
   major: u32,
   minor: u32,
 }
+
+crate::neutral::checked_strict_traits!(SchemaVersion from String);
 
 impl SchemaVersion {
   /// The version this release writes.

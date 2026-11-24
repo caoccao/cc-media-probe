@@ -24,15 +24,16 @@
 //! formats; an insufficient detection's reason is the input's end or a named limit (`api.md` section 8); the usage is
 //! always present; and a detection of a newer outcome keeps every member that it does not read and writes it back
 //! after its own, as an entry of a newer outcome does, as the maintainer chose. A detection of a known outcome
-//! ignores such a member.
+//! ignores such a member. Since the eighteenth review such members are held only until the outcome is known, and a
+//! known outcome passes them by as they come (`crate::kept`), where Serde's `flatten` held them all.
 
 use super::detection::{Candidate, CandidateData, Detection, DetectionOutcome, Hint};
 use super::format::Format;
 use super::usage::Usage;
 use crate::completeness::{Reason, ReasonKind};
-use crate::constants::{CONFIDENCE_MESSAGE, DETECTION_MESSAGE, MAXIMUM_CONFIDENCE, MINIMUM_CANDIDATES};
+use crate::constants::{CONFIDENCE_MESSAGE, DETECTION_MESSAGE, MAXIMUM_CONFIDENCE, MINIMUM_CANDIDATES, OUTCOME_MEMBER};
 use crate::document::{InvalidDocument, SchemaVersion};
-use crate::kept::KeptMembers;
+use crate::kept::{KeptMembers, Outcome, WithKept};
 use crate::neutral::Rooted;
 use crate::twin::{unsigned_members, unsigned_value};
 
@@ -91,18 +92,27 @@ pub(super) struct DetectionData {
   bytes_needed_exact: Option<String>,
   insufficient_reason: Option<Reason>,
   usage: Usage,
-  /// Every other member, as written: kept for an outcome of a newer version, ignored for one that this version knows.
-  #[serde(flatten)]
-  kept: KeptMembers,
 }
 
-impl TryFrom<Rooted<DetectionData>> for Detection {
+/// Every member that a detection does not read is kept for an outcome of a newer version and passed by for one that
+/// this version knows.
+impl Outcome for DetectionData {
+  const MEMBER: &'static str = OUTCOME_MEMBER;
+
+  fn is_newer(text: &str) -> bool {
+    matches!(
+      DetectionOutcome::from(text.to_owned()),
+      DetectionOutcome::Unrecognized(_)
+    )
+  }
+}
+
+impl TryFrom<Rooted<WithKept<DetectionData>>> for Detection {
   type Error = InvalidDocument;
 
-  fn try_from(rooted: Rooted<DetectionData>) -> Result<Detection, InvalidDocument> {
-    let data = rooted.body;
+  fn try_from(rooted: Rooted<WithKept<DetectionData>>) -> Result<Detection, InvalidDocument> {
+    let (data, kept) = (rooted.body.data, rooted.body.kept);
     let bytes_needed = unsigned_value(data.bytes_needed, data.bytes_needed_exact)?;
-    let newer = matches!(data.outcome, DetectionOutcome::Unrecognized(_));
     let detection = Detection {
       schema_version: rooted.version,
       outcome: data.outcome,
@@ -113,7 +123,7 @@ impl TryFrom<Rooted<DetectionData>> for Detection {
       bytes_needed,
       insufficient_reason: data.insufficient_reason,
       usage: data.usage,
-      kept: if newer { data.kept } else { KeptMembers::default() },
+      kept,
     };
     if !(confidences_hold(&detection) && formats_once(&detection.candidates) && members_fit_the_outcome(&detection)) {
       return Err(InvalidDocument::new(DETECTION_MESSAGE));

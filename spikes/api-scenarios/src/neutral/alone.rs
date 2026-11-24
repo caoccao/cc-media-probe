@@ -22,10 +22,20 @@
 //! the record reads from it as it is. Outside one, the record reads from the deserializer wrapped in `Strict`, so each
 //! map is checked once, also when the read starts inside another read's callback (fourteenth review).
 //!
-//! The stub derives a record's members with `serde(remote = "Self")`, which also gives the type public inherent
-//! `serialize` and `deserialize` functions; `record_traits!` writes the two traits over them. A record that checks its
-//! members after reading them, through a shadow type and `TryFrom`, gets its entry from `checked_record_traits!`. The
-//! library writes the same entry without the inherent functions (task 11).
+//! Since the eighteenth review every type of the form reads so, an enum as well as a record: an enum written as its
+//! name, one that Serde's derive reads and one that carries data. A type that asked the format itself for its
+//! outermost value gave ciborium a typed request, which drops a tag, so the review read tag 42 around a standalone
+//! entry outcome `ok` as that outcome.
+//!
+//! A type whose members Serde's derive reads is written with `crate::form::strict_form!`, as the nineteenth review asked. The
+//! stub had derived such a type with `serde(remote = "Self")`, which gives the type public inherent `serialize` and
+//! `deserialize` functions beside the traits, so `Generator::deserialize` read the positional array
+//! `["catalog", "1"]` that the trait refuses. The macro now derives `Serialize` on the type itself, and `Deserialize`
+//! on a private mirror of the same definition inside a block, with `serde(remote)` naming the type, so the derive's
+//! inherent `deserialize` belongs to the mirror, which nothing outside the block can name. The mirror is named
+//! `Form` in every block, so a field that names the type, such as a catch-all's payload, names the type and not the
+//! mirror. A record that checks its members after reading them, through a shadow type and `TryFrom`, gets its entry
+//! from `checked_strict_traits!`; its shadow type is private as well.
 
 use std::marker::PhantomData;
 
@@ -34,13 +44,13 @@ use serde::Deserializer;
 use super::scope::{ScopedRead, read_in_scope};
 use super::strict::{Holder, Strict};
 
-/// A record type's own reading of its members, from a deserializer that is already strict.
+/// A type's own reading of its value, from a deserializer that is already strict.
 pub(crate) trait ReadAlone<'input>: Sized {
-  /// Reads the record's members.
+  /// Reads the value: a record's members, an enum's name or the members of an enum that carries data.
   fn read_members<Input: Deserializer<'input>>(deserializer: Input) -> Result<Self, Input::Error>;
 }
 
-/// Reads a record, strictly whether it stands alone or inside a read already under way.
+/// Reads a value of the form, strictly whether it stands alone or inside a read already under way.
 pub(crate) fn read_alone<'input, Record: ReadAlone<'input>, Input: Deserializer<'input>>(
   deserializer: Input,
 ) -> Result<Record, Input::Error> {
@@ -62,35 +72,10 @@ impl<'input, Record: ReadAlone<'input>> ScopedRead<'input> for AloneRead<Record>
   }
 }
 
-/// `Serialize` and `Deserialize` for record types whose derive is `serde(remote = "Self")`: writing as derived, and
-/// reading through `read_alone`.
-macro_rules! record_traits {
-  ($($record:ident),* $(,)?) => {
-    $(
-      impl serde::Serialize for $record {
-        fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
-          $record::serialize(self, serializer)
-        }
-      }
-
-      impl<'input> $crate::neutral::ReadAlone<'input> for $record {
-        fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$record, Input::Error> {
-          $record::deserialize(deserializer)
-        }
-      }
-
-      impl<'input> serde::Deserialize<'input> for $record {
-        fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$record, Input::Error> {
-          $crate::neutral::read_alone(deserializer)
-        }
-      }
-    )*
-  };
-}
-
-/// `ReadAlone` and `Deserialize` for record types that read their members into a shadow type and check them with
-/// `TryFrom`, such as a rational that must be reduced; their `Serialize` stays derived.
-macro_rules! checked_record_traits {
+/// `ReadAlone` and `Deserialize` for types that read their value into a shadow type and check it with `TryFrom`,
+/// such as a rational that must be reduced, or an enum read from its name as a `String`; their `Serialize` stays
+/// derived.
+macro_rules! checked_strict_traits {
   ($($record:ident from $data:ident),* $(,)?) => {
     $(
       impl<'input> $crate::neutral::ReadAlone<'input> for $record {
@@ -109,4 +94,4 @@ macro_rules! checked_record_traits {
   };
 }
 
-pub(crate) use {checked_record_traits, record_traits};
+pub(crate) use checked_strict_traits;

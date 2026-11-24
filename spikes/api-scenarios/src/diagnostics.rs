@@ -36,7 +36,7 @@ pub struct Diagnostic {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(Diagnostic from DiagnosticData);
+crate::neutral::checked_strict_traits!(Diagnostic from DiagnosticData);
 
 /// A diagnostic's members as written, its offset as its number or its twin.
 #[cfg(feature = "serde")]
@@ -119,20 +119,22 @@ impl Diagnostic {
   }
 }
 
-/// How serious a diagnostic is.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum Severity {
-  /// A damaged structure was skipped.
-  Error,
-  /// Something unexpected.
-  Warning,
-  /// For information.
-  Information,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<Severity>),
+crate::form::strict_form! {
+  #[form(remote = "Severity")]
+  /// How serious a diagnostic is.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum Severity {
+    /// A damaged structure was skipped.
+    Error,
+    /// Something unexpected.
+    Warning,
+    /// For information.
+    Information,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<Severity>),
+  }
 }
 
 /// A stable code, such as `matroska.seek_head_disagrees`.

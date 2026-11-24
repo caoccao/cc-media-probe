@@ -25,30 +25,25 @@ use super::language::LocalizedText;
 use super::tree::{self, Branching};
 use super::values::{Identifier, Seconds};
 
-/// One edition of chapters.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct ChapterEdition {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  unique_identifier: Option<Identifier>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  default: Option<bool>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  ordered: Option<bool>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  hidden: Option<bool>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  playback_duration: Option<Seconds>,
-  #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
-  chapters: Vec<Chapter>,
+crate::form::strict_form! {
+  #[form(remote = "ChapterEdition")]
+  /// One edition of chapters.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ChapterEdition {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    unique_identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    default: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    ordered: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    hidden: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    playback_duration: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
+    chapters: Vec<Chapter>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(ChapterEdition);
 
 impl ChapterEdition {
   /// The edition's identifier.

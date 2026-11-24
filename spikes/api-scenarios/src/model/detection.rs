@@ -39,7 +39,7 @@ use crate::kept::KeptMembers;
   derive(serde::Serialize, serde::Deserialize),
   serde(
     into = "super::detection_reading::DetectionMembers",
-    try_from = "crate::neutral::Rooted<super::detection_reading::DetectionData>"
+    try_from = "crate::neutral::Rooted<crate::kept::WithKept<super::detection_reading::DetectionData>>"
   )
 )]
 pub struct Detection {
@@ -125,7 +125,7 @@ pub struct Candidate {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(Candidate from CandidateData);
+crate::neutral::checked_strict_traits!(Candidate from CandidateData);
 
 /// A candidate's members as read, before its confidence is checked.
 #[cfg(feature = "serde")]
@@ -147,20 +147,15 @@ impl Candidate {
   }
 }
 
-/// A format that a hint suggests, not verified.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Hint {
-  format: Format,
-  origin: HintOrigin,
+crate::form::strict_form! {
+  #[form(remote = "Hint")]
+  /// A format that a hint suggests, not verified.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Hint {
+    format: Format,
+    origin: HintOrigin,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Hint);
 
 impl Hint {
   /// The hinted format.
@@ -174,24 +169,25 @@ impl Hint {
   }
 }
 
-/// Where a hint came from.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum HintOrigin {
-  /// The file name.
-  FileName,
-  /// The format option of the builder.
-  FormatOption,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<HintOrigin>),
+crate::form::strict_form! {
+  #[form(remote = "HintOrigin")]
+  /// Where a hint came from.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum HintOrigin {
+    /// The file name.
+    FileName,
+    /// The format option of the builder.
+    FormatOption,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<HintOrigin>),
+  }
 }
 
 /// The outcome of a detection. Serialized as its stable name.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "String", from = "String"))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(into = "String"))]
 #[non_exhaustive]
 pub enum DetectionOutcome {
   /// One format, identified.
@@ -209,6 +205,9 @@ pub enum DetectionOutcome {
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue<DetectionOutcome>),
 }
+
+#[cfg(feature = "serde")]
+crate::neutral::checked_strict_traits!(DetectionOutcome from String);
 
 impl DetectionOutcome {
   /// The serialized name, or the text of an unrecognized value.

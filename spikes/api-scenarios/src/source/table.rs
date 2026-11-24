@@ -63,7 +63,7 @@ pub struct SourceEntry {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(SourceEntry from SourceEntryData);
+crate::neutral::checked_strict_traits!(SourceEntry from SourceEntryData);
 
 impl SourceEntry {
   /// The source's identifier.

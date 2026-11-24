@@ -128,3 +128,15 @@ required-features = ["serde"]
 [[test]]
 name = "own_checks"
 required-features = ["serde"]
+
+[[test]]
+name = "private_numbers"
+required-features = ["serde"]
+
+[[test]]
+name = "record_rules"
+required-features = ["serde"]
+
+[[test]]
+name = "entry_points"
+required-features = ["serde"]

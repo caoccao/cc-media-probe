@@ -19,28 +19,29 @@
 
 use super::values::{Provenance, Rational};
 
-/// What an audio stream states.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct AudioInformation {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  sample_rate: Option<Rational>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  channel_count: Option<u64>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  channel_count_provenance: Option<Provenance>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  bit_depth: Option<u64>,
+crate::form::strict_form! {
+  #[form(remote = "AudioInformation", check = AudioInformation::check_provenance)]
+  /// What an audio stream states.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct AudioInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_rate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    channel_count: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    channel_count_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_depth: Option<u64>,
+  }
 }
 
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(AudioInformation);
-
 impl AudioInformation {
+  /// The channel count and its provenance, present together (nineteenth review).
+  #[cfg(feature = "serde")]
+  fn check_provenance(&self) -> Result<(), &'static str> {
+    super::values::paired(&self.channel_count, &self.channel_count_provenance)
+  }
+
   /// The sample rate, in hertz.
   pub fn sample_rate(&self) -> Option<Rational> {
     self.sample_rate

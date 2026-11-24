@@ -56,7 +56,7 @@ fn report_with_record(record: Value) -> Value {
 }
 
 fn empty_record() -> Value {
-  json!({ "exhausted": [], "first_stopped": [] })
+  json!({ "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" })
 }
 
 /// A stream of that index whose header was cut short at the input's end.
@@ -104,13 +104,14 @@ fn a_known_header_state_that_is_not_final_is_a_shortfall_beside_a_newer_headers_
 fn a_part_that_a_limit_stopped_first_has_a_first_reason() {
   // The review's case: every status complete and no first reason, while the record says that the read limit
   // stopped discovery; `is_complete()` was true.
-  let stopped = json!({ "exhausted": ["BytesRead"], "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }] });
+  let stopped = json!({ "exhausted": ["BytesRead"], "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" });
   assert!(serde_json::from_value::<MediaReport>(report_with_record(stopped)).is_err());
   let mut report = report_with_record(json!({
     "exhausted": ["BytesRead"],
     "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }],
     "first_reasons": [{ "part": "Discovery", "reason": { "kind": "LimitExhausted", "limit": "BytesRead" } }],
     "omitted_reasons": "1",
+    "omitted_references": "0",
   }));
   report["completeness"]["discovery"] = json!("Incomplete");
   assert!(serde_json::from_value::<MediaReport>(report).is_ok());
@@ -120,7 +121,9 @@ fn a_part_that_a_limit_stopped_first_has_a_first_reason() {
 fn a_reason_that_names_an_exhausted_limit_finds_it_in_the_record() {
   // The review's case: a first reason of the tags naming the read limit, with no counter exhausted.
   let reason = json!({ "part": "Tags", "reason": { "kind": "LimitExhausted", "limit": "BytesRead" } });
-  let mut report = report_with_record(json!({ "exhausted": [], "first_stopped": [], "first_reasons": [reason] }));
+  let mut report = report_with_record(
+    json!({ "exhausted": [], "first_stopped": [], "first_reasons": [reason], "omitted_reasons": "0", "omitted_references": "0" }),
+  );
   report["completeness"]["tags"] = json!("Incomplete");
   assert!(serde_json::from_value::<MediaReport>(report.clone()).is_err());
   // A kept reason is checked the same way.
@@ -141,6 +144,8 @@ fn the_record_keeps_the_declared_order_and_no_detail_in_a_first_reason() {
     "exhausted": ["BytesRead", "WorkingMemory"],
     "first_stopped": [pair("BytesRead"), pair("WorkingMemory")],
     "first_reasons": [reason("BytesRead")],
+    "omitted_reasons": "0",
+    "omitted_references": "0",
   });
   assert!(read(ordered).is_ok());
   // The review's case: the two limits the other way round in both arrays, and a first reason with a detail.
@@ -148,21 +153,25 @@ fn the_record_keeps_the_declared_order_and_no_detail_in_a_first_reason() {
     "exhausted": ["WorkingMemory", "BytesRead"],
     "first_stopped": [pair("WorkingMemory"), pair("BytesRead")],
     "first_reasons": [reason("WorkingMemory")],
+    "omitted_reasons": "0",
+    "omitted_references": "0",
   });
   assert!(read(reversed).is_err());
   let mut detailed = reason("BytesRead");
   detailed["reason"]["detail"] = json!("any text at all");
-  let record = json!({ "exhausted": ["BytesRead"], "first_stopped": [pair("BytesRead")], "first_reasons": [detailed] });
+  let record = json!({ "exhausted": ["BytesRead"], "first_stopped": [pair("BytesRead")], "first_reasons": [detailed], "omitted_reasons": "0", "omitted_references": "0" });
   assert!(read(record).is_err());
   // The first reasons in the order of the parts; a limit of a newer version may stand anywhere.
   let parts = json!({ "exhausted": [], "first_stopped": [], "first_reasons": [
     { "part": "Tags", "reason": { "kind": "TruncatedInput" } },
-    { "part": "Discovery", "reason": { "kind": "TruncatedInput" } } ] });
+    { "part": "Discovery", "reason": { "kind": "TruncatedInput" } } ], "omitted_reasons": "0", "omitted_references": "0" });
   assert!(read(parts).is_err());
   let newer = json!({
     "exhausted": [{ "Unrecognized": "future_limit" }, "BytesRead"],
     "first_stopped": [{ "limit": { "Unrecognized": "future_limit" }, "part": "Discovery" }, pair("BytesRead")],
     "first_reasons": [reason("BytesRead")],
+    "omitted_reasons": "0",
+    "omitted_references": "0",
   });
   assert!(read(newer).is_ok());
 }
@@ -174,6 +183,7 @@ fn a_streams_index_is_its_position() {
     "first_stopped": [],
     "first_reasons": [{ "part": "Headers", "stream": 0, "reason": { "kind": "TruncatedInput" } }],
     "omitted_reasons": "1",
+    "omitted_references": "0",
   }));
   report["completeness"]["headers"] = json!("Incomplete");
   report["streams"] = json!([cut_stream(0)]);
@@ -188,6 +198,7 @@ fn a_streams_index_is_its_position() {
 fn source_failure(members: &[(&str, Value)]) -> Value {
   let mut error = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
   error["kind"] = json!("source_failed");
+  error["source_failure_kind"] = json!("not_found");
   for (name, value) in members {
     error[*name] = value.clone();
   }
@@ -215,6 +226,7 @@ fn an_errors_record_is_its_partial_reports_record() {
     "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }],
     "first_reasons": [{ "part": "Discovery", "reason": { "kind": "LimitExhausted", "limit": "BytesRead" } }],
     "omitted_reasons": "1",
+    "omitted_references": "0",
   });
   let mut partial = report_with_record(stopped.clone());
   partial["completeness"]["discovery"] = json!("Incomplete");

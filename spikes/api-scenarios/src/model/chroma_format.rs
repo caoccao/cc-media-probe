@@ -20,7 +20,7 @@
 //! `{"kind": "monochrome"}`, and `Other` holds the member named after its kind (section 12).
 
 #[cfg(feature = "serde")]
-use serde::de::Error as _;
+use serde::de::MapAccess;
 #[cfg(feature = "serde")]
 use serde::ser::SerializeMap;
 #[cfg(feature = "serde")]
@@ -33,7 +33,7 @@ use super::unrecognized_kind::UnrecognizedKind;
 #[cfg(feature = "serde")]
 use crate::constants::{CHROMA_FORMAT_MESSAGE, KIND_MEMBER};
 #[cfg(feature = "serde")]
-use crate::kept::{read_kind, refuse_other_kinds, write_kept};
+use crate::kept::{KeptMembers, KindRead, MemberValue, read_by_kind, write_kept};
 
 /// The chroma format of a video stream.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -61,20 +61,15 @@ impl ChromaFormat {
   }
 }
 
-/// A chroma subsampling as written: the horizontal and vertical subsampling of the chroma planes.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct ChromaSubsampling {
-  horizontal: u8,
-  vertical: u8,
+crate::form::strict_form! {
+  #[form(remote = "ChromaSubsampling")]
+  /// A chroma subsampling as written: the horizontal and vertical subsampling of the chroma planes.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ChromaSubsampling {
+    horizontal: u8,
+    vertical: u8,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(ChromaSubsampling);
 
 impl ChromaSubsampling {
   /// The horizontal subsampling, as written.
@@ -104,23 +99,74 @@ impl Serialize for ChromaFormat {
   }
 }
 
-/// A variant without a value reads `kind` alone, and `Other` needs its member. Either way no member that another
-/// known kind reads may remain, and any other member is ignored.
+/// Read strictly, alone as inside a read (eighteenth review).
 #[cfg(feature = "serde")]
 impl<'input> Deserialize<'input> for ChromaFormat {
   fn deserialize<Input: Deserializer<'input>>(deserializer: Input) -> Result<ChromaFormat, Input::Error> {
-    let (kind, mut members) = read_kind(deserializer, CHROMA_FORMAT_MESSAGE)?;
-    let value = match kind.as_str() {
-      MONOCHROME_KIND => ChromaFormat::Monochrome,
-      CHROMA_420_KIND => ChromaFormat::Chroma420,
-      OTHER_KIND => ChromaFormat::Other(
-        members
-          .take::<_, Input::Error>(OTHER_KIND)?
-          .ok_or_else(|| Input::Error::custom(CHROMA_FORMAT_MESSAGE))?,
-      ),
-      _ => return Ok(ChromaFormat::Unrecognized(UnrecognizedKind::new(kind, members))),
-    };
-    refuse_other_kinds::<Input::Error>(&members, &CHROMA_FORMAT_MEMBERS, CHROMA_FORMAT_MESSAGE)?;
-    Ok(value)
+    crate::neutral::read_alone(deserializer)
+  }
+}
+
+/// A variant without a value reads `kind` alone, and `Other` needs its member, read as it comes once the kind is
+/// known (nineteenth review). Either way no member that another known kind reads may remain, and any other member is
+/// passed by.
+#[cfg(feature = "serde")]
+impl<'input> crate::neutral::ReadAlone<'input> for ChromaFormat {
+  fn read_members<Input: Deserializer<'input>>(deserializer: Input) -> Result<ChromaFormat, Input::Error> {
+    read_by_kind(deserializer)
+  }
+}
+
+/// What a kind of chroma format that this version knows gathers from its members.
+#[cfg(feature = "serde")]
+pub(crate) enum ChromaGathered {
+  Monochrome,
+  Chroma420,
+  Other(Option<ChromaSubsampling>),
+}
+
+#[cfg(feature = "serde")]
+impl KindRead for ChromaFormat {
+  type Gathered = ChromaGathered;
+
+  const MEMBERS: &'static [&'static str] = &CHROMA_FORMAT_MEMBERS;
+  const MESSAGE: &'static str = CHROMA_FORMAT_MESSAGE;
+
+  fn start(kind: &str) -> Option<ChromaGathered> {
+    match kind {
+      MONOCHROME_KIND => Some(ChromaGathered::Monochrome),
+      CHROMA_420_KIND => Some(ChromaGathered::Chroma420),
+      OTHER_KIND => Some(ChromaGathered::Other(None)),
+      _ => None,
+    }
+  }
+
+  fn reads(gathered: &ChromaGathered, name: &str) -> bool {
+    matches!(gathered, ChromaGathered::Other(_)) && name == OTHER_KIND
+  }
+
+  fn gather<'input, Members: MapAccess<'input>>(
+    gathered: &mut ChromaGathered,
+    _name: &str,
+    value: MemberValue<'_, Members>,
+  ) -> Result<(), Members::Error> {
+    if let ChromaGathered::Other(subsampling) = gathered {
+      *subsampling = Some(value.read()?);
+    }
+    Ok(())
+  }
+
+  fn finish<Failure: serde::de::Error>(gathered: ChromaGathered) -> Result<ChromaFormat, Failure> {
+    Ok(match gathered {
+      ChromaGathered::Monochrome => ChromaFormat::Monochrome,
+      ChromaGathered::Chroma420 => ChromaFormat::Chroma420,
+      ChromaGathered::Other(subsampling) => {
+        ChromaFormat::Other(subsampling.ok_or_else(|| Failure::custom(CHROMA_FORMAT_MESSAGE))?)
+      }
+    })
+  }
+
+  fn unrecognized(kind: String, members: KeptMembers) -> ChromaFormat {
+    ChromaFormat::Unrecognized(UnrecognizedKind::new(kind, members))
   }
 }

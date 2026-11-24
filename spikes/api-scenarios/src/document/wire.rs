@@ -18,16 +18,18 @@
 //! An entry's serialized form, `api.md` section 12. A document writes each entry with its position as its `index`,
 //! and its input as the display string, as in `"input": "movie.mkv"`, with the flag and the raw form beside it for a
 //! lossy path. Reading checks that each index is its entry's position, that an entry of a known outcome holds
-//! exactly one record, and that the record allows the outcome.
+//! exactly one record, and that the record allows the outcome. An entry of a newer outcome keeps the members that it
+//! does not read, held until its outcome is known, and an entry of a known outcome passes them by as they come
+//! (`crate::kept`; eighteenth review).
 
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::entry::DocumentEntry;
 use super::invalid::InvalidDocument;
 use super::outcome::EntryOutcome;
-use crate::constants::{ENTRY_WITHOUT_ONE_RECORD_MESSAGE, OUTCOME_DISAGREES_MESSAGE, POSITION_MESSAGE};
+use crate::constants::{ENTRY_WITHOUT_ONE_RECORD_MESSAGE, OUTCOME_DISAGREES_MESSAGE, OUTCOME_MEMBER, POSITION_MESSAGE};
 use crate::error::ErrorRecord;
-use crate::kept::KeptMembers;
+use crate::kept::{KeptMembers, Outcome, WithKept};
 use crate::model::{Detection, MediaReport};
 use crate::source::{PortablePath, RawPath};
 
@@ -106,10 +108,16 @@ pub(super) struct EntryData {
   detection: Option<Detection>,
   #[serde(default, deserialize_with = "crate::presence::present")]
   error: Option<ErrorRecord>,
-  /// Every other member, as written. An entry of a newer outcome keeps them, since its outcome can need a member
-  /// that only the newer version knows; an entry of a known outcome ignores them.
-  #[serde(flatten)]
-  kept: KeptMembers,
+}
+
+/// An entry of a newer outcome keeps every member that it does not read, since its outcome can need a member that
+/// only the newer version knows; an entry of a known outcome passes them by.
+impl Outcome for EntryData {
+  const MEMBER: &'static str = OUTCOME_MEMBER;
+
+  fn is_newer(text: &str) -> bool {
+    matches!(EntryOutcome::from(text.to_owned()), EntryOutcome::Unrecognized(_))
+  }
 }
 
 impl EntryData {
@@ -125,7 +133,13 @@ impl EntryData {
 
   /// The entry at that position of the results. Its index is the position; an entry of an outcome this version
   /// knows holds exactly one record, which allows the outcome; and its input describes one path.
-  pub(super) fn into_entry(self, position: u64) -> Result<DocumentEntry, InvalidDocument> {
+  pub(super) fn into_entry(read: WithKept<EntryData>, position: u64) -> Result<DocumentEntry, InvalidDocument> {
+    let (data, kept) = (read.data, read.kept);
+    data.checked(position, kept)
+  }
+
+  /// The entry's members checked, with the members that it keeps.
+  fn checked(self, position: u64, kept: KeptMembers) -> Result<DocumentEntry, InvalidDocument> {
     if self.index != position {
       return Err(InvalidDocument::new(POSITION_MESSAGE));
     }
@@ -145,7 +159,7 @@ impl EntryData {
       report: self.report,
       detection: self.detection,
       error: self.error,
-      kept: if newer { self.kept } else { KeptMembers::default() },
+      kept,
     })
   }
 }

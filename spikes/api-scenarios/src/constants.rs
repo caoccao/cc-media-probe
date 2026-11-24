@@ -24,6 +24,8 @@ pub const PREFIX_LENGTH: usize = 16;
 pub const DEFAULT_BYTES_READ: u64 = 64 * 1024 * 1024;
 /// The proposed default of the working-memory limit.
 pub const DEFAULT_WORKING_MEMORY: u64 = 32 * 1024 * 1024;
+/// The proposed default of the retained-data limit.
+pub const DEFAULT_RETAINED_DATA: u64 = 16 * 1024 * 1024;
 /// The proposed default of the stream limit.
 pub const DEFAULT_STREAMS: u64 = 4096;
 
@@ -47,11 +49,17 @@ pub const HEADERS_NAME: &str = "headers";
 pub const TAGS_NAME: &str = "tags";
 /// The serialized names of `Part`.
 pub const CHAPTERS_NAME: &str = "chapters";
+/// The serialized names of `Part`.
+pub const ATTACHMENTS_NAME: &str = "attachments";
+/// The serialized name of `Feature::Zlib`.
+pub const ZLIB_NAME: &str = "zlib";
 
 /// The serialized names of `Limit`.
 pub const BYTES_READ_NAME: &str = "bytes_read";
 /// The serialized names of `Limit`.
 pub const WORKING_MEMORY_NAME: &str = "working_memory";
+/// The serialized names of `Limit`.
+pub const RETAINED_DATA_NAME: &str = "retained_data";
 /// The serialized names of `Limit`.
 pub const STREAMS_NAME: &str = "streams";
 
@@ -197,6 +205,10 @@ pub const REASONS_DISAGREE_MESSAGE: &str = "the reasons of a completeness disagr
 /// The members of an enum that carries data: the kind, which names the member that holds the value.
 #[cfg(feature = "serde")]
 pub const KIND_MEMBER: &str = "kind";
+/// The member of an entry and of a detection that holds its outcome, which decides whether the members that the
+/// record does not read are kept (eighteenth review).
+#[cfg(feature = "serde")]
+pub const OUTCOME_MEMBER: &str = "outcome";
 /// The member of a node of a flat tree that holds the position of its parent (`api.md` section 12).
 #[cfg(feature = "serde")]
 pub const PARENT_MEMBER: &str = "parent";
@@ -243,6 +255,9 @@ pub const MINUS_SIGN: char = '-';
 /// The version-first reading of a root record (plan section 8.8, task 5): a root record without its version.
 #[cfg(feature = "serde")]
 pub const MISSING_VERSION_MESSAGE: &str = "a root record has no schema_version";
+/// The nineteenth review: a number that is not finite, named in the error of a root that is that number.
+#[cfg(feature = "serde")]
+pub const NUMBER_UNEXPECTED: &str = "a number";
 /// The version-first reading of a root record: what the version error says after the version it found.
 #[cfg(feature = "serde")]
 pub const READER_VERSION_LABEL: &str = "this version reads";
@@ -302,12 +317,28 @@ pub const READ_SCOPE_EXPECTING: &str = "a record of the form";
 /// The fourteenth review: an answer to the request for the scope that lacks one of its two elements.
 #[cfg(feature = "serde")]
 pub const READ_SCOPE_MESSAGE: &str = "the scope of a read was answered without its version and its reader";
+/// The nineteenth review: the name of the strict deserializer's answer to a request for the scope, an enum's variant
+/// whose identifier is these bytes. Only their address counts: the answer is the strict deserializer's when the
+/// identifier is this static itself, which no input and no other deserializer can give, while a sequence or a map
+/// of the same content, such as one that Serde's `SeqDeserializer` gives, is a value read alone.
+#[cfg(feature = "serde")]
+pub static READ_SCOPE_TOKEN: [u8; 27] = *b"$cc_media_probe::read_scope";
+/// The nineteenth review: the elements of the variant that answers a request for the scope, the version and the
+/// strict deserializer.
+#[cfg(feature = "serde")]
+pub const READ_SCOPE_LENGTH: usize = 2;
+/// The nineteenth review: what the identifier of an enum given in answer to a request for the scope expects.
+#[cfg(feature = "serde")]
+pub const READ_SCOPE_IDENTIFIER_EXPECTING: &str = "a variant's name";
 /// The fourteenth review: a stream whose index is not its position in the report.
 #[cfg(feature = "serde")]
 pub const STREAM_INDEX_MESSAGE: &str = "a stream's index is its position in the report";
 /// The fourteenth review: a normalized quantity beyond 2^53 - 1, which no reader holds exactly.
 #[cfg(feature = "serde")]
 pub const QUANTITY_MESSAGE: &str = "a quantity is a number of at most 2^53 - 1";
+/// The nineteenth review: a value without its provenance, or a provenance without its value.
+#[cfg(feature = "serde")]
+pub const PROVENANCE_PAIR_MESSAGE: &str = "a value and its provenance are present together";
 /// The fourteenth review: an error record with both a partial report and observations, two stopping points.
 #[cfg(feature = "serde")]
 pub const STOPPING_POINTS_MESSAGE: &str =
@@ -327,10 +358,12 @@ pub const MAXIMUM_CONFIDENCE: u8 = 100;
 #[cfg(feature = "serde")]
 pub const MINIMUM_CANDIDATES: usize = 2;
 /// The fourteenth review: a value that JSON cannot carry faithfully, which the form refuses from any format; since the
-/// fifteenth review also a member name that is not a string.
+/// fifteenth review also a member name that is not a string, and since the sixteenth a tagged value and an integer
+/// beyond 64 bits, as ciborium gives them.
 #[cfg(feature = "serde")]
 pub const NOT_JSON_VALUE_MESSAGE: &str = "a value is one that JSON carries as read: no non-finite number, no byte \
-                                         string and no member name that is not a string";
+                                         string, no tagged value, no integer beyond 64 bits and no member name that \
+                                         is not a string";
 /// The fourteenth review: the bytes of a GUID, such as the `SubFormat` of an extensible WAVE format.
 #[cfg(feature = "serde")]
 pub const GUID_BYTES: usize = 16;
@@ -372,3 +405,32 @@ pub const PARTIAL_REPORT_KIND_MESSAGE: &str = "only a source failure carries a p
 /// The fifteenth review: an error's limit reason whose limit the record does not hold as exhausted.
 #[cfg(feature = "serde")]
 pub const REASON_COUNTER_MESSAGE: &str = "an error's limit reason names a limit that its record holds as exhausted";
+/// The sixteenth review: an error record whose members of a source failure disagree with its kind.
+#[cfg(feature = "serde")]
+pub const SOURCE_FAILURE_MEMBERS_MESSAGE: &str = "a source failure holds the kind of its failure, and no other known error kind holds it or an operating system's \
+   error code";
+/// The seventeenth review: a member of an object of a known type with the name of serde_json's private map, which
+/// the Serde data model cannot tell from a number of arbitrary precision (`json-output.md` section 2).
+#[cfg(feature = "serde")]
+pub const RESERVED_NAME_MESSAGE: &str = "no object of a known type has a member named `$serde_json::private::Number`, \
+                                         the name that serde_json gives a number of arbitrary precision";
+/// The seventeenth review: an enum written as an object of other than one member.
+#[cfg(feature = "serde")]
+pub const ENUM_MEMBER_MESSAGE: &str = "an enum written as an object has one member, named after its variant";
+/// The seventeenth review: the name by which a variant's record is requested, which `Strict` does not read.
+#[cfg(feature = "serde")]
+pub const VARIANT_RECORD_NAME: &str = "variant record";
+/// The seventeenth review: a limit record that counts an omitted reason without a first reason for it to belong to.
+#[cfg(feature = "serde")]
+pub const OMITTED_REASONS_MESSAGE: &str = "a limit record that counts an omitted reason has a first reason";
+/// The eighteenth review: a limit record that counts an omitted reference without the retained data exhausted, or
+/// without a first reason of a part that finds references (`api.md` section 6.12).
+#[cfg(feature = "serde")]
+pub const OMITTED_REFERENCES_MESSAGE: &str = "a limit record that counts an omitted reference has exhausted the \
+                                              retained data and has the first reason of a part that finds references";
+/// The eighteenth review: what a record whose outcome decides whether its unknown members are kept is read from.
+#[cfg(feature = "serde")]
+pub const KEPT_OUTCOME_EXPECTING: &str = "a record of the form whose outcome decides what it keeps";
+/// The eighteenth review: the name by which such a record is requested, which `Strict` does not read.
+#[cfg(feature = "serde")]
+pub const KEPT_OUTCOME_RECORD: &str = "record of an outcome";

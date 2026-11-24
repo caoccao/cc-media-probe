@@ -22,39 +22,33 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use super::constants::{
-  ALBUM_NAME, ARTIST_NAME, ATTACHMENT_NAME, CHAPTER_NAME, COMMENT_NAME, COPYRIGHT_NAME, DATE_NAME, DISC_NUMBER_NAME,
-  EDITION_NAME, ENCODER_NAME, ENTITIES_NAME, GENRE_NAME, INCOMPLETE_NAME, PROGRAM_NAME, STREAM_NAME, TITLE_NAME,
-  TRACK_NUMBER_NAME, WHOLE_FILE_NAME,
+  ATTACHMENT_NAME, CHAPTER_NAME, EDITION_NAME, ENTITIES_NAME, INCOMPLETE_NAME, PROGRAM_NAME, STREAM_NAME,
+  WHOLE_FILE_NAME,
 };
 use super::language::Language;
+use super::tag_key::TagKey;
 use super::tag_value::TagValue;
 use super::tree::{self, Branching};
 use super::unrecognized_value::UnrecognizedValue;
 use super::values::Identifier;
 
-/// Tags with the entities they describe.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct TagSet {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  target_level: Option<TargetLevel>,
-  stream_targets: Vec<TargetReference>,
-  edition_targets: Vec<TargetReference>,
-  chapter_targets: Vec<TargetReference>,
-  attachment_targets: Vec<TargetReference>,
-  target_scope: TargetScope,
-  #[cfg_attr(feature = "serde", serde(default))]
-  superseded: bool,
-  #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
-  tags: Vec<Tag>,
+crate::form::strict_form! {
+  #[form(remote = "TagSet")]
+  /// Tags with the entities they describe.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TagSet {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    target_level: Option<TargetLevel>,
+    stream_targets: Vec<TargetReference>,
+    edition_targets: Vec<TargetReference>,
+    chapter_targets: Vec<TargetReference>,
+    attachment_targets: Vec<TargetReference>,
+    target_scope: TargetScope,
+    superseded: bool,
+    #[cfg_attr(feature = "serde", serde(with = "super::tree::flat"))]
+    tags: Vec<Tag>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(TagSet);
 
 impl TagSet {
   /// The target level.
@@ -101,21 +95,23 @@ impl TagSet {
   }
 }
 
-/// What a tag set describes.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum TargetScope {
-  /// The target structure was read in full and names no entity.
-  WholeFile,
-  /// The target structure was read in full, and the four lists hold every target it names.
-  Entities,
-  /// The probe stopped before the target structure was read in full, or did not keep every target. The lists hold
-  /// the targets kept, and empty lists do not mean the whole file.
-  Incomplete,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<TargetScope>),
+crate::form::strict_form! {
+  #[form(remote = "TargetScope")]
+  /// What a tag set describes.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum TargetScope {
+    /// The target structure was read in full and names no entity.
+    WholeFile,
+    /// The target structure was read in full, and the four lists hold every target it names.
+    Entities,
+    /// The probe stopped before the target structure was read in full, or did not keep every target. The lists hold
+    /// the targets kept, and empty lists do not mean the whole file.
+    Incomplete,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<TargetScope>),
+  }
 }
 
 impl TargetScope {
@@ -130,30 +126,25 @@ impl TargetScope {
   }
 }
 
-/// A target level: a number and a type name.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct TargetLevel {
-  /// A normalized number, so within 2^53 - 1 (fourteenth review).
-  #[cfg_attr(
-    feature = "serde",
-    serde(
-      default,
-      deserialize_with = "crate::twin::exact_quantity",
-      skip_serializing_if = "Option::is_none"
-    )
-  )]
-  value: Option<u64>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  type_name: Option<String>,
+crate::form::strict_form! {
+  #[form(remote = "TargetLevel")]
+  /// A target level: a number and a type name.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TargetLevel {
+    /// A normalized number, so within 2^53 - 1 (fourteenth review).
+    #[cfg_attr(
+      feature = "serde",
+      serde(
+        default,
+        deserialize_with = "crate::twin::exact_quantity",
+        skip_serializing_if = "Option::is_none"
+      )
+    )]
+    value: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    type_name: Option<String>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(TargetLevel);
 
 impl TargetLevel {
   /// The level's number.
@@ -167,23 +158,18 @@ impl TargetLevel {
   }
 }
 
-/// One reference of a target list.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct TargetReference {
-  kind: TargetReferenceKind,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  identifier: Option<Identifier>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  location: Option<EntityLocation>,
+crate::form::strict_form! {
+  #[form(remote = "TargetReference")]
+  /// One reference of a target list.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TargetReference {
+    kind: TargetReferenceKind,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    location: Option<EntityLocation>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(TargetReference);
 
 impl TargetReference {
   /// Whether the reference resolved, matched nothing, or is a wildcard.
@@ -202,37 +188,34 @@ impl TargetReference {
   }
 }
 
-/// What a target reference is.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum TargetReferenceKind {
-  /// It matches an entity of the report.
-  Resolved,
-  /// It matches no entity, and is kept as written.
-  Unmatched,
-  /// Every entity of its kind.
-  Wildcard,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<TargetReferenceKind>),
+crate::form::strict_form! {
+  #[form(remote = "TargetReferenceKind")]
+  /// What a target reference is.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum TargetReferenceKind {
+    /// It matches an entity of the report.
+    Resolved,
+    /// It matches no entity, and is kept as written.
+    Unmatched,
+    /// Every entity of its kind.
+    Wildcard,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<TargetReferenceKind>),
+  }
 }
 
-/// Where an entity is in the report.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct EntityLocation {
-  kind: EntityKind,
-  index: usize,
-  chapter_path: Vec<usize>,
+crate::form::strict_form! {
+  #[form(remote = "EntityLocation")]
+  /// Where an entity is in the report.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct EntityLocation {
+    kind: EntityKind,
+    index: usize,
+    chapter_path: Vec<usize>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(EntityLocation);
 
 impl EntityLocation {
   /// What the entity is.
@@ -251,24 +234,26 @@ impl EntityLocation {
   }
 }
 
-/// The kind of entity that a location names.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum EntityKind {
-  /// A stream.
-  Stream,
-  /// A chapter edition.
-  Edition,
-  /// A chapter.
-  Chapter,
-  /// An attachment.
-  Attachment,
-  /// A program.
-  Program,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<EntityKind>),
+crate::form::strict_form! {
+  #[form(remote = "EntityKind")]
+  /// The kind of entity that a location names.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum EntityKind {
+    /// A stream.
+    Stream,
+    /// A chapter edition.
+    Edition,
+    /// A chapter.
+    Chapter,
+    /// An attachment.
+    Attachment,
+    /// A program.
+    Program,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<EntityKind>),
+  }
 }
 
 impl EntityKind {
@@ -408,23 +393,18 @@ impl<'input> serde::Deserialize<'input> for Tag {
   }
 }
 
-/// A tag's name as written.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct TagName {
-  as_written: String,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  namespace: Option<String>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  bytes: Option<Vec<u8>>,
+crate::form::strict_form! {
+  #[form(remote = "TagName")]
+  /// A tag's name as written.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TagName {
+    as_written: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    namespace: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bytes: Option<Vec<u8>>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(TagName);
 
 impl TagName {
   /// The name decoded by the rules of its format or namespace, with U+FFFD for a byte they cannot decode.
@@ -440,54 +420,5 @@ impl TagName {
   /// The key exactly as stored, for a format whose keys are bytes that a namespace interprets.
   pub fn bytes(&self) -> Option<&[u8]> {
     self.bytes.as_deref()
-  }
-}
-
-/// A normalized tag key (F4).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum TagKey {
-  /// The title.
-  Title,
-  /// The artist.
-  Artist,
-  /// The album.
-  Album,
-  /// The date of the content's creation.
-  Date,
-  /// The genre.
-  Genre,
-  /// A comment.
-  Comment,
-  /// The copyright.
-  Copyright,
-  /// The encoder.
-  Encoder,
-  /// The track number.
-  TrackNumber,
-  /// The disc number.
-  DiscNumber,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<TagKey>),
-}
-
-impl TagKey {
-  /// The serialized name, or the text of an unrecognized value.
-  pub fn as_str(&self) -> &str {
-    match self {
-      TagKey::Title => TITLE_NAME,
-      TagKey::Artist => ARTIST_NAME,
-      TagKey::Album => ALBUM_NAME,
-      TagKey::Date => DATE_NAME,
-      TagKey::Genre => GENRE_NAME,
-      TagKey::Comment => COMMENT_NAME,
-      TagKey::Copyright => COPYRIGHT_NAME,
-      TagKey::Encoder => ENCODER_NAME,
-      TagKey::TrackNumber => TRACK_NUMBER_NAME,
-      TagKey::DiscNumber => DISC_NUMBER_NAME,
-      TagKey::Unrecognized(value) => value.as_str(),
-    }
   }
 }

@@ -33,8 +33,11 @@ pub mod diagnostics;
 pub mod document;
 mod entry_points;
 pub mod error;
+mod form;
 #[cfg(feature = "serde")]
 mod hexadecimal;
+#[cfg(feature = "serde")]
+mod integer_width;
 #[cfg(feature = "serde")]
 mod kept;
 mod limits;

@@ -27,44 +27,48 @@ use super::video::VideoInformation;
 use crate::completeness::HeaderStatus;
 use crate::details::CodecDetails;
 
-/// One stream of a report.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Stream {
-  index: usize,
-  kind: StreamKind,
-  codec: CodecInformation,
-  header_status: HeaderStatus,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  language: Option<Language>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  title: Option<String>,
-  titles: Vec<LocalizedText>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  duration: Option<Seconds>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  duration_provenance: Option<Provenance>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  estimated_duration: Option<Estimate<Seconds>>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  bit_rate: Option<Rational>,
-  disposition: Disposition,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  video: Option<VideoInformation>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  audio: Option<AudioInformation>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  codec_details: Option<CodecDetails>,
+crate::form::strict_form! {
+  #[form(remote = "Stream", check = Stream::check_provenance)]
+  /// One stream of a report.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Stream {
+    index: usize,
+    kind: StreamKind,
+    codec: CodecInformation,
+    header_status: HeaderStatus,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    language: Option<Language>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    title: Option<String>,
+    titles: Vec<LocalizedText>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    duration: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    duration_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    estimated_duration: Option<Estimate<Seconds>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_rate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_rate_provenance: Option<Provenance>,
+    disposition: Disposition,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    video: Option<VideoInformation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    audio: Option<AudioInformation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec_details: Option<CodecDetails>,
+  }
 }
 
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Stream);
-
 impl Stream {
+  /// The duration and the bit rate, each present together with its provenance (nineteenth review).
+  #[cfg(feature = "serde")]
+  fn check_provenance(&self) -> Result<(), &'static str> {
+    super::values::paired(&self.duration, &self.duration_provenance)?;
+    super::values::paired(&self.bit_rate, &self.bit_rate_provenance)
+  }
+
   /// The stream's index in the report.
   pub fn index(&self) -> usize {
     self.index
@@ -120,6 +124,11 @@ impl Stream {
     self.bit_rate
   }
 
+  /// Where the bit rate came from.
+  pub fn bit_rate_provenance(&self) -> Option<&Provenance> {
+    self.bit_rate_provenance.as_ref()
+  }
+
   /// The stream's flags.
   pub fn disposition(&self) -> &Disposition {
     &self.disposition
@@ -141,24 +150,26 @@ impl Stream {
   }
 }
 
-/// What a stream carries.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum StreamKind {
-  /// Video.
-  Video,
-  /// Audio.
-  Audio,
-  /// Subtitles.
-  Subtitle,
-  /// Data.
-  Data,
-  /// Not known.
-  Unknown,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<StreamKind>),
+crate::form::strict_form! {
+  #[form(remote = "StreamKind")]
+  /// What a stream carries.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum StreamKind {
+    /// Video.
+    Video,
+    /// Audio.
+    Audio,
+    /// Subtitles.
+    Subtitle,
+    /// Data.
+    Data,
+    /// Not known.
+    Unknown,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<StreamKind>),
+  }
 }
 
 impl StreamKind {
@@ -175,24 +186,19 @@ impl StreamKind {
   }
 }
 
-/// A stream's flags, each absent when the format states nothing.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Disposition {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  default: Option<bool>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  forced: Option<bool>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  commentary: Option<bool>,
+crate::form::strict_form! {
+  #[form(remote = "Disposition")]
+  /// A stream's flags, each absent when the format states nothing.
+  #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+  pub struct Disposition {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    default: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    forced: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    commentary: Option<bool>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Disposition);
 
 impl Disposition {
   /// Whether the stream is a default.

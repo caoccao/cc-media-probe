@@ -66,7 +66,7 @@ fn an_integer_identifier_is_canonical_decimal_at_its_own_width() {
   // A 32-bit ISO track_ID kept in an error's observations, and a 64-bit source identifier.
   let track = |identifier: &str| {
     serde_json::from_value::<cc_media_probe::details::FormatDetails>(json!({
-      "IsoBaseMedia": { "fragment_track_identifiers": [identifier] }
+      "IsoBaseMedia": { "fragment_track_identifiers": [identifier], "tracks": [] }
     }))
   };
   assert!(track("4294967295").is_ok());
@@ -156,25 +156,27 @@ fn the_record_names_each_limit_or_part_once_in_each_array() {
     "exhausted": ["BytesRead", "WorkingMemory"],
     "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }, { "limit": "WorkingMemory", "part": "Discovery" }],
     "first_reasons": [{ "part": "Discovery", "reason": { "kind": "LimitExhausted", "limit": "BytesRead" } }],
+    "omitted_reasons": "0",
+    "omitted_references": "0",
   }))
   .unwrap();
   assert!(record.exhausted(&cc_media_probe::Limit::WorkingMemory));
   for broken in [
     // A limit twice in `exhausted`.
-    json!({ "exhausted": ["BytesRead", "BytesRead"], "first_stopped": [{ "limit": "BytesRead", "part": "Detection" }] }),
+    json!({ "exhausted": ["BytesRead", "BytesRead"], "first_stopped": [{ "limit": "BytesRead", "part": "Detection" }], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" }),
     // A limit twice in `first_stopped`.
     json!({ "exhausted": ["BytesRead"], "first_stopped": [
-      { "limit": "BytesRead", "part": "Detection" }, { "limit": "BytesRead", "part": "Discovery" } ] }),
+      { "limit": "BytesRead", "part": "Detection" }, { "limit": "BytesRead", "part": "Discovery" } ], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" }),
     // An exhausted limit without the part that it stopped first, and a first-stopped limit that is not exhausted.
-    json!({ "exhausted": ["BytesRead"], "first_stopped": [] }),
-    json!({ "exhausted": [], "first_stopped": [{ "limit": "BytesRead", "part": "Detection" }] }),
+    json!({ "exhausted": ["BytesRead"], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" }),
+    json!({ "exhausted": [], "first_stopped": [{ "limit": "BytesRead", "part": "Detection" }], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" }),
     // The two arrays in different orders.
     json!({ "exhausted": ["BytesRead", "WorkingMemory"], "first_stopped": [
-      { "limit": "WorkingMemory", "part": "Detection" }, { "limit": "BytesRead", "part": "Detection" } ] }),
+      { "limit": "WorkingMemory", "part": "Detection" }, { "limit": "BytesRead", "part": "Detection" } ], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" }),
     // A part twice in `first_reasons`.
     json!({ "exhausted": [], "first_stopped": [], "first_reasons": [
       { "part": "Tags", "reason": { "kind": "TruncatedInput" } },
-      { "part": "Tags", "reason": { "kind": "TruncatedInput" } } ] }),
+      { "part": "Tags", "reason": { "kind": "TruncatedInput" } } ], "omitted_reasons": "0", "omitted_references": "0" }),
   ] {
     assert!(read(broken.clone()).is_err(), "{broken}");
   }
@@ -221,7 +223,7 @@ fn report_with(member: &str, value: serde_json::Value) -> serde_json::Value {
     "completeness": {
       "detection": "Complete", "discovery": "Complete", "headers": "Complete", "tags": "Complete",
       "chapters": "Complete", "attachments": "Complete", "reasons": [],
-      "record": { "exhausted": [], "first_stopped": [] },
+      "record": { "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],

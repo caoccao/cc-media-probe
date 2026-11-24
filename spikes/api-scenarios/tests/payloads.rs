@@ -122,3 +122,50 @@ fn a_map_of_that_name_that_holds_no_number_stays_a_map() {
 }
 
 const NOT_JSON: &str = "a value is one that JSON carries as read";
+
+/// A detection of 1.1 whose members that this version does not read stand before its outcome and after it.
+fn around_the_outcome(outcome: &str) -> String {
+  format!(
+    r#"{{"schema_version": "1.1", "before": [1, 2], "outcome": "{outcome}", "candidates": [], "after": {{"x": 1}}, "usage": {{"bytes_read": 0, "peak_working_memory": 0}}}}"#
+  )
+}
+
+#[test]
+fn a_record_holds_what_it_does_not_read_only_until_its_outcome_is_known() {
+  // As the maintainer chose at the eighteenth review, where Serde's `flatten` held every such member to the end: a
+  // newer outcome keeps them, before its outcome and after it, in the order written, and a known one passes them by.
+  let newer: Detection = serde_json::from_str(&around_the_outcome("deferred")).unwrap();
+  let written = serde_json::to_string(&newer).unwrap();
+  assert!(written.ends_with(r#""before":[1,2],"after":{"x":1}}"#), "{written}");
+  let known = serde_json::to_value(serde_json::from_str::<Detection>(&around_the_outcome("unknown")).unwrap()).unwrap();
+  assert!(known.get("before").is_none() && known.get("after").is_none(), "{known}");
+  // A member passed by is read strictly all the same.
+  let null = around_the_outcome("unknown").replace(r#"{"x": 1}"#, r#"{"x": null}"#);
+  assert!(serde_json::from_str::<Detection>(&null).is_err());
+  // An entry decides by its outcome, and an error record by its kind.
+  let document = |entry: &str| {
+    let text =
+      format!(r#"{{"schema_version": "1.1", "generator": {{"name": "g", "version": "1"}}, "results": [{entry}]}}"#);
+    serde_json::to_string(&serde_json::from_str::<Document>(&text).unwrap()).unwrap()
+  };
+  let written = document(r#"{"index": 0, "input": "a", "before": 1, "outcome": "skipped", "after": 2}"#);
+  assert!(
+    written.contains(r#""outcome":"skipped","before":1,"after":2}"#),
+    "{written}"
+  );
+  let detection = serde_json::to_string(&deferred()).unwrap();
+  let written = document(&format!(
+    r#"{{"index": 0, "input": "a", "before": 1, "outcome": "partial", "detection": {detection}, "after": 2}}"#
+  ));
+  assert!(
+    !written.contains(r#""before""#) && !written.contains(r#""after""#),
+    "{written}"
+  );
+  let mut error = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
+  error["quota"] = json!(1);
+  for (kind, kept) in [("quota_exceeded", true), ("unsupported_format", false)] {
+    error["kind"] = json!(kind);
+    let written = serde_json::to_value(serde_json::from_value::<ErrorRecord>(error.clone()).unwrap()).unwrap();
+    assert_eq!(written.get("quota").is_some(), kept, "{kind}");
+  }
+}

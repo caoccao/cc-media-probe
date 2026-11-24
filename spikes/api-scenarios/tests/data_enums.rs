@@ -206,3 +206,41 @@ fn a_catch_all_refuses_a_value_that_json_cannot_carry() {
     assert!(read(value).is_err());
   }
 }
+
+#[test]
+fn a_known_kind_reads_its_members_as_they_come() {
+  // The nineteenth review's case: with the kind first, the integer's error comes where it stands, before the later
+  // null, which it came after while the map was kept whole.
+  let invalid = "invalid type: string \"oops\"";
+  let error = serde_json::from_str::<TagValue>(r#"{"kind":"integer","integer":"oops","extension":null}"#).unwrap_err();
+  assert!(error.to_string().starts_with(invalid), "{error}");
+  assert_eq!((error.line(), error.column()), (1, 34));
+  // Without the null, the error keeps its place, where the review saw line 0, column 0.
+  let error = serde_json::from_str::<TagValue>(r#"{"kind":"integer","integer":"oops"}"#).unwrap_err();
+  assert_eq!((error.line(), error.column()), (1, 34));
+  // A member before the kind is kept until the kind says how to read it, so its error comes there.
+  let error = serde_json::from_str::<TagValue>(r#"{"integer":"oops","kind":"integer"}"#).unwrap_err();
+  assert!(error.to_string().starts_with(invalid), "{error}");
+  assert_eq!((error.line(), error.column()), (1, 35));
+  // A member that the kind does not read is passed by, before the kind as after it; one of another known kind fails.
+  let passed = r#"{"extension":[1],"kind":"boolean","boolean":true,"later":{"a":1}}"#;
+  assert!(matches!(
+    serde_json::from_str::<TagValue>(passed).unwrap(),
+    TagValue::Boolean(true)
+  ));
+  assert!(serde_json::from_str::<TagValue>(r#"{"kind":"boolean","boolean":true,"text":"x"}"#).is_err());
+  assert!(serde_json::from_str::<TagValue>(r#"{"text":"x","kind":"boolean","boolean":true}"#).is_err());
+  // A chroma format reads `other` as it comes too.
+  let other = r#"{"kind":"other","other":{"horizontal":"two","vertical":1},"later":null}"#;
+  let error = serde_json::from_str::<ChromaFormat>(other).unwrap_err();
+  assert!(error.to_string().starts_with("invalid type: string \"two\""), "{error}");
+}
+
+#[test]
+fn a_kind_of_a_newer_version_keeps_its_members_before_and_after_its_kind() {
+  let value = serde_json::from_str::<TagValue>(r#"{"before":1,"kind":"geolocation","after":2}"#).unwrap();
+  assert_eq!(
+    serde_json::to_string(&value).unwrap(),
+    r#"{"kind":"geolocation","before":1,"after":2}"#
+  );
+}

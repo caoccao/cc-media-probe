@@ -19,36 +19,13 @@
 
 use crate::model::{EntityKind, EntityLocation};
 
-/// An element that a specification gives a default: the effective value, and whether the file stored it (F1).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct StoredValue<Value> {
-  value: Value,
-  stored: bool,
-}
-
-#[cfg(feature = "serde")]
-impl<Value: serde::Serialize> serde::Serialize for StoredValue<Value> {
-  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
-    StoredValue::serialize(self, serializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'input, Value: serde::Deserialize<'input>> crate::neutral::ReadAlone<'input> for StoredValue<Value> {
-  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<StoredValue<Value>, Input::Error> {
-    StoredValue::deserialize(deserializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'input, Value: serde::Deserialize<'input>> serde::Deserialize<'input> for StoredValue<Value> {
-  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<StoredValue<Value>, Input::Error> {
-    crate::neutral::read_alone(deserializer)
+crate::form::strict_form! {
+  #[form(remote = "StoredValue")]
+  /// An element that a specification gives a default: the effective value, and whether the file stored it (F1).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct StoredValue<Value> {
+    value: Value,
+    stored: bool,
   }
 }
 
@@ -64,22 +41,17 @@ impl<Value> StoredValue<Value> {
   }
 }
 
-/// Two or more sources that disagree about one field.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Conflict {
-  field: String,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  owner: Option<EntityLocation>,
-  values: Vec<ConflictingValue>,
+crate::form::strict_form! {
+  #[form(remote = "Conflict")]
+  /// Two or more sources that disagree about one field.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Conflict {
+    field: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    owner: Option<EntityLocation>,
+    values: Vec<ConflictingValue>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Conflict);
 
 impl Conflict {
   /// The field guide's name of the field.
@@ -107,20 +79,15 @@ impl Conflict {
   }
 }
 
-/// One source's value in a conflict.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct ConflictingValue {
-  source: String,
-  value: String,
+crate::form::strict_form! {
+  #[form(remote = "ConflictingValue")]
+  /// One source's value in a conflict.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ConflictingValue {
+    source: String,
+    value: String,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(ConflictingValue);
 
 impl ConflictingValue {
   /// The name of the source, such as an element's name.

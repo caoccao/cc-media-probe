@@ -31,20 +31,15 @@ pub enum AttachmentHandling {
   WithData,
 }
 
-/// One attachment of a requested role.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Attachment {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  name: Option<String>,
+crate::form::strict_form! {
+  #[form(remote = "Attachment")]
+  /// One attachment of a requested role.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Attachment {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    name: Option<String>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Attachment);
 
 impl Attachment {
   /// The attachment's name, such as a Matroska `FileName`.

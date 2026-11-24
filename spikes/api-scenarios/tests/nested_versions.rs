@@ -92,7 +92,7 @@ fn a_null_or_a_repeated_name_before_a_nested_version_is_malformed_in_both_orders
 #[test]
 fn a_nested_record_of_the_parent_version_reads_in_both_orders() {
   let error = r#"{"kind": "format_not_determined", "schema_version": "1.0", "message": "m",
-    "usage": {"bytes_read": 0, "peak_working_memory": 0}, "record": {"exhausted": [], "first_stopped": []}}"#;
+    "usage": {"bytes_read": 0, "peak_working_memory": 0}, "record": {"exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0"}}"#;
   for results_first in [true, false] {
     let read: Document = serde_json::from_str(&document(error, results_first)).unwrap();
     assert_eq!(read.results()[0].error().unwrap().message(), "m");
@@ -104,7 +104,7 @@ fn a_bare_error_record_compares_its_partial_report_before_decoding_it() {
   // The partial report's streams do not decode, and its version differs from the record's.
   let report = r#"{"schema_version": "1.1", "streams": 5}"#;
   let partial = format!(r#""partial_report": {report}"#);
-  let members = r#""kind": "source_failed", "message": "m""#;
+  let members = r#""kind": "source_failed", "source_failure_kind": "not_found", "message": "m""#;
   let version = r#""schema_version": "1.0""#;
   for text in [
     format!("{{{partial}, {members}, {version}}}"),

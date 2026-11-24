@@ -19,7 +19,8 @@
 //! (C-ITER-TY); the stub shares one. Every lookup sees the top level only: a nested tag is an attribute of its parent
 //! (Matroska tags draft, section 3), so a key below the top level does not mean what it means there (tenth review).
 
-use super::tags::{Tag, TagKey, TagSet};
+use super::tag_key::TagKey;
+use super::tags::{Tag, TagSet};
 
 /// The top-level tags of some tag sets, the sets in report order and each set's tags in stored order.
 #[derive(Clone, Debug)]

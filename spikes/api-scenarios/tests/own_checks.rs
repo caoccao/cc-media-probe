@@ -25,7 +25,7 @@
 
 use cc_media_probe::completeness::{Completeness, Reason};
 use cc_media_probe::error::ErrorRecord;
-use cc_media_probe::model::Candidate;
+use cc_media_probe::model::{AudioInformation, Candidate, Stream, VideoInformation};
 use cc_media_probe::{MediaReport, probe_bytes};
 use serde_json::{Value, json};
 
@@ -78,7 +78,7 @@ fn tags_reason(kind: &str) -> Value {
 }
 
 fn record(first_reasons: Value, omitted_reasons: &str) -> Value {
-  json!({ "exhausted": [], "first_stopped": [], "first_reasons": first_reasons, "omitted_reasons": omitted_reasons })
+  json!({ "exhausted": [], "first_stopped": [], "first_reasons": first_reasons, "omitted_reasons": omitted_reasons, "omitted_references": "0" })
 }
 
 #[test]
@@ -144,6 +144,10 @@ fn a_reason_of_a_known_kind_holds_the_members_of_its_kind() {
 fn error_record(kind: &str, members: &[(&str, Value)]) -> Value {
   let mut error = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
   error["kind"] = json!(kind);
+  // A source failure holds the kind of its failure (sixteenth review).
+  if kind == "source_failed" {
+    error["source_failure_kind"] = json!("not_found");
+  }
   for (name, value) in members {
     error[*name] = value.clone();
   }
@@ -172,11 +176,13 @@ fn only_a_source_failure_carries_a_partial_report() {
 #[test]
 fn an_errors_limit_reason_finds_its_counter() {
   let reason = json!({ "kind": "LimitExhausted", "limit": "BytesRead" });
-  let empty = json!({ "exhausted": [], "first_stopped": [] });
+  let empty = json!({ "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" });
   let stopped = json!({
     "exhausted": ["BytesRead"],
     "first_stopped": [{ "limit": "BytesRead", "part": "Detection" }],
     "first_reasons": [{ "part": "Detection", "reason": reason }],
+    "omitted_reasons": "0",
+    "omitted_references": "0",
   });
   let read = |record: &Value| {
     let members = [("reason", reason.clone()), ("record", record.clone())];
@@ -184,4 +190,59 @@ fn an_errors_limit_reason_finds_its_counter() {
   };
   assert!(read(&stopped).is_ok());
   assert!(read(&empty).is_err());
+}
+
+const PAIR: &str = "a value and its provenance are present together";
+
+/// Whether a record of that type reads with neither or both of the value and its provenance, and refuses one without
+/// the other.
+fn pair_holds<Type: serde::de::DeserializeOwned + std::fmt::Debug>(
+  name: &str,
+  base: &Value,
+  member: &str,
+  value: Value,
+) {
+  let provenance = format!("{member}_provenance");
+  let read = |members: &[(&str, Value)]| {
+    let mut record = base.clone();
+    for (name, value) in members {
+      record[*name] = value.clone();
+    }
+    serde_json::from_value::<Type>(record)
+  };
+  assert!(read(&[]).is_ok(), "{name}");
+  assert!(
+    read(&[(member, value.clone()), (&provenance, json!("Declared"))]).is_ok(),
+    "{name} {member}"
+  );
+  for members in [
+    vec![(member, value.clone())],
+    vec![(&provenance[..], json!("Declared"))],
+  ] {
+    let error = read(&members).unwrap_err().to_string();
+    assert!(error.starts_with(PAIR), "{name} {members:?}: {error}");
+  }
+}
+
+#[test]
+fn a_value_and_its_provenance_are_present_together() {
+  // The nineteenth review's two cases, a frame rate without its provenance and a provenance without its frame rate,
+  // and the stub's other values with a provenance.
+  let rate = json!({ "numerator": 25, "denominator": 1 });
+  let video = json!({ "frame_rate_mode": "Constant" });
+  pair_holds::<VideoInformation>("video", &video, "frame_rate", rate.clone());
+  pair_holds::<AudioInformation>("audio", &json!({}), "channel_count", json!(2));
+  let stream = json!({
+    "index": 0,
+    "kind": "Video",
+    "codec": { "candidates": [], "has_every_candidate": true, "raw_identifiers": [] },
+    "header_status": { "state": "Parsed" },
+    "titles": [],
+    "disposition": {},
+  });
+  pair_holds::<Stream>("stream", &stream, "duration", rate.clone());
+  pair_holds::<Stream>("stream", &stream, "bit_rate", rate.clone());
+  let report = report(completeness("Complete", json!([]), record(json!([]), "0")));
+  pair_holds::<MediaReport>("report", &report, "duration", rate.clone());
+  pair_holds::<MediaReport>("report", &report, "bit_rate", rate);
 }

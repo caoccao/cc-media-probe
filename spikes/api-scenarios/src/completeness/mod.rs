@@ -24,7 +24,7 @@ mod reason;
 mod record;
 mod statuses;
 
-pub use reason::{Reason, ReasonKind};
+pub use reason::{Feature, Reason, ReasonKind};
 pub use record::LimitRecord;
 pub use statuses::{
   Completeness, DetectionStatus, DiscoveryStatus, HeaderState, HeaderStatus, HeadersStatus, Part, PartReason,

@@ -46,6 +46,7 @@ fn mixed_entries() -> Vec<DocumentEntry> {
   newer["schema_version"] = json!("1.1");
   newer["results"][0]["error"]["schema_version"] = json!("1.1");
   newer["results"][0]["error"]["kind"] = json!("source_failed");
+  newer["results"][0]["error"]["source_failure_kind"] = json!("not_found");
   newer["results"][0]["error"]["partial_report"] = json!({
     "schema_version": "1.1",
     "format": "Matroska",
@@ -62,7 +63,7 @@ fn mixed_entries() -> Vec<DocumentEntry> {
       "chapters": "Complete",
       "attachments": "Complete",
       "reasons": [],
-      "record": { "exhausted": [], "first_stopped": [] },
+      "record": { "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],

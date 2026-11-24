@@ -25,14 +25,20 @@ use crate::limits::Limit;
 
 /// The limits that this version knows, in the order of `api.md` section 4.5.
 #[cfg(feature = "serde")]
-pub(super) const LIMIT_ORDER: [Limit; 3] = [Limit::BytesRead, Limit::WorkingMemory, Limit::Streams];
+pub(super) const LIMIT_ORDER: [Limit; 4] = [
+  Limit::BytesRead,
+  Limit::WorkingMemory,
+  Limit::RetainedData,
+  Limit::Streams,
+];
 
 /// The parts that this version knows, in the order of `api.md` section 5.3.
 #[cfg(feature = "serde")]
-pub(super) const PART_ORDER: [Part; 5] = [
+pub(super) const PART_ORDER: [Part; 6] = [
   Part::Detection,
   Part::Discovery,
   Part::Headers,
   Part::Tags,
   Part::Chapters,
+  Part::Attachments,
 ];

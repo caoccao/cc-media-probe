@@ -77,6 +77,8 @@ fn a_report_whose_detection_was_cut_short_is_incomplete() {
       "exhausted": ["WorkingMemory"],
       "first_stopped": [{ "limit": "WorkingMemory", "part": "Detection" }],
       "first_reasons": [reason],
+      "omitted_reasons": "0",
+      "omitted_references": "0",
     }),
   );
   let completeness = stopped.completeness();
@@ -91,7 +93,7 @@ fn a_report_whose_detection_was_cut_short_is_incomplete() {
   let input = || PortablePath::from_path(Path::new("clip.mp4"));
   let entry = DocumentEntry::from_report(input(), stopped).unwrap();
   assert_eq!(entry.outcome(), &EntryOutcome::Partial);
-  let empty_record = json!({ "exhausted": [], "first_stopped": [] });
+  let empty_record = json!({ "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" });
   let checked = report(json!("Complete"), json!([]), empty_record.clone());
   assert!(checked.completeness().is_complete());
   assert_eq!(
@@ -151,6 +153,7 @@ fn a_full_budget_keeps_the_first_reason_of_each_part_in_the_record() {
     "first_stopped": [],
     "first_reasons": [reason],
     "omitted_reasons": "3",
+    "omitted_references": "0",
   });
   let full = report_with(json!({
     "detection": "Complete",
@@ -191,6 +194,7 @@ fn a_part_that_fell_short_under_a_full_budget_is_incomplete_through_every_access
       "first_stopped": [],
       "first_reasons": [{ "part": "Tags", "reason": { "kind": "TruncatedInput" } }],
       "omitted_reasons": "1",
+      "omitted_references": "0",
     },
   }));
   let completeness = short.completeness();
@@ -213,6 +217,8 @@ fn a_reason_member_that_holds_null_is_malformed() {
       "exhausted": [],
       "first_stopped": [],
       "first_reasons": [reason],
+      "omitted_reasons": "0",
+      "omitted_references": "0",
     }))
   };
   assert!(read(json!({ "part": "Tags", "reason": { "kind": "TruncatedInput" } })).is_ok());
@@ -226,12 +232,15 @@ fn a_reason_member_that_holds_null_is_malformed() {
 
 #[test]
 fn the_number_of_reasons_not_kept_is_a_decimal_string() {
-  // Like the other two omitted counts, so a reader that holds numbers as binary64 loses no count above 2^53 - 1.
+  // Like the other two omitted counts, so a reader that holds numbers as binary64 loses no count above 2^53 - 1. A
+  // count above 0 has a first reason to belong to (seventeenth review).
   let record = |omitted: Value| {
     serde_json::from_value::<LimitRecord>(json!({
       "exhausted": [],
       "first_stopped": [],
+      "first_reasons": [{ "part": "Tags", "reason": { "kind": "TruncatedInput" } }],
       "omitted_reasons": omitted,
+      "omitted_references": "0",
     }))
   };
   let large = record(json!("9007199254740993")).unwrap();
@@ -248,7 +257,7 @@ fn the_number_of_reasons_not_kept_is_a_decimal_string() {
 /// twelfth review, which a full budget kept out of the reasons and the record counts (fifteenth review); no other
 /// part has a reason.
 fn report_with_header_state(header_status: Value, headers: Value) -> Result<MediaReport, serde_json::Error> {
-  let empty_record = json!({ "exhausted": [], "first_stopped": [] });
+  let empty_record = json!({ "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" });
   let mut text = serde_json::to_value(report(json!("Complete"), json!([]), empty_record)).unwrap();
   if headers == json!("Incomplete") {
     text["completeness"]["record"]["first_reasons"] = json!([{
@@ -380,7 +389,7 @@ fn a_companion_diagnostic_names_its_source_in_decimal() {
   let mut text = serde_json::to_value(report(
     json!("Complete"),
     json!([]),
-    json!({ "exhausted": [], "first_stopped": [] }),
+    json!({ "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" }),
   ))
   .unwrap();
   text["diagnostics"] = json!([{
@@ -408,10 +417,13 @@ fn a_companion_diagnostic_names_its_source_in_decimal() {
 #[test]
 fn the_number_of_references_not_kept_is_a_decimal_string() {
   // The eighth review's case: an external reference found after the retained data was full is counted, not listed.
+  // Since the eighteenth review the record says that the retained data ran out and which part fell short for it.
   let record: LimitRecord = serde_json::from_value(json!({
-    "exhausted": [],
-    "first_stopped": [],
+    "exhausted": ["RetainedData"],
+    "first_stopped": [{ "limit": "RetainedData", "part": "Discovery" }],
+    "first_reasons": [{ "part": "Discovery", "reason": { "kind": "LimitExhausted", "limit": "RetainedData" } }],
     "omitted_references": "9007199254740993",
+    "omitted_reasons": "0",
   }))
   .unwrap();
   assert_eq!(record.omitted_references(), 9_007_199_254_740_993);

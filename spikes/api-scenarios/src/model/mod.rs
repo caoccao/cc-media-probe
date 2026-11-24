@@ -33,6 +33,7 @@ mod report;
 #[cfg(feature = "serde")]
 mod report_reading;
 mod stream;
+mod tag_key;
 mod tag_value;
 mod tags;
 mod tree;
@@ -55,10 +56,10 @@ pub use language::{Language, LocalizedText};
 pub use lookups::TagsOf;
 pub use report::MediaReport;
 pub use stream::{Disposition, Stream, StreamKind};
+pub use tag_key::TagKey;
 pub use tag_value::{BinaryValue, IntegerValue, TagValue};
 pub use tags::{
-  EntityKind, EntityLocation, Tag, TagKey, TagName, TagSet, TargetLevel, TargetReference, TargetReferenceKind,
-  TargetScope,
+  EntityKind, EntityLocation, Tag, TagName, TagSet, TargetLevel, TargetReference, TargetReferenceKind, TargetScope,
 };
 pub use unrecognized_kind::UnrecognizedKind;
 pub use unrecognized_value::UnrecognizedValue;

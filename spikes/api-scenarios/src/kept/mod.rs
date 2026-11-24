@@ -15,16 +15,22 @@
 * limitations under the License.
 */
 
-//! Values kept as written, `api.md` section 12. A reader holds the members of an enum that carries data before it
-//! looks at the kind, so that the order of the members never matters and the kind alone decides how they are read. A
+//! Values kept as written, `api.md` section 12. A reader holds the members of an enum that carries data that stand
+//! before its kind, so that the order of the members never matters and the kind alone decides how they are read. A
 //! kind that a newer version wrote keeps its other members unread and writes them back unchanged, as the maintainer
 //! chose at the seventh review, so the version that knows the kind reads its value again. A known kind reads its own
-//! members from the buffer into their types.
+//! members into their types, those held before the kind and then those after it as they come, as the nineteenth
+//! review asked (`kinds`). An entry, a detection and an error record keep the members that they do
+//! not read for an outcome of a newer version, held until the outcome is known (`outcome`).
 
 mod kinds;
 mod members;
+mod outcome;
+mod passing;
+mod payload;
 mod reader;
 mod value;
 
-pub(crate) use kinds::{read_kind, refuse_other_kinds, write_kept};
+pub(crate) use kinds::{KindRead, MemberValue, read_by_kind, write_kept};
 pub(crate) use members::KeptMembers;
+pub(crate) use outcome::{Outcome, WithKept};

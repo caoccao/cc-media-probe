@@ -72,7 +72,7 @@ fn report_value(version: &str) -> Value {
       "chapters": "Complete",
       "attachments": "Complete",
       "reasons": [],
-      "record": { "exhausted": [], "first_stopped": [] },
+      "record": { "exhausted": [], "first_stopped": [], "first_reasons": [], "omitted_reasons": "0", "omitted_references": "0" },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],
@@ -83,6 +83,8 @@ fn root_records() -> Vec<RootRecord> {
   let mut error = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
   // A source failure, the one kind that carries a partial report (fifteenth review).
   error["kind"] = json!("source_failed");
+  // It holds the kind of its failure (sixteenth review).
+  error["source_failure_kind"] = json!("not_found");
   vec![
     RootRecord {
       name: "Document",
@@ -346,4 +348,40 @@ fn the_version_comes_first_only_among_values_that_the_reader_can_represent() {
   assert!(message.starts_with(DUPLICATE), "{message}");
   let parsed: Value = serde_json::from_str(repeated).unwrap();
   assert!(serde_json::from_value::<Detection>(parsed).is_ok());
+}
+
+#[test]
+fn an_enum_written_as_an_object_has_one_member_in_either_order() {
+  // Found while revising for the seventeenth review: with the version first, serde_json refused a second member of
+  // an enum's object, and with the version last, the held object read as its first member. Both now read through
+  // the same calls, and the second member fails in either order.
+  let mut report = report_value("1.0");
+  report["streams"] = json!([{
+    "index": 0,
+    "kind": "Video",
+    "codec": { "candidates": [], "has_every_candidate": true, "raw_identifiers": [] },
+    "header_status": { "state": { "Unrecognized": "decoded", "extra": 1 } },
+    "titles": [],
+    "disposition": {},
+  }]);
+  report["completeness"]["headers"] = json!("Incomplete");
+  report["completeness"]["record"]["first_reasons"] =
+    json!([{ "part": "Headers", "stream": 0, "reason": { "kind": "TruncatedInput" } }]);
+  report["completeness"]["record"]["omitted_reasons"] = json!("1");
+  let members = members_of(report.clone());
+  let read = |text: &str| serde_json::from_str::<MediaReport>(text).map(|_| ());
+  for position in [0, members.len()] {
+    let failure = read(&text_of(&members, Some((position, "1.0"))))
+      .unwrap_err()
+      .to_string();
+    assert!(
+      failure.starts_with("an enum written as an object has one member"),
+      "{position}: {failure}"
+    );
+  }
+  report["streams"][0]["header_status"]["state"] = json!({ "Unrecognized": "decoded" });
+  let members = members_of(report);
+  for position in [0, members.len()] {
+    assert!(read(&text_of(&members, Some((position, "1.0")))).is_ok());
+  }
 }

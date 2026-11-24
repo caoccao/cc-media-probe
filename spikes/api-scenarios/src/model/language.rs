@@ -17,21 +17,16 @@
 
 //! Languages and localized text, `api.md` section 6.1.
 
-/// A language as the file writes it, and its BCP 47 form.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Language {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  tag: Option<String>,
-  as_written: String,
+crate::form::strict_form! {
+  #[form(remote = "Language")]
+  /// A language as the file writes it, and its BCP 47 form.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Language {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    tag: Option<String>,
+    as_written: String,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Language);
 
 impl Language {
   /// The BCP 47 tag; absent for `und`.
@@ -45,21 +40,16 @@ impl Language {
   }
 }
 
-/// A text with the languages and countries it applies to.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct LocalizedText {
-  text: String,
-  languages: Vec<Language>,
-  countries: Vec<String>,
+crate::form::strict_form! {
+  #[form(remote = "LocalizedText")]
+  /// A text with the languages and countries it applies to.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct LocalizedText {
+    text: String,
+    languages: Vec<Language>,
+    countries: Vec<String>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(LocalizedText);
 
 impl LocalizedText {
   /// The text.

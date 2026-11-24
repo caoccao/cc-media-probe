@@ -27,7 +27,7 @@ pub struct Usage {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(Usage from UsageData);
+crate::neutral::checked_strict_traits!(Usage from UsageData);
 
 /// The counters as written, each as its number or its twin.
 #[cfg(feature = "serde")]

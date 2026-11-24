@@ -19,31 +19,26 @@
 
 use super::shared::{Conflict, StoredValue};
 
-/// What a Matroska segment states beyond the normalized model.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct MatroskaDetails {
-  document_type: String,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  document_type_version: Option<StoredValue<u64>>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  document_type_read_version: Option<StoredValue<u64>>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  timestamp_scale: Option<StoredValue<u64>>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  muxing_application: Option<String>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  writing_application: Option<String>,
-  tracks: Vec<MatroskaTrackDetails>,
-  conflicts: Vec<Conflict>,
+crate::form::strict_form! {
+  #[form(remote = "MatroskaDetails")]
+  /// What a Matroska segment states beyond the normalized model.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct MatroskaDetails {
+    document_type: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    document_type_version: Option<StoredValue<u64>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    document_type_read_version: Option<StoredValue<u64>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    timestamp_scale: Option<StoredValue<u64>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    muxing_application: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    writing_application: Option<String>,
+    tracks: Vec<MatroskaTrackDetails>,
+    conflicts: Vec<Conflict>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(MatroskaDetails);
 
 impl MatroskaDetails {
   /// `DocType`: `matroska` or `webm`.
@@ -92,27 +87,22 @@ impl MatroskaDetails {
   }
 }
 
-/// What a Matroska track states beyond the normalized model.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct MatroskaTrackDetails {
-  stream_index: usize,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  track_number: Option<u64>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  codec_identifier: Option<String>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  flag_default: Option<StoredValue<bool>>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  codec_private_data: Option<Vec<u8>>,
+crate::form::strict_form! {
+  #[form(remote = "MatroskaTrackDetails")]
+  /// What a Matroska track states beyond the normalized model.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct MatroskaTrackDetails {
+    stream_index: usize,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    track_number: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec_identifier: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    flag_default: Option<StoredValue<bool>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec_private_data: Option<Vec<u8>>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(MatroskaTrackDetails);
 
 impl MatroskaTrackDetails {
   /// The index of the stream the track became.

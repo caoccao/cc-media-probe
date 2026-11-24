@@ -32,9 +32,12 @@
 mod alone;
 mod held;
 mod held_reader;
+mod kept_reading;
 mod root;
 mod scope;
+mod scope_variant;
 mod strict;
 
-pub(crate) use alone::{ReadAlone, checked_record_traits, read_alone, record_traits};
+pub(crate) use alone::{ReadAlone, checked_strict_traits, read_alone};
+pub(crate) use kept_reading::read_kept;
 pub(crate) use root::Rooted;

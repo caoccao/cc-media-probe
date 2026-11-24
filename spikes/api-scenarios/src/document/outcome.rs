@@ -21,8 +21,8 @@ use crate::constants::{ERROR_NAME, OK_NAME, PARTIAL_NAME};
 use crate::model::{Detection, DetectionOutcome, MediaReport, UnrecognizedValue};
 
 /// What an entry holds. Serialized as its stable name.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(into = "String", from = "String")]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(into = "String")]
 #[non_exhaustive]
 pub enum EntryOutcome {
   /// A complete report, or an identified format.
@@ -34,6 +34,8 @@ pub enum EntryOutcome {
   /// A value that a newer version wrote.
   Unrecognized(UnrecognizedValue<EntryOutcome>),
 }
+
+crate::neutral::checked_strict_traits!(EntryOutcome from String);
 
 impl EntryOutcome {
   /// The serialized name, or the text of an unrecognized value.

@@ -16,22 +16,34 @@
 */
 
 //! The document of `api.md` section 12, which the CLI writes and a library user can write too.
+//!
+//! A generator, like every type of the form, is read through `Deserialize` alone, which reads it strictly. No inherent
+//! function of Serde's derive stands beside the trait, as the nineteenth review asked, so without the trait in scope
+//! the name reaches no `deserialize`:
+//!
+//! ```compile_fail,E0599
+//! use cc_media_probe::document::Generator;
+//!
+//! let mut input = serde_json::Deserializer::from_str(r#"["catalog", "1"]"#);
+//! let _ = Generator::deserialize(&mut input);
+//! ```
 
 use super::entry::DocumentEntry;
 use super::invalid::InvalidDocument;
 use super::version::SchemaVersion;
 use super::wire::{EntryData, serialize_results};
 use crate::constants::USAGE_ERROR_WITH_RESULTS_MESSAGE;
+use crate::kept::WithKept;
 
-/// The program that wrote a document.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(remote = "Self")]
-pub struct Generator {
-  name: String,
-  version: String,
+crate::form::strict_form! {
+  #[form(remote = "Generator")]
+  /// The program that wrote a document.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Generator {
+    name: String,
+    version: String,
+  }
 }
-
-crate::neutral::record_traits!(Generator);
 
 impl Generator {
   /// A generator of that name and version.
@@ -53,14 +65,14 @@ impl Generator {
   }
 }
 
-/// A command line that could not be run, as the `usage_error` object of plan section 8.9.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(remote = "Self")]
-pub struct UsageError {
-  message: String,
+crate::form::strict_form! {
+  #[form(remote = "UsageError")]
+  /// A command line that could not be run, as the `usage_error` object of plan section 8.9.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct UsageError {
+    message: String,
+  }
 }
-
-crate::neutral::record_traits!(UsageError);
 
 impl UsageError {
   /// A usage error with that message.
@@ -93,7 +105,7 @@ pub struct Document {
 struct DocumentData {
   generator: Generator,
   usage_error: Option<UsageError>,
-  results: Vec<EntryData>,
+  results: Vec<WithKept<EntryData>>,
 }
 
 impl TryFrom<crate::neutral::Rooted<DocumentData>> for Document {
@@ -109,7 +121,7 @@ impl TryFrom<crate::neutral::Rooted<DocumentData>> for Document {
     }
     let results = (0_u64..)
       .zip(data.results)
-      .map(|(position, entry)| entry.into_entry(position))
+      .map(|(position, entry)| EntryData::into_entry(entry, position))
       .collect::<Result<Vec<DocumentEntry>, InvalidDocument>>()?;
     Ok(Document {
       schema_version: version,

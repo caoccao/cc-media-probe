@@ -21,26 +21,20 @@
 use super::shared::Conflict;
 use crate::model::UnrecognizedValue;
 
-/// What the H.264 parameter sets and configuration record state.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct H264Details {
-  sequence_parameter_sets: Vec<H264SequenceParameterSetDetails>,
-  #[cfg_attr(feature = "serde", serde(default))]
-  picture_parameter_sets: Vec<H264PictureParameterSetDetails>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  primary_sequence_parameter_set: Option<usize>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  activation: Option<H264ActivationDetails>,
-  conflicts: Vec<Conflict>,
+crate::form::strict_form! {
+  #[form(remote = "H264Details")]
+  /// What the H.264 parameter sets and configuration record state.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct H264Details {
+    sequence_parameter_sets: Vec<H264SequenceParameterSetDetails>,
+    picture_parameter_sets: Vec<H264PictureParameterSetDetails>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    primary_sequence_parameter_set: Option<usize>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    activation: Option<H264ActivationDetails>,
+    conflicts: Vec<Conflict>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(H264Details);
 
 impl H264Details {
   /// Each sequence parameter set read, in the order read.
@@ -71,45 +65,42 @@ impl H264Details {
   }
 }
 
-/// Where a parameter set was read.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum H264ParameterSetOrigin {
-  /// The configuration record, such as an `avcC` box or a Matroska `CodecPrivate`.
-  ConfigurationRecord,
-  /// A sample of the stream itself, as `avc3` allows.
-  Sample,
-  /// A sample of the parameter-set track that the track links through `avcp`.
-  ParameterSetTrack,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<H264ParameterSetOrigin>),
+crate::form::strict_form! {
+  #[form(remote = "H264ParameterSetOrigin")]
+  /// Where a parameter set was read.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum H264ParameterSetOrigin {
+    /// The configuration record, such as an `avcC` box or a Matroska `CodecPrivate`.
+    ConfigurationRecord,
+    /// A sample of the stream itself, as `avc3` allows.
+    Sample,
+    /// A sample of the parameter-set track that the track links through `avcp`.
+    ParameterSetTrack,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<H264ParameterSetOrigin>),
+  }
 }
 
-/// One sequence parameter set. A set cut short keeps the fields read before the cut.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct H264SequenceParameterSetDetails {
-  origin: H264ParameterSetOrigin,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  profile_indication: Option<u8>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  constraint_set_flags: Option<u8>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  level_indication: Option<u8>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  sequence_parameter_set_identifier: Option<u32>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  picture_width_in_macroblocks_minus_one: Option<u32>,
+crate::form::strict_form! {
+  #[form(remote = "H264SequenceParameterSetDetails")]
+  /// One sequence parameter set. A set cut short keeps the fields read before the cut.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct H264SequenceParameterSetDetails {
+    origin: H264ParameterSetOrigin,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    profile_indication: Option<u8>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    constraint_set_flags: Option<u8>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    level_indication: Option<u8>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sequence_parameter_set_identifier: Option<u32>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    picture_width_in_macroblocks_minus_one: Option<u32>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(H264SequenceParameterSetDetails);
 
 impl H264SequenceParameterSetDetails {
   /// Where the set was read.
@@ -144,24 +135,19 @@ impl H264SequenceParameterSetDetails {
   }
 }
 
-/// One picture parameter set. A set cut short keeps the fields read before the cut: `pic_parameter_set_id` comes
-/// first and `seq_parameter_set_id` second (ITU-T H.264 7.3.2.2).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct H264PictureParameterSetDetails {
-  origin: H264ParameterSetOrigin,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  picture_parameter_set_identifier: Option<u32>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  sequence_parameter_set_identifier: Option<u32>,
+crate::form::strict_form! {
+  #[form(remote = "H264PictureParameterSetDetails")]
+  /// One picture parameter set. A set cut short keeps the fields read before the cut: `pic_parameter_set_id` comes
+  /// first and `seq_parameter_set_id` second (ITU-T H.264 7.3.2.2).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct H264PictureParameterSetDetails {
+    origin: H264ParameterSetOrigin,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    picture_parameter_set_identifier: Option<u32>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sequence_parameter_set_identifier: Option<u32>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(H264PictureParameterSetDetails);
 
 impl H264PictureParameterSetDetails {
   /// Where the set was read.
@@ -180,22 +166,17 @@ impl H264PictureParameterSetDetails {
   }
 }
 
-/// The identifiers that the first picture's activation named, each as read (ITU-T H.264 7.4.1.2.1).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct H264ActivationDetails {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  picture_parameter_set_identifier: Option<u32>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  buffering_period_sequence_parameter_set_identifier: Option<u32>,
+crate::form::strict_form! {
+  #[form(remote = "H264ActivationDetails")]
+  /// The identifiers that the first picture's activation named, each as read (ITU-T H.264 7.4.1.2.1).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct H264ActivationDetails {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    picture_parameter_set_identifier: Option<u32>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    buffering_period_sequence_parameter_set_identifier: Option<u32>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(H264ActivationDetails);
 
 impl H264ActivationDetails {
   /// The first slice header's `pic_parameter_set_id` (7.3.3).

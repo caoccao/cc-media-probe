@@ -33,28 +33,30 @@ use crate::document::InvalidDocument;
 #[cfg(feature = "serde")]
 use crate::hexadecimal;
 
-/// A codec's identity.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum Codec {
-  /// H.264.
-  H264,
-  /// AV1.
-  Av1,
-  /// VP9.
-  Vp9,
-  /// AAC.
-  Aac,
-  /// Opus.
-  Opus,
-  /// WebVTT.
-  WebVtt,
-  /// A codec that the file names and this version does not know; the raw identifiers keep its name.
-  Unknown,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<Codec>),
+crate::form::strict_form! {
+  #[form(remote = "Codec")]
+  /// A codec's identity.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum Codec {
+    /// H.264.
+    H264,
+    /// AV1.
+    Av1,
+    /// VP9.
+    Vp9,
+    /// AAC.
+    Aac,
+    /// Opus.
+    Opus,
+    /// WebVTT.
+    WebVtt,
+    /// A codec that the file names and this version does not know; the raw identifiers keep its name.
+    Unknown,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<Codec>),
+  }
 }
 
 impl Codec {
@@ -100,7 +102,7 @@ pub struct RawCodecIdentifier {
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::checked_record_traits!(RawCodecIdentifier from RawCodecIdentifierData);
+crate::neutral::checked_strict_traits!(RawCodecIdentifier from RawCodecIdentifierData);
 
 /// A raw codec identifier as read, before its spelling is checked.
 #[cfg(feature = "serde")]
@@ -152,41 +154,38 @@ impl RawCodecIdentifier {
   }
 }
 
-/// The namespace of a raw codec identifier.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum CodecNamespace {
-  /// A Matroska `CodecID`.
-  MatroskaCodecIdentifier,
-  /// An ISO sample entry code, four bytes.
-  IsoSampleEntry,
-  /// A WAVE format tag, a 16-bit number (RFC 2361).
-  WaveFormatTag,
-  /// The `SubFormat` GUID of an extensible WAVE format, its 16 bytes as stored (fourteenth review, as the maintainer
-  /// chose).
-  WaveSubformat,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<CodecNamespace>),
+crate::form::strict_form! {
+  #[form(remote = "CodecNamespace")]
+  /// The namespace of a raw codec identifier.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum CodecNamespace {
+    /// A Matroska `CodecID`.
+    MatroskaCodecIdentifier,
+    /// An ISO sample entry code, four bytes.
+    IsoSampleEntry,
+    /// A WAVE format tag, a 16-bit number (RFC 2361).
+    WaveFormatTag,
+    /// The `SubFormat` GUID of an extensible WAVE format, its 16 bytes as stored (fourteenth review, as the maintainer
+    /// chose).
+    WaveSubformat,
+    /// A value that a newer version wrote.
+    #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+    Unrecognized(UnrecognizedValue<CodecNamespace>),
+  }
 }
 
-/// A profile, level or tier: the specification's name and the coded value.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Profile {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  name: Option<String>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  code: Option<String>,
+crate::form::strict_form! {
+  #[form(remote = "Profile")]
+  /// A profile, level or tier: the specification's name and the coded value.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Profile {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    code: Option<String>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Profile);
 
 impl Profile {
   /// The specification's name, such as "High".
@@ -206,21 +205,16 @@ impl fmt::Display for Profile {
   }
 }
 
-/// One sample description that could hold the first sample, with its own codec and identifiers.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct CodecCandidate {
-  sample_description_index: u64,
-  codec: Codec,
-  raw_identifiers: Vec<RawCodecIdentifier>,
+crate::form::strict_form! {
+  #[form(remote = "CodecCandidate")]
+  /// One sample description that could hold the first sample, with its own codec and identifiers.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct CodecCandidate {
+    sample_description_index: u64,
+    codec: Codec,
+    raw_identifiers: Vec<RawCodecIdentifier>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(CodecCandidate);
 
 impl CodecCandidate {
   /// The description's index as the file numbers it, from 1 in the ISO family.
@@ -247,29 +241,24 @@ impl fmt::Display for CodecCandidate {
   }
 }
 
-/// What a stream says about its codec.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct CodecInformation {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  codec: Option<Codec>,
-  candidates: Vec<CodecCandidate>,
-  has_every_candidate: bool,
-  raw_identifiers: Vec<RawCodecIdentifier>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  profile: Option<Profile>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  level: Option<Profile>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  codec_string: Option<String>,
+crate::form::strict_form! {
+  #[form(remote = "CodecInformation")]
+  /// What a stream says about its codec.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct CodecInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec: Option<Codec>,
+    candidates: Vec<CodecCandidate>,
+    has_every_candidate: bool,
+    raw_identifiers: Vec<RawCodecIdentifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    profile: Option<Profile>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    level: Option<Profile>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec_string: Option<String>,
+  }
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(CodecInformation);
 
 impl CodecInformation {
   /// The codec's identity; absent while the description of the first sample is unproven, unless every candidate
