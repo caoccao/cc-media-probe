@@ -24,6 +24,8 @@ mod chroma_format;
 mod codec;
 mod constants;
 mod detection;
+#[cfg(feature = "serde")]
+mod detection_reading;
 mod format;
 mod language;
 mod lookups;
@@ -47,7 +49,7 @@ pub use audio::AudioInformation;
 pub use chapters::{Chapter, ChapterEdition};
 pub use chroma_format::{ChromaFormat, ChromaSubsampling};
 pub use codec::{Codec, CodecCandidate, CodecInformation, CodecNamespace, Profile, RawCodecIdentifier};
-pub use detection::{Detection, DetectionOutcome};
+pub use detection::{Candidate, Detection, DetectionOutcome, Hint, HintOrigin};
 pub use format::{Format, SupportLevel};
 pub use language::{Language, LocalizedText};
 pub use lookups::TagsOf;

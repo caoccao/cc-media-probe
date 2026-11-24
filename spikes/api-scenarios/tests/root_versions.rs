@@ -59,7 +59,8 @@ fn a_bare_root_record_gives_the_version_that_it_was_read_with() {
     (1, 1)
   );
   let detection: Detection =
-    serde_json::from_value(json!({ "schema_version": "1.1", "outcome": "identified_by_content" })).unwrap();
+    serde_json::from_value(json!({ "schema_version": "1.1", "outcome": "identified_by_content", "candidates": [] }))
+      .unwrap();
   assert_eq!(detection.schema_version().minor(), 1);
   let mut record = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
   record["schema_version"] = json!("1.1");

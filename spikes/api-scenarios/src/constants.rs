@@ -291,3 +291,51 @@ pub const HEXADECIMAL_BASE: u32 = 16;
 /// The thirteenth review: the bytes of a four-character code, such as an ISO sample entry's.
 #[cfg(feature = "serde")]
 pub const FOUR_CHARACTER_CODE_BYTES: usize = 4;
+/// The fourteenth review: the reserved name of the newtype request with which a record of the form asks the
+/// deserializer for the scope of the read. Only the library's strict deserializer answers it; a format gives the
+/// plain newtype.
+#[cfg(feature = "serde")]
+pub const READ_SCOPE_NAME: &str = "$cc_media_probe::read_scope";
+/// The fourteenth review: what a request for the scope expects.
+#[cfg(feature = "serde")]
+pub const READ_SCOPE_EXPECTING: &str = "a record of the form";
+/// The fourteenth review: an answer to the request for the scope that lacks one of its two elements.
+#[cfg(feature = "serde")]
+pub const READ_SCOPE_MESSAGE: &str = "the scope of a read was answered without its version and its reader";
+/// The fourteenth review: a stream whose index is not its position in the report.
+#[cfg(feature = "serde")]
+pub const STREAM_INDEX_MESSAGE: &str = "a stream's index is its position in the report";
+/// The fourteenth review: a normalized quantity beyond 2^53 - 1, which no reader holds exactly.
+#[cfg(feature = "serde")]
+pub const QUANTITY_MESSAGE: &str = "a quantity is a number of at most 2^53 - 1";
+/// The fourteenth review: an error record with both a partial report and observations, two stopping points.
+#[cfg(feature = "serde")]
+pub const STOPPING_POINTS_MESSAGE: &str =
+  "an error holds a partial report, from after the inventory, or observations, from before it, never both";
+/// The fourteenth review: an error record whose record is not that of its partial report.
+#[cfg(feature = "serde")]
+pub const ERROR_RECORD_MESSAGE: &str = "an error that carries a partial report has that report's record";
+/// The fourteenth review: a detection whose members do not fit its outcome, or whose confidences do not hold.
+#[cfg(feature = "serde")]
+pub const DETECTION_MESSAGE: &str = "a detection holds the members of its outcome and no other, with confidences from \
+                                     0 to 100 that fall with the candidates' rank";
+/// The fourteenth review: the largest confidence (`api.md` section 8).
+#[cfg(feature = "serde")]
+pub const MAXIMUM_CONFIDENCE: u8 = 100;
+/// The fourteenth review: the fewest candidates of an ambiguous detection, which has several.
+#[cfg(feature = "serde")]
+pub const MINIMUM_CANDIDATES: usize = 2;
+/// The fourteenth review: a value that JSON cannot carry faithfully, which the form refuses from any format.
+#[cfg(feature = "serde")]
+pub const NOT_JSON_VALUE_MESSAGE: &str =
+  "a value is one that JSON carries as read: no non-finite number and no byte string";
+/// The fourteenth review: the bytes of a GUID, such as the `SubFormat` of an extensible WAVE format.
+#[cfg(feature = "serde")]
+pub const GUID_BYTES: usize = 16;
+/// The fourteenth review: the first and the last printable ASCII character, the text of an EBML string (RFC 8794
+/// section 7.4).
+#[cfg(feature = "serde")]
+pub const PRINTABLE_FIRST: char = ' ';
+/// The fourteenth review: the last printable ASCII character.
+#[cfg(feature = "serde")]
+pub const PRINTABLE_LAST: char = '~';

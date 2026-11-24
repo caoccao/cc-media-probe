@@ -15,13 +15,15 @@
 * limitations under the License.
 */
 
-//! `Detection`, `api.md` section 8, as far as a document entry reads it.
+//! `Detection`, `api.md` section 8, as far as a document entry and its tests read it. Since the fourteenth review it
+//! has the members of every outcome, which reading checks outcome by outcome (`super::detection_reading`).
 
 use super::constants::{
   AMBIGUOUS_NAME, FAMILY_ONLY_NAME, HINT_ONLY_NAME, IDENTIFIED_NAME, INSUFFICIENT_DATA_NAME, UNKNOWN_NAME,
 };
 use super::format::Format;
 use super::unrecognized_value::UnrecognizedValue;
+use crate::completeness::Reason;
 #[cfg(feature = "serde")]
 use crate::document::SchemaVersion;
 
@@ -30,14 +32,21 @@ use crate::document::SchemaVersion;
 #[cfg_attr(
   feature = "serde",
   derive(serde::Serialize, serde::Deserialize),
-  serde(from = "crate::neutral::Rooted<DetectionData>")
+  serde(
+    into = "super::detection_reading::DetectionMembers",
+    try_from = "crate::neutral::Rooted<super::detection_reading::DetectionData>"
+  )
 )]
 pub struct Detection {
   #[cfg(feature = "serde")]
-  schema_version: SchemaVersion,
-  outcome: DetectionOutcome,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  format: Option<Format>,
+  pub(super) schema_version: SchemaVersion,
+  pub(super) outcome: DetectionOutcome,
+  pub(super) format: Option<Format>,
+  pub(super) confidence: Option<u8>,
+  pub(super) candidates: Vec<Candidate>,
+  pub(super) hint: Option<Hint>,
+  pub(super) bytes_needed: Option<u64>,
+  pub(super) insufficient_reason: Option<Reason>,
 }
 
 impl Detection {
@@ -46,9 +55,34 @@ impl Detection {
     &self.outcome
   }
 
-  /// The identified format or the family.
+  /// The identified format or the family. A hinted format is under `hint()`, never here.
   pub fn format(&self) -> Option<&Format> {
     self.format.as_ref()
+  }
+
+  /// For an identification, from 0 to 100.
+  pub fn confidence(&self) -> Option<u8> {
+    self.confidence
+  }
+
+  /// For an ambiguous outcome, in rank order, which falls with the confidence.
+  pub fn candidates(&self) -> &[Candidate] {
+    &self.candidates
+  }
+
+  /// For a hint only; not verified.
+  pub fn hint(&self) -> Option<&Hint> {
+    self.hint.as_ref()
+  }
+
+  /// For insufficient data, when known: the least length of the input, from its start, that detection needs.
+  pub fn bytes_needed(&self) -> Option<u64> {
+    self.bytes_needed
+  }
+
+  /// For insufficient data: whether the input ended or a named limit was reached.
+  pub fn insufficient_reason(&self) -> Option<&Reason> {
+    self.insufficient_reason.as_ref()
   }
 
   /// The schema version that the record was read with, or the current one for a record that this version made. A
@@ -66,23 +100,72 @@ impl Detection {
   }
 }
 
-/// A detection's members as read, other than its version, which is read first (`neutral`).
-#[cfg(feature = "serde")]
-#[derive(serde::Deserialize)]
-struct DetectionData {
-  outcome: DetectionOutcome,
-  format: Option<Format>,
+/// One candidate of an ambiguous detection.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
+pub struct Candidate {
+  format: Format,
+  confidence: u8,
 }
 
 #[cfg(feature = "serde")]
-impl From<crate::neutral::Rooted<DetectionData>> for Detection {
-  fn from(rooted: crate::neutral::Rooted<DetectionData>) -> Detection {
-    Detection {
-      schema_version: rooted.version,
-      outcome: rooted.body.outcome,
-      format: rooted.body.format,
-    }
+crate::neutral::record_traits!(Candidate);
+
+impl Candidate {
+  /// The candidate's format.
+  pub fn format(&self) -> &Format {
+    &self.format
   }
+
+  /// Its confidence, from 0 to 100.
+  pub fn confidence(&self) -> u8 {
+    self.confidence
+  }
+}
+
+/// A format that a hint suggests, not verified.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(remote = "Self")
+)]
+pub struct Hint {
+  format: Format,
+  origin: HintOrigin,
+}
+
+#[cfg(feature = "serde")]
+crate::neutral::record_traits!(Hint);
+
+impl Hint {
+  /// The hinted format.
+  pub fn format(&self) -> &Format {
+    &self.format
+  }
+
+  /// Where the hint came from.
+  pub fn origin(&self) -> &HintOrigin {
+    &self.origin
+  }
+}
+
+/// Where a hint came from.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
+pub enum HintOrigin {
+  /// The file name.
+  FileName,
+  /// The format option of the builder.
+  FormatOption,
+  /// A value that a newer version wrote.
+  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
+  Unrecognized(UnrecognizedValue<HintOrigin>),
 }
 
 /// The outcome of a detection. Serialized as its stable name.

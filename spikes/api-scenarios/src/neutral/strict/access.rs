@@ -22,19 +22,24 @@ use std::collections::HashSet;
 
 use serde::de::{DeserializeSeed, Deserializer, Error, MapAccess, SeqAccess};
 
-use super::deserializer::Strict;
+use super::deserializer::{Holder, Strict};
 use crate::constants::DUPLICATE_MEMBER_MESSAGE;
 
 /// A seed whose value is read strictly.
 pub(super) struct StrictSeed<'name, Seed> {
   seed: Seed,
   name: Option<&'name mut Option<String>>,
+  holder: Holder,
 }
 
 impl<'name, Seed> StrictSeed<'name, Seed> {
-  /// The seed of a value.
-  pub(super) fn value(seed: Seed) -> StrictSeed<'name, Seed> {
-    StrictSeed { seed, name: None }
+  /// The seed of a value, inside the body of a root record of that version, or of none.
+  pub(super) fn value(seed: Seed, holder: Holder) -> StrictSeed<'name, Seed> {
+    StrictSeed {
+      seed,
+      name: None,
+      holder,
+    }
   }
 }
 
@@ -44,7 +49,7 @@ impl<'input, Seed: DeserializeSeed<'input>> DeserializeSeed<'input> for StrictSe
   fn deserialize<Inner: Deserializer<'input>>(self, deserializer: Inner) -> Result<Seed::Value, Inner::Error> {
     match self.name {
       Some(slot) => self.seed.deserialize(Strict::name(deserializer, slot)),
-      None => self.seed.deserialize(Strict::value(deserializer)),
+      None => self.seed.deserialize(Strict::value(deserializer, self.holder)),
     }
   }
 }
@@ -52,11 +57,12 @@ impl<'input, Seed: DeserializeSeed<'input>> DeserializeSeed<'input> for StrictSe
 /// A sequence whose elements are read strictly.
 pub(super) struct StrictSequence<Items> {
   items: Items,
+  holder: Holder,
 }
 
 impl<Items> StrictSequence<Items> {
-  pub(super) fn new(items: Items) -> StrictSequence<Items> {
-    StrictSequence { items }
+  pub(super) fn new(items: Items, holder: Holder) -> StrictSequence<Items> {
+    StrictSequence { items, holder }
   }
 }
 
@@ -67,7 +73,7 @@ impl<'input, Items: SeqAccess<'input>> SeqAccess<'input> for StrictSequence<Item
     &mut self,
     seed: Seed,
   ) -> Result<Option<Seed::Value>, Items::Error> {
-    self.items.next_element_seed(StrictSeed::value(seed))
+    self.items.next_element_seed(StrictSeed::value(seed, self.holder))
   }
 
   fn size_hint(&self) -> Option<usize> {
@@ -79,16 +85,18 @@ impl<'input, Items: SeqAccess<'input>> SeqAccess<'input> for StrictSequence<Item
 pub(crate) struct StrictMap<Members> {
   members: Members,
   names: HashSet<String>,
+  holder: Holder,
 }
 
 impl<Members> StrictMap<Members> {
-  pub(super) fn new(members: Members) -> StrictMap<Members> {
-    StrictMap::with_names(members, HashSet::new())
+  pub(super) fn new(members: Members, holder: Holder) -> StrictMap<Members> {
+    StrictMap::with_names(members, HashSet::new(), holder)
   }
 
-  /// A map of which some members were already read, under these names.
-  pub(crate) fn with_names(members: Members, names: HashSet<String>) -> StrictMap<Members> {
-    StrictMap { members, names }
+  /// A map of which some members were already read, under these names, inside the body of a root record of that
+  /// version, or of none.
+  pub(crate) fn with_names(members: Members, names: HashSet<String>, holder: Holder) -> StrictMap<Members> {
+    StrictMap { members, names, holder }
   }
 }
 
@@ -103,6 +111,7 @@ impl<'input, Members: MapAccess<'input>> MapAccess<'input> for StrictMap<Members
     let key = self.members.next_key_seed(StrictSeed {
       seed,
       name: Some(&mut name),
+      holder: None,
     })?;
     if let Some(name) = name
       && !self.names.insert(name)
@@ -113,7 +122,7 @@ impl<'input, Members: MapAccess<'input>> MapAccess<'input> for StrictMap<Members
   }
 
   fn next_value_seed<Seed: DeserializeSeed<'input>>(&mut self, seed: Seed) -> Result<Seed::Value, Members::Error> {
-    self.members.next_value_seed(StrictSeed::value(seed))
+    self.members.next_value_seed(StrictSeed::value(seed, self.holder))
   }
 
   fn size_hint(&self) -> Option<usize> {

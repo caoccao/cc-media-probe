@@ -84,6 +84,11 @@ impl Format {
     }
   }
 
+  /// Whether the format is a family, such as the ISO base media family; false for a format of a newer version.
+  pub fn is_family(&self) -> bool {
+    matches!(self, Format::IsoBaseMedia | Format::Riff)
+  }
+
   /// The family the format belongs to.
   pub fn family(&self) -> Option<Format> {
     match self {

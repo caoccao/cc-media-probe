@@ -179,3 +179,126 @@ fn the_record_names_each_limit_or_part_once_in_each_array() {
     assert!(read(broken.clone()).is_err(), "{broken}");
   }
 }
+
+#[test]
+fn a_codec_identifier_holds_only_what_its_decoder_writes() {
+  // The fourteenth review: a Matroska `CodecID` is printable ASCII once its terminating null octets are removed, and
+  // its decoder writes U+FFFD for any other byte, so no other character reads.
+  let read = |value: &str| {
+    serde_json::from_value::<RawCodecIdentifier>(json!({ "namespace": "MatroskaCodecIdentifier", "value": value }))
+  };
+  assert!(read("A_OPUS").is_ok());
+  assert!(read("A_\u{fffd}PUS").is_ok());
+  for value in ["A_\u{1f600}", "A_OPUS\u{0}", "A_OPUS\n", "A_\u{e9}"] {
+    assert!(read(value).is_err(), "{value:?}");
+  }
+}
+
+#[test]
+fn an_extensible_wave_subformat_is_its_16_bytes_in_hexadecimal() {
+  // The fourteenth review, as the maintainer chose: `wave_subformat` keeps the GUID as stored.
+  let read =
+    |value: &str| serde_json::from_value::<RawCodecIdentifier>(json!({ "namespace": "WaveSubformat", "value": value }));
+  assert!(read("0100000000001000800000aa00389b71").is_ok());
+  for value in [
+    "0100000000001000800000aa00389b7",
+    "0100000000001000800000AA00389B71",
+    "1",
+  ] {
+    assert!(read(value).is_err(), "{value}");
+  }
+}
+
+fn report_with(member: &str, value: serde_json::Value) -> serde_json::Value {
+  let mut report = json!({
+    "schema_version": "1.0",
+    "format": "Matroska",
+    "streams": [],
+    "chapter_editions": [],
+    "tag_sets": [],
+    "attachments": [],
+    "diagnostics": [],
+    "completeness": {
+      "detection": "Complete", "discovery": "Complete", "headers": "Complete", "tags": "Complete",
+      "chapters": "Complete", "attachments": "Complete", "reasons": [],
+      "record": { "exhausted": [], "first_stopped": [] },
+    },
+    "usage": { "bytes_read": 0, "peak_working_memory": 0 },
+    "sources": [],
+  });
+  report[member] = value;
+  report
+}
+
+#[test]
+fn usage_counters_and_diagnostic_offsets_are_twins_on_both_sides_of_the_range() {
+  // The fourteenth review's case: `bytes_read` of 2^53 + 1 read as a number, and its twin was refused.
+  let read =
+    |usage: serde_json::Value| serde_json::from_value::<cc_media_probe::MediaReport>(report_with("usage", usage));
+  let large = read(json!({ "bytes_read_exact": "9007199254740993", "peak_working_memory": 0 })).unwrap();
+  assert_eq!(large.usage().bytes_read(), 9_007_199_254_740_993);
+  assert_eq!(
+    serde_json::to_value(&large).unwrap()["usage"]["bytes_read_exact"],
+    json!("9007199254740993")
+  );
+  assert!(read(json!({ "bytes_read": 9_007_199_254_740_991_u64, "peak_working_memory": 0 })).is_ok());
+  for usage in [
+    json!({ "bytes_read": 9_007_199_254_740_993_u64, "peak_working_memory": 0 }),
+    json!({ "bytes_read_exact": "9007199254740991", "peak_working_memory": 0 }),
+    json!({ "bytes_read": 0, "peak_working_memory_exact": "1" }),
+    json!({ "peak_working_memory": 0 }),
+  ] {
+    assert!(read(usage.clone()).is_err(), "{usage}");
+  }
+  let diagnostic = |offset: (&str, serde_json::Value)| {
+    let mut diagnostic =
+      json!({ "severity": "Warning", "code": "matroska.void", "message": "m", "source_identifier": "0" });
+    diagnostic[offset.0] = offset.1;
+    serde_json::from_value::<cc_media_probe::diagnostics::Diagnostic>(diagnostic)
+  };
+  assert_eq!(
+    diagnostic(("offset_exact", json!("9007199254740993")))
+      .unwrap()
+      .offset(),
+    Some(9_007_199_254_740_993)
+  );
+  assert!(diagnostic(("offset", json!(9_007_199_254_740_993_u64))).is_err());
+  assert!(diagnostic(("offset_exact", json!("12"))).is_err());
+}
+
+#[test]
+fn a_normalized_quantity_lies_within_the_exact_range() {
+  // The fourteenth review's case: a report's size of 2^53 + 1 read.
+  let read = |member: &str, value: serde_json::Value| {
+    serde_json::from_value::<cc_media_probe::MediaReport>(report_with(member, value))
+  };
+  assert!(read("size", json!(9_007_199_254_740_991_u64)).is_ok());
+  assert!(read("size", json!(9_007_199_254_740_993_u64)).is_err());
+  let level =
+    |value: serde_json::Value| serde_json::from_value::<cc_media_probe::model::TargetLevel>(json!({ "value": value }));
+  assert!(level(json!(50)).is_ok());
+  assert!(level(json!(9_007_199_254_740_993_u64)).is_err());
+}
+
+#[test]
+fn a_version_that_is_not_a_string_is_the_version_error_and_a_nested_null_is_malformed() {
+  // The fourteenth review: `17` and `null` gave Serde's own type error, not the version error.
+  for version in ["17", "null", "true", "[1, 0]", "{}"] {
+    let text =
+      format!(r#"{{"schema_version": {version}, "generator": {{"name": "g", "version": "1"}}, "results": []}}"#);
+    let message = serde_json::from_str::<Document>(&text).unwrap_err().to_string();
+    assert!(
+      message.starts_with("a schema version is two decimal numbers"),
+      "{version}: {message}"
+    );
+  }
+  let nested = |version: &str| {
+    let error = format!(r#"{{"schema_version": {version}, "kind": "format_not_determined", "message": "m"}}"#);
+    let entry = format!(r#"{{"index": 0, "input": "a", "outcome": "error", "error": {error}}}"#);
+    let text =
+      format!(r#"{{"schema_version": "1.0", "generator": {{"name": "g", "version": "1"}}, "results": [{entry}]}}"#);
+    serde_json::from_str::<Document>(&text).unwrap_err().to_string()
+  };
+  assert!(nested("17").starts_with("a schema version is two decimal numbers"));
+  assert!(nested("null").starts_with("a member holds null"));
+}

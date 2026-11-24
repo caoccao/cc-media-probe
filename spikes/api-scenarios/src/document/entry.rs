@@ -73,7 +73,10 @@ impl DocumentEntry {
         error: None,
         kept: KeptMembers::default(),
       }),
-      None => Err(UnderivableOutcome::new(input, UnderivedRecord::Detection(detection))),
+      None => Err(UnderivableOutcome::new(
+        input,
+        UnderivedRecord::Detection(Box::new(detection)),
+      )),
     }
   }
 

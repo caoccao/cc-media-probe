@@ -21,7 +21,14 @@
 //! Serialized, it is the record of `json-output.md` section 7.2: the exhausted limits, the first-stopped pairs as
 //! records of `limit` and `part`, and the first reasons. Each array names each limit or part once, and the pairs
 //! name exactly the exhausted limits, in their order; two limits may first stop the same part (thirteenth review).
+//! The limits and the parts that this version knows keep their declared order, a first reason has no detail, a part
+//! that a limit stopped first has a first reason, and a first reason that names an exhausted limit finds it among
+//! the exhausted ones (fourteenth review).
 
+#[cfg(feature = "serde")]
+use super::constants::{LIMIT_ORDER, PART_ORDER};
+#[cfg(feature = "serde")]
+use super::statuses::ReasonKind;
 use super::statuses::{Part, PartReason};
 #[cfg(feature = "serde")]
 use crate::constants::LIMIT_RECORD_MESSAGE;
@@ -87,7 +94,14 @@ impl TryFrom<LimitRecordData> for LimitRecord {
         .iter()
         .any(|earlier| earlier.part() == read.first_reasons[position].part())
     });
-    if !(pairs_name_the_limits && limits_once && parts_once) {
+    let parts: Vec<&Part> = read.first_reasons.iter().map(PartReason::part).collect();
+    let ordered = in_declared_order(&read.exhausted, &LIMIT_ORDER) && in_declared_order(&parts, &PART_ORDER.each_ref());
+    let stopped_parts_have_reasons = read.first_stopped.iter().all(|pair| parts.contains(&&pair.part));
+    let reasons_agree = read
+      .first_reasons
+      .iter()
+      .all(|first| first.reason().detail().is_none() && names_exhausted_limit(first, &read.exhausted));
+    if !(pairs_name_the_limits && limits_once && parts_once && ordered && stopped_parts_have_reasons && reasons_agree) {
       return Err(InvalidDocument::new(LIMIT_RECORD_MESSAGE));
     }
     Ok(LimitRecord {
@@ -101,6 +115,26 @@ impl TryFrom<LimitRecordData> for LimitRecord {
       omitted_reasons: read.omitted_reasons,
       omitted_references: read.omitted_references,
     })
+  }
+}
+
+/// Whether the values that this version knows come in the declared order, each after the one before it; a value of a
+/// newer version may stand anywhere, since only its version knows its place.
+#[cfg(feature = "serde")]
+fn in_declared_order<Item: PartialEq>(items: &[Item], order: &[Item]) -> bool {
+  let ranks: Vec<usize> = items
+    .iter()
+    .filter_map(|item| order.iter().position(|known| known == item))
+    .collect();
+  ranks.is_sorted_by(|earlier, later| earlier < later)
+}
+
+/// Whether a reason that names an exhausted limit finds it among the exhausted ones (fourteenth review).
+#[cfg(feature = "serde")]
+pub(crate) fn names_exhausted_limit(reason: &PartReason, exhausted: &[Limit]) -> bool {
+  match (reason.reason().kind(), reason.reason().limit()) {
+    (ReasonKind::LimitExhausted, Some(limit)) => exhausted.contains(limit),
+    _ => true,
   }
 }
 
@@ -135,6 +169,12 @@ impl LimitRecord {
   /// The external references found but not kept in `MediaReport::external_references()`.
   pub fn omitted_references(&self) -> u64 {
     self.omitted_references
+  }
+
+  /// The limits whose counters ran out, in the declared order.
+  #[cfg(feature = "serde")]
+  pub(crate) fn exhausted_limits(&self) -> &[Limit] {
+    &self.exhausted
   }
 
   /// Whether the counter ran out.

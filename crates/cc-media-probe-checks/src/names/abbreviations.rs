@@ -58,6 +58,7 @@ pub static FIXED_NAMES: &[&str] = &[
   "poll_fill_buf",
   "to_str",
   "visit_borrowed_str",
+  "visit_byte_buf",
   "visit_seq",
   "visit_str",
 ];

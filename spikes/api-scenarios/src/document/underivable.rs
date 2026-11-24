@@ -46,7 +46,7 @@ pub(super) enum UnderivedRecord {
   /// A report that only a status of a newer version decides.
   Report(Box<MediaReport>),
   /// A detection whose outcome a newer version wrote.
-  Detection(Detection),
+  Detection(Box<Detection>),
 }
 
 impl UnderivableOutcome {
@@ -73,7 +73,7 @@ impl UnderivableOutcome {
     let UnderivedParts { input, record } = *self.parts;
     let (report, detection) = match record {
       UnderivedRecord::Report(report) => (Some(*report), None),
-      UnderivedRecord::Detection(detection) => (None, Some(detection)),
+      UnderivedRecord::Detection(detection) => (None, Some(*detection)),
     };
     Ok(DocumentEntry {
       input,

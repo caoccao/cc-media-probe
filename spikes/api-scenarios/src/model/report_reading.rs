@@ -29,10 +29,13 @@ use super::stream::Stream;
 use super::tags::TagSet;
 use super::usage::Usage;
 use super::values::{Estimate, MediaType, Provenance, Rational, Seconds};
+use crate::completeness::names_exhausted_limit;
 use crate::completeness::{
   Completeness, DetectionStatus, DiscoveryStatus, HeaderState, HeadersStatus, Part, SectionStatus,
 };
-use crate::constants::{HEADERS_DISAGREE_MESSAGE, REASONS_DISAGREE_MESSAGE};
+use crate::constants::{
+  HEADERS_DISAGREE_MESSAGE, LARGEST_EXACT, QUANTITY_MESSAGE, REASONS_DISAGREE_MESSAGE, STREAM_INDEX_MESSAGE,
+};
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
 use crate::document::InvalidDocument;
@@ -69,8 +72,18 @@ impl TryFrom<Rooted<ReportData>> for MediaReport {
     if !headers_agree(data.completeness.headers(), &data.streams) {
       return Err(InvalidDocument::new(HEADERS_DISAGREE_MESSAGE));
     }
-    if !parts_agree(&data.completeness) {
+    if !parts_agree(&data.completeness, &data.streams) {
       return Err(InvalidDocument::new(REASONS_DISAGREE_MESSAGE));
+    }
+    let positions = (0_usize..).zip(&data.streams);
+    if positions
+      .into_iter()
+      .any(|(position, stream)| stream.index() != position)
+    {
+      return Err(InvalidDocument::new(STREAM_INDEX_MESSAGE));
+    }
+    if data.size.is_some_and(|size| size > LARGEST_EXACT) {
+      return Err(InvalidDocument::new(QUANTITY_MESSAGE));
     }
     Ok(MediaReport {
       schema_version: rooted.version,
@@ -94,13 +107,20 @@ impl TryFrom<Rooted<ReportData>> for MediaReport {
   }
 }
 
+/// Whether a stream has a header state that this version knows and that is not final: a shortfall of the headers
+/// that this version sees, whatever the headers status says (fourteenth review).
+fn known_header_shortfall(streams: &[Stream]) -> bool {
+  streams
+    .iter()
+    .map(Stream::header_status)
+    .any(|status| !matches!(status.state(), HeaderState::Unrecognized(_)) && !status.is_final())
+}
+
 /// Whether the headers status agrees with the states that this version knows. A state of a newer version leaves
 /// either status possible, since only the version that wrote it knows whether it is final.
 fn headers_agree(status: &HeadersStatus, streams: &[Stream]) -> bool {
-  let statuses = || streams.iter().map(Stream::header_status);
-  let known_short =
-    statuses().any(|status| !matches!(status.state(), HeaderState::Unrecognized(_)) && !status.is_final());
-  let every_final = statuses().all(|status| status.is_final());
+  let known_short = known_header_shortfall(streams);
+  let every_final = streams.iter().all(|stream| stream.header_status().is_final());
   match status {
     HeadersStatus::Complete => !known_short,
     HeadersStatus::Incomplete => !every_final,
@@ -110,17 +130,22 @@ fn headers_agree(status: &HeadersStatus, streams: &[Stream]) -> bool {
 
 /// Whether the reasons, the record's first reasons and the statuses agree part by part (twelfth review): a kept
 /// reason has the first reason of its part, and a part that this version knows has a first reason exactly when its
-/// status records a shortfall. A status of a newer version agrees either way.
-fn parts_agree(completeness: &Completeness) -> bool {
+/// status records a shortfall. A status of a newer version agrees either way, except that a stream's known header
+/// state that is not final records a shortfall of the headers beside one too, and a kept reason that names an
+/// exhausted limit finds it in the record (fourteenth review).
+fn parts_agree(completeness: &Completeness, streams: &[Stream]) -> bool {
   let record = completeness.record();
-  let kept = completeness
-    .reasons()
-    .iter()
-    .all(|reason| record.first_reason(reason.part()).is_some());
+  let kept = completeness.reasons().iter().all(|reason| {
+    record.first_reason(reason.part()).is_some() && names_exhausted_limit(reason, record.exhausted_limits())
+  });
+  let headers = match headers_shortfall(completeness.headers()) {
+    None if known_header_shortfall(streams) => Some(true),
+    shortfall => shortfall,
+  };
   let statuses = [
     (Part::Detection, detection_shortfall(completeness.detection())),
     (Part::Discovery, discovery_shortfall(completeness.discovery())),
-    (Part::Headers, headers_shortfall(completeness.headers())),
+    (Part::Headers, headers),
     (Part::Tags, section_shortfall(completeness.tags())),
     (Part::Chapters, section_shortfall(completeness.chapters())),
   ];

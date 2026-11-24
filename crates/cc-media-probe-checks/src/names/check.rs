@@ -129,6 +129,10 @@ mod tests {
       messages("impl Visitor for Reader { fn visit_borrowed_str(self, text: &'input str) {} }"),
       Vec::<String>::new()
     );
+    assert_eq!(
+      messages("impl Visitor for Reader { fn visit_byte_buf(self, value: Vec<u8>) {} }"),
+      Vec::<String>::new()
+    );
   }
 
   #[test]

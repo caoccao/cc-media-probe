@@ -47,8 +47,14 @@ fn report_text(version: &str, completeness: Value) -> Value {
 }
 
 /// A completeness record with that discovery status, those reasons and that tags status. Each reason is the first of
-/// its part, so the record keeps them all, as reading requires since the twelfth review.
+/// its part, so the record keeps them all, as reading requires since the twelfth review. The stream limit stopped
+/// discovery only in an incomplete discovery: since the fourteenth review, a part that a limit stopped first has a
+/// first reason, which a complete part never has.
 fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
+  let (exhausted, first_stopped) = match discovery {
+    "Incomplete" => (json!(["Streams"]), json!([{ "limit": "Streams", "part": "Discovery" }])),
+    _ => (json!([]), json!([])),
+  };
   json!({
     "detection": "Complete",
     "discovery": discovery,
@@ -58,8 +64,8 @@ fn completeness(discovery: &str, reasons: Value, tags: Value) -> Value {
     "attachments": "Complete",
     "reasons": reasons.clone(),
     "record": {
-      "exhausted": ["Streams"],
-      "first_stopped": [{ "limit": "Streams", "part": "Discovery" }],
+      "exhausted": exhausted,
+      "first_stopped": first_stopped,
       "first_reasons": reasons,
     },
   })

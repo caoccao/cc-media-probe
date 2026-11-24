@@ -19,7 +19,7 @@
 //! larger one leaves the number out, and a member with the suffix `_exact` holds its canonical decimal text. Reading
 //! takes exactly one of the two, and each only in its own range.
 
-use crate::constants::{LARGEST_EXACT, MINUS_SIGN, TWIN_MESSAGE};
+use crate::constants::{LARGEST_EXACT, MINUS_SIGN, QUANTITY_MESSAGE, TWIN_MESSAGE};
 use crate::document::InvalidDocument;
 
 /// The number and the twin that an unsigned quantity is written as.
@@ -70,4 +70,16 @@ fn large_magnitude(text: &str) -> Result<u64, InvalidDocument> {
     Ok(value) if value > LARGEST_EXACT && value.to_string() == text => Ok(value),
     _ => Err(InvalidDocument::new(TWIN_MESSAGE)),
   }
+}
+
+/// A normalized quantity that is present, read only within 2^53 - 1, which every JSON reader holds exactly; one
+/// beyond it is absent in the report and kept in the details (`json-output.md` section 5.5; fourteenth review).
+pub(crate) fn exact_quantity<'input, Input: serde::Deserializer<'input>>(
+  deserializer: Input,
+) -> Result<Option<u64>, Input::Error> {
+  let quantity = <u64 as serde::Deserialize>::deserialize(deserializer)?;
+  if quantity > LARGEST_EXACT {
+    return Err(<Input::Error as serde::de::Error>::custom(QUANTITY_MESSAGE));
+  }
+  Ok(Some(quantity))
 }

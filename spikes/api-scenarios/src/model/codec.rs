@@ -25,7 +25,7 @@ use super::constants::{
 };
 use super::unrecognized_value::UnrecognizedValue;
 #[cfg(feature = "serde")]
-use crate::constants::{FOUR_CHARACTER_CODE_BYTES, RAW_CODE_MESSAGE};
+use crate::constants::{FOUR_CHARACTER_CODE_BYTES, GUID_BYTES, PRINTABLE_FIRST, PRINTABLE_LAST, RAW_CODE_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::decimal::canonical;
 #[cfg(feature = "serde")]
@@ -117,10 +117,16 @@ impl TryFrom<RawCodecIdentifierData> for RawCodecIdentifier {
   /// The spelling of a known namespace, and any text for a namespace of a newer version, which is kept as written.
   fn try_from(read: RawCodecIdentifierData) -> Result<RawCodecIdentifier, InvalidDocument> {
     let spelled = match read.namespace {
-      CodecNamespace::MatroskaCodecIdentifier | CodecNamespace::Unrecognized(_) => true,
+      CodecNamespace::Unrecognized(_) => true,
+      // The text that the decoder writes: printable ASCII, and U+FFFD for any other byte, once the terminating null
+      // octets are removed (RFC 8794 sections 7.4 and 13; fourteenth review).
+      CodecNamespace::MatroskaCodecIdentifier => read.value.chars().all(|character| {
+        character == char::REPLACEMENT_CHARACTER || (PRINTABLE_FIRST..=PRINTABLE_LAST).contains(&character)
+      }),
       CodecNamespace::IsoSampleEntry => {
         hexadecimal::decode(&read.value).is_some_and(|bytes| bytes.len() == FOUR_CHARACTER_CODE_BYTES)
       }
+      CodecNamespace::WaveSubformat => hexadecimal::decode(&read.value).is_some_and(|bytes| bytes.len() == GUID_BYTES),
       CodecNamespace::WaveFormatTag => canonical::<u16>(&read.value).is_some(),
     };
     if !spelled {
@@ -157,6 +163,9 @@ pub enum CodecNamespace {
   IsoSampleEntry,
   /// A WAVE format tag, a 16-bit number (RFC 2361).
   WaveFormatTag,
+  /// The `SubFormat` GUID of an extensible WAVE format, its 16 bytes as stored (fourteenth review, as the maintainer
+  /// chose).
+  WaveSubformat,
   /// A value that a newer version wrote.
   #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
   Unrecognized(UnrecognizedValue<CodecNamespace>),

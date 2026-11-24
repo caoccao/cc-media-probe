@@ -91,7 +91,8 @@ fn a_null_or_a_repeated_name_before_a_nested_version_is_malformed_in_both_orders
 
 #[test]
 fn a_nested_record_of_the_parent_version_reads_in_both_orders() {
-  let error = r#"{"kind": "format_not_determined", "schema_version": "1.0", "message": "m"}"#;
+  let error = r#"{"kind": "format_not_determined", "schema_version": "1.0", "message": "m",
+    "usage": {"bytes_read": 0, "peak_working_memory": 0}, "record": {"exhausted": [], "first_stopped": []}}"#;
   for results_first in [true, false] {
     let read: Document = serde_json::from_str(&document(error, results_first)).unwrap();
     assert_eq!(read.results()[0].error().unwrap().message(), "m");
@@ -113,3 +114,55 @@ fn a_bare_error_record_compares_its_partial_report_before_decoding_it() {
     assert!(message.starts_with(NESTED_MINOR), "{message}");
   }
 }
+
+/// A reader that gives the bytes of one document, one at a time, and once it has given `trigger` of them, reads two
+/// other values on its own, as a callback may: a document of version 1.1 and a standalone rational written as an
+/// array. Each must be read in a scope of its own, not in that of the document that waits for its bytes.
+struct CallbackReader {
+  outer: Vec<u8>,
+  position: usize,
+  trigger: usize,
+  inner: Option<(Result<Document, String>, Result<cc_media_probe::Rational, String>)>,
+}
+
+impl std::io::Read for CallbackReader {
+  fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+    if self.position == self.trigger && self.inner.is_none() {
+      let document = r#"{"schema_version": "1.1", "generator": {"name": "other", "version": "1"}, "results": []}"#;
+      let read_document = serde_json::from_str::<Document>(document).map_err(|error| error.to_string());
+      let read_rational = serde_json::from_str("[1, 2]").map_err(|error: serde_json::Error| error.to_string());
+      self.inner = Some((read_document, read_rational));
+    }
+    match (self.outer.get(self.position), buffer.first_mut()) {
+      (Some(byte), Some(slot)) => {
+        *slot = *byte;
+        self.position += 1;
+        Ok(1)
+      }
+      _ => Ok(0),
+    }
+  }
+}
+
+#[test]
+fn an_independent_read_inside_a_readers_callback_has_a_scope_of_its_own() {
+  // The fourteenth review's case: with the scope kept on the thread, the independent document was refused as a
+  // nested record of another version, and the standalone rational read from an array.
+  let outer = r#"{"schema_version": "1.0", "generator": {"name": "catalog", "version": "1"}, "results": []}"#;
+  let mut reader = CallbackReader {
+    outer: outer.as_bytes().to_vec(),
+    position: 0,
+    trigger: outer.find("\"results\"").unwrap(),
+    inner: None,
+  };
+  let read: Document = serde_json::from_reader(&mut reader).unwrap();
+  assert_eq!(read.generator().name(), "catalog");
+  let (document, rational) = reader.inner.unwrap();
+  assert_eq!(document.unwrap().schema_version().minor(), 1);
+  assert!(
+    rational.unwrap_err().starts_with(POSITIONAL),
+    "a rational written as an array"
+  );
+}
+
+const POSITIONAL: &str = "a record is written as an object of named members, never as an array";

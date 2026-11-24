@@ -15,50 +15,85 @@
 * limitations under the License.
 */
 
-//! The scope of one read of the form, as the thirteenth review asked. Serde's derive passes nothing from a record to
-//! the records that it holds, so the read keeps two facts beside the call stack, on its own thread, for as long as it
-//! lasts: that a read of the form is under way, whose deserializer is already strict, and the version of the root
-//! record whose body is being decoded. A nested root record compares its version with that one before it decodes its
-//! own body, whatever the order of its parent's members. A read is one call on one thread, and a guard restores the
-//! scope before it when it ends, also on an error.
+//! The scope of a read of the form, as the fourteenth review asked: whether a read is under way, and the version of
+//! the root record whose body is being decoded. Serde's derive passes nothing from a record to the records it holds,
+//! so a record asks the deserializer that it was given, with a newtype request of a reserved name. The library's
+//! strict deserializer answers with the version it carries and with itself, as a sequence of two; every format gives
+//! the plain newtype, which says that no read of the form is under way. The scope therefore belongs to the
+//! deserializer, never to the thread: an independent read, even one started inside a reader's callback while
+//! another read waits for its bytes, has a scope of its own.
 
-use std::cell::Cell;
+use std::fmt;
+use std::marker::PhantomData;
 
+use serde::Deserializer;
+use serde::de::{DeserializeSeed, Error, SeqAccess, Visitor};
+
+use super::strict::Holder;
+use crate::constants::{READ_SCOPE_EXPECTING, READ_SCOPE_MESSAGE, READ_SCOPE_NAME};
 use crate::document::SchemaVersion;
 
-/// What holds the value being read.
-#[derive(Clone, Copy)]
-pub(super) enum Enclosing {
-  /// The body of a root record of that version.
-  Record(SchemaVersion),
-  /// A value read alone, outside any root record.
-  Value,
+/// A read that depends on its scope.
+pub(super) trait ScopedRead<'input>: Sized {
+  /// What it reads.
+  type Value;
+
+  /// Outside a read of the form: the deserializer as the format gave it.
+  fn alone<Input: Deserializer<'input>>(self, deserializer: Input) -> Result<Self::Value, Input::Error>;
+
+  /// Inside a read of the form: a strict deserializer, within the body of a root record of that version, or of none.
+  fn within<Input: Deserializer<'input>>(
+    self,
+    deserializer: Input,
+    holder: Holder,
+  ) -> Result<Self::Value, Input::Error>;
 }
 
-thread_local! {
-  /// The scope of the read under way on this thread, if any.
-  static SCOPE: Cell<Option<Enclosing>> = const { Cell::new(None) };
+/// Asks the deserializer for its scope, and reads in it.
+pub(super) fn read_in_scope<'input, Input: Deserializer<'input>, Read: ScopedRead<'input>>(
+  deserializer: Input,
+  read: Read,
+) -> Result<Read::Value, Input::Error> {
+  deserializer.deserialize_newtype_struct(READ_SCOPE_NAME, ScopeVisitor(read, PhantomData))
 }
 
-/// The scope of the read under way, or `None` outside a read of the form.
-pub(super) fn current() -> Option<Enclosing> {
-  SCOPE.with(Cell::get)
-}
+/// Takes either answer to the request for the scope.
+struct ScopeVisitor<'input, Read>(Read, PhantomData<&'input ()>);
 
-/// Enters a scope; the guard restores the scope before it when it is dropped.
-pub(super) fn enter(enclosing: Enclosing) -> ScopeGuard {
-  ScopeGuard {
-    previous: SCOPE.with(|scope| scope.replace(Some(enclosing))),
+impl<'input, Read: ScopedRead<'input>> Visitor<'input> for ScopeVisitor<'input, Read> {
+  type Value = Read::Value;
+
+  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str(READ_SCOPE_EXPECTING)
+  }
+
+  /// A format's answer: no read of the form is under way.
+  fn visit_newtype_struct<Input: Deserializer<'input>>(self, deserializer: Input) -> Result<Read::Value, Input::Error> {
+    self.0.alone(deserializer)
+  }
+
+  /// The strict deserializer's answer: the version, then the deserializer itself.
+  fn visit_seq<Answer: SeqAccess<'input>>(self, mut answer: Answer) -> Result<Read::Value, Answer::Error> {
+    let text: String = answer
+      .next_element()?
+      .ok_or_else(|| Answer::Error::custom(READ_SCOPE_MESSAGE))?;
+    let holder = SchemaVersion::try_from(text).ok();
+    answer
+      .next_element_seed(WithinSeed { read: self.0, holder })?
+      .ok_or_else(|| Answer::Error::custom(READ_SCOPE_MESSAGE))
   }
 }
 
-/// Restores the scope that was current when it was entered.
-pub(super) struct ScopeGuard {
-  previous: Option<Enclosing>,
+/// Reads within the scope that the strict deserializer gave.
+struct WithinSeed<Read> {
+  read: Read,
+  holder: Holder,
 }
 
-impl Drop for ScopeGuard {
-  fn drop(&mut self) {
-    SCOPE.with(|scope| scope.set(self.previous));
+impl<'input, Read: ScopedRead<'input>> DeserializeSeed<'input> for WithinSeed<Read> {
+  type Value = Read::Value;
+
+  fn deserialize<Input: Deserializer<'input>>(self, deserializer: Input) -> Result<Read::Value, Input::Error> {
+    self.read.within(deserializer, self.holder)
   }
 }

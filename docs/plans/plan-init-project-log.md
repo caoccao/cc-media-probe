@@ -3256,3 +3256,91 @@ The maintainer's thirteenth review, pasted as code comments, read revision 47 (`
 - G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of this review made without asking, and the sixth to thirteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
 - `docs/guide/stability.md`, after that review, for G2.4;
 - the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.
+
+## 2026-11-24 — Progress: Phase 2, the fourteenth review of the API specification
+
+The maintainer's fourteenth review, pasted as code comments, read revision 48 (`89a9f0f`): three findings on `api.md`, two on `cli.md` and fifteen on `json-output.md`, eighteen of priority 2 and two of priority 3. The review said that both spike suites pass and that further read-back checks found the issues. No gate was recorded as approved.
+
+**Decisions of the maintainer.** The agent asked four questions, after checking serde_json 1.0.154's writer, which writes a non-finite number as null and bytes as an array of numbers. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| `Detection::bytes_needed()` beyond 2^53 − 1 | A twin, `bytes_needed_exact` | An upper bound on what detection reports | A first box that claims a huge size can need that length, and the twins already keep such values |
+| A catch-all value that JSON cannot carry, NaN, an infinity or a byte string from CBOR | Refused as malformed input in every format | Encoded as text, which changes the type | A catch-all forwards only what JSON writes back as read |
+| The extensible WAVE `SubFormat` GUID | `CodecNamespace::WaveSubformat`, 32 hexadecimal digits, in `0.1.0` | Left to a format phase's gate | The field guide already keeps it in `raw_identifiers` for AVI and Matroska's `A_MS/ACM` |
+| A first reason of the record with a detail | Refused | Dropped while reading | The record is fixed-size, and the form never writes a detail there |
+
+**Reproduced first.** A scratch test against the stub reproduced every case that the review reported, and was then removed:
+
+- `{"namespace": "MatroskaCodecIdentifier", "value": "A_😀"}` read;
+- a reader whose callback read a document of version 1.1 while serde_json read a document of version 1.0 from it: the inner document was refused as a nested record of another version, and a rational `[1, 2]` read there;
+- an `ok` entry with a stream cut short at `NotFoundWithinBudget`, a headers status of a newer version and no first reason read;
+- a report with every status complete and the read limit stopping discovery read, with `is_complete()` true, and a limit reason of the tags without its counter read;
+- the record with working memory before the read limit, and a first reason with a detail, read and wrote back as read;
+- a report of one stream of index 7 read, `streams()[0]` claiming index 7;
+- an `ok` entry whose identified detection had neither format nor confidence read;
+- a source failure with both a partial report and observations read;
+- `bytes_read` of 9007199254740993 read and wrote back as a number, `bytes_read_exact` was refused as a missing `bytes_read`, and a report's size of 9007199254740993 read;
+- `1e400` after a version of 2.0 gave the version error; a version of `17`, `null`, `true` or an array gave Serde's type error; and a wrong entry index reported line 0, column 0.
+
+The scope was moved into the strict deserializer first, since every later test depends on it. The case of the callback then read both values as reads of their own, and `tests/nested_versions.rs` keeps it. The tests written then failed before the other fixes: the seven of the new `tests/consistency.rs`, five of `tests/wire_values.rs` (the `CodecID`, `wave_subformat`, the usage and offset twins, the normalized range and the version that is not a string) and the catch-all case of `tests/data_enums.rs`, while the new `tests/detections.rs` did not compile, since the stub's `Detection` had no `bytes_needed()`.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the three on `api.md` and the fifteen on `json-output.md`, and `cli.md` section 13 the two on the CLI contract:
+
+- **The scope of a read.** A record asks the deserializer that it is given for the scope, with a newtype request of a reserved name. Only the strict deserializer answers, with the version of the record whose body it reads and with itself; a format's deserializer answers with a plain newtype. So the scope belongs to the deserializer, and an independent read inside a reader's callback starts with none (`api.md` section 12; `json-output.md` section 2).
+- **A `CodecID`** loses its terminating null octets before its other bytes are judged, so `A_OPUS` with a null names Opus, and a reader takes printable ASCII and U+FFFD only (`api.md` section 6.4; `json-output.md` section 7.3).
+- **A known cut header** records a shortfall of the headers beside a headers status of a newer version, so the record needs its first reason and the entry is `partial` (`api.md` section 5.3).
+- **The record** checks its stopped parts, its limit reasons, its declared order and its first reasons without detail (`api.md` section 5.3; `json-output.md` section 7.2).
+- **A stream's index** is its position (`json-output.md` section 7.3).
+- **A detection** has the members of its outcome and no other, and `bytes_needed` has a twin (`api.md` section 8; `json-output.md` sections 4.3 and 5.5).
+- **An error record** holds a partial report or observations, never both, and a partial report's record is its own (`api.md` sections 5.3 and 10.2; `json-output.md` section 4.4).
+- **Numeric evidence.** The stub's usage counters and diagnostic offset have their twins, its report size and target level their range, and the guide claims only what the stub holds (`json-output.md` section 11).
+- **Values that JSON carries.** A non-finite number or a byte string fails in every format and in a catch-all (`api.md` section 12; `json-output.md` section 2).
+- **The order of the failures** is stated for a bare and a nested root record, a version that is not a string is the version error, and a location is kept only for an error raised while the input is consumed (`json-output.md` sections 2 and 4.1).
+- **`wave_subformat`**, the exact-value example on a chapter's `ChapterTimeStart`, the denominator `"1"` of a whole rational, and the defaults of later fields scoped to records that an earlier version defines (`api.md` sections 6.4, 11.3 and 14; `json-output.md` sections 5.2, 7.3, 8 and 9).
+- **The CLI.** A program takes the completeness of its results from the JSON value and the run's outcome from the status, and the order of a report and its warning is tested through one ordered log in process and one shared pipe through the binary (`cli.md` sections 9 and 10; `json-output.md` section 3).
+
+**The spike.** `spikes/api-scenarios/`:
+
+- `src/neutral/scope.rs` now sends the request for the scope and takes either answer; `src/neutral/strict/scope_access.rs` is `Strict`'s answer. `Strict`, its seeds, sequences, maps, enums and visitor carry the holder's version, and the thread-local scope is gone. `read_alone` and `Rooted` read through the request.
+- `Strict` and the kept values refuse a non-finite number and a byte string; `KeptValue` lost its `Bytes`.
+- `Rooted` reads the version member as any value, so one that is not a string is the version error.
+- `RawCodecIdentifier` checks the text of a `CodecID` and the 16 bytes of `WaveSubformat`.
+- `src/completeness/constants.rs` holds the declared orders, and `record.rs` checks the order, the details, the stopped parts and the limit reasons; reading a report checks kept limit reasons, a known cut header beside a newer headers status, the streams' positions and the size's range.
+- `Detection` holds `confidence`, `candidates`, `hint`, `bytes_needed` and `insufficient_reason`, with `Candidate`, `Hint` and `HintOrigin`, read and written in `src/model/detection_reading.rs`; `Format::is_family()` joins the stub.
+- `ErrorRecord` holds its usage and record and checks its stopping points. `Usage` and `Diagnostic` write and read their twins, and `TargetLevel` its range.
+- The record of an underivable outcome holds a detection behind a pointer.
+- Fixtures gained the members that the new rules need: the detections of five test files, two error records, and the record of `tests/archive.rs`.
+
+**Found while revising:**
+
+- **The archive fixture** wrote the review's contradiction, a stopped discovery beside a complete one, for five tests.
+- **Bytes and non-finite numbers** reach typed members as well as catch-alls, so the strict reader refuses them everywhere.
+- **The stub's `Detection` and `ErrorRecord`** lacked the members that the new checks compare; both gained them.
+- **A growing `Detection`** made Clippy's check of an enum's variant sizes fail; the detection is boxed.
+- **The name check** flagged `visit_byte_buf`, a name that Serde fixes; it joins `FIXED_NAMES` in `crates/cc-media-probe-checks/src/names/abbreviations.rs`, with a test in `src/names/check.rs`.
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16, `cli.md` section 13 and `json-output.md` section 11: the scope answered through a reserved newtype request (G2.3, task 11); bytes and non-finite numbers refused everywhere (G2.3); a hint for `hint_only` only and a reason of insufficient data optional (G2.3); a value of a newer version anywhere in the record's arrays (G2.3); a nested `null` version as malformed input (G2.3); the location guarantee limited (G2.3, task 11); a whole rational with the denominator `"1"` (G2.3); and the two ways of testing the order of the outputs (G2.3).
+
+**Plan, revision 49:**
+
+- section 8.8: the scope, the order of the failures and the reach of a location; a version that is not a string; only values that JSON carries, the twin of bytes needed, the `SubFormat` namespace and a `CodecID` without its terminating nulls (the maintainer's choices among them); exact rationals; the defaults scoped; and the new malformed cases;
+- section 8.9: what a program reads from the status and the document, and the order of the outputs in the tests;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`api.md` follows in its status, its list of the maintainer's choices, sections 5.3, 6.4, 8, 10.2, 11.3, 12 and 14, and section 16. `cli.md` follows in its status and sections 9, 10 and 13, and `json-output.md` in sections 2 to 5, 7.2, 7.3, 8, 9, 10 and 11.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference, and the documentation builds without a warning. With all features, 128 tests and 8 doc tests pass: the 108 earlier tests, some with fixtures that the new rules need, two new tests of `tests/nested_versions.rs` and `tests/data_enums.rs`, five of `tests/wire_values.rs`, and the thirteen of the two new files. Without a feature, 13 pass. All 13 programs end without a panic; the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Checks crate.** Its 147 tests pass, the case of `visit_byte_buf` among them.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** No diagram changed in this revision.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 49;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth and fourteenth reviews made without asking, and the sixth to fourteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
+- `docs/guide/stability.md`, after that review, for G2.4;
+- the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.

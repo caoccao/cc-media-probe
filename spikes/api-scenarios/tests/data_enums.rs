@@ -151,3 +151,58 @@ fn a_kind_of_a_newer_version_keeps_its_members_by_value() {
     r#"{"kind":"future","payload":1.0,"count":7,"path":"a/b"}"#
   );
 }
+
+/// A value of a format other than JSON, which a catch-all may meet: a string, a finite or non-finite number, and a
+/// byte string, as CBOR has them.
+enum OtherValue {
+  Text(&'static str),
+  Number(f64),
+  Bytes(&'static [u8]),
+}
+
+impl<'input> serde::de::IntoDeserializer<'input, serde::de::value::Error> for OtherValue {
+  type Deserializer = OtherValueReader;
+
+  fn into_deserializer(self) -> OtherValueReader {
+    OtherValueReader(self)
+  }
+}
+
+struct OtherValueReader(OtherValue);
+
+impl<'input> serde::Deserializer<'input> for OtherValueReader {
+  type Error = serde::de::value::Error;
+
+  fn deserialize_any<Read: serde::de::Visitor<'input>>(self, visitor: Read) -> Result<Read::Value, Self::Error> {
+    match self.0 {
+      OtherValue::Text(text) => visitor.visit_str(text),
+      OtherValue::Number(number) => visitor.visit_f64(number),
+      OtherValue::Bytes(bytes) => visitor.visit_bytes(bytes),
+    }
+  }
+
+  serde::forward_to_deserialize_any! {
+    <Read: Visitor<'input>>
+    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf option unit unit_struct
+    newtype_struct seq tuple tuple_struct map struct enum identifier ignored_any
+  }
+}
+
+#[test]
+fn a_catch_all_refuses_a_value_that_json_cannot_carry() {
+  // The fourteenth review's case, as the maintainer chose: a kind of a newer version read from CBOR with NaN or a
+  // byte string, which serde_json would then write as null or as an array of numbers.
+  let read = |value: OtherValue| {
+    let members = vec![("kind", OtherValue::Text("future")), ("member", value)];
+    serde::Deserialize::deserialize(serde::de::value::MapDeserializer::new(members.into_iter()))
+      .map(|value: TagValue| value)
+  };
+  assert!(read(OtherValue::Number(1.5)).is_ok());
+  for value in [
+    OtherValue::Number(f64::NAN),
+    OtherValue::Number(f64::INFINITY),
+    OtherValue::Bytes(b"\x01\x02"),
+  ] {
+    assert!(read(value).is_err());
+  }
+}

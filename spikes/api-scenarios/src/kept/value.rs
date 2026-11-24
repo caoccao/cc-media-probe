@@ -16,15 +16,17 @@
 */
 
 //! One value kept as written, read through the self-describing side of Serde. Null is not among the values: the form
-//! never writes it, so a member that holds null fails as a value of the wrong type, kept or not.
+//! never writes it, so a member that holds null fails as a value of the wrong type, kept or not. Nor is any value that
+//! JSON cannot carry faithfully, a non-finite number or a byte string from a format that has them, as the maintainer
+//! chose at the fourteenth review, so a catch-all forwards from any format only what JSON writes back as read.
 
 use std::fmt;
 
-use serde::de::{MapAccess, SeqAccess, Visitor};
+use serde::de::{Error, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::members::KeptMembers;
-use crate::constants::KEPT_VALUE_EXPECTING;
+use crate::constants::{KEPT_VALUE_EXPECTING, NOT_JSON_VALUE_MESSAGE};
 
 /// A value kept as written. A floating-point number is held by its bits, so equality and hashing are exact.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -39,8 +41,6 @@ pub(crate) enum KeptValue {
   FloatingPoint(u64),
   /// A string.
   Text(String),
-  /// Bytes, from a format that has them.
-  Bytes(Vec<u8>),
   /// A sequence.
   Sequence(Vec<KeptValue>),
   /// A map, its members in the order written.
@@ -55,7 +55,6 @@ impl Serialize for KeptValue {
       KeptValue::Signed(value) => serializer.serialize_i64(*value),
       KeptValue::FloatingPoint(bits) => serializer.serialize_f64(f64::from_bits(*bits)),
       KeptValue::Text(text) => serializer.serialize_str(text),
-      KeptValue::Bytes(bytes) => serializer.serialize_bytes(bytes),
       KeptValue::Sequence(items) => serializer.collect_seq(items),
       KeptValue::Map(members) => members.serialize(serializer),
     }
@@ -93,7 +92,11 @@ impl<'input> Visitor<'input> for KeptValueVisitor {
     Ok(KeptValue::Unsigned(value))
   }
 
-  fn visit_f64<Failure>(self, value: f64) -> Result<KeptValue, Failure> {
+  /// A finite number; NaN and the infinities have no JSON form, as the maintainer chose at the fourteenth review.
+  fn visit_f64<Failure: Error>(self, value: f64) -> Result<KeptValue, Failure> {
+    if !value.is_finite() {
+      return Err(Failure::custom(NOT_JSON_VALUE_MESSAGE));
+    }
     Ok(KeptValue::FloatingPoint(value.to_bits()))
   }
 
@@ -105,8 +108,9 @@ impl<'input> Visitor<'input> for KeptValueVisitor {
     Ok(KeptValue::Text(value))
   }
 
-  fn visit_bytes<Failure>(self, value: &[u8]) -> Result<KeptValue, Failure> {
-    Ok(KeptValue::Bytes(value.to_vec()))
+  /// A byte string has no JSON form: the form writes bytes as hexadecimal text (fourteenth review).
+  fn visit_bytes<Failure: Error>(self, _value: &[u8]) -> Result<KeptValue, Failure> {
+    Err(Failure::custom(NOT_JSON_VALUE_MESSAGE))
   }
 
   fn visit_seq<Items: SeqAccess<'input>>(self, mut items: Items) -> Result<KeptValue, Items::Error> {

@@ -36,11 +36,11 @@ use serde::de::{DeserializeSeed, Error, IntoDeserializer, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
 use super::held::HeldValue;
-use super::scope::{self, Enclosing};
-use super::strict::StrictMap;
+use super::scope::{ScopedRead, read_in_scope};
+use super::strict::{Holder, StrictMap};
 use crate::constants::{
   HOLDER_VERSION_LABEL, MISSING_VERSION_MESSAGE, NESTED_ROOT_VERSION_MESSAGE, OTHER_MAJOR_VERSION_MESSAGE,
-  READER_VERSION_LABEL, ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER,
+  READER_VERSION_LABEL, ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER, SCHEMA_VERSION_TEXT_MESSAGE,
 };
 use crate::document::SchemaVersion;
 
@@ -52,12 +52,40 @@ pub(crate) struct Rooted<Body> {
 
 impl<'input, Body: Deserialize<'input>> Deserialize<'input> for Rooted<Body> {
   fn deserialize<Input: Deserializer<'input>>(deserializer: Input) -> Result<Rooted<Body>, Input::Error> {
-    deserializer.deserialize_map(RootVisitor(PhantomData))
+    read_in_scope(deserializer, RootRead(PhantomData))
   }
 }
 
-/// Reads a root record's map, version first.
-struct RootVisitor<Body>(PhantomData<Body>);
+/// The read of a root record in its scope: alone, or inside the body of another of a known version.
+struct RootRead<Body>(PhantomData<Body>);
+
+impl<'input, Body: Deserialize<'input>> ScopedRead<'input> for RootRead<Body> {
+  type Value = Rooted<Body>;
+
+  fn alone<Input: Deserializer<'input>>(self, deserializer: Input) -> Result<Rooted<Body>, Input::Error> {
+    deserializer.deserialize_map(RootVisitor {
+      holder: None,
+      body: PhantomData,
+    })
+  }
+
+  fn within<Input: Deserializer<'input>>(
+    self,
+    deserializer: Input,
+    holder: Holder,
+  ) -> Result<Rooted<Body>, Input::Error> {
+    deserializer.deserialize_map(RootVisitor {
+      holder,
+      body: PhantomData,
+    })
+  }
+}
+
+/// Reads a root record's map, version first, beside the version of the record that holds it, if any.
+struct RootVisitor<Body> {
+  holder: Holder,
+  body: PhantomData<Body>,
+}
 
 impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
   type Value = Rooted<Body>;
@@ -73,12 +101,11 @@ impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
         return Err(Members::Error::custom(MISSING_VERSION_MESSAGE));
       };
       if name == SCHEMA_VERSION_MEMBER {
-        break members.next_value::<SchemaVersion>()?;
+        break version_of(members.next_value::<HeldValue>()?)?;
       }
       held.push((name, members.next_value::<HeldValue>()?));
     };
-    check_version::<Members::Error>(version)?;
-    let _scope = scope::enter(Enclosing::Record(version));
+    check_version::<Members::Error>(version, self.holder)?;
     let body = Body::deserialize(MapAccessDeserializer::new(StrictMap::with_names(
       ChainedMembers {
         held: held.into_iter(),
@@ -86,27 +113,37 @@ impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
         live: members,
       },
       HashSet::from([SCHEMA_VERSION_MEMBER.to_owned()]),
+      Some(version),
     )))?;
     Ok(Rooted { version, body })
   }
 }
 
+/// The version that a member holds, read as any value so that one of another type, a number or `null` alone, is the
+/// version error too (fourteenth review). Inside a strict read, the parent has refused a `null` already.
+fn version_of<Failure: Error>(value: HeldValue) -> Result<SchemaVersion, Failure> {
+  match value {
+    HeldValue::Text(text) => SchemaVersion::try_from(text).map_err(Failure::custom),
+    _ => Err(Failure::custom(SCHEMA_VERSION_TEXT_MESSAGE)),
+  }
+}
+
 /// The version error, or nothing: a nested record has the version of the record that holds it, and a record read
 /// alone has this version's major.
-fn check_version<Failure: Error>(version: SchemaVersion) -> Result<(), Failure> {
-  match scope::current() {
-    Some(Enclosing::Record(holder)) if version != holder => Err(Failure::custom(format!(
+fn check_version<Failure: Error>(version: SchemaVersion, holder: Holder) -> Result<(), Failure> {
+  match holder {
+    Some(holder) if version != holder => Err(Failure::custom(format!(
       "{NESTED_ROOT_VERSION_MESSAGE}: {}; {HOLDER_VERSION_LABEL} {}",
       String::from(version),
       String::from(holder)
     ))),
-    Some(Enclosing::Record(_)) => Ok(()),
-    _ if version.major() != SchemaVersion::CURRENT.major() => Err(Failure::custom(format!(
+    Some(_) => Ok(()),
+    None if version.major() != SchemaVersion::CURRENT.major() => Err(Failure::custom(format!(
       "{OTHER_MAJOR_VERSION_MESSAGE}: {}; {READER_VERSION_LABEL} {}",
       String::from(version),
       String::from(SchemaVersion::CURRENT)
     ))),
-    _ => Ok(()),
+    None => Ok(()),
   }
 }
 

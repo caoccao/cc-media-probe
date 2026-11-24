@@ -168,7 +168,7 @@ fn a_detection_entry_reads_back_only_with_the_outcome_it_warrants() {
       "index": 0,
       "input": "input.bin",
       "outcome": entry_outcome,
-      "detection": { "schema_version": "1.0", "outcome": outcome },
+      "detection": detection_text(outcome),
     });
     serde_json::from_value::<Document>(text)
   };
@@ -222,9 +222,24 @@ fn an_outcome_of_a_newer_version_reads_back_as_written() {
 
 #[test]
 fn the_entry_form_of_the_plan_reads_back() {
-  // The entries of plan section 8.9 that hold an error, with the message that the record needs, at their positions
-  // 0 and 1 of this document. A member that this version does not know, `detected`, is ignored.
-  let error = |kind: &str| json!({ "schema_version": "1.0", "kind": kind, "message": "not probed" });
+  // The entries of plan section 8.9 that hold an error, with the message, the usage and the record that the record
+  // needs, at their positions 0 and 1 of this document. A member that this version does not know, `detected`, is
+  // ignored.
+  let error = |kind: &str| {
+    json!({
+      "schema_version": "1.0",
+      "kind": kind,
+      "message": "not probed",
+      "usage": { "bytes_read": 0, "peak_working_memory": 0 },
+      "record": {
+        "exhausted": [],
+        "first_stopped": [],
+        "first_reasons": [],
+        "omitted_reasons": "0",
+        "omitted_references": "0",
+      },
+    })
+  };
   let mut written = json!({
     "schema_version": "1.0",
     "generator": { "name": "cc-media-probe-cli", "version": "0.1.0" },
@@ -427,7 +442,7 @@ fn reading_checks_every_nested_record_of_an_entry() {
   // An entry of a newer outcome may hold several records; each must have the document's version.
   let mut text = results_document();
   text["results"][0]["outcome"] = json!("skipped");
-  text["results"][0]["detection"] = json!({ "schema_version": "1.0", "outcome": "identified" });
+  text["results"][0]["detection"] = detection_text("identified");
   assert!(serde_json::from_value::<Document>(text.clone()).is_ok());
   text["results"][0]["error"]["schema_version"] = json!("1.1");
   assert_eq!(read_error(text), NESTED);
@@ -435,9 +450,7 @@ fn reading_checks_every_nested_record_of_an_entry() {
 
 #[test]
 fn an_entry_whose_outcome_is_underivable_is_refused_and_takes_the_outcome_given() {
-  let detection = |outcome: &str| -> Detection {
-    serde_json::from_value(json!({ "schema_version": "1.0", "outcome": outcome })).unwrap()
-  };
+  let detection = |outcome: &str| -> Detection { serde_json::from_value(detection_text(outcome)).unwrap() };
   let input = || PortablePath::from_path(Path::new("input.bin"));
   let known = DocumentEntry::from_detection(input(), detection("family_only")).unwrap();
   assert_eq!(known.outcome(), &EntryOutcome::Partial);
@@ -456,4 +469,19 @@ fn an_entry_whose_outcome_is_underivable_is_refused_and_takes_the_outcome_given(
     read.results()[0].detection().unwrap().outcome().as_str(),
     "identified_by_content"
   );
+}
+
+/// A detection of that outcome with the members that the outcome needs, as reading requires since the fourteenth
+/// review: an identification has its format and confidence, a family only its family.
+fn detection_text(outcome: &str) -> Value {
+  let mut text = json!({ "schema_version": "1.0", "outcome": outcome, "candidates": [] });
+  match outcome {
+    "identified" => {
+      text["format"] = json!("Matroska");
+      text["confidence"] = json!(100);
+    }
+    "family_only" => text["format"] = json!("IsoBaseMedia"),
+    _ => {}
+  }
+  text
 }

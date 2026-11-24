@@ -21,6 +21,8 @@ use std::fmt;
 use std::io;
 
 use crate::completeness::{LimitRecord, Reason};
+#[cfg(feature = "serde")]
+use crate::constants::{ERROR_RECORD_MESSAGE, STOPPING_POINTS_MESSAGE};
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
   NO_STREAM_INVENTORY_MESSAGE, NO_STREAM_INVENTORY_NAME, SOURCE_FAILED_MESSAGE, SOURCE_FAILED_NAME,
@@ -266,9 +268,11 @@ pub struct ErrorRecord {
   partial_report: Option<MediaReport>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   observations: Option<Observations>,
+  usage: Usage,
+  record: LimitRecord,
 }
 
-/// An error record's members as read, other than its version, before its partial report's version is checked.
+/// An error record's members as read, other than its version, before the rules of its stopping point are checked.
 #[cfg(feature = "serde")]
 #[derive(serde::Deserialize)]
 struct ErrorRecordData {
@@ -280,6 +284,8 @@ struct ErrorRecordData {
   partial_report: Option<MediaReport>,
   #[serde(default, deserialize_with = "crate::presence::present")]
   observations: Option<Observations>,
+  usage: Usage,
+  record: LimitRecord,
 }
 
 #[cfg(feature = "serde")]
@@ -287,9 +293,21 @@ impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
   type Error = InvalidDocument;
 
   /// A record as read. Its partial report is a root record nested in it, which compared its version with the
-  /// record's before it decoded its body, also when the record is read on its own (`neutral`).
+  /// record's before it decoded its body, also when the record is read on its own (`neutral`). A partial report and
+  /// observations are two stopping points, after the inventory and before it, so a record holds one at most, and a
+  /// partial report's record is the error's (`api.md` section 5.3; fourteenth review).
   fn try_from(rooted: crate::neutral::Rooted<ErrorRecordData>) -> Result<ErrorRecord, InvalidDocument> {
     let data = rooted.body;
+    if data.partial_report.is_some() && data.observations.is_some() {
+      return Err(InvalidDocument::new(STOPPING_POINTS_MESSAGE));
+    }
+    if data
+      .partial_report
+      .as_ref()
+      .is_some_and(|report| report.completeness().record() != &data.record)
+    {
+      return Err(InvalidDocument::new(ERROR_RECORD_MESSAGE));
+    }
     Ok(ErrorRecord {
       schema_version: rooted.version,
       kind: data.kind,
@@ -297,6 +315,8 @@ impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
       source_failure_kind: data.source_failure_kind,
       partial_report: data.partial_report,
       observations: data.observations,
+      usage: data.usage,
+      record: data.record,
     })
   }
 }
@@ -325,6 +345,16 @@ impl ErrorRecord {
   /// What was seen before an inventory.
   pub fn observations(&self) -> Option<&Observations> {
     self.observations.as_ref()
+  }
+
+  /// The budget used.
+  pub fn usage(&self) -> &Usage {
+    &self.usage
+  }
+
+  /// The fixed-size record: that of the partial report, when there is one.
+  pub fn record(&self) -> &LimitRecord {
+    &self.record
   }
 
   /// The schema version that the record was read with, or the current one for a record that this version made; its
@@ -370,6 +400,8 @@ impl From<&Error> for ErrorRecord {
         .map(|cause| stable_kind_name(cause.kind())),
       partial_report: error.data.partial_report.clone(),
       observations: error.data.observations.clone(),
+      usage: error.data.usage.clone(),
+      record: error.data.record.clone(),
     }
   }
 }

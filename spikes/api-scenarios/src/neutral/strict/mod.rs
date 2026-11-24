@@ -22,8 +22,9 @@
 
 mod access;
 mod deserializer;
+mod scope_access;
 mod variant;
 mod visitor;
 
 pub(super) use access::StrictMap;
-pub(super) use deserializer::Strict;
+pub(super) use deserializer::{Holder, Strict};

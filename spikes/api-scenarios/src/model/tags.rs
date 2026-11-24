@@ -138,7 +138,15 @@ impl TargetScope {
   serde(remote = "Self")
 )]
 pub struct TargetLevel {
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  /// A normalized number, so within 2^53 - 1 (fourteenth review).
+  #[cfg_attr(
+    feature = "serde",
+    serde(
+      default,
+      deserialize_with = "crate::twin::exact_quantity",
+      skip_serializing_if = "Option::is_none"
+    )
+  )]
   value: Option<u64>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   type_name: Option<String>,

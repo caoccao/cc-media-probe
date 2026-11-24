@@ -20,16 +20,18 @@
 use serde::de::{DeserializeSeed, EnumAccess, VariantAccess, Visitor};
 
 use super::access::StrictSeed;
+use super::deserializer::Holder;
 use super::visitor::StrictVisitor;
 
 /// An enum whose variant is read strictly.
 pub(super) struct StrictEnum<Access> {
   access: Access,
+  holder: Holder,
 }
 
 impl<Access> StrictEnum<Access> {
-  pub(super) fn new(access: Access) -> StrictEnum<Access> {
-    StrictEnum { access }
+  pub(super) fn new(access: Access, holder: Holder) -> StrictEnum<Access> {
+    StrictEnum { access, holder }
   }
 }
 
@@ -42,13 +44,20 @@ impl<'input, Access: EnumAccess<'input>> EnumAccess<'input> for StrictEnum<Acces
     seed: Seed,
   ) -> Result<(Seed::Value, StrictVariant<Access::Variant>), Access::Error> {
     let (value, variant) = self.access.variant_seed(seed)?;
-    Ok((value, StrictVariant { variant }))
+    Ok((
+      value,
+      StrictVariant {
+        variant,
+        holder: self.holder,
+      },
+    ))
   }
 }
 
 /// What a variant holds, read strictly.
 pub(super) struct StrictVariant<Variant> {
   variant: Variant,
+  holder: Holder,
 }
 
 impl<'input, Variant: VariantAccess<'input>> VariantAccess<'input> for StrictVariant<Variant> {
@@ -59,11 +68,13 @@ impl<'input, Variant: VariantAccess<'input>> VariantAccess<'input> for StrictVar
   }
 
   fn newtype_variant_seed<Seed: DeserializeSeed<'input>>(self, seed: Seed) -> Result<Seed::Value, Variant::Error> {
-    self.variant.newtype_variant_seed(StrictSeed::value(seed))
+    self.variant.newtype_variant_seed(StrictSeed::value(seed, self.holder))
   }
 
   fn tuple_variant<Read: Visitor<'input>>(self, length: usize, visitor: Read) -> Result<Read::Value, Variant::Error> {
-    self.variant.tuple_variant(length, StrictVisitor::new(visitor, None))
+    self
+      .variant
+      .tuple_variant(length, StrictVisitor::new(visitor, None, self.holder))
   }
 
   fn struct_variant<Read: Visitor<'input>>(
@@ -71,6 +82,8 @@ impl<'input, Variant: VariantAccess<'input>> VariantAccess<'input> for StrictVar
     fields: &'static [&'static str],
     visitor: Read,
   ) -> Result<Read::Value, Variant::Error> {
-    self.variant.struct_variant(fields, StrictVisitor::record(visitor))
+    self
+      .variant
+      .struct_variant(fields, StrictVisitor::record(visitor, self.holder))
   }
 }

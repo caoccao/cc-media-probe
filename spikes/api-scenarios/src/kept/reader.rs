@@ -54,7 +54,6 @@ impl<'input, Failure: Error> Deserializer<'input> for KeptValueReader<Failure> {
       KeptValue::Signed(value) => visitor.visit_i64(value),
       KeptValue::FloatingPoint(bits) => visitor.visit_f64(f64::from_bits(bits)),
       KeptValue::Text(text) => visitor.visit_string(text),
-      KeptValue::Bytes(bytes) => visitor.visit_byte_buf(bytes),
       KeptValue::Sequence(items) => {
         let mut sequence = SeqDeserializer::new(items.into_iter());
         let value = visitor.visit_seq(&mut sequence)?;

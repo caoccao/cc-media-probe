@@ -96,7 +96,9 @@ fn root_records() -> Vec<RootRecord> {
     },
     RootRecord {
       name: "Detection",
-      members: members_of(json!({ "outcome": "identified", "format": "Matroska" })),
+      members: members_of(
+        json!({ "outcome": "identified", "format": "Matroska", "confidence": 100, "candidates": [] }),
+      ),
       broken: ["outcome", "format"],
       read: |text| serde_json::from_str::<Detection>(text).map(|record| record.schema_version()),
     },
@@ -332,8 +334,7 @@ fn the_version_comes_first_only_among_values_that_the_reader_can_represent() {
   assert!(message.starts_with("number out of range"), "{message}");
   // A value that serde_json has already parsed keeps one member for each name, so a repeated name is gone before
   // the record is read: only the text shows it.
-  let repeated =
-    r#"{"future": 1, "future": 2, "schema_version": "1.0", "outcome": "identified", "format": "Matroska"}"#;
+  let repeated = r#"{"future": 1, "future": 2, "schema_version": "1.0", "outcome": "unknown", "candidates": []}"#;
   let message = serde_json::from_str::<Detection>(repeated).unwrap_err().to_string();
   assert!(message.starts_with(DUPLICATE), "{message}");
   let parsed: Value = serde_json::from_str(repeated).unwrap();

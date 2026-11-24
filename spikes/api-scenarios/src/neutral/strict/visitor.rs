@@ -24,9 +24,9 @@ use std::fmt;
 use serde::de::{Deserializer, EnumAccess, Error, MapAccess, SeqAccess, Visitor};
 
 use super::access::{StrictMap, StrictSequence};
-use super::deserializer::Strict;
+use super::deserializer::{Holder, Strict};
 use super::variant::StrictEnum;
-use crate::constants::{NULL_MEMBER_MESSAGE, POSITIONAL_RECORD_MESSAGE};
+use crate::constants::{NOT_JSON_VALUE_MESSAGE, NULL_MEMBER_MESSAGE, POSITIONAL_RECORD_MESSAGE};
 
 /// Where a member's name is noted while it is read, for a visitor that reads a name.
 pub(super) type NameSlot<'name> = Option<&'name mut Option<String>>;
@@ -36,25 +36,28 @@ pub(super) struct StrictVisitor<'name, Read> {
   read: Read,
   name: NameSlot<'name>,
   record: bool,
+  holder: Holder,
 }
 
 impl<'name, Read> StrictVisitor<'name, Read> {
   /// The visitor of a value, or of a member's name when `name` is given.
-  pub(super) fn new(read: Read, name: NameSlot<'name>) -> StrictVisitor<'name, Read> {
+  pub(super) fn new(read: Read, name: NameSlot<'name>, holder: Holder) -> StrictVisitor<'name, Read> {
     StrictVisitor {
       read,
       name,
       record: false,
+      holder,
     }
   }
 
   /// The visitor of a record, which a positional array never is (thirteenth review): Serde's derive reads a struct
   /// from a sequence too, so the form refuses one here.
-  pub(super) fn record(read: Read) -> StrictVisitor<'name, Read> {
+  pub(super) fn record(read: Read, holder: Holder) -> StrictVisitor<'name, Read> {
     StrictVisitor {
       read,
       name: None,
       record: true,
+      holder,
     }
   }
 
@@ -86,8 +89,35 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
 
   forward_values! {
     visit_bool: bool, visit_i8: i8, visit_i16: i16, visit_i32: i32, visit_i64: i64, visit_i128: i128,
-    visit_u8: u8, visit_u16: u16, visit_u32: u32, visit_u64: u64, visit_u128: u128, visit_f32: f32, visit_f64: f64,
-    visit_char: char, visit_bytes: &[u8], visit_borrowed_bytes: &'input [u8], visit_byte_buf: Vec<u8>,
+    visit_u8: u8, visit_u16: u16, visit_u32: u32, visit_u64: u64, visit_u128: u128, visit_char: char,
+  }
+
+  /// A finite number passes; NaN and the infinities have no JSON form (fourteenth review).
+  fn visit_f32<Failure: Error>(self, value: f32) -> Result<Read::Value, Failure> {
+    if !value.is_finite() {
+      return Err(Failure::custom(NOT_JSON_VALUE_MESSAGE));
+    }
+    self.read.visit_f32(value)
+  }
+
+  fn visit_f64<Failure: Error>(self, value: f64) -> Result<Read::Value, Failure> {
+    if !value.is_finite() {
+      return Err(Failure::custom(NOT_JSON_VALUE_MESSAGE));
+    }
+    self.read.visit_f64(value)
+  }
+
+  /// A byte string has no JSON form: the form writes bytes as hexadecimal text (fourteenth review).
+  fn visit_bytes<Failure: Error>(self, _value: &[u8]) -> Result<Read::Value, Failure> {
+    Err(Failure::custom(NOT_JSON_VALUE_MESSAGE))
+  }
+
+  fn visit_borrowed_bytes<Failure: Error>(self, _value: &'input [u8]) -> Result<Read::Value, Failure> {
+    Err(Failure::custom(NOT_JSON_VALUE_MESSAGE))
+  }
+
+  fn visit_byte_buf<Failure: Error>(self, _value: Vec<u8>) -> Result<Read::Value, Failure> {
+    Err(Failure::custom(NOT_JSON_VALUE_MESSAGE))
   }
 
   fn visit_str<Failure: Error>(mut self, value: &str) -> Result<Read::Value, Failure> {
@@ -114,25 +144,25 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
   }
 
   fn visit_some<Inner: Deserializer<'input>>(self, deserializer: Inner) -> Result<Read::Value, Inner::Error> {
-    self.read.visit_some(Strict::value(deserializer))
+    self.read.visit_some(Strict::value(deserializer, self.holder))
   }
 
   fn visit_newtype_struct<Inner: Deserializer<'input>>(self, deserializer: Inner) -> Result<Read::Value, Inner::Error> {
-    self.read.visit_newtype_struct(Strict::value(deserializer))
+    self.read.visit_newtype_struct(Strict::value(deserializer, self.holder))
   }
 
   fn visit_seq<Items: SeqAccess<'input>>(self, items: Items) -> Result<Read::Value, Items::Error> {
     if self.record {
       return Err(Items::Error::custom(POSITIONAL_RECORD_MESSAGE));
     }
-    self.read.visit_seq(StrictSequence::new(items))
+    self.read.visit_seq(StrictSequence::new(items, self.holder))
   }
 
   fn visit_map<Members: MapAccess<'input>>(self, members: Members) -> Result<Read::Value, Members::Error> {
-    self.read.visit_map(StrictMap::new(members))
+    self.read.visit_map(StrictMap::new(members, self.holder))
   }
 
   fn visit_enum<Access: EnumAccess<'input>>(self, access: Access) -> Result<Read::Value, Access::Error> {
-    self.read.visit_enum(StrictEnum::new(access))
+    self.read.visit_enum(StrictEnum::new(access, self.holder))
   }
 }

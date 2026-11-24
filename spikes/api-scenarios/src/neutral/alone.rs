@@ -17,19 +17,22 @@
 
 //! A record of the form read alone obeys the rules that it obeys inside a root record, as the thirteenth review asked
 //! (`api.md` sections 3.3 and 12): no null, no name given twice, and an object rather than a positional array. Each
-//! record type reads its members through `ReadAlone`, and its `Deserialize` goes through `read_alone`. Inside a read
-//! already under way, the deserializer is strict and the record reads from it as it is. Read alone, the record opens
-//! a scope of its own and reads from the deserializer wrapped in `Strict`, so each map is checked once.
+//! record type reads its members through `ReadAlone`, and its `Deserialize` goes through `read_alone`, which asks the
+//! deserializer for the scope of the read (`super::scope`). Inside a read of the form, the deserializer is strict and
+//! the record reads from it as it is. Outside one, the record reads from the deserializer wrapped in `Strict`, so each
+//! map is checked once, also when the read starts inside another read's callback (fourteenth review).
 //!
 //! The stub derives a record's members with `serde(remote = "Self")`, which also gives the type public inherent
 //! `serialize` and `deserialize` functions; `record_traits!` writes the two traits over them. A record that checks its
 //! members after reading them, through a shadow type and `TryFrom`, gets its entry from `checked_record_traits!`. The
 //! library writes the same entry without the inherent functions (task 11).
 
+use std::marker::PhantomData;
+
 use serde::Deserializer;
 
-use super::scope::{self, Enclosing};
-use super::strict::Strict;
+use super::scope::{ScopedRead, read_in_scope};
+use super::strict::{Holder, Strict};
 
 /// A record type's own reading of its members, from a deserializer that is already strict.
 pub(crate) trait ReadAlone<'input>: Sized {
@@ -41,12 +44,21 @@ pub(crate) trait ReadAlone<'input>: Sized {
 pub(crate) fn read_alone<'input, Record: ReadAlone<'input>, Input: Deserializer<'input>>(
   deserializer: Input,
 ) -> Result<Record, Input::Error> {
-  match scope::current() {
-    Some(_) => Record::read_members(deserializer),
-    None => {
-      let _scope = scope::enter(Enclosing::Value);
-      Record::read_members(Strict::value(deserializer))
-    }
+  read_in_scope(deserializer, AloneRead::<Record>(PhantomData))
+}
+
+/// The read of one record in its scope.
+struct AloneRead<Record>(PhantomData<Record>);
+
+impl<'input, Record: ReadAlone<'input>> ScopedRead<'input> for AloneRead<Record> {
+  type Value = Record;
+
+  fn alone<Input: Deserializer<'input>>(self, deserializer: Input) -> Result<Record, Input::Error> {
+    Record::read_members(Strict::value(deserializer, None))
+  }
+
+  fn within<Input: Deserializer<'input>>(self, deserializer: Input, _holder: Holder) -> Result<Record, Input::Error> {
+    Record::read_members(deserializer)
   }
 }
 

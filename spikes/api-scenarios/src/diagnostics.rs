@@ -22,26 +22,70 @@ use std::fmt;
 use crate::model::UnrecognizedValue;
 use crate::source::SourceIdentifier;
 
-/// A problem found in the input that did not stop the probe.
+/// A problem found in the input that did not stop the probe. Its offset is a quantity that the record cannot do
+/// without, so beyond 2^53 - 1 it is its twin `offset_exact` (`json-output.md` section 5.5; fourteenth review).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(into = "DiagnosticData"))]
 pub struct Diagnostic {
   severity: Severity,
   code: DiagnosticCode,
   message: String,
   source_identifier: SourceIdentifier,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   offset: Option<u64>,
-  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   stream: Option<usize>,
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::record_traits!(Diagnostic);
+crate::neutral::checked_record_traits!(Diagnostic from DiagnosticData);
+
+/// A diagnostic's members as written, its offset as its number or its twin.
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct DiagnosticData {
+  severity: Severity,
+  code: DiagnosticCode,
+  message: String,
+  source_identifier: SourceIdentifier,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  offset: Option<u64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  offset_exact: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  stream: Option<usize>,
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<DiagnosticData> for Diagnostic {
+  type Error = crate::document::InvalidDocument;
+
+  /// The offset from at most one of its number and its twin, each in its own range.
+  fn try_from(read: DiagnosticData) -> Result<Diagnostic, crate::document::InvalidDocument> {
+    Ok(Diagnostic {
+      severity: read.severity,
+      code: read.code,
+      message: read.message,
+      source_identifier: read.source_identifier,
+      offset: crate::twin::unsigned_value(read.offset, read.offset_exact)?,
+      stream: read.stream,
+    })
+  }
+}
+
+#[cfg(feature = "serde")]
+impl From<Diagnostic> for DiagnosticData {
+  fn from(diagnostic: Diagnostic) -> DiagnosticData {
+    let (offset, offset_exact) = crate::twin::unsigned_members(diagnostic.offset);
+    DiagnosticData {
+      severity: diagnostic.severity,
+      code: diagnostic.code,
+      message: diagnostic.message,
+      source_identifier: diagnostic.source_identifier,
+      offset,
+      offset_exact,
+      stream: diagnostic.stream,
+    }
+  }
+}
 
 impl Diagnostic {
   /// How serious it is.

@@ -108,3 +108,11 @@ required-features = ["serde"]
 [[test]]
 name = "wire_values"
 required-features = ["serde"]
+
+[[test]]
+name = "consistency"
+required-features = ["serde"]
+
+[[test]]
+name = "detections"
+required-features = ["serde"]

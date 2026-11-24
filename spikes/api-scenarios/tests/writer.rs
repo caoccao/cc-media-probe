@@ -36,7 +36,7 @@ fn error_entry() -> DocumentEntry {
 /// Two error entries, a detection entry, and an entry read from a document of version 1.1, whose error record
 /// carries a partial report.
 fn mixed_entries() -> Vec<DocumentEntry> {
-  let detection = serde_json::from_value(json!({ "schema_version": "1.0", "outcome": "identified" })).unwrap();
+  let detection = serde_json::from_value(json!({ "schema_version": "1.0", "outcome": "identified", "format": "Matroska", "confidence": 100, "candidates": [] })).unwrap();
   let detection = DocumentEntry::from_detection(PortablePath::from_path(Path::new("clip.mp4")), detection);
   let mut newer = serde_json::to_value(Document::from_results(
     Generator::new("catalog", "1"),
