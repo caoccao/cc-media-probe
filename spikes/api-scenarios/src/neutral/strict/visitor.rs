@@ -17,7 +17,9 @@
 
 //! The visitor of `Strict`: it hands every value to the wrapped visitor, wraps what holds further values, and refuses
 //! null, whether the reader gives it as an absent option or as a unit. When it reads a member's name, it also notes
-//! the name, so that the map can refuse one given twice.
+//! the name, so that the map can refuse one given twice. A name asked for as text is a string, as every name of
+//! JSON is, so a name of another type, such as an integer key of CBOR, fails as a value that JSON does not carry,
+//! also in a member that no type reads (fifteenth review).
 
 use std::fmt;
 
@@ -36,6 +38,7 @@ pub(super) struct StrictVisitor<'name, Read> {
   read: Read,
   name: NameSlot<'name>,
   record: bool,
+  text_only: bool,
   holder: Holder,
 }
 
@@ -46,7 +49,17 @@ impl<'name, Read> StrictVisitor<'name, Read> {
       read,
       name,
       record: false,
+      text_only: false,
       holder,
+    }
+  }
+
+  /// The visitor of a value asked for as text, which a member's name, when `name` is given, must be.
+  pub(super) fn textual(read: Read, name: NameSlot<'name>, holder: Holder) -> StrictVisitor<'name, Read> {
+    let text_only = name.is_some();
+    StrictVisitor {
+      text_only,
+      ..StrictVisitor::new(read, name, holder)
     }
   }
 
@@ -57,7 +70,16 @@ impl<'name, Read> StrictVisitor<'name, Read> {
       read,
       name: None,
       record: true,
+      text_only: false,
       holder,
+    }
+  }
+
+  /// A name asked for as text that is not one: no name of JSON is (fifteenth review).
+  fn refuse_name<Failure: Error>(&self) -> Result<(), Failure> {
+    match self.text_only {
+      true => Err(Failure::custom(NOT_JSON_VALUE_MESSAGE)),
+      false => Ok(()),
     }
   }
 
@@ -74,6 +96,7 @@ macro_rules! forward_values {
   ($($method:ident: $value:ty),* $(,)?) => {
     $(
       fn $method<Failure: Error>(self, value: $value) -> Result<Read::Value, Failure> {
+        self.refuse_name()?;
         self.read.$method(value)
       }
     )*
@@ -97,6 +120,7 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
     if !value.is_finite() {
       return Err(Failure::custom(NOT_JSON_VALUE_MESSAGE));
     }
+    self.refuse_name()?;
     self.read.visit_f32(value)
   }
 
@@ -104,6 +128,7 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
     if !value.is_finite() {
       return Err(Failure::custom(NOT_JSON_VALUE_MESSAGE));
     }
+    self.refuse_name()?;
     self.read.visit_f64(value)
   }
 
@@ -144,14 +169,17 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
   }
 
   fn visit_some<Inner: Deserializer<'input>>(self, deserializer: Inner) -> Result<Read::Value, Inner::Error> {
+    self.refuse_name()?;
     self.read.visit_some(Strict::value(deserializer, self.holder))
   }
 
   fn visit_newtype_struct<Inner: Deserializer<'input>>(self, deserializer: Inner) -> Result<Read::Value, Inner::Error> {
+    self.refuse_name()?;
     self.read.visit_newtype_struct(Strict::value(deserializer, self.holder))
   }
 
   fn visit_seq<Items: SeqAccess<'input>>(self, items: Items) -> Result<Read::Value, Items::Error> {
+    self.refuse_name()?;
     if self.record {
       return Err(Items::Error::custom(POSITIONAL_RECORD_MESSAGE));
     }
@@ -159,10 +187,12 @@ impl<'input, Read: Visitor<'input>> Visitor<'input> for StrictVisitor<'_, Read> 
   }
 
   fn visit_map<Members: MapAccess<'input>>(self, members: Members) -> Result<Read::Value, Members::Error> {
+    self.refuse_name()?;
     self.read.visit_map(StrictMap::new(members, self.holder))
   }
 
   fn visit_enum<Access: EnumAccess<'input>>(self, access: Access) -> Result<Read::Value, Access::Error> {
+    self.refuse_name()?;
     self.read.visit_enum(StrictEnum::new(access, self.holder))
   }
 }

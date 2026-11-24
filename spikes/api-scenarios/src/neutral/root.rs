@@ -25,6 +25,10 @@
 //! it and before it decodes its own body (thirteenth review). The record that holds it already has a version of this
 //! major and reads strictly, so a null or a repeated name before the nested record's version is malformed input,
 //! while every other failure comes after the version error, whatever the order of the parent's members.
+//!
+//! A member's name before the version is read as any value, as the fifteenth review asked: a name that is not a
+//! string, such as an integer key of CBOR, is held with its value and fails once the version is checked, as a value
+//! that JSON does not carry.
 
 use std::collections::HashSet;
 use std::fmt;
@@ -39,8 +43,9 @@ use super::held::HeldValue;
 use super::scope::{ScopedRead, read_in_scope};
 use super::strict::{Holder, StrictMap};
 use crate::constants::{
-  HOLDER_VERSION_LABEL, MISSING_VERSION_MESSAGE, NESTED_ROOT_VERSION_MESSAGE, OTHER_MAJOR_VERSION_MESSAGE,
-  READER_VERSION_LABEL, ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER, SCHEMA_VERSION_TEXT_MESSAGE,
+  HOLDER_VERSION_LABEL, MISSING_VERSION_MESSAGE, NESTED_ROOT_VERSION_MESSAGE, NOT_JSON_VALUE_MESSAGE,
+  OTHER_MAJOR_VERSION_MESSAGE, READER_VERSION_LABEL, ROOT_RECORD_EXPECTING, SCHEMA_VERSION_MEMBER,
+  SCHEMA_VERSION_TEXT_MESSAGE,
 };
 use crate::document::SchemaVersion;
 
@@ -97,12 +102,16 @@ impl<'input, Body: Deserialize<'input>> Visitor<'input> for RootVisitor<Body> {
   fn visit_map<Members: MapAccess<'input>>(self, mut members: Members) -> Result<Rooted<Body>, Members::Error> {
     let mut held = Vec::new();
     let version = loop {
-      let Some(name) = members.next_key::<String>()? else {
+      let Some(name) = members.next_key::<HeldValue>()? else {
         return Err(Members::Error::custom(MISSING_VERSION_MESSAGE));
       };
-      if name == SCHEMA_VERSION_MEMBER {
-        break version_of(members.next_value::<HeldValue>()?)?;
-      }
+      let name = match name {
+        HeldValue::Text(name) if name == SCHEMA_VERSION_MEMBER => {
+          break version_of(members.next_value::<HeldValue>()?)?;
+        }
+        HeldValue::Text(name) => Some(name),
+        _ => None,
+      };
       held.push((name, members.next_value::<HeldValue>()?));
     };
     check_version::<Members::Error>(version, self.holder)?;
@@ -148,9 +157,10 @@ fn check_version<Failure: Error>(version: SchemaVersion, holder: Holder) -> Resu
 }
 
 /// The body's members: the held ones first, as they were read, then those after the version, from the input. The
-/// map around them reads both strictly and notes every name, so a repeated name fails where it stands.
+/// map around them reads both strictly and notes every name, so a repeated name fails where it stands. A held member
+/// whose name is not a string has no name, and fails where it stands.
 struct ChainedMembers<Members> {
-  held: vec::IntoIter<(String, HeldValue)>,
+  held: vec::IntoIter<(Option<String>, HeldValue)>,
   pending: Option<HeldValue>,
   live: Members,
 }
@@ -163,7 +173,8 @@ impl<'input, Members: MapAccess<'input>> MapAccess<'input> for ChainedMembers<Me
     seed: Seed,
   ) -> Result<Option<Seed::Value>, Members::Error> {
     match self.held.next() {
-      Some((name, value)) => {
+      Some((None, _)) => Err(Members::Error::custom(NOT_JSON_VALUE_MESSAGE)),
+      Some((Some(name), value)) => {
         self.pending = Some(value);
         seed
           .deserialize(IntoDeserializer::<Members::Error>::into_deserializer(name))

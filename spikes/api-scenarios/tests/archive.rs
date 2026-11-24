@@ -338,6 +338,7 @@ fn every_root_record_checks_its_version() {
     "a bare report of another major version"
   );
   let mut record = serde_json::to_value(probe_bytes(b"").unwrap_err().to_record()).unwrap();
+  record["kind"] = json!("source_failed");
   for version in ["1.1", "2.0"] {
     record["partial_report"] = report_text(version, complete());
     assert!(

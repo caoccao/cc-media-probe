@@ -22,7 +22,9 @@ use std::io;
 
 use crate::completeness::{LimitRecord, Reason};
 #[cfg(feature = "serde")]
-use crate::constants::{ERROR_RECORD_MESSAGE, STOPPING_POINTS_MESSAGE};
+use crate::constants::{
+  ERROR_RECORD_MESSAGE, PARTIAL_REPORT_KIND_MESSAGE, REASON_COUNTER_MESSAGE, STOPPING_POINTS_MESSAGE,
+};
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
   NO_STREAM_INVENTORY_MESSAGE, NO_STREAM_INVENTORY_NAME, SOURCE_FAILED_MESSAGE, SOURCE_FAILED_NAME,
@@ -32,6 +34,8 @@ use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
 #[cfg(feature = "serde")]
 use crate::document::{InvalidDocument, SchemaVersion};
+#[cfg(feature = "serde")]
+use crate::kept::KeptMembers;
 use crate::model::{Format, MediaReport, UnrecognizedValue, Usage};
 
 /// Why a probe returned no report, `api.md` section 5.1. Serialized as its stable name.
@@ -265,11 +269,18 @@ pub struct ErrorRecord {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   source_failure_kind: Option<String>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  reason: Option<Reason>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   partial_report: Option<MediaReport>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   observations: Option<Observations>,
   usage: Usage,
   record: LimitRecord,
+  /// For a kind that a newer version wrote, the members that this version does not read, as written, which the record
+  /// writes back after its own; empty for a kind that this version knows (fifteenth review).
+  #[cfg(feature = "serde")]
+  #[cfg_attr(feature = "serde", serde(flatten))]
+  kept: KeptMembers,
 }
 
 /// An error record's members as read, other than its version, before the rules of its stopping point are checked.
@@ -281,11 +292,16 @@ struct ErrorRecordData {
   #[serde(default, deserialize_with = "crate::presence::present")]
   source_failure_kind: Option<String>,
   #[serde(default, deserialize_with = "crate::presence::present")]
+  reason: Option<Reason>,
+  #[serde(default, deserialize_with = "crate::presence::present")]
   partial_report: Option<MediaReport>,
   #[serde(default, deserialize_with = "crate::presence::present")]
   observations: Option<Observations>,
   usage: Usage,
   record: LimitRecord,
+  /// Every other member, as written: kept for a kind of a newer version, ignored for one that this version knows.
+  #[serde(flatten)]
+  kept: KeptMembers,
 }
 
 #[cfg(feature = "serde")]
@@ -295,11 +311,25 @@ impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
   /// A record as read. Its partial report is a root record nested in it, which compared its version with the
   /// record's before it decoded its body, also when the record is read on its own (`neutral`). A partial report and
   /// observations are two stopping points, after the inventory and before it, so a record holds one at most, and a
-  /// partial report's record is the error's (`api.md` section 5.3; fourteenth review).
+  /// partial report's record is the error's (`api.md` section 5.3; fourteenth review). Since the fifteenth review,
+  /// only a source failure of the known kinds carries a partial report, since nothing else turns a probe that reached
+  /// its inventory into an error (`api.md` section 5.1); the error's own limit reason finds its counter in the record;
+  /// and a record of a newer kind keeps the members that it does not read.
   fn try_from(rooted: crate::neutral::Rooted<ErrorRecordData>) -> Result<ErrorRecord, InvalidDocument> {
     let data = rooted.body;
     if data.partial_report.is_some() && data.observations.is_some() {
       return Err(InvalidDocument::new(STOPPING_POINTS_MESSAGE));
+    }
+    let newer = matches!(data.kind, ErrorKind::Unrecognized(_));
+    if data.partial_report.is_some() && !newer && data.kind != ErrorKind::SourceFailed {
+      return Err(InvalidDocument::new(PARTIAL_REPORT_KIND_MESSAGE));
+    }
+    if data
+      .reason
+      .as_ref()
+      .is_some_and(|reason| !reason.finds_its_counter(data.record.exhausted_limits()))
+    {
+      return Err(InvalidDocument::new(REASON_COUNTER_MESSAGE));
     }
     if data
       .partial_report
@@ -313,10 +343,12 @@ impl TryFrom<crate::neutral::Rooted<ErrorRecordData>> for ErrorRecord {
       kind: data.kind,
       message: data.message,
       source_failure_kind: data.source_failure_kind,
+      reason: data.reason,
       partial_report: data.partial_report,
       observations: data.observations,
       usage: data.usage,
       record: data.record,
+      kept: if newer { data.kept } else { KeptMembers::default() },
     })
   }
 }
@@ -335,6 +367,11 @@ impl ErrorRecord {
   /// The I/O error kind as a stable string, such as `permission_denied`.
   pub fn source_failure_kind(&self) -> Option<&str> {
     self.source_failure_kind.as_deref()
+  }
+
+  /// Why the probe stopped, where one reason stopped it.
+  pub fn reason(&self) -> Option<&Reason> {
+    self.reason.as_ref()
   }
 
   /// The report so far.
@@ -398,10 +435,13 @@ impl From<&Error> for ErrorRecord {
         .source_failure
         .as_ref()
         .map(|cause| stable_kind_name(cause.kind())),
+      reason: error.data.reason.clone(),
       partial_report: error.data.partial_report.clone(),
       observations: error.data.observations.clone(),
       usage: error.data.usage.clone(),
       record: error.data.record.clone(),
+      #[cfg(feature = "serde")]
+      kept: KeptMembers::default(),
     }
   }
 }

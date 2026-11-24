@@ -16,16 +16,21 @@
 */
 
 //! `Detection`, `api.md` section 8, as far as a document entry and its tests read it. Since the fourteenth review it
-//! has the members of every outcome, which reading checks outcome by outcome (`super::detection_reading`).
+//! has the members of every outcome, which reading checks outcome by outcome (`super::detection_reading`). Since the
+//! fifteenth review it has its usage, and a detection of a newer outcome keeps the members that it does not read, as
+//! the maintainer chose.
 
 use super::constants::{
   AMBIGUOUS_NAME, FAMILY_ONLY_NAME, HINT_ONLY_NAME, IDENTIFIED_NAME, INSUFFICIENT_DATA_NAME, UNKNOWN_NAME,
 };
 use super::format::Format;
 use super::unrecognized_value::UnrecognizedValue;
+use super::usage::Usage;
 use crate::completeness::Reason;
 #[cfg(feature = "serde")]
 use crate::document::SchemaVersion;
+#[cfg(feature = "serde")]
+use crate::kept::KeptMembers;
 
 /// What a detection established about one input, a root record: serialized, it carries its schema version.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -47,6 +52,11 @@ pub struct Detection {
   pub(super) hint: Option<Hint>,
   pub(super) bytes_needed: Option<u64>,
   pub(super) insufficient_reason: Option<Reason>,
+  pub(super) usage: Usage,
+  /// For an outcome that a newer version wrote, the members that this version does not read, as written, which the
+  /// detection writes back after its own; empty for an outcome that this version knows (fifteenth review).
+  #[cfg(feature = "serde")]
+  pub(super) kept: KeptMembers,
 }
 
 impl Detection {
@@ -85,6 +95,11 @@ impl Detection {
     self.insufficient_reason.as_ref()
   }
 
+  /// What the budget accounted for.
+  pub fn usage(&self) -> &Usage {
+    &self.usage
+  }
+
   /// The schema version that the record was read with, or the current one for a record that this version made. A
   /// document gives each record it holds its own, and checks it against its own (twelfth review).
   #[cfg(feature = "serde")]
@@ -100,20 +115,25 @@ impl Detection {
   }
 }
 
-/// One candidate of an ambiguous detection.
+/// One candidate of an ambiguous detection. Read alone, it checks its confidence as a detection does (fifteenth
+/// review).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Candidate {
-  format: Format,
-  confidence: u8,
+  pub(super) format: Format,
+  pub(super) confidence: u8,
 }
 
 #[cfg(feature = "serde")]
-crate::neutral::record_traits!(Candidate);
+crate::neutral::checked_record_traits!(Candidate from CandidateData);
+
+/// A candidate's members as read, before its confidence is checked.
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+pub(super) struct CandidateData {
+  pub(super) format: Format,
+  pub(super) confidence: u8,
+}
 
 impl Candidate {
   /// The candidate's format.

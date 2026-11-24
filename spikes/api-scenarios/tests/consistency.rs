@@ -91,6 +91,8 @@ fn a_known_header_state_that_is_not_final_is_a_shortfall_beside_a_newer_headers_
   // With the first reason of the headers, the report reads, and only `partial` describes it.
   report["completeness"]["record"]["first_reasons"] =
     json!([{ "part": "Headers", "stream": 0, "reason": { "kind": "TruncatedInput" } }]);
+  // A full budget kept no reason, which the record counts (fifteenth review).
+  report["completeness"]["record"]["omitted_reasons"] = json!("1");
   let read: MediaReport = serde_json::from_value(report.clone()).unwrap();
   let entry = DocumentEntry::from_report(PortablePath::from_path(Path::new("a.mkv")), read).unwrap();
   assert_eq!(entry.outcome(), &EntryOutcome::Partial);
@@ -108,6 +110,7 @@ fn a_part_that_a_limit_stopped_first_has_a_first_reason() {
     "exhausted": ["BytesRead"],
     "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }],
     "first_reasons": [{ "part": "Discovery", "reason": { "kind": "LimitExhausted", "limit": "BytesRead" } }],
+    "omitted_reasons": "1",
   }));
   report["completeness"]["discovery"] = json!("Incomplete");
   assert!(serde_json::from_value::<MediaReport>(report).is_ok());
@@ -170,6 +173,7 @@ fn a_streams_index_is_its_position() {
     "exhausted": [],
     "first_stopped": [],
     "first_reasons": [{ "part": "Headers", "stream": 0, "reason": { "kind": "TruncatedInput" } }],
+    "omitted_reasons": "1",
   }));
   report["completeness"]["headers"] = json!("Incomplete");
   report["streams"] = json!([cut_stream(0)]);
@@ -210,6 +214,7 @@ fn an_errors_record_is_its_partial_reports_record() {
     "exhausted": ["BytesRead"],
     "first_stopped": [{ "limit": "BytesRead", "part": "Discovery" }],
     "first_reasons": [{ "part": "Discovery", "reason": { "kind": "LimitExhausted", "limit": "BytesRead" } }],
+    "omitted_reasons": "1",
   });
   let mut partial = report_with_record(stopped.clone());
   partial["completeness"]["discovery"] = json!("Incomplete");

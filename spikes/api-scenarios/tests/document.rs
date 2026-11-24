@@ -363,6 +363,8 @@ fn a_document_rebuilt_from_newer_entries_gives_them_its_version() {
   for index in 0..2 {
     newer["results"][index]["error"]["schema_version"] = json!("1.1");
   }
+  // Only a source failure carries a partial report (fifteenth review).
+  newer["results"][0]["error"]["kind"] = json!("source_failed");
   newer["results"][0]["error"]["partial_report"] = report_text("1.1");
   let read: Document = serde_json::from_value(newer).unwrap();
   assert_eq!(read.schema_version().minor(), 1);
@@ -384,6 +386,7 @@ fn a_document_rebuilt_from_newer_entries_gives_them_its_version() {
 fn reading_checks_the_partial_report_inside_an_error_record() {
   // A source that fails after the inventory leaves an error that carries the report so far.
   let mut text = results_document();
+  text["results"][0]["error"]["kind"] = json!("source_failed");
   text["results"][0]["error"]["partial_report"] = report_text("1.0");
   let read: Document = serde_json::from_value(text.clone()).unwrap();
   assert!(read.results()[0].error().unwrap().partial_report().is_some());
@@ -472,9 +475,11 @@ fn an_entry_whose_outcome_is_underivable_is_refused_and_takes_the_outcome_given(
 }
 
 /// A detection of that outcome with the members that the outcome needs, as reading requires since the fourteenth
-/// review: an identification has its format and confidence, a family only its family.
+/// review: an identification has its format and confidence, a family only its family. Every detection has its usage
+/// since the fifteenth review.
 fn detection_text(outcome: &str) -> Value {
-  let mut text = json!({ "schema_version": "1.0", "outcome": outcome, "candidates": [] });
+  let usage = json!({ "bytes_read": 0, "peak_working_memory": 0 });
+  let mut text = json!({ "schema_version": "1.0", "outcome": outcome, "candidates": [], "usage": usage });
   match outcome {
     "identified" => {
       text["format"] = json!("Matroska");

@@ -42,6 +42,8 @@ pub mod model;
 #[cfg(feature = "serde")]
 mod neutral;
 #[cfg(feature = "serde")]
+mod number_text;
+#[cfg(feature = "serde")]
 mod presence;
 mod prober;
 pub mod source;

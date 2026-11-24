@@ -21,13 +21,19 @@
 //! order written, as a later member is read from the input: a null or a repeated name fails where it stands, so the
 //! errors of a record do not depend on where its version stood (thirteenth review). Its depth is bounded where the
 //! reader's is, as serde_json's recursion limit bounds it.
+//!
+//! A value that JSON does not carry is held too, as the fifteenth review asked, so that it fails after the version
+//! error rather than before it: a byte string, and a map with a name that is not a string, such as the integer keys
+//! of a CBOR map, which ciborium reads. Once the version is checked, it fails as malformed input where it stands. The
+//! private map of serde_json's `arbitrary_precision` feature is held as the number it stands for (`number_text`).
 
 use std::fmt;
 
 use serde::de::{MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
-use crate::constants::HELD_VALUE_EXPECTING;
+use crate::constants::{ARBITRARY_PRECISION_NAME, HELD_VALUE_EXPECTING};
+use crate::number_text::{self, NumberText};
 
 /// A value held as read.
 pub(super) enum HeldValue {
@@ -43,12 +49,13 @@ pub(super) enum HeldValue {
   FloatingPoint(f64),
   /// A string.
   Text(String),
-  /// Bytes, from a format that has them.
-  Bytes(Vec<u8>),
   /// A sequence.
   Sequence(Vec<HeldValue>),
   /// A map, its members in the order written.
   Map(Vec<(String, HeldValue)>),
+  /// A value that JSON does not carry, refused once the version is checked: a byte string, or a map with a name that
+  /// is not a string.
+  NotJson,
 }
 
 impl<'input> Deserialize<'input> for HeldValue {
@@ -94,8 +101,8 @@ impl<'input> Visitor<'input> for HeldValueVisitor {
     Ok(HeldValue::Text(value))
   }
 
-  fn visit_bytes<Failure>(self, value: &[u8]) -> Result<HeldValue, Failure> {
-    Ok(HeldValue::Bytes(value.to_vec()))
+  fn visit_bytes<Failure>(self, _value: &[u8]) -> Result<HeldValue, Failure> {
+    Ok(HeldValue::NotJson)
   }
 
   fn visit_none<Failure>(self) -> Result<HeldValue, Failure> {
@@ -118,11 +125,36 @@ impl<'input> Visitor<'input> for HeldValueVisitor {
     Ok(HeldValue::Sequence(values))
   }
 
+  /// A map, whose names are read as any value, so that a name that is not a string is held as well.
   fn visit_map<Members: MapAccess<'input>>(self, mut members: Members) -> Result<HeldValue, Members::Error> {
     let mut held = Vec::new();
-    while let Some(member) = members.next_entry()? {
-      held.push(member);
+    let mut textual = true;
+    while let Some((name, value)) = members.next_entry::<HeldValue, HeldValue>()? {
+      match name {
+        HeldValue::Text(name) => held.push((name, value)),
+        _ => textual = false,
+      }
     }
-    Ok(HeldValue::Map(held))
+    if !textual {
+      return Ok(HeldValue::NotJson);
+    }
+    Ok(HeldValue::number_of(&held).unwrap_or(HeldValue::Map(held)))
+  }
+}
+
+impl HeldValue {
+  /// The number that the private map of serde_json's `arbitrary_precision` feature stands for, if it is one.
+  fn number_of(members: &[(String, HeldValue)]) -> Option<HeldValue> {
+    let [(name, HeldValue::Text(text))] = members else {
+      return None;
+    };
+    if name != ARBITRARY_PRECISION_NAME {
+      return None;
+    }
+    number_text::parse(text).map(|number| match number {
+      NumberText::Unsigned(value) => HeldValue::Unsigned(value),
+      NumberText::Signed(value) => HeldValue::Signed(value),
+      NumberText::FloatingPoint(value) => HeldValue::FloatingPoint(value),
+    })
   }
 }

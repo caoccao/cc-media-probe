@@ -116,3 +116,15 @@ required-features = ["serde"]
 [[test]]
 name = "detections"
 required-features = ["serde"]
+
+[[test]]
+name = "payloads"
+required-features = ["serde"]
+
+[[test]]
+name = "neutral_values"
+required-features = ["serde"]
+
+[[test]]
+name = "own_checks"
+required-features = ["serde"]

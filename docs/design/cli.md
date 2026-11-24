@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. The tenth revised sections 8.1 to 8.6, 9, 10, 12 and 13, the eleventh sections 4, 8.1, 8.4, 8.6, 9, 10, 12 and 13, the twelfth sections 8.2, 8.3, 10, 12 and 13, the thirteenth, of this contract with the JSON contract and `api.md`, sections 7, 9, 10 and 13, and the fourteenth, on 2026-11-24, sections 9, 10 and 13. |
+| **Status** | Draft of Phase 2, task 4, written on 2026-11-23, for review before task 5 starts. G2.3 approves it together with the JSON contract of task 5. The sixth review of `api.md` revised sections 7, 8.4, 8.5, 10 and 13 on the same day, and the seventh revised sections 8.4, 10 and 13. The eighth review, of this contract and of `api.md`, revised sections 3, 8.4, 8.6, 8.7, 9, 10, 12 and 13, and the ninth revised sections 3, 4, 8.5, 8.6, 9, 10, 12 and 13. The tenth revised sections 8.1 to 8.6, 9, 10, 12 and 13, the eleventh sections 4, 8.1, 8.4, 8.6, 9, 10, 12 and 13, the twelfth sections 8.2, 8.3, 10, 12 and 13, the thirteenth, of this contract with the JSON contract and `api.md`, sections 7, 9, 10 and 13, and the fourteenth, on 2026-11-24, sections 9, 10 and 13. The fifteenth, of revision 49, revised sections 5 and 13 on the same day. |
 | **Plan** | [Section 8.9](../plans/plan-init-project.md#89-command-line-contract) fixes the command line, the JSON document, the outcomes and the exit statuses, on the rules of R21 and R23. This document fixes the rest: the order in which the command line is read, the messages, the help and version texts, the text layout and what goes to each output. |
 | **API** | [`docs/design/api.md`](api.md), approved at G2.2 on 2026-11-23: the entry points and options (section 4), the outcomes (section 5), the report model (section 6), detection (section 8), the error record (section 10) and the document with its writer (section 12). |
 
@@ -174,10 +174,11 @@ Options:
   --help      Print this help
   --version   Print the version
 
-Exit status: 0 if every input succeeded, 1 if any failed, 2 for a usage error.
+Exit status: 0 if every input succeeded and the output was written, 1 if an
+input failed or the output could not be written, 2 for a usage error.
 ```
 
-The help text holds no version, so it changes only when this contract does. The release that ships lookup adds the line of `--companions`.
+The exit-status line names every cause of status 1 that section 6.3 and section 9 give, as the fifteenth review asked: an input that failed, which under `--strict` includes an incomplete or inconclusive result, and a standard output that could not be written, even after every input succeeded. A usage error keeps 2 even when its document cannot be written (section 9). R21 says the same since revision 50 of the plan, which the maintainer amended through GS.4. The line is wrapped at 80 columns, as the rest of the text is. The help text holds no version, so it changes only when this contract does. The release that ships lookup adds the line of `--companions`.
 
 **Version.** Without `--json`, `--version` writes the program's name, a space and the version of the package, then a line feed: `cc-media-probe 0.1.0`. The GNU coding standards ask for this form: a constant name, and the version after the last space. With `--json`, it writes the document of no results, whose `generator` carries the version (plan section 8.9):
 
@@ -643,5 +644,15 @@ Three changes of `api.md` reach this contract too. A codec of a newer version sh
 |---|---|---|
 | The instruction to read the status and disregard whether the output parses could make a caller discard valid results | A caller takes the completeness of its results from the JSON value and the run's outcome from the status; the JSON guide says the same | 9; `json-output.md` section 3 |
 | Separate snapshots of standard output and standard error cannot show that a report came before its warning | The case runs in process with one ordered log of every write and flush, and through the binary with both outputs on one pipe | 10, 13 |
+
+**The fifteenth review.** On 2026-11-24 the maintainer's review of revision 49, committed as `dec979f`, raised one finding on this contract, beside three on `api.md` and eleven on `json-output.md` (`api.md` section 16). It holds, confirmed by reading: the help's exit-status line repeated R21, which names no output failure, while section 9 gives status 1 for one after every input succeeded. The maintainer chose to amend R21 through GS.4 as well, so the requirement and the help agree. The contract changed as follows:
+
+| Finding | Change | Sections |
+|---|---|---|
+| The help's exit-status line left out the status 1 of an output failure | The line names an input that failed and an output that could not be written; R21 is amended to match (the maintainer's choice) | 5, 13 |
+
+**Choice made without asking in the fifteenth review,** open at G2.3: the exit-status line is wrapped into two lines of at most 80 columns, as the rest of the help is, rather than kept as one longer line.
+
+Two changes of `json-output.md` reach this contract too: the record's omitted count covers every first reason that the kept reasons lack, which the reasons of section 8.4 rely on when they print a part's first reason from the record and count it among the reasons not printed, and a reason of a known kind has the members of its kind, so `limit exhausted` always prints its limit in parentheses.
 
 **Found while writing.** A source failure after the inventory gives an error that carries a partial report (R19). `api.md` section 5.3 records every shortfall against the part it stopped, but no reason said that a source failed, so the partial report of section 8.7 could not say why its remaining parts were incomplete. The maintainer chose on 2026-11-23 to add `ReasonKind::SourceFailed`, with `PartReason::source_identifier()` naming the source (`api.md` section 5.5). A new variant of an open set is compatible, so G2.2 stands.

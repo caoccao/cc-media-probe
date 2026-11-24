@@ -36,7 +36,7 @@ fn error_entry() -> DocumentEntry {
 /// Two error entries, a detection entry, and an entry read from a document of version 1.1, whose error record
 /// carries a partial report.
 fn mixed_entries() -> Vec<DocumentEntry> {
-  let detection = serde_json::from_value(json!({ "schema_version": "1.0", "outcome": "identified", "format": "Matroska", "confidence": 100, "candidates": [] })).unwrap();
+  let detection = serde_json::from_value(json!({ "schema_version": "1.0", "outcome": "identified", "format": "Matroska", "confidence": 100, "candidates": [], "usage": { "bytes_read": 0, "peak_working_memory": 0 } })).unwrap();
   let detection = DocumentEntry::from_detection(PortablePath::from_path(Path::new("clip.mp4")), detection);
   let mut newer = serde_json::to_value(Document::from_results(
     Generator::new("catalog", "1"),
@@ -45,6 +45,7 @@ fn mixed_entries() -> Vec<DocumentEntry> {
   .unwrap();
   newer["schema_version"] = json!("1.1");
   newer["results"][0]["error"]["schema_version"] = json!("1.1");
+  newer["results"][0]["error"]["kind"] = json!("source_failed");
   newer["results"][0]["error"]["partial_report"] = json!({
     "schema_version": "1.1",
     "format": "Matroska",

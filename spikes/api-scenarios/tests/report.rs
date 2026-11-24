@@ -245,7 +245,8 @@ fn the_number_of_reasons_not_kept_is_a_decimal_string() {
 
 /// A report whose one stream has that header status, with that headers status and complete parts otherwise. A
 /// headers status of `Incomplete` has the first reason of the headers in the record, as reading requires since the
-/// twelfth review; no other part has a reason.
+/// twelfth review, which a full budget kept out of the reasons and the record counts (fifteenth review); no other
+/// part has a reason.
 fn report_with_header_state(header_status: Value, headers: Value) -> Result<MediaReport, serde_json::Error> {
   let empty_record = json!({ "exhausted": [], "first_stopped": [] });
   let mut text = serde_json::to_value(report(json!("Complete"), json!([]), empty_record)).unwrap();
@@ -255,6 +256,7 @@ fn report_with_header_state(header_status: Value, headers: Value) -> Result<Medi
       "stream": 0,
       "reason": { "kind": "TruncatedInput" },
     }]);
+    text["completeness"]["record"]["omitted_reasons"] = json!("1");
   }
   text["completeness"]["headers"] = headers;
   text["streams"] = json!([{

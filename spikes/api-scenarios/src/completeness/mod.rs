@@ -17,14 +17,16 @@
 
 //! Completeness and header status, `api.md` sections 5.3 to 5.5, with a subset of their values.
 
+#[cfg(feature = "serde")]
+mod agreement;
 mod constants;
+mod reason;
 mod record;
 mod statuses;
 
+pub use reason::{Reason, ReasonKind};
 pub use record::LimitRecord;
-#[cfg(feature = "serde")]
-pub(crate) use record::names_exhausted_limit;
 pub use statuses::{
-  Completeness, DetectionStatus, DiscoveryStatus, HeaderState, HeaderStatus, HeadersStatus, Part, PartReason, Reason,
-  ReasonKind, SectionStatus,
+  Completeness, DetectionStatus, DiscoveryStatus, HeaderState, HeaderStatus, HeadersStatus, Part, PartReason,
+  SectionStatus,
 };

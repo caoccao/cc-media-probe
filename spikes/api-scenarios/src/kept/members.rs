@@ -77,6 +77,11 @@ impl KeptMembers {
     Record::deserialize(KeptValue::Map(self).into_deserializer())
   }
 
+  /// The members as a slice, in the order written.
+  pub(crate) fn as_slice(&self) -> &[(String, KeptValue)] {
+    &self.0
+  }
+
   /// The members, in the order written.
   pub(crate) fn iter(&self) -> impl Iterator<Item = (&String, &KeptValue)> {
     self.0.iter().map(|(name, value)| (name, value))

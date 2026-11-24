@@ -57,8 +57,7 @@ fn an_outcome_of_a_newer_version_is_forwarded_with_its_entry() {
   // version cannot derive the entry's outcome from it. `with_outcome` refuses the recorded `skipped`, which it could
   // only build without `skip_reason`, and the entry as read forwards both.
   let mut text = skipped_document();
-  text["results"][0]["detection"] =
-    json!({ "schema_version": "1.1", "outcome": "identified_by_content", "candidates": [] });
+  text["results"][0]["detection"] = json!({ "schema_version": "1.1", "outcome": "identified_by_content", "candidates": [], "usage": { "bytes_read": 0, "peak_working_memory": 0 } });
   let read: Document = serde_json::from_value(text).unwrap();
   let entry = &read.results()[0];
   let refused = DocumentEntry::from_detection(entry.input().clone(), entry.detection().unwrap().clone()).unwrap_err();

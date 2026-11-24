@@ -18,7 +18,8 @@
 //! Reading a held value into its type once the version is checked. The value is given as it was read, null and
 //! repeated names included; the root record reads it through `Strict`, which refuses them where they stand, as it
 //! does for a member after the version. So a nested root record held before its parent's version reads its own
-//! version first, exactly as it would from the input (thirteenth review).
+//! version first, exactly as it would from the input (thirteenth review). A value that JSON does not carry fails as
+//! soon as it is decoded (fifteenth review).
 
 use std::marker::PhantomData;
 
@@ -27,6 +28,7 @@ use serde::de::{Error, IntoDeserializer, Visitor};
 use serde::{Deserializer, forward_to_deserialize_any};
 
 use super::held::HeldValue;
+use crate::constants::NOT_JSON_VALUE_MESSAGE;
 
 /// A held value as a Serde deserializer, with the error type of the reader that held it.
 pub(super) struct HeldValueReader<Failure> {
@@ -56,7 +58,6 @@ impl<'input, Failure: Error> Deserializer<'input> for HeldValueReader<Failure> {
       HeldValue::Signed(value) => visitor.visit_i64(value),
       HeldValue::FloatingPoint(value) => visitor.visit_f64(value),
       HeldValue::Text(text) => visitor.visit_string(text),
-      HeldValue::Bytes(bytes) => visitor.visit_byte_buf(bytes),
       HeldValue::Sequence(items) => {
         let mut sequence = SeqDeserializer::new(items.into_iter());
         let value = visitor.visit_seq(&mut sequence)?;
@@ -69,6 +70,7 @@ impl<'input, Failure: Error> Deserializer<'input> for HeldValueReader<Failure> {
         map.end()?;
         Ok(value)
       }
+      HeldValue::NotJson => Err(Failure::custom(NOT_JSON_VALUE_MESSAGE)),
     }
   }
 

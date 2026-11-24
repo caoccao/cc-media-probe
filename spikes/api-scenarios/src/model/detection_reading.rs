@@ -19,12 +19,20 @@
 //! members it needs and none that another outcome needs, as the fourteenth review asked, so an entry's outcome is
 //! decided from a detection that describes it. An outcome of a newer version reads whatever members it holds.
 //! `bytes_needed` beyond 2^53 - 1 is its twin `bytes_needed_exact`, as the maintainer chose at the same review.
+//!
+//! Since the fifteenth review the candidates name each format once, so an ambiguous detection names at least two
+//! formats; an insufficient detection's reason is the input's end or a named limit (`api.md` section 8); the usage is
+//! always present; and a detection of a newer outcome keeps every member that it does not read and writes it back
+//! after its own, as an entry of a newer outcome does, as the maintainer chose. A detection of a known outcome
+//! ignores such a member.
 
-use super::detection::{Candidate, Detection, DetectionOutcome, Hint};
+use super::detection::{Candidate, CandidateData, Detection, DetectionOutcome, Hint};
 use super::format::Format;
-use crate::completeness::Reason;
-use crate::constants::{DETECTION_MESSAGE, MAXIMUM_CONFIDENCE, MINIMUM_CANDIDATES};
+use super::usage::Usage;
+use crate::completeness::{Reason, ReasonKind};
+use crate::constants::{CONFIDENCE_MESSAGE, DETECTION_MESSAGE, MAXIMUM_CONFIDENCE, MINIMUM_CANDIDATES};
 use crate::document::{InvalidDocument, SchemaVersion};
+use crate::kept::KeptMembers;
 use crate::neutral::Rooted;
 use crate::twin::{unsigned_members, unsigned_value};
 
@@ -46,6 +54,10 @@ pub(super) struct DetectionMembers {
   bytes_needed_exact: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   insufficient_reason: Option<Reason>,
+  usage: Usage,
+  /// The members of a detection of a newer outcome that this version does not read, written back as read.
+  #[serde(flatten)]
+  kept: KeptMembers,
 }
 
 impl From<Detection> for DetectionMembers {
@@ -61,6 +73,8 @@ impl From<Detection> for DetectionMembers {
       bytes_needed,
       bytes_needed_exact,
       insufficient_reason: detection.insufficient_reason,
+      usage: detection.usage,
+      kept: detection.kept,
     }
   }
 }
@@ -76,6 +90,10 @@ pub(super) struct DetectionData {
   bytes_needed: Option<u64>,
   bytes_needed_exact: Option<String>,
   insufficient_reason: Option<Reason>,
+  usage: Usage,
+  /// Every other member, as written: kept for an outcome of a newer version, ignored for one that this version knows.
+  #[serde(flatten)]
+  kept: KeptMembers,
 }
 
 impl TryFrom<Rooted<DetectionData>> for Detection {
@@ -84,6 +102,7 @@ impl TryFrom<Rooted<DetectionData>> for Detection {
   fn try_from(rooted: Rooted<DetectionData>) -> Result<Detection, InvalidDocument> {
     let data = rooted.body;
     let bytes_needed = unsigned_value(data.bytes_needed, data.bytes_needed_exact)?;
+    let newer = matches!(data.outcome, DetectionOutcome::Unrecognized(_));
     let detection = Detection {
       schema_version: rooted.version,
       outcome: data.outcome,
@@ -93,8 +112,10 @@ impl TryFrom<Rooted<DetectionData>> for Detection {
       hint: data.hint,
       bytes_needed,
       insufficient_reason: data.insufficient_reason,
+      usage: data.usage,
+      kept: if newer { data.kept } else { KeptMembers::default() },
     };
-    if !(confidences_hold(&detection) && members_fit_the_outcome(&detection)) {
+    if !(confidences_hold(&detection) && formats_once(&detection.candidates) && members_fit_the_outcome(&detection)) {
       return Err(InvalidDocument::new(DETECTION_MESSAGE));
     }
     Ok(detection)
@@ -110,6 +131,25 @@ fn confidences_hold(detection: &Detection) -> bool {
     .chain(candidates.iter().copied())
     .all(|value| value <= MAXIMUM_CONFIDENCE)
     && candidates.is_sorted_by(|earlier, later| earlier >= later)
+}
+
+/// Whether the candidates name each format once: two copies of one format tie on every rank and name one format
+/// (fifteenth review).
+fn formats_once(candidates: &[Candidate]) -> bool {
+  (0..candidates.len()).all(|position| {
+    candidates[..position]
+      .iter()
+      .all(|earlier| earlier.format() != candidates[position].format())
+  })
+}
+
+/// Whether an insufficient detection's reason is the input's end or a named limit (`api.md` section 8); a reason of a
+/// newer version may be either. A limit reason names its limit, which `Reason` checks itself.
+fn insufficient_reason_fits(reason: &Reason) -> bool {
+  matches!(
+    reason.kind(),
+    ReasonKind::TruncatedInput | ReasonKind::LimitExhausted | ReasonKind::Unrecognized(_)
+  )
 }
 
 /// Whether the members are those of the outcome: what it needs present, what another outcome needs absent. A format
@@ -146,11 +186,33 @@ fn members_fit_the_outcome(detection: &Detection) -> bool {
         && no_shortage
     }
     DetectionOutcome::InsufficientData => {
-      detection.format.is_none() && detection.confidence.is_none() && no_candidates && no_hint
+      detection.format.is_none()
+        && detection.confidence.is_none()
+        && no_candidates
+        && no_hint
+        && detection
+          .insufficient_reason
+          .as_ref()
+          .is_none_or(insufficient_reason_fits)
     }
     DetectionOutcome::Unknown => {
       detection.format.is_none() && detection.confidence.is_none() && no_candidates && no_hint && no_shortage
     }
     DetectionOutcome::Unrecognized(_) => true,
+  }
+}
+
+impl TryFrom<CandidateData> for Candidate {
+  type Error = InvalidDocument;
+
+  /// A candidate whose confidence lies from 0 to 100, read alone or inside a detection (fifteenth review).
+  fn try_from(data: CandidateData) -> Result<Candidate, InvalidDocument> {
+    if data.confidence > MAXIMUM_CONFIDENCE {
+      return Err(InvalidDocument::new(CONFIDENCE_MESSAGE));
+    }
+    Ok(Candidate {
+      format: data.format,
+      confidence: data.confidence,
+    })
   }
 }

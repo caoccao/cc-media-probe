@@ -18,7 +18,10 @@
 //! The fourteenth review's cases of a detection (`json-output.md` section 4.3; `api.md` section 8): each outcome that
 //! this version knows has the members it needs and none that another outcome needs, so an entry's outcome is read
 //! from a detection that describes it. The review read an `ok` entry whose identified detection had neither format
-//! nor confidence. `bytes_needed` has the twin `bytes_needed_exact` beyond 2^53 - 1, as the maintainer chose.
+//! nor confidence. `bytes_needed` has the twin `bytes_needed_exact` beyond 2^53 - 1, as the maintainer chose. The
+//! fifteenth review added three cases: an ambiguous detection between two copies of one format read, an insufficient
+//! detection took a reason that is neither the input's end nor a named limit, and a detection lost its `usage` when
+//! written, and read without one.
 
 use cc_media_probe::document::Document;
 use cc_media_probe::model::Detection;
@@ -28,12 +31,16 @@ fn read(detection: Value) -> Result<Detection, serde_json::Error> {
   serde_json::from_value(complete(detection))
 }
 
-/// The detection with its version and, where it has none, the empty list of candidates that every detection holds.
+/// The detection with its version and, where it has none, the empty list of candidates and the usage that every
+/// detection holds.
 fn complete(detection: Value) -> Value {
   let mut text = detection;
   text["schema_version"] = json!("1.0");
   if text.get("candidates").is_none() {
     text["candidates"] = json!([]);
+  }
+  if text.get("usage").is_none() {
+    text["usage"] = json!({ "bytes_read": 0, "peak_working_memory": 0 });
   }
   text
 }
@@ -143,4 +150,45 @@ fn bytes_needed_beyond_the_exact_range_is_its_twin() {
   ] {
     assert!(read(wrong.clone()).is_err(), "{wrong}");
   }
+}
+
+#[test]
+fn the_candidates_name_each_format_once() {
+  // The review's case: two copies of MP4, which tie on every rank and name one format.
+  let twice = json!([{ "format": "Mp4", "confidence": 60 }, { "format": "Mp4", "confidence": 60 }]);
+  assert!(read(json!({ "outcome": "ambiguous", "candidates": twice.clone() })).is_err());
+  let three = json!([
+    { "format": "Mp4", "confidence": 60 },
+    { "format": "QuickTime", "confidence": 60 },
+    { "format": "Mp4", "confidence": 50 },
+  ]);
+  assert!(read(json!({ "outcome": "ambiguous", "candidates": three })).is_err());
+  // A repetition is refused beside an outcome of a newer version too.
+  assert!(read(json!({ "outcome": "identified_by_content", "candidates": twice })).is_err());
+}
+
+#[test]
+fn insufficient_data_names_the_inputs_end_or_a_limit() {
+  for (reason, valid) in [
+    (json!({ "kind": "TruncatedInput" }), true),
+    (json!({ "kind": "LimitExhausted", "limit": "BytesRead" }), true),
+    (json!({ "kind": { "Unrecognized": "window_closed" } }), true),
+    // The review's case: bytes outside the readable range, which `api.md` section 8 does not list.
+    (json!({ "kind": "RangeUnavailable" }), false),
+  ] {
+    let detection = json!({ "outcome": "insufficient_data", "insufficient_reason": reason });
+    assert_eq!(read(detection.clone()).is_ok(), valid, "{detection}");
+  }
+}
+
+#[test]
+fn a_detection_keeps_its_usage() {
+  // The review's case: the usage of an unknown detection was not written, and a detection without one read.
+  let usage = json!({ "bytes_read": 4096, "peak_working_memory": 512 });
+  let read_back = read(json!({ "outcome": "unknown", "usage": usage.clone() })).unwrap();
+  assert_eq!(read_back.usage().bytes_read(), 4096);
+  assert_eq!(serde_json::to_value(&read_back).unwrap()["usage"], usage);
+  let mut without = complete(json!({ "outcome": "unknown" }));
+  without.as_object_mut().unwrap().remove("usage");
+  assert!(serde_json::from_value::<Detection>(without).is_err());
 }

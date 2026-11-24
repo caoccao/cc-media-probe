@@ -18,7 +18,9 @@
 //! One value kept as written, read through the self-describing side of Serde. Null is not among the values: the form
 //! never writes it, so a member that holds null fails as a value of the wrong type, kept or not. Nor is any value that
 //! JSON cannot carry faithfully, a non-finite number or a byte string from a format that has them, as the maintainer
-//! chose at the fourteenth review, so a catch-all forwards from any format only what JSON writes back as read.
+//! chose at the fourteenth review, so a catch-all forwards from any format only what JSON writes back as read. The
+//! private map of serde_json's `arbitrary_precision` feature is kept as the number it stands for, as the maintainer
+//! chose at the fifteenth review (`number_text`), so a number keeps its JSON type in every build.
 
 use std::fmt;
 
@@ -26,7 +28,8 @@ use serde::de::{Error, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::members::KeptMembers;
-use crate::constants::{KEPT_VALUE_EXPECTING, NOT_JSON_VALUE_MESSAGE};
+use crate::constants::{ARBITRARY_PRECISION_NAME, KEPT_VALUE_EXPECTING, NOT_JSON_VALUE_MESSAGE};
+use crate::number_text::{self, NumberText};
 
 /// A value kept as written. A floating-point number is held by its bits, so equality and hashing are exact.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -121,7 +124,18 @@ impl<'input> Visitor<'input> for KeptValueVisitor {
     Ok(KeptValue::Sequence(values))
   }
 
+  /// A map, or the number that the private map of serde_json's `arbitrary_precision` feature stands for.
   fn visit_map<Members: MapAccess<'input>>(self, members: Members) -> Result<KeptValue, Members::Error> {
-    KeptMembers::from_map(members).map(KeptValue::Map)
+    let members = KeptMembers::from_map(members)?;
+    let number = match members.as_slice() {
+      [(name, KeptValue::Text(text))] if name == ARBITRARY_PRECISION_NAME => number_text::parse(text),
+      _ => None,
+    };
+    match number {
+      Some(NumberText::Unsigned(value)) => Ok(KeptValue::Unsigned(value)),
+      Some(NumberText::Signed(value)) => Ok(KeptValue::Signed(value)),
+      Some(NumberText::FloatingPoint(value)) => KeptValueVisitor.visit_f64(value),
+      None => Ok(KeptValue::Map(members)),
+    }
   }
 }

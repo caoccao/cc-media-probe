@@ -20,36 +20,29 @@
 
 use std::fmt;
 
+use super::reason::Reason;
 use super::record::LimitRecord;
 use crate::constants::{
-  CHAPTERS_NAME, COMPLETE_TEXT, DETECTION_NAME, DISCOVERY_NAME, HEADERS_NAME, INCOMPLETE_TEXT, LIMIT_EXHAUSTED_NAME,
-  NOT_APPLICABLE_NAME, NOT_ATTEMPTED_NAME, NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME,
-  RANGE_UNAVAILABLE_NAME, TAGS_NAME, TRUNCATED_INPUT_NAME,
+  CHAPTERS_NAME, COMPLETE_TEXT, DETECTION_NAME, DISCOVERY_NAME, HEADERS_NAME, INCOMPLETE_TEXT, NOT_APPLICABLE_NAME,
+  NOT_ATTEMPTED_NAME, NOT_FOUND_WITHIN_BUDGET_NAME, NOT_REQUESTED_NAME, PARSED_NAME, TAGS_NAME,
 };
-use crate::limits::Limit;
 use crate::model::UnrecognizedValue;
 use crate::source::SourceIdentifier;
 
-/// What was established, what was not, and why.
+/// What was established, what was not, and why. Reading checks that its reasons, its record and its statuses agree,
+/// alone too (`super::agreement`).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Completeness {
-  detection: DetectionStatus,
-  discovery: DiscoveryStatus,
-  headers: HeadersStatus,
-  tags: SectionStatus,
-  chapters: SectionStatus,
-  attachments: SectionStatus,
-  reasons: Vec<PartReason>,
-  record: LimitRecord,
+  pub(super) detection: DetectionStatus,
+  pub(super) discovery: DiscoveryStatus,
+  pub(super) headers: HeadersStatus,
+  pub(super) tags: SectionStatus,
+  pub(super) chapters: SectionStatus,
+  pub(super) attachments: SectionStatus,
+  pub(super) reasons: Vec<PartReason>,
+  pub(super) record: LimitRecord,
 }
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Completeness);
 
 impl Completeness {
   /// The definition of plan section 8.3, over the statuses that the stub has: no part fell short. It reads the
@@ -134,7 +127,7 @@ impl fmt::Display for Completeness {
       return formatter.write_str(COMPLETE_TEXT);
     }
     match self.reasons.first().or(self.record.first_reasons.first()) {
-      Some(first) => write!(formatter, "{INCOMPLETE_TEXT}: {}", first.reason.kind.as_str()),
+      Some(first) => write!(formatter, "{INCOMPLETE_TEXT}: {}", first.reason.kind().as_str()),
       None => formatter.write_str(INCOMPLETE_TEXT),
     }
   }
@@ -273,6 +266,17 @@ impl PartReason {
   pub fn reason(&self) -> &Reason {
     &self.reason
   }
+
+  /// Whether the two name the same part, stream, source, kind and limit: the first reason of a part, which the record
+  /// keeps without its detail, and the first kept reason of that part (fifteenth review).
+  #[cfg(feature = "serde")]
+  pub(crate) fn same_apart_from_detail(&self, other: &PartReason) -> bool {
+    self.part == other.part
+      && self.stream == other.stream
+      && self.source_identifier == other.source_identifier
+      && self.reason.kind() == other.reason.kind()
+      && self.reason.limit() == other.reason.limit()
+  }
 }
 
 /// What a reason stopped.
@@ -306,83 +310,6 @@ impl Part {
       Part::Tags => TAGS_NAME,
       Part::Chapters => CHAPTERS_NAME,
       Part::Unrecognized(value) => value.as_str(),
-    }
-  }
-}
-
-/// Why something was not established.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-  feature = "serde",
-  derive(serde::Serialize, serde::Deserialize),
-  serde(remote = "Self")
-)]
-pub struct Reason {
-  kind: ReasonKind,
-  #[cfg_attr(
-    feature = "serde",
-    serde(
-      default,
-      deserialize_with = "crate::presence::present",
-      skip_serializing_if = "Option::is_none"
-    )
-  )]
-  limit: Option<Limit>,
-  #[cfg_attr(
-    feature = "serde",
-    serde(
-      default,
-      deserialize_with = "crate::presence::present",
-      skip_serializing_if = "Option::is_none"
-    )
-  )]
-  detail: Option<String>,
-}
-
-#[cfg(feature = "serde")]
-crate::neutral::record_traits!(Reason);
-
-impl Reason {
-  /// The kind of reason.
-  pub fn kind(&self) -> &ReasonKind {
-    &self.kind
-  }
-
-  /// The limit, for an exhausted one.
-  pub fn limit(&self) -> Option<&Limit> {
-    self.limit.as_ref()
-  }
-
-  /// More detail, for people.
-  pub fn detail(&self) -> Option<&str> {
-    self.detail.as_deref()
-  }
-}
-
-/// The kinds of reason, plan section 8.3.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[non_exhaustive]
-pub enum ReasonKind {
-  /// On a forward-only source, the bytes fell behind the read window before they were needed.
-  RangeUnavailable,
-  /// The input ended early.
-  TruncatedInput,
-  /// A limit was reached.
-  LimitExhausted,
-  /// A value that a newer version wrote.
-  #[cfg_attr(feature = "serde", serde(with = "crate::model::unrecognized_text"))]
-  Unrecognized(UnrecognizedValue<ReasonKind>),
-}
-
-impl ReasonKind {
-  /// The serialized name, or the text of an unrecognized value.
-  pub fn as_str(&self) -> &str {
-    match self {
-      ReasonKind::RangeUnavailable => RANGE_UNAVAILABLE_NAME,
-      ReasonKind::TruncatedInput => TRUNCATED_INPUT_NAME,
-      ReasonKind::LimitExhausted => LIMIT_EXHAUSTED_NAME,
-      ReasonKind::Unrecognized(value) => value.as_str(),
     }
   }
 }
@@ -429,7 +356,7 @@ impl HeaderStatus {
 impl fmt::Display for HeaderStatus {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
     match &self.reason {
-      Some(reason) => write!(formatter, "{} ({})", self.state.as_str(), reason.kind.as_str()),
+      Some(reason) => write!(formatter, "{} ({})", self.state.as_str(), reason.kind().as_str()),
       None => formatter.write_str(self.state.as_str()),
     }
   }

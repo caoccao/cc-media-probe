@@ -27,8 +27,6 @@
 
 #[cfg(feature = "serde")]
 use super::constants::{LIMIT_ORDER, PART_ORDER};
-#[cfg(feature = "serde")]
-use super::statuses::ReasonKind;
 use super::statuses::{Part, PartReason};
 #[cfg(feature = "serde")]
 use crate::constants::LIMIT_RECORD_MESSAGE;
@@ -100,7 +98,7 @@ impl TryFrom<LimitRecordData> for LimitRecord {
     let reasons_agree = read
       .first_reasons
       .iter()
-      .all(|first| first.reason().detail().is_none() && names_exhausted_limit(first, &read.exhausted));
+      .all(|first| first.reason().detail().is_none() && first.reason().finds_its_counter(&read.exhausted));
     if !(pairs_name_the_limits && limits_once && parts_once && ordered && stopped_parts_have_reasons && reasons_agree) {
       return Err(InvalidDocument::new(LIMIT_RECORD_MESSAGE));
     }
@@ -127,15 +125,6 @@ fn in_declared_order<Item: PartialEq>(items: &[Item], order: &[Item]) -> bool {
     .filter_map(|item| order.iter().position(|known| known == item))
     .collect();
   ranks.is_sorted_by(|earlier, later| earlier < later)
-}
-
-/// Whether a reason that names an exhausted limit finds it among the exhausted ones (fourteenth review).
-#[cfg(feature = "serde")]
-pub(crate) fn names_exhausted_limit(reason: &PartReason, exhausted: &[Limit]) -> bool {
-  match (reason.reason().kind(), reason.reason().limit()) {
-    (ReasonKind::LimitExhausted, Some(limit)) => exhausted.contains(limit),
-    _ => true,
-  }
 }
 
 #[cfg(feature = "serde")]
@@ -175,6 +164,12 @@ impl LimitRecord {
   #[cfg(feature = "serde")]
   pub(crate) fn exhausted_limits(&self) -> &[Limit] {
     &self.exhausted
+  }
+
+  /// The first reason of each part, in the order of the parts.
+  #[cfg(feature = "serde")]
+  pub(crate) fn first_reasons(&self) -> &[PartReason] {
+    &self.first_reasons
   }
 
   /// Whether the counter ran out.

@@ -192,7 +192,7 @@ pub const CHROMA_FORMAT_MESSAGE: &str = "a chroma format of a known kind holds t
 pub const HEADERS_DISAGREE_MESSAGE: &str = "a report's headers status disagrees with the header states of its streams";
 /// A report whose reasons, first reasons and statuses disagree part by part (twelfth review).
 #[cfg(feature = "serde")]
-pub const REASONS_DISAGREE_MESSAGE: &str = "a report's reasons disagree with its statuses or its record";
+pub const REASONS_DISAGREE_MESSAGE: &str = "the reasons of a completeness disagree with its statuses or its record";
 
 /// The members of an enum that carries data: the kind, which names the member that holds the value.
 #[cfg(feature = "serde")]
@@ -315,20 +315,22 @@ pub const STOPPING_POINTS_MESSAGE: &str =
 /// The fourteenth review: an error record whose record is not that of its partial report.
 #[cfg(feature = "serde")]
 pub const ERROR_RECORD_MESSAGE: &str = "an error that carries a partial report has that report's record";
-/// The fourteenth review: a detection whose members do not fit its outcome, or whose confidences do not hold.
+/// The fourteenth review: a detection whose members do not fit its outcome, or whose confidences do not hold; since
+/// the fifteenth review also candidates that repeat a format.
 #[cfg(feature = "serde")]
 pub const DETECTION_MESSAGE: &str = "a detection holds the members of its outcome and no other, with confidences from \
-                                     0 to 100 that fall with the candidates' rank";
+                                     0 to 100 that fall with the candidates' rank, which name each format once";
 /// The fourteenth review: the largest confidence (`api.md` section 8).
 #[cfg(feature = "serde")]
 pub const MAXIMUM_CONFIDENCE: u8 = 100;
 /// The fourteenth review: the fewest candidates of an ambiguous detection, which has several.
 #[cfg(feature = "serde")]
 pub const MINIMUM_CANDIDATES: usize = 2;
-/// The fourteenth review: a value that JSON cannot carry faithfully, which the form refuses from any format.
+/// The fourteenth review: a value that JSON cannot carry faithfully, which the form refuses from any format; since the
+/// fifteenth review also a member name that is not a string.
 #[cfg(feature = "serde")]
-pub const NOT_JSON_VALUE_MESSAGE: &str =
-  "a value is one that JSON carries as read: no non-finite number and no byte string";
+pub const NOT_JSON_VALUE_MESSAGE: &str = "a value is one that JSON carries as read: no non-finite number, no byte \
+                                         string and no member name that is not a string";
 /// The fourteenth review: the bytes of a GUID, such as the `SubFormat` of an extensible WAVE format.
 #[cfg(feature = "serde")]
 pub const GUID_BYTES: usize = 16;
@@ -339,3 +341,34 @@ pub const PRINTABLE_FIRST: char = ' ';
 /// The fourteenth review: the last printable ASCII character.
 #[cfg(feature = "serde")]
 pub const PRINTABLE_LAST: char = '~';
+/// The fifteenth review: the name of the one member of the map that serde_json's `arbitrary_precision` feature gives
+/// for a number that is not an integer within 64 bits, whose value is the number's text.
+#[cfg(feature = "serde")]
+pub const ARBITRARY_PRECISION_NAME: &str = "$serde_json::private::Number";
+/// The fifteenth review: the decimal point of a JSON number (RFC 8259 section 6).
+#[cfg(feature = "serde")]
+pub const DECIMAL_POINT: char = '.';
+/// The fifteenth review: the two letters that start the exponent of a JSON number (RFC 8259 section 6).
+#[cfg(feature = "serde")]
+pub const EXPONENT_MARKERS: [char; 2] = ['e', 'E'];
+/// The fifteenth review: the plus sign of a JSON exponent (RFC 8259 section 6).
+#[cfg(feature = "serde")]
+pub const PLUS_SIGN: char = '+';
+/// The fifteenth review: the digit that no integer part of more than one digit starts with (RFC 8259 section 6).
+#[cfg(feature = "serde")]
+pub const ZERO_DIGIT: char = '0';
+/// The fifteenth review: negative zero, which a reader without the feature reads as a floating-point number.
+#[cfg(feature = "serde")]
+pub const NEGATIVE_ZERO: &str = "-0";
+/// The fifteenth review: a confidence beyond 100, which a candidate read alone refuses as a detection does.
+#[cfg(feature = "serde")]
+pub const CONFIDENCE_MESSAGE: &str = "a confidence lies from 0 to 100";
+/// The fifteenth review: a reason of a known kind without the members of its kind, or with those of another.
+#[cfg(feature = "serde")]
+pub const REASON_MESSAGE: &str = "a reason of a known kind holds the members of its kind and no other";
+/// The fifteenth review: a partial report beside an error kind other than a source failure.
+#[cfg(feature = "serde")]
+pub const PARTIAL_REPORT_KIND_MESSAGE: &str = "only a source failure carries a partial report";
+/// The fifteenth review: an error's limit reason whose limit the record does not hold as exhausted.
+#[cfg(feature = "serde")]
+pub const REASON_COUNTER_MESSAGE: &str = "an error's limit reason names a limit that its record holds as exhausted";

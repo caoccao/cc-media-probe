@@ -3344,3 +3344,96 @@ The scope was moved into the strict deserializer first, since every later test d
 - G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth and fourteenth reviews made without asking, and the sixth to fourteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
 - `docs/guide/stability.md`, after that review, for G2.4;
 - the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.
+
+## 2026-11-24 — GS.4: R21 and an output failure (revision 50) [CONFIRM]
+
+**The finding.** The fifteenth review found that the help's exit-status line, "0 if every input succeeded, 1 if any failed, 2 for a usage error", leaves out the status 1 that `cli.md` section 9 and plan section 8.9 give when standard output fails, even after every input succeeded. The line repeated R21 word for word, so fixing the help alone would have left the confirmed requirement contradicting section 8.9.
+
+**Decision of the maintainer.** Asked whether to amend R21 through GS.4 or to change the help only and keep R21 as a summary of the inputs' outcomes, the maintainer chose to amend R21, the recommended option.
+
+**What changed.** R21 now reads "Exit status 0 if every input succeeded and standard output was written, 1 if any input failed or standard output could not be written, 2 for usage errors", with "amended through GS.4 on 2026-11-24" in its history. The help's exit-status line in `cli.md` section 5 says the same in two lines of at most 80 columns, and plan section 8.9 points to it. A usage error keeps status 2 even when its document cannot be written, as section 8.9 already said. `CLAUDE.md` and `CONTRIBUTING.md` do not state R21's statuses, so neither changes.
+
+## 2026-11-24 — Progress: Phase 2, the fifteenth review of the API specification
+
+The maintainer's fifteenth review, pasted as code comments, read revision 49 (`dec979f`): three findings on `api.md`, one on `cli.md` and eleven on `json-output.md`, two of priority 1, ten of priority 2 and three of priority 3. It grouped them under G2.3 compatibility, API and record validation, the JSON guide and examples, and the CLI, and left the planned `stability.md` and G2.4 out. No gate was recorded as approved.
+
+**Decisions of the maintainer.** The agent asked four questions after reproducing the cases. The maintainer took the recommended option each time.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| A detection of a newer outcome, and an error record of a newer kind, that drop the members they do not read | Both keep every unread member and write it back after their own, as an entry of a newer outcome does | Let a new detection outcome or error kind add optional members only | The version that wrote the outcome then reads its record again; the review's `retry_after` survives |
+| serde_json's `arbitrary_precision` private map in the neutral form and the catch-alls | Read as the number that a build without the feature reads | Keep the digits and write them back through the same private map; refuse the map | Cargo turns the feature on for a whole build, and the number then keeps its JSON type in every build and every format |
+| The fixed-size guarantee of a record read from an archive | Fixed-size as a probe builds it; read back, the values of a newer version are kept as written, bounded by the input | A bound on the length and number of such values | A bound would make a newer version with more limits unreadable |
+| The help's exit-status line, which repeated R21 | R21 amended through GS.4, and the help says the same (entry above) | The help only | The requirement and the help then agree with section 8.9 |
+
+**Reproduced first.** A scratch crate in the session's scratchpad, outside the repository, depended on the stub, ciborium 0.2.2 and serde_json 1.0.154 with `arbitrary_precision`, and reproduced every case that the review reported:
+
+- a detection `deferred` of version 1.1 with `retry_after: 3` wrote back version 1.1 and `deferred` without `retry_after`;
+- `1.25` in an entry of a newer outcome came back as `{"$serde_json::private::Number": "1.25"}`, held before the version and kept after it;
+- a CBOR document of version 2.0 gave the version error with the version first, and "invalid type: integer `1`, expected string" with an integer-keyed map before it, while a byte string and NaN before it gave the version error;
+- a standalone candidate of confidence 101 and a standalone completeness with incomplete tags and no first reason read, while a report refused the same completeness;
+- two MP4 candidates of confidence 60 made an ambiguous detection;
+- a report with `limit_exhausted` and no limit beside an empty `exhausted`, and an insufficient detection with `range_unavailable`, read;
+- a limit name of 32 KiB read in both `exhausted` and `first_stopped`;
+- with `omitted_reasons` of `"0"`, an empty `reasons` beside a first reason of the tags, and a tags reason other than the first, read;
+- an `unknown_format` error read with a partial report and its record;
+- an `unknown` detection with eight usage counters wrote no `usage`, and a detection without `usage` read.
+
+The same crate found two more cases (below): `1e400` before a version of 2.0 gave the version error with the feature, and a CBOR map with an integer key inside a member that no type reads, after the version, read. The spike's tests were written next and failed before the fixes: four of the six of the new `tests/payloads.rs` (the detection's and the error record's kept members, the private map before and after the version, and `1e400` in it), two of the three first tests of the new `tests/neutral_values.rs`, with the review's "expected string", and the six of the new `tests/own_checks.rs`, while `tests/detections.rs` did not compile, since the stub's `Detection` had no `usage()`.
+
+**Findings and changes.** Each finding holds. The table of `api.md` section 16 lists the three on `api.md` and the eleven on `json-output.md`, and `cli.md` section 13 the one on the CLI contract:
+
+- **Kept payloads.** A detection of a newer outcome and an error record of a newer kind keep and write back the members they do not read, and only records that keep their payload let a new value require members (`api.md` sections 8, 10.2, 12 and 14; `json-output.md` sections 3, 4.3, 4.4, 5.2 and 9).
+- **Numbers of arbitrary precision.** The private map reads as its number in the neutral form, a catch-all and a kept member; `1e400` in it fails as not finite, and a map of that name that holds no number stays a map (`api.md` section 12; `json-output.md` section 2).
+- **Names that are not strings.** The neutral form holds a map with such names, and a root member with such a name, as it holds a null, so the version error comes first; once the version is known they fail as a value that JSON does not carry (`json-output.md` section 2).
+- **The direction of a migration.** An older reader refuses a newer major version always; only a newer reader may apply a documented migration (`api.md` section 14; `json-output.md` section 9).
+- **Checks of a record's own members** run alone too: a candidate's confidence, a reason's members and a completeness's agreement with its record. The check of the headers against the streams stays with the report (`api.md` sections 3.3 and 5.3; `json-output.md` sections 2 and 10).
+- **Each format once** among the candidates, in a detection and an error record (`api.md` sections 5.1 and 8; `json-output.md` sections 4.3 and 4.4).
+- **The members of each reason kind,** and the reason of insufficient data as the input's end or a limit (`api.md` sections 5.5 and 8; `json-output.md` sections 4.3 and 7.2).
+- **The omitted count** covers each first reason that the kept reasons lack, and with none omitted the first kept reason of each part is the record's, apart from its detail (`api.md` section 5.3; `json-output.md` section 7.2).
+- **A partial report** for a source failure only, among the known kinds (`api.md` section 10.2; `json-output.md` section 4.4).
+- **Fixed-size as a probe builds it** (plan section 7.5; `api.md` section 5.3; `json-output.md` section 7.2).
+- **A detection's usage** is written and required by the stub, and the evidence names the six counters that the stub lacks (`json-output.md` section 11).
+- **`wave_subformat`** joins the table of section 6.1, the chart of section 2 asks a nested record's question before it holds a member, and the missing-file example has `"operating_system_error_code": 2` (`json-output.md` sections 2, 5.8 and 6.1).
+- **The help's exit-status line** names an output failure, with R21 amended through GS.4 (`cli.md` section 5).
+
+**Found while revising:**
+
+- **`1e400` before the version** fails in serde_json's reader only without `arbitrary_precision`; with it, the neutral form holds the number, and the version error comes first. The guide says so.
+- **An integer-keyed map after the version,** in a member that no type reads, read, since the strict reader passed integer names through. A name asked for as text now fails when it is not text, while a type that asks for numeric names still gets them.
+- **A value that JSON does not carry before a nested record's version** is refused at once by the record that holds it, so the order of the failures lists it beside a null, and `tests/neutral_values.rs` shows it.
+- **An error record of a newer kind** had the detection's gap, an error's own reason was not compared with its record, and `CompanionLimited` names a limit too; the maintainer's choice and the rule of the limit cover all three.
+- **The rule of the omitted count** needs `reasons()` in the order recorded, which no section stated.
+- **The stub's `ErrorRecord`** had no `reason()`; it gains one, as `api.md` section 10.2 lists it.
+- **Fixtures of the stub** held a first reason with no kept reason and none omitted (`tests/agreement.rs`, `tests/consistency.rs`, `tests/report.rs`), and partial reports beside the stub's `unsupported_format` error (`tests/document.rs`, `tests/archive.rs`, `tests/writer.rs`, `tests/version_first.rs`, `tests/nested_versions.rs`). They now count the reason as omitted and carry a source failure, and every detection fixture gains its usage.
+- **`completeness/statuses.rs`** would pass 500 lines with the new checks, so `Reason` and `ReasonKind` move to `completeness/reason.rs` and the agreement of a completeness to `completeness/agreement.rs`; the number reader is `src/number_text.rs`.
+
+**Online check.** Cargo's reference on features confirms that a dependency is built once with the union of the features that its dependents enable. Public reports of the same symptom, in projects whose `flatten` or untagged fields stopped reading floats once a dependency turned `arbitrary_precision` on, confirm the private map's shape and that integers within 64 bits still come as plain numbers. serde_json 1.0.154's own source, read in the local registry, shows the same: `parse_any_number` and `ParserNumber::visit`.
+
+**Choices made without asking,** each with its gate, listed in `api.md` section 16, `cli.md` section 13 and `json-output.md` section 11: a name refused only where text is asked for (G2.3, task 11); a map named like the private number that holds no number kept as a map (G2.3); the members of each known reason kind, `CompanionLimited` with its limit (G2.3); every known kind but two refused as the reason of insufficient data (G2.3); `reasons()` in the order recorded, and the comparison of the first kept reason in part, stream, source, kind and limit (G2.3); a partial report allowed beside an error kind of a newer version (G2.3); the stub's usage kept at two counters (task 11); and the help's line wrapped at 80 columns (G2.3).
+
+**Plan, revision 50:**
+
+- R21, through GS.4 (entry above);
+- section 7.5: the record fixed-size as a probe builds it;
+- section 8.8: names that are not strings and numbers of arbitrary precision in the neutral form, the checks of a record's own members alone, the kept payloads of a detection and an error record, a partial report for a source failure only, the scope of required members in the compatibility table, and the new malformed cases;
+- section 8.9: the help's exit-status line;
+- the status line, the Phase 2 progress paragraph and Appendix E.
+
+`api.md` follows in its status, its list of the maintainer's choices, sections 3.3, 5.1, 5.3, 5.5, 8, 10.2, 12 and 14, and section 16. `cli.md` follows in its status and sections 5 and 13, and `json-output.md` in sections 2 to 7 and 9 to 11.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`, Clippy passes with warnings denied: with no feature, with each feature alone and with all features. `rustfmt` reports no difference, and the documentation builds without a warning. With all features, 147 tests and 8 doc tests pass: the 128 earlier tests, some with fixtures that the new rules need, three new tests of `tests/detections.rs`, and the sixteen of the three new files. Without a feature, 13 pass. All 13 programs end without a panic; the JSON scenario exits normally, and `jq` finds no null in its document.
+- **Scratch crate.** With ciborium 0.2.2 and serde_json's `arbitrary_precision`, every case of the review now gives the version error, is refused, or keeps its members, except the limit name of 32 KiB, which reads, as the maintainer's choice intends.
+- **Checks crate.** Its 147 tests pass.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Diagrams.** The changed chart of `json-output.md` section 2 renders with mermaid.js 11.4.1 in headless Chromium, with its 12 nodes and no syntax error.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 50;
+- G2.3, which confirms `cli.md`, the JSON contract with its proposals on the solidus, noncharacters and bytes, D18, the choices of the thirteenth to fifteenth reviews made without asking, and the sixth to fifteenth reviews' amendments of `api.md`, `cli.md` and the field guide;
+- `docs/guide/stability.md`, after that review, for G2.4;
+- the open items of the twelfth review's entry: the public sources of field guide F30, the MP4RA registry of track references and the features of `clap` in the dossier.

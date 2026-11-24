@@ -104,7 +104,7 @@ fn a_bare_error_record_compares_its_partial_report_before_decoding_it() {
   // The partial report's streams do not decode, and its version differs from the record's.
   let report = r#"{"schema_version": "1.1", "streams": 5}"#;
   let partial = format!(r#""partial_report": {report}"#);
-  let members = r#""kind": "format_not_determined", "message": "m""#;
+  let members = r#""kind": "source_failed", "message": "m""#;
   let version = r#""schema_version": "1.0""#;
   for text in [
     format!("{{{partial}, {members}, {version}}}"),

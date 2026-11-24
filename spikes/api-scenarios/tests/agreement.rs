@@ -27,8 +27,22 @@ use cc_media_probe::source::PortablePath;
 use serde_json::{Value, json};
 
 /// A report without streams whose tags have that status, with those reasons and those first reasons in the record,
-/// and every other part complete.
+/// and every other part complete. A first reason that no kept reason of its part matches was not kept, so the record
+/// counts it as omitted, as the fifteenth review asked.
 fn report_text(tags: Value, reasons: Value, first_reasons: Value) -> Value {
+  let kept = |first: &Value| {
+    reasons
+      .as_array()
+      .unwrap()
+      .iter()
+      .any(|reason| reason["part"] == first["part"])
+  };
+  let omitted = first_reasons
+    .as_array()
+    .unwrap()
+    .iter()
+    .filter(|first| !kept(first))
+    .count();
   json!({
     "schema_version": "1.0",
     "format": "Matroska",
@@ -45,7 +59,12 @@ fn report_text(tags: Value, reasons: Value, first_reasons: Value) -> Value {
       "chapters": "Complete",
       "attachments": "Complete",
       "reasons": reasons,
-      "record": { "exhausted": [], "first_stopped": [], "first_reasons": first_reasons },
+      "record": {
+        "exhausted": [],
+        "first_stopped": [],
+        "first_reasons": first_reasons,
+        "omitted_reasons": omitted.to_string(),
+      },
     },
     "usage": { "bytes_read": 0, "peak_working_memory": 0 },
     "sources": [],

@@ -61,12 +61,13 @@ impl<'name, Inner> Strict<'name, Inner> {
   }
 }
 
-/// Hands a request without arguments of its own to the wrapped deserializer, with the visitor wrapped.
+/// Hands a request without arguments of its own to the wrapped deserializer, with the visitor wrapped: `new` for a
+/// request of a value of a given type, `textual` for one that a member's name answers with text.
 macro_rules! forward_strictly {
-  ($($method:ident),* $(,)?) => {
+  ($wrap:ident: $($method:ident),* $(,)?) => {
     $(
       fn $method<Read: Visitor<'input>>(self, visitor: Read) -> Result<Read::Value, Inner::Error> {
-        self.inner.$method(StrictVisitor::new(visitor, self.name, self.holder))
+        self.inner.$method(StrictVisitor::$wrap(visitor, self.name, self.holder))
       }
     )*
   };
@@ -76,18 +77,21 @@ impl<'input, Inner: Deserializer<'input>> Deserializer<'input> for Strict<'_, In
   type Error = Inner::Error;
 
   forward_strictly! {
-    deserialize_any, deserialize_bool, deserialize_i8, deserialize_i16, deserialize_i32, deserialize_i64,
-    deserialize_i128, deserialize_u8, deserialize_u16, deserialize_u32, deserialize_u64, deserialize_u128,
-    deserialize_f32, deserialize_f64, deserialize_char, deserialize_str, deserialize_string, deserialize_bytes,
-    deserialize_byte_buf, deserialize_option, deserialize_unit, deserialize_seq, deserialize_map,
-    deserialize_identifier,
+    new: deserialize_bool, deserialize_i8, deserialize_i16, deserialize_i32, deserialize_i64, deserialize_i128,
+    deserialize_u8, deserialize_u16, deserialize_u32, deserialize_u64, deserialize_u128, deserialize_f32,
+    deserialize_f64, deserialize_char, deserialize_bytes, deserialize_byte_buf, deserialize_option, deserialize_unit,
+    deserialize_seq, deserialize_map,
+  }
+
+  forward_strictly! {
+    textual: deserialize_any, deserialize_str, deserialize_string, deserialize_identifier,
   }
 
   /// A value that the type ignores is walked all the same, so a null or a repeated name inside it is refused.
   fn deserialize_ignored_any<Read: Visitor<'input>>(self, visitor: Read) -> Result<Read::Value, Inner::Error> {
     self
       .inner
-      .deserialize_any(StrictVisitor::new(visitor, self.name, self.holder))
+      .deserialize_any(StrictVisitor::textual(visitor, self.name, self.holder))
   }
 
   fn deserialize_unit_struct<Read: Visitor<'input>>(
