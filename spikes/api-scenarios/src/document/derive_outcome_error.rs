@@ -21,39 +21,76 @@ use std::fmt;
 
 use super::entry::DocumentEntry;
 use super::outcome::EntryOutcome;
-use crate::constants::UNDERIVABLE_OUTCOME_MESSAGE;
+use crate::constants::DERIVE_OUTCOME_MESSAGE;
 use crate::kept::KeptMembers;
 use crate::model::{Detection, MediaReport};
 use crate::source::PortablePath;
 
 /// A report or detection whose outcome this version cannot derive, because only a value of a newer version decides
-/// it. It keeps the entry's parts, behind one pointer, so the outcome can be given.
+/// it. It keeps the entry's parts, behind one pointer, so the outcome can be given, and it gives them back.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct UnderivableOutcome {
-  parts: Box<UnderivedParts>,
+pub struct DeriveOutcomeError {
+  parts: Box<RefusedParts>,
 }
 
 /// The parts of an entry that is still without its outcome.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct UnderivedParts {
+struct RefusedParts {
   input: PortablePath,
-  record: UnderivedRecord,
+  record: RefusedRecord,
 }
 
 /// The record of such an entry.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(super) enum UnderivedRecord {
+pub(super) enum RefusedRecord {
   /// A report that only a status of a newer version decides.
   Report(Box<MediaReport>),
   /// A detection whose outcome a newer version wrote.
   Detection(Box<Detection>),
 }
 
-impl UnderivableOutcome {
+impl DeriveOutcomeError {
   /// The refusal of an entry of these parts.
-  pub(super) fn new(input: PortablePath, record: UnderivedRecord) -> UnderivableOutcome {
-    UnderivableOutcome {
-      parts: Box::new(UnderivedParts { input, record }),
+  pub(super) fn new(input: PortablePath, record: RefusedRecord) -> DeriveOutcomeError {
+    DeriveOutcomeError {
+      parts: Box::new(RefusedParts { input, record }),
+    }
+  }
+
+  /// The input that the refused entry was given.
+  pub fn input(&self) -> &PortablePath {
+    &self.parts.input
+  }
+
+  /// The report that the refused entry was given, when it was given one.
+  pub fn report(&self) -> Option<&MediaReport> {
+    match &self.parts.record {
+      RefusedRecord::Report(report) => Some(report),
+      RefusedRecord::Detection(_) => None,
+    }
+  }
+
+  /// The detection that the refused entry was given, when it was given one.
+  pub fn detection(&self) -> Option<&Detection> {
+    match &self.parts.record {
+      RefusedRecord::Detection(detection) => Some(detection),
+      RefusedRecord::Report(_) => None,
+    }
+  }
+
+  /// The report, given back without a copy.
+  pub fn into_report(self) -> Option<MediaReport> {
+    match self.parts.record {
+      RefusedRecord::Report(report) => Some(*report),
+      RefusedRecord::Detection(_) => None,
+    }
+  }
+
+  /// The detection, given back without a copy.
+  pub fn into_detection(self) -> Option<Detection> {
+    match self.parts.record {
+      RefusedRecord::Detection(detection) => Some(*detection),
+      RefusedRecord::Report(_) => None,
     }
   }
 
@@ -61,19 +98,19 @@ impl UnderivableOutcome {
   /// that this version knows and that the record allows; an outcome of a newer version can need members that only
   /// its version builds, so an entry read with it is forwarded as read (ninth review). Any other outcome is refused,
   /// and the refusal comes back unchanged, so every entry it builds reads back.
-  pub fn with_outcome(self, outcome: EntryOutcome) -> Result<DocumentEntry, UnderivableOutcome> {
+  pub fn with_outcome(self, outcome: EntryOutcome) -> Result<DocumentEntry, DeriveOutcomeError> {
     let allowed = !matches!(outcome, EntryOutcome::Unrecognized(_))
       && match &self.parts.record {
-        UnderivedRecord::Report(report) => outcome.is_allowed_for_report(report),
-        UnderivedRecord::Detection(detection) => outcome.is_allowed_for_detection(detection),
+        RefusedRecord::Report(report) => outcome.is_allowed_for_report(report),
+        RefusedRecord::Detection(detection) => outcome.is_allowed_for_detection(detection),
       };
     if !allowed {
       return Err(self);
     }
-    let UnderivedParts { input, record } = *self.parts;
+    let RefusedParts { input, record } = *self.parts;
     let (report, detection) = match record {
-      UnderivedRecord::Report(report) => (Some(*report), None),
-      UnderivedRecord::Detection(detection) => (None, Some(*detection)),
+      RefusedRecord::Report(report) => (Some(*report), None),
+      RefusedRecord::Detection(detection) => (None, Some(*detection)),
     };
     Ok(DocumentEntry {
       input,
@@ -86,10 +123,10 @@ impl UnderivableOutcome {
   }
 }
 
-impl fmt::Display for UnderivableOutcome {
+impl fmt::Display for DeriveOutcomeError {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str(UNDERIVABLE_OUTCOME_MESSAGE)
+    formatter.write_str(DERIVE_OUTCOME_MESSAGE)
   }
 }
 
-impl std::error::Error for UnderivableOutcome {}
+impl std::error::Error for DeriveOutcomeError {}

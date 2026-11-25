@@ -36,6 +36,12 @@ fn model_error_and_prober_are_thread_safe_and_static() {
 }
 
 #[test]
+fn limits_new_gives_the_default_limits() {
+  // C-CTOR: a type with `Default` and an empty `new` gives the same value from both.
+  assert_eq!(cc_media_probe::Limits::new(), cc_media_probe::Limits::default());
+}
+
+#[test]
 fn the_probe_of_a_boxed_send_source_is_send() {
   let source: Option<Pin<Box<dyn AsyncPositionalSource + Send>>> = None;
   if let Some(source) = source {

@@ -89,6 +89,12 @@ fn an_entry_takes_only_an_outcome_that_this_version_knows() {
   let newer = read.results()[0].outcome().clone();
   assert!(matches!(newer, EntryOutcome::Unrecognized(_)));
   let refused = DocumentEntry::from_report(input(), report()).unwrap_err();
+  // The refusal gives its parts back (C-INTERMEDIATE), the report without a copy.
+  assert_eq!(refused.input(), &input());
+  assert_eq!(refused.report(), Some(&report()));
+  assert!(refused.detection().is_none());
+  assert!(refused.clone().into_detection().is_none());
+  assert_eq!(refused.clone().into_report(), Some(report()));
   let refused_again = refused.clone().with_outcome(newer).unwrap_err();
   assert_eq!(refused_again, refused, "the refusal comes back unchanged");
   // A known outcome that the record allows builds an entry, and the document reads back.

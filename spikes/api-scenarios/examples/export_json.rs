@@ -20,7 +20,7 @@
 use std::io::{self, Write};
 use std::path::Path;
 
-use cc_media_probe::document::{Document, DocumentEntry, EntryOutcome, Generator};
+use cc_media_probe::document::{DeriveOutcomeError, Document, DocumentEntry, EntryOutcome, Generator};
 use cc_media_probe::source::PortablePath;
 use cc_media_probe::{MediaReport, probe_file};
 
@@ -38,13 +38,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   // Several inputs in the document form that the CLI writes, an error among them. The writer takes one entry at a
   // time and releases it before the next input is probed, so a scan of any length holds one report at a time. The
-  // document writes each entry's position as its index.
-  let entries = ["movie.mkv", "notes.txt"].into_iter().map(|path| {
+  // document writes each entry's position as its index. An entry that cannot be built ends the scan, and its error
+  // is returned once the document is closed.
+  let mut refused = None;
+  let entries = ["movie.mkv", "notes.txt"].into_iter().map_while(|path| {
     let input = PortablePath::from_path(Path::new(path));
-    match probe_file(path) {
+    let entry = match probe_file(path) {
       Ok(report) => report_entry(input, report),
-      Err(error) => DocumentEntry::from_error(input, error.to_record()),
-    }
+      Err(error) => Ok(DocumentEntry::from_error(input, error.to_record())),
+    };
+    entry.map_err(|error| refused = Some(error)).ok()
   });
   let generator = Generator::new("media-catalog", env!("CARGO_PKG_VERSION"));
   // Standard output carries the document and nothing else, so it stays valid JSON. An output error stops the scan,
@@ -53,6 +56,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   Document::serialize_results(&generator, entries, &mut serde_json::Serializer::pretty(&mut output))?;
   writeln!(output)?;
   output.flush()?;
+  if let Some(error) = refused {
+    return Err(error.into());
+  }
 
   // An earlier catalog, read back, gives each entry's input and what it holds. Each nested record has the
   // document's version. Only a missing catalog is skipped; one that cannot be read is an error.
@@ -82,9 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// The entry of a report. This version's own probe always gives a report whose outcome it derives. Only a report
 /// read from a newer version can be refused, when only a status of that version decides its outcome; it then takes
 /// an outcome that the caller gives. `with_outcome` refuses `error`, which no report allows, and an outcome of a
-/// newer version, which only the entry as read can pass on.
-fn report_entry(input: PortablePath, report: MediaReport) -> DocumentEntry {
-  DocumentEntry::from_report(input, report)
-    .or_else(|refused| refused.with_outcome(EntryOutcome::Partial))
-    .expect("every report allows the outcome partial")
+/// newer version, which only the entry as read can pass on; either refusal is returned.
+fn report_entry(input: PortablePath, report: MediaReport) -> Result<DocumentEntry, DeriveOutcomeError> {
+  DocumentEntry::from_report(input, report).or_else(|refused| refused.with_outcome(EntryOutcome::Partial))
 }

@@ -4003,3 +4003,101 @@ The other documents follow:
 - G2.4, which confirms the wording of `stability.md` and of the README's summary;
 - the checklist of task 6, `docs/design/api-guidelines-checklist.md`;
 - the open items of the twelfth review's entry: the public sources of field guide F30 and the MP4RA registry of track references, which Phase 6 adds through GS.2.
+
+## 2026-11-25 — Progress: Phase 2, task 6, the guidelines checklist
+
+At the start of the session the maintainer sent the standing brief again, with no review of revision 55. Phase 2 was not finished, so the next work was within it: the review of revision 55, G2.3, G2.4, task 6, and then tasks 11 to 13. The agent asked three questions, and the maintainer took the recommended option each time. Writing the checklist then raised two more questions, which the agent asked before writing anything.
+
+| Topic | Decision | Alternatives offered | Reasoning |
+|---|---|---|---|
+| What the session does | Task 6 now, against `api.md` at revision 55, while revision 55 waits for its review | Put G2.3 and G2.4 to the maintainer now; wait for the review | Task 6 is the last document of tasks 1 to 6. An amendment that it makes lands before G2.3 confirms the amendments, so it opens no gap after the gate. |
+| A guideline that `api.md` misses | Amend `api.md` and list each change in its section 16 and here, for G2.3 to confirm | List the findings only, with a proposed fix, and leave `api.md` at revision 55 | The reviews amended the approved specification the same way. |
+| What backs a verdict | The specification's text: each row names the section that meets it, and task 13 checks the code | Also compile-time assertions in the spike for what its stub holds | The stub holds only part of the API, and task 13 re-runs the checklist against the skeleton, as the plan says. |
+| C-WORD-ORDER: `UnderivableOutcome` | Renamed `DeriveOutcomeError`, after the verb-object-error order of the standard library's error types | Keep the name that G2.2 confirmed, as a recorded deviation | The non-recommended option: the standard library names every error type with `Error` last, as in `ParseIntError` and `FromUtf8Error`. |
+| C-PERMISSIVE: the license | Keep Apache-2.0 under R13, recorded as a deviation | `MIT OR Apache-2.0`, through GS.4, with a header change in every source file | R13 records the brief's choice, and every dependency is already MIT, Apache-2.0 or Unicode-3.0. |
+
+**The guidelines.** The checklist at https://rust-lang.github.io/api-guidelines/checklist.html, read on 2026-11-25, with every guideline's page. GitHub's API gave the repository's newest commit as `97a0969` of 2025-07-08 and the last change of `src/checklist.md` as `b2f62d6` of 2021-08-23. The raw file of that commit has 54 items in 11 groups, as the rendered page does.
+
+**Written:** [`docs/design/api-guidelines-checklist.md`](../design/api-guidelines-checklist.md). It has one table per group, with each item's verdict, where the specification meets it, how, and what task 13 checks in the code. It also has a diagram of the three times the checklist runs, the list of what it changed, and the items left open for the gates. Of the 54 items, 26 are met, 15 were amended, 3 are deviations and 10 do not apply: the five on macros, C-ITER, C-COLLECT, C-NUM-FMT, C-SMART-PTR and C-BITFLAG.
+
+**Amended,** each listed in `api.md` section 16 and confirmed at G2.3:
+
+- **C-WORD-ORDER:** `DeriveOutcomeError`, as the maintainer chose (sections 3.2, 3.3 and 12).
+- **C-COMMON-TRAITS:** `Copy` for `Rational`, `Seconds`, `Size`, `TimeRange`, `UtcTime`, `Guid`, `Confidence`, `TimecodeLabel`, `SourceIdentifier` and `SchemaVersion`. `Ord` and `PartialOrd` for `Rational`, `Seconds`, `UtcTime`, `Confidence`, `SourceIdentifier` and `SchemaVersion`. `Default` with `new()` for `Prober` and `Limits` only. `Clone`, `PartialEq`, `Eq` and `Hash` named for `Limits`, `Detection`, `ErrorRecord`, `DeriveOutcomeError` and the document types. And `MatroskaDetails::stored_duration()` returning `Option<&FloatingPointValue>`, since a type that holds an enum is not `Copy` (sections 3.3 and 11.4).
+- **C-GOOD-ERR:** `DeriveOutcomeError` is `Send`, `Sync` and `'static`. An error's text begins in lowercase unless a proper name begins it, and ends without punctuation, as `cli.md` section 8.6 already writes (section 3.3).
+- **C-RW-VALUE:** every entry point that takes a reader or a source by value takes `&mut` of one too, blocking and async (section 4.1).
+- **C-QUESTION-MARK:** scenario 15.6 passes a refusal on with `?` once the document is closed, where it had called `expect` (sections 3.4 and 15.6).
+- **C-FAILURE and C-LINK:** the new section 3.4 on the rustdoc. It also restates how the plan meets C-CRATE-DOC, C-EXAMPLE and C-HIDDEN.
+- **C-CTOR:** `Limits::new()` (sections 3.3 and 4.5).
+- **C-INTERMEDIATE:** `DeriveOutcomeError::input()`, `report()`, `detection()`, `into_report()` and `into_detection()` (section 12).
+- **C-CUSTOM-TYPE:** `Resolution::found(source)` and `found_with_identity(source, identity)`, in place of an `Option` argument (section 13).
+- **C-SEALED:** a sealed trait says so in its rustdoc (section 14).
+- **C-STRUCT-BOUNDS, C-DEREF and C-OVERLOAD:** stated (section 3.3).
+- **C-RELNOTES:** a breaking change begins its changelog entry with **Breaking**, under its kind of change. `CHANGELOG.md`, `CONTRIBUTING.md`, `stability.md` section 1 and plan section 10 say so, for G2.4.
+
+**Deviations:**
+
+- C-METADATA: the `authors` field is left out, since Cargo's manifest reference marks it deprecated (plan Appendix C.2.1).
+- C-STABLE: futures-io 0.3 stays behind `asynchronous::futures`, and G16.1 now decides it for 1.0.
+- C-PERMISSIVE: Apache-2.0 under R13, as the maintainer kept it.
+
+**Found while revising:**
+
+- **R32 beside C-CASE.** `Chromaticity::x()` and `y()` are names of a single letter, which RFC 430 allows and R32 does not, and which Clippy's `min_ident_chars` would refuse. They are now `x_coordinate()` and `y_coordinate()`, with their provenance, and `json-output.md` section 7.4 names the members after them.
+- **The scenario's `expect` was more than a guideline.** The workspace denies Clippy's `expect_used` on every target, and the check script runs Clippy with `--all-targets`. So scenario 15.6 would have failed the lints once task 12 made it a program of `examples/`.
+- **`missing_debug_implementations` is not enforced yet.** rustc allows it by default, and the workspace's `warnings = deny` does not enable it, so the checklist has task 11 deny it for the library.
+- **The stub differs from the specification in two places** that no finding needed, so both stay for the skeleton: `file_tags()` and `tags_with_key()` return one `TagsOf<'_>`, where section 6.9 names a type for each method, and there is no `stream_tags()`; and `Usage` derives `Default`, which section 3.3 now gives no model type.
+- **`tests/document.rs` passed 500 lines** once it held the refused detection's parts, so those checks moved to `tests/forwarding.rs`. Their detection of a newer outcome is now a helper, which the existing test there uses too.
+
+**Online check:**
+
+- The Cargo manifest reference: "This field is deprecated" of `authors`, at most five keywords and five categories.
+- docs.rs for Tokio 1.54.1 and futures-io 0.3.31: both implement `AsyncSeek`, as they implement `AsyncRead`, for `&mut T` where `T: ?Sized + AsyncSeek + Unpin`.
+
+**Choices made without asking,** each listed in `api.md` section 16, the checklist, `json-output.md` section 11 or `stability.md` section 9:
+
+- the ten `Copy` types, the six ordered ones and their orders, and no `Default` for the option enums, whose defaults belong to their options (G2.3);
+- the five accessors of `DeriveOutcomeError`, after `Error::partial_report()` and `into_partial_report()` (G2.3);
+- `x_coordinate` and `y_coordinate` as the spelled-out names, in Rust and in JSON (G2.3);
+- `found_with_identity` as the second constructor's name (G2.3, and Phase 14);
+- the scenario ending the scan on a refusal and returning its error after the document, rather than collecting the entries first (G2.3);
+- the style of an error's text, the rules of section 3.4, and `missing_debug_implementations` denied for the library in task 11 (G2.3, task 11);
+- **Breaking** at the start of an entry, under its kind, rather than a seventh heading (G2.4);
+- the CLI checked against the items on manifests, release notes and licenses only, since its contract is its command line.
+
+**Plan, revision 56:**
+
+- section 10: the changelog's mark of a breaking change;
+- Phase 2: task 6 done, with the maintainer's choices;
+- Phase 16, G16.1: futures-io below 1.0;
+- the status line, the Phase 2 progress paragraph, Appendix E and the themes of revision 56.
+
+The other documents follow:
+
+- `api.md`: its status, its list of the maintainer's choices, sections 3.2, 3.3, 4.1, 4.5, 6.5, 11.4 and 12 to 14, the scenario of section 15.6, section 16, and the new section 3.4;
+- `json-output.md`: its status, section 7.4 and section 11;
+- `stability.md`: its status, section 1 and section 9;
+- `CHANGELOG.md` and `CONTRIBUTING.md`: the mark of a breaking change;
+- the spike: `DeriveOutcomeError` in `src/document/derive_outcome_error.rs`, which replaces `underivable.rs`, with its accessors and its message constant renamed; `Limits::new()`; the example `export_json.rs`, which matches section 15.6 character for character; its tests; and its README.
+
+`CLAUDE.md` is unchanged: no rule that it summarizes changed.
+
+**Verification.**
+
+- **API spike.** In `spikes/api-scenarios/`:
+  - Clippy passes with warnings denied, with no feature, with each feature alone and with all features.
+  - `rustfmt` reports no difference, and the documentation builds without a warning.
+  - With all features, 187 tests and 9 doc tests pass: the 185 earlier tests and 2 new ones. The new ones are `limits_new_gives_the_default_limits` in `tests/bounds.rs`, and `a_refused_detection_gives_its_parts_back` in `tests/forwarding.rs`, which also asserts that `DeriveOutcomeError` is an error that is `Send`, `Sync` and `'static`. `tests/catch_alls.rs` gained the checks of a refused report's parts. Without a feature, 14 pass.
+  - The program `export_json` ends normally and writes a document of two entries, both `error` against the stub, with no `expect` left. Its code is identical to the scenario of `api.md` section 15.6.
+- **Structure.** The structure check of D23 reports 0 findings for the spike.
+- **Counts.** A script over the checklist's tables counts 54 rows: 26 met, 15 amended, 3 deviations and 10 not applicable.
+- **Diagrams.** The checklist's one diagram renders without error in headless Chromium with mermaid.js; no other diagram changed.
+- **Checks.** `node scripts/check.ts` passes.
+
+**Open:**
+
+- the maintainer's review of revision 56;
+- G2.3, which now also confirms the checklist's amendments;
+- G2.4, which now also confirms the mark of a breaking change;
+- tasks 11 to 13, where task 13 re-runs the checklist against the skeleton;
+- the open items of the twelfth review's entry: the public sources of field guide F30 and the MP4RA registry of track references, which Phase 6 adds through GS.2.

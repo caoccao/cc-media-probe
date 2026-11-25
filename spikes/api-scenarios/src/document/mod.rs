@@ -18,17 +18,17 @@
 //! The document of `api.md` section 12, which the CLI writes and a library user can write too.
 
 mod contents;
+mod derive_outcome_error;
 mod entry;
 mod invalid;
 mod outcome;
-mod underivable;
 mod version;
 mod wire;
 mod writer;
 
 pub use contents::{Document, Generator, UsageError};
+pub use derive_outcome_error::DeriveOutcomeError;
 pub use entry::DocumentEntry;
 pub use invalid::InvalidDocument;
 pub use outcome::EntryOutcome;
-pub use underivable::UnderivableOutcome;
 pub use version::SchemaVersion;

@@ -46,6 +46,11 @@ impl Default for Limits {
 }
 
 impl Limits {
+  /// The default limits, the same as `Limits::default()` (C-CTOR).
+  pub fn new() -> Limits {
+    Limits::default()
+  }
+
   /// The bytes a probe may read from every source together.
   pub fn bytes_read(&self) -> u64 {
     self.bytes_read

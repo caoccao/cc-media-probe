@@ -108,7 +108,7 @@ Everything is written in American English: `color`, `behavior`, `license`, `anal
 - Line coverage is **above 90%**, where exactly 90.0% fails, for each published crate and for each area of the library (R28). Tests arrive together with the code they cover.
 - Zero warnings from the compiler, the linter and rustdoc. Every public item has rustdoc with an example.
 - In Markdown documents, workflows and processes are drawn as Mermaid diagrams that restate the prose beside them (R14).
-- Every change that users of the published crates can notice is entered in [CHANGELOG.md](CHANGELOG.md) in the same commit.
+- Every change that users of the published crates can notice is entered in [CHANGELOG.md](CHANGELOG.md) in the same commit. An entry for a breaking change begins with **Breaking**.
 
 ## How a format is added
 

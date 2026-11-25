@@ -17,7 +17,7 @@
 
 //! The eighth review's case of an entry whose outcome a newer version wrote, `api.md` section 12.
 
-use cc_media_probe::document::{Document, DocumentEntry, Generator};
+use cc_media_probe::document::{DeriveOutcomeError, Document, DocumentEntry, Generator};
 use serde_json::{Value, json};
 
 /// A document of version 1.1 whose one entry was skipped, with the payload that its outcome needs.
@@ -57,7 +57,7 @@ fn an_outcome_of_a_newer_version_is_forwarded_with_its_entry() {
   // version cannot derive the entry's outcome from it. `with_outcome` refuses the recorded `skipped`, which it could
   // only build without `skip_reason`, and the entry as read forwards both.
   let mut text = skipped_document();
-  text["results"][0]["detection"] = json!({ "schema_version": "1.1", "outcome": "identified_by_content", "candidates": [], "usage": { "bytes_read": 0, "peak_working_memory": 0 } });
+  text["results"][0]["detection"] = detection_of_a_newer_outcome();
   let read: Document = serde_json::from_value(text).unwrap();
   let entry = &read.results()[0];
   let refused = DocumentEntry::from_detection(entry.input().clone(), entry.detection().unwrap().clone()).unwrap_err();
@@ -73,6 +73,31 @@ fn an_outcome_of_a_newer_version_is_forwarded_with_its_entry() {
     skipped_document()["results"][0]["skip_reason"]
   );
   assert_eq!(written["results"][0]["detection"]["schema_version"], json!("1.0"));
+}
+
+#[test]
+fn a_refused_detection_gives_its_parts_back() {
+  // C-INTERMEDIATE: the refusal gives back what it was given, the detection without a copy. C-GOOD-ERR: it is an
+  // error that crosses threads.
+  fn assert_error<Value: std::error::Error + Send + Sync + 'static>() {}
+  assert_error::<DeriveOutcomeError>();
+  let mut text = skipped_document();
+  text["results"][0]["detection"] = detection_of_a_newer_outcome();
+  let read: Document = serde_json::from_value(text).unwrap();
+  let entry = &read.results()[0];
+  let detection = entry.detection().unwrap().clone();
+  let refused = DocumentEntry::from_detection(entry.input().clone(), detection.clone()).unwrap_err();
+  assert_eq!(refused.input(), entry.input());
+  assert!(refused.report().is_none());
+  assert_eq!(refused.detection(), Some(&detection));
+  assert!(refused.clone().into_report().is_none());
+  assert_eq!(refused.into_detection(), Some(detection));
+}
+
+/// A detection whose outcome a newer version wrote, at that version.
+fn detection_of_a_newer_outcome() -> Value {
+  let usage = json!({ "bytes_read": 0, "peak_working_memory": 0 });
+  json!({ "schema_version": "1.1", "outcome": "identified_by_content", "candidates": [], "usage": usage })
 }
 
 #[test]

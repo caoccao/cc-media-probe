@@ -222,7 +222,7 @@ pub const POSITION_RANGE_MESSAGE: &str = "a document's last index is 2^53 - 1";
 
 /// Why an entry cannot be built from a record alone (`api.md` section 12).
 #[cfg(feature = "serde")]
-pub const UNDERIVABLE_OUTCOME_MESSAGE: &str =
+pub const DERIVE_OUTCOME_MESSAGE: &str =
   "the record holds a value of a newer version that decides the entry's outcome, so the outcome must be given";
 /// Why the writer's entries can be taken only once.
 #[cfg(feature = "serde")]

@@ -18,8 +18,8 @@
 //! A document's entries, `api.md` section 12: what each holds, and the constructors that derive its outcome. An
 //! entry has no index of its own; the document writes its position as its index.
 
+use super::derive_outcome_error::{DeriveOutcomeError, RefusedRecord};
 use super::outcome::EntryOutcome;
-use super::underivable::{UnderivableOutcome, UnderivedRecord};
 use super::version::SchemaVersion;
 use crate::error::ErrorRecord;
 use crate::kept::KeptMembers;
@@ -44,7 +44,7 @@ impl DocumentEntry {
   /// shortfall, whatever the statuses of a newer version say, and `ok` when every status is known and complete. A
   /// report that only a status of a newer version can decide is refused, and the refusal can take the outcome that
   /// was recorded for it.
-  pub fn from_report(input: PortablePath, report: MediaReport) -> Result<DocumentEntry, UnderivableOutcome> {
+  pub fn from_report(input: PortablePath, report: MediaReport) -> Result<DocumentEntry, DeriveOutcomeError> {
     match EntryOutcome::of_report(&report) {
       Some(outcome) => Ok(DocumentEntry {
         input,
@@ -54,16 +54,13 @@ impl DocumentEntry {
         error: None,
         kept: KeptMembers::default(),
       }),
-      None => Err(UnderivableOutcome::new(
-        input,
-        UnderivedRecord::Report(Box::new(report)),
-      )),
+      None => Err(DeriveOutcomeError::new(input, RefusedRecord::Report(Box::new(report)))),
     }
   }
 
   /// An entry that holds a detection; its outcome follows the `--detect` rows of plan section 8.9. A detection
   /// outcome from a newer version is refused, and the refusal can take the outcome that was recorded for it.
-  pub fn from_detection(input: PortablePath, detection: Detection) -> Result<DocumentEntry, UnderivableOutcome> {
+  pub fn from_detection(input: PortablePath, detection: Detection) -> Result<DocumentEntry, DeriveOutcomeError> {
     match EntryOutcome::of_detection(&detection) {
       Some(outcome) => Ok(DocumentEntry {
         input,
@@ -73,9 +70,9 @@ impl DocumentEntry {
         error: None,
         kept: KeptMembers::default(),
       }),
-      None => Err(UnderivableOutcome::new(
+      None => Err(DeriveOutcomeError::new(
         input,
-        UnderivedRecord::Detection(Box::new(detection)),
+        RefusedRecord::Detection(Box::new(detection)),
       )),
     }
   }

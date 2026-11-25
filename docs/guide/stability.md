@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of 2026-11-24 for review (plan, Phase 2, task 5), to be confirmed at G2.4. Written from revision 51 of the plan, [`api.md`](../design/api.md), [`cli.md`](../design/cli.md) and [`json-output.md`](json-output.md) as their fifteenth review left them. The maintainer chose on 2026-11-24 to write it before reviewing revision 50 for G2.3. That review, the sixteenth, read this draft too, and revised sections 1, 2.2, 4, 5.2, 5.3, 6, 7, 8 and 9 on the same day, at revision 52 (section 9). The seventeenth, of revision 52, revised sections 1, 1.1, 2.2, 6.1, 8 and 9 on the same day, at revision 53. The eighteenth, of revision 53, revised sections 1, 2.2 and 9 on the same day, at revision 54. The nineteenth, of revision 54, revised sections 2.2, 5.3 and 9 on the same day, at revision 55. |
+| **Status** | Draft of 2026-11-24 for review (plan, Phase 2, task 5), to be confirmed at G2.4. Written from revision 51 of the plan, [`api.md`](../design/api.md), [`cli.md`](../design/cli.md) and [`json-output.md`](json-output.md) as their fifteenth review left them. The maintainer chose on 2026-11-24 to write it before reviewing revision 50 for G2.3. That review, the sixteenth, read this draft too, and revised sections 1, 2.2, 4, 5.2, 5.3, 6, 7, 8 and 9 on the same day, at revision 52 (section 9). The seventeenth, of revision 52, revised sections 1, 1.1, 2.2, 6.1, 8 and 9 on the same day, at revision 53. The eighteenth, of revision 53, revised sections 1, 2.2 and 9 on the same day, at revision 54. The nineteenth, of revision 54, revised sections 2.2, 5.3 and 9 on the same day, at revision 55. The guidelines checklist of task 6, [`api-guidelines-checklist.md`](../design/api-guidelines-checklist.md), revised sections 1 and 9 on 2026-11-25, at revision 56. |
 | **Sources** | Plan sections [8.8](../plans/plan-init-project.md#88-serialization-and-its-compatibility-contract), [8.9](../plans/plan-init-project.md#89-command-line-contract), [8.10](../plans/plan-init-project.md#810-backward-compatibility-rules) and [9.6](../plans/plan-init-project.md#96-reviewing-changes-in-reported-output); R12, R21, R26, R27 and D2; Appendices C.6 and C.8; `api.md` sections 3, 4.5 and 14; `cli.md` section 8.8; `json-output.md` section 9; the [Cargo SemVer guide](https://doc.rust-lang.org/cargo/reference/semver.html) and the [Cargo resolver](https://doc.rust-lang.org/cargo/reference/resolver.html#rust-version) |
 
 This guide says what stays the same from one release of `cc-media-probe` and `cc-media-probe-cli` to the next, and what a release may change. It covers the Rust API, the Cargo features, what a probe reports, the serialized form, the command-line tool and the minimum supported Rust version. The contract of the serialized form itself is [`json-output.md`](json-output.md). This guide says how releases keep it.
@@ -23,7 +23,7 @@ This guide says what stays the same from one release of `cc-media-probe` and `cc
 
 Both crates carry the same version and are released together. The CLI requires the library of exactly its own version (plan Appendix C.6).
 
-Cargo reads a `0.y.z` version so that a change of `y` may break and a change of `z` may not. Before 1.0, a breaking change therefore comes only in a minor release (0.2.0, 0.3.0, …), and the changelog lists every one. From 1.0 the crates follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+Cargo reads a `0.y.z` version so that a change of `y` may break and a change of `z` may not. Before 1.0, a breaking change therefore comes only in a minor release (0.2.0, 0.3.0, …), and the changelog lists every one, each entry beginning with **Breaking** under its kind of change, as the guidelines checklist of task 6 found that the Rust API Guidelines ask (C-RELNOTES). From 1.0 the crates follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
 | Release | Before 1.0 | From 1.0 |
 |---|---|---|
@@ -307,3 +307,7 @@ The same review found that the trait rule of section 2.2 left out const paramete
 | Rule 2 counted a member of a new outcome or kind among the members that an older reader may drop | An optional member of a known record may be dropped; a member of a new outcome or kind is kept and written back by the catch-all | 5.3 |
 
 **Choice made without asking in the nineteenth review,** open at G2.4: the test of section 2.2 lists the receivers of the Reference, `Pin` of one of them included, rather than only the `&self` and `&mut self` that the source traits use.
+
+**The guidelines checklist of task 6.** On 2026-11-25 the checklist found that the Rust API Guidelines ask release notes to identify every breaking change clearly (C-RELNOTES), which the changelog listed and did not mark. Section 1 now marks each one.
+
+**Choice made without asking at the checklist,** open at G2.4: a breaking change is marked by **Breaking** at the start of its entry, under its kind of change, so the six kinds of Keep a Changelog stay as they are, rather than gathered under a seventh heading.
