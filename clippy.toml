@@ -5,3 +5,6 @@ allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-indexing-slicing-in-tests = true
+# Proper names of formats and codecs, which the documentation writes as commonly written rather than as code
+# (R32); ".." keeps Clippy's own list.
+doc-valid-idents = ["..", "QuickTime", "TrueHD", "VobSub", "WebM", "WebVTT"]

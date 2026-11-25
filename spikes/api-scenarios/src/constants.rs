@@ -142,7 +142,11 @@ pub const OTHER_MAJOR_VERSION_MESSAGE: &str =
 pub const SCHEMA_VERSION_TEXT_MESSAGE: &str = "a schema version is two decimal numbers separated by a period";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
-pub const LOSSY_PATH_MESSAGE: &str = "a lossy path has a raw form beside its display string, and only a lossy path";
+pub const LOSSY_PATH_MESSAGE: &str = "a raw form stands only beside a lossy path's flag, and both only beside a display \
+                                      string";
+/// The messages of a document that breaks the rules of `api.md` section 12.
+#[cfg(feature = "serde")]
+pub const LOSSY_DISPLAY_MESSAGE: &str = "a lossy path's display string holds U+FFFD";
 /// The messages of a document that breaks the rules of `api.md` section 12.
 #[cfg(feature = "serde")]
 pub const RAW_PATH_DATA_MESSAGE: &str = "the data of a raw path is lowercase hexadecimal, two digits a byte for \
@@ -409,6 +413,11 @@ pub const REASON_COUNTER_MESSAGE: &str = "an error's limit reason names a limit 
 #[cfg(feature = "serde")]
 pub const SOURCE_FAILURE_MEMBERS_MESSAGE: &str = "a source failure holds the kind of its failure, and no other known error kind holds it or an operating system's \
    error code";
+/// The second review of the skeleton's first slice: an operating system's error code that is not a 64-bit integer,
+/// signed or unsigned, in canonical decimal.
+#[cfg(feature = "serde")]
+pub const OPERATING_SYSTEM_CODE_MESSAGE: &str = "an operating system's error code is a 64-bit integer, signed or \
+                                                 unsigned, in canonical decimal";
 /// The seventeenth review: a member of an object of a known type with the name of serde_json's private map, which
 /// the Serde data model cannot tell from a number of arbitrary precision (`json-output.md` section 2).
 #[cfg(feature = "serde")]

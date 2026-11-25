@@ -290,15 +290,21 @@ fn a_lossy_input_has_its_flag_and_its_raw_form_beside_it() {
   assert!(input.is_lossy());
   assert_eq!(input.raw().unwrap().encoding().as_str(), "unix_bytes");
   assert_eq!(input.to_native().as_deref(), Some(path));
-  // The flag and the raw form stand together.
-  for member in ["input_lossy", "input_raw"] {
-    let mut without = text.clone();
-    without["results"][0].as_object_mut().unwrap().remove(member);
-    assert_eq!(
-      read_error(without),
-      "a lossy path has a raw form beside its display string, and only a lossy path"
-    );
-  }
+  // A raw form needs the flag.
+  let mut without_flag = text.clone();
+  without_flag["results"][0]
+    .as_object_mut()
+    .unwrap()
+    .remove("input_lossy");
+  assert!(read_error(without_flag).starts_with("a raw form stands only beside a lossy path's flag"));
+  // The flag alone is what a platform without an exact form of a path writes, and it reads on every platform, as
+  // the second review of the skeleton's first slice found (`json-output.md` section 5.8).
+  let mut without_raw = text;
+  without_raw["results"][0].as_object_mut().unwrap().remove("input_raw");
+  let flag_alone: Document = serde_json::from_value(without_raw).unwrap();
+  let input = flag_alone.results()[0].input();
+  assert!(input.is_lossy() && input.raw().is_none());
+  assert_eq!(input.to_native(), None);
 }
 
 #[cfg(windows)]

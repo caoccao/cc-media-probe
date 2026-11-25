@@ -23,8 +23,8 @@ use std::io;
 use crate::completeness::{LimitRecord, Reason};
 #[cfg(feature = "serde")]
 use crate::constants::{
-  ERROR_RECORD_MESSAGE, KIND_MEMBER, PARTIAL_REPORT_KIND_MESSAGE, REASON_COUNTER_MESSAGE,
-  SOURCE_FAILURE_MEMBERS_MESSAGE, STOPPING_POINTS_MESSAGE,
+  ERROR_RECORD_MESSAGE, KIND_MEMBER, OPERATING_SYSTEM_CODE_MESSAGE, PARTIAL_REPORT_KIND_MESSAGE,
+  REASON_COUNTER_MESSAGE, SOURCE_FAILURE_MEMBERS_MESSAGE, STOPPING_POINTS_MESSAGE,
 };
 use crate::constants::{
   FEATURE_DISABLED_MESSAGE, FEATURE_DISABLED_NAME, FORMAT_NOT_DETERMINED_MESSAGE, FORMAT_NOT_DETERMINED_NAME,
@@ -270,7 +270,7 @@ pub struct ErrorRecord {
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   source_failure_kind: Option<String>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-  operating_system_error_code: Option<i32>,
+  operating_system_error_code: Option<String>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
   reason: Option<Reason>,
   #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -295,7 +295,7 @@ struct ErrorRecordData {
   #[serde(default, deserialize_with = "crate::presence::present")]
   source_failure_kind: Option<String>,
   #[serde(default, deserialize_with = "crate::presence::present")]
-  operating_system_error_code: Option<i32>,
+  operating_system_error_code: Option<String>,
   #[serde(default, deserialize_with = "crate::presence::present")]
   reason: Option<Reason>,
   #[serde(default, deserialize_with = "crate::presence::present")]
@@ -344,6 +344,14 @@ impl TryFrom<crate::neutral::Rooted<crate::kept::WithKept<ErrorRecordData>>> for
     );
     if !newer && (failure_members.0 != source_failure || (failure_members.1 && !source_failure)) {
       return Err(InvalidDocument::new(SOURCE_FAILURE_MEMBERS_MESSAGE));
+    }
+    // The code is text, since its type differs by platform; every platform's fits 64 bits, signed or unsigned. It
+    // is checked wherever it stands, in a record of a newer kind too, whose code means what it means here (third
+    // review of the skeleton's first slice).
+    if data.operating_system_error_code.as_deref().is_some_and(|code| {
+      crate::decimal::canonical::<i64>(code).is_none() && crate::decimal::canonical::<u64>(code).is_none()
+    }) {
+      return Err(InvalidDocument::new(OPERATING_SYSTEM_CODE_MESSAGE));
     }
     if data.partial_report.is_some() && !newer && data.kind != ErrorKind::SourceFailed {
       return Err(InvalidDocument::new(PARTIAL_REPORT_KIND_MESSAGE));
@@ -394,9 +402,9 @@ impl ErrorRecord {
     self.source_failure_kind.as_deref()
   }
 
-  /// The operating system's error code of a source failure, when it has one.
-  pub fn operating_system_error_code(&self) -> Option<i32> {
-    self.operating_system_error_code
+  /// The operating system's error code of a source failure, when it has one, in canonical decimal.
+  pub fn operating_system_error_code(&self) -> Option<&str> {
+    self.operating_system_error_code.as_deref()
   }
 
   /// Why the probe stopped, where one reason stopped it.
@@ -465,7 +473,12 @@ impl From<&Error> for ErrorRecord {
         .source_failure
         .as_ref()
         .map(|cause| stable_kind_name(cause.kind())),
-      operating_system_error_code: error.data.source_failure.as_ref().and_then(io::Error::raw_os_error),
+      operating_system_error_code: error
+        .data
+        .source_failure
+        .as_ref()
+        .and_then(io::Error::raw_os_error)
+        .map(|code| code.to_string()),
       reason: error.data.reason.clone(),
       partial_report: error.data.partial_report.clone(),
       observations: error.data.observations.clone(),

@@ -50,7 +50,7 @@ fn reads_error(kind: &str, members: &[(&str, Value)]) -> bool {
 #[test]
 fn a_source_failure_holds_its_kind_of_failure_and_no_other_kind_does() {
   let failure = ("source_failure_kind", json!("not_found"));
-  let code = ("operating_system_error_code", json!(2));
+  let code = ("operating_system_error_code", json!("2"));
   // The review's first case, and a source failure as the library writes one.
   assert!(!reads_error("source_failed", &[]));
   assert!(!reads_error("source_failed", std::slice::from_ref(&code)));
@@ -71,6 +71,51 @@ fn a_source_failure_holds_its_kind_of_failure_and_no_other_kind_does() {
   // A kind of a newer version holds whatever members it needs.
   assert!(reads_error("quota_exceeded", &[failure, code]));
   assert!(reads_error("quota_exceeded", &[]));
+}
+
+#[test]
+fn an_operating_system_code_is_a_64_bit_integer_in_canonical_decimal() {
+  // The second review of the skeleton's first slice: the code's type differs by platform, an `i32` on most and a
+  // `usize` status on UEFI, so it is text (`json-output.md` section 4.4).
+  let failure = ("source_failure_kind", json!("not_found"));
+  let with_code = |code: Value| {
+    reads_error(
+      "source_failed",
+      &[failure.clone(), ("operating_system_error_code", code)],
+    )
+  };
+  for code in [
+    "2",
+    "0",
+    "-2147024894",
+    "9223372036854775822",
+    "18446744073709551615",
+    "-9223372036854775808",
+  ] {
+    assert!(with_code(json!(code)), "{code}");
+  }
+  for code in [
+    "02",
+    "+2",
+    "-0",
+    "",
+    "2.0",
+    "0x2",
+    "18446744073709551616",
+    "-9223372036854775809",
+  ] {
+    assert!(!with_code(json!(code)), "{code}");
+    // The third review: a kind of a newer version may hold the code, which still has this form.
+    assert!(
+      !reads_error("quota_exceeded", &[("operating_system_error_code", json!(code))]),
+      "{code}"
+    );
+  }
+  assert!(!with_code(json!(2)), "a number");
+  assert!(reads_error(
+    "quota_exceeded",
+    &[("operating_system_error_code", json!("-2147024894"))]
+  ));
 }
 
 /// A completeness whose parts are complete but those given, with those kept reasons and that record.

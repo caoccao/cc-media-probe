@@ -14,7 +14,7 @@ license = "Apache-2.0"
 publish = false
 
 [features]
-# The two features of the dossier that the spike checks it can do without.
+# Optional comparison with clap's generated help and usage.
 generated-help = ["clap/help", "clap/usage"]
 
 [dependencies]

@@ -18,7 +18,7 @@ This disposable spike checks how the approved argument parser reads the command 
   - `output.rs` drives `write_inputs` with a writer that fails at a chosen byte and inputs that count what was taken, so a failure inside an entry and one at the final line feed are tested where a closed pipe cannot place them (twelfth review).
   - `process.rs` runs the program and checks that each output holds only what the program writes, so `clap` writes nothing itself, that an output whose read end is closed before the program starts gives the exit status 1, that a usage error keeps the status 2 when standard error or, in JSON mode, standard output is closed, and that standard error escapes a line feed, an escape and a bidirectional control in a usage error's message, while `arguments.rs` checks that the message itself holds them.
 
-The dossier approves `clap` with the features `std`, `help`, `usage` and `error-context`. The spike builds with `std` and `error-context` only. Its feature `generated-help` adds the other two, and every check passes both ways.
+At G2.3 the dossier retained the two features the spike uses by default, `std` and `error-context`. The spike's `generated-help` feature enables `clap/help` and `clap/usage` for comparison. The same tests pass in both configurations.
 
 ## Running it
 

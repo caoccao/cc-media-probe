@@ -23,7 +23,7 @@ This checklist says, item by item, how the specification meets the Rust API Guid
 11. [Future proofing](#11-future-proofing)
 12. [Necessities](#12-necessities)
 13. [What the checklist changed](#13-what-the-checklist-changed)
-14. [Open for the gates](#14-open-for-the-gates)
+14. [Gate decisions and remaining checks](#14-gate-decisions-and-remaining-checks)
 
 ## 1. How to read it
 
@@ -186,10 +186,10 @@ The 15 items marked "Amended" changed these documents:
 
 The spike `spikes/api-scenarios/` follows the parts of these changes that its stub holds: the new name with its accessors, `Limits::new()` and the scenario of section 15.6, which its example program type-checks.
 
-## 14. Open for the gates
+## 14. Gate decisions and remaining checks
 
-- **G2.3** confirms the amendments of `api.md` and `json-output.md` above, with the other amendments since G2.2.
-- **G2.4** confirms the mark of a breaking change in the changelog, with the rest of the stability wording.
+- **G2.3** approved the amendments of `api.md` and `json-output.md` on 2026-11-25, with the other amendments since G2.2.
+- **G2.4** approved the changelog's **Breaking** mark and the stability wording on 2026-11-25.
 - **Task 13** re-runs this checklist against the skeleton, through the checks of the last column, and records its results here.
 - **G16.1** decides C-STABLE for futures-io. Phase 16, task 1, re-runs the checklist before 1.0.
 - **Phase 8** completes the manifests of C-METADATA (plan Appendix C.2.1).

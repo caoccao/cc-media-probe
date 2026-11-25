@@ -194,12 +194,23 @@ fn a_portable_path_describes_one_path() {
     "input_raw": { "encoding": "windows_wide", "data": "d800" },
   }));
   assert!(serde_json::from_value::<Document>(surrogate).is_ok());
-  // The flag is written only as true, and only with the raw form.
+  // The flag is written only as true. Alone, as a platform without an exact form of a path writes it, it stands
+  // only beside a display string that holds U+FFFD.
   let false_flag = input_document(json!({ "input": "input.bin", "input_lossy": false }));
   assert!(
     serde_json::from_value::<Document>(false_flag).is_err(),
     "a flag of false is never written"
   );
+  let flag_alone = input_document(json!({ "input": "\u{fffd}.bin", "input_lossy": true }));
+  assert!(serde_json::from_value::<Document>(flag_alone).is_ok());
+  let flag_alone_on_unicode = input_document(json!({ "input": "input.bin", "input_lossy": true }));
+  assert!(serde_json::from_value::<Document>(flag_alone_on_unicode).is_err());
+  // The third review: beside an encoding of a newer version too, whose data is kept as written.
+  let raw = json!({ "encoding": "wasi_bytes", "data": "FF" });
+  let newer = |input: &str| input_document(json!({ "input": input, "input_lossy": true, "input_raw": raw }));
+  assert!(serde_json::from_value::<Document>(newer("plain.mkv")).is_err());
+  let kept = serde_json::from_value::<Document>(newer("\u{fffd}.mkv")).unwrap();
+  assert_eq!(serde_json::to_value(kept).unwrap()["results"][0]["input_raw"], raw);
 }
 
 /// One tag of a flat form, with that parent and that value; a value of `Value::Null` leaves the member out, since the

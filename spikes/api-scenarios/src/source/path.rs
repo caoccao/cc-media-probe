@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 
 use super::raw::RawPath;
 #[cfg(feature = "serde")]
-use crate::constants::{LOSSY_FLAG_MESSAGE, LOSSY_PATH_MESSAGE, PATH_DISAGREES_MESSAGE};
+use crate::constants::{LOSSY_DISPLAY_MESSAGE, LOSSY_FLAG_MESSAGE, LOSSY_PATH_MESSAGE, PATH_DISAGREES_MESSAGE};
 #[cfg(feature = "serde")]
 use crate::document::InvalidDocument;
 
@@ -56,7 +56,8 @@ impl PortablePath {
     self.lossy
   }
 
-  /// The exact path, present exactly when the path is lossy.
+  /// The exact path: present only when the path is lossy, and then always where the platform that wrote it has an
+  /// exact form of a path. A lossy path that a platform without one wrote has none, wherever it is read.
   pub fn raw(&self) -> Option<&RawPath> {
     self.raw.as_ref()
   }
@@ -71,9 +72,12 @@ impl PortablePath {
     }
   }
 
-  /// A path read from its members, which describe one path. The flag is written only as `true` and only with the
-  /// raw form. For a known encoding, the raw data is not valid Unicode, since a path that is valid Unicode is never
-  /// lossy, and the display string is that data decoded with U+FFFD. The data of a newer encoding is kept unchecked.
+  /// A path read from its members, which describe one path. The flag is written only as `true`, and the raw form
+  /// stands only beside it. Every lossy display string holds U+FFFD, beside a raw form of any encoding and beside
+  /// none, as a platform without an exact form of a path writes it (`json-output.md` section 5.8, after the second
+  /// and third reviews of the skeleton's first slice). For a known encoding, the raw data is not valid Unicode, since
+  /// a path that is valid Unicode is never lossy, and the display string is that data decoded with U+FFFD. The data
+  /// of a newer encoding is kept as written.
   #[cfg(feature = "serde")]
   pub(crate) fn from_members(
     display: String,
@@ -86,18 +90,21 @@ impl PortablePath {
         lossy: false,
         raw: None,
       }),
-      (Some(true), Some(raw)) => match raw.decoded() {
+      (None, Some(_)) => Err(InvalidDocument::new(LOSSY_PATH_MESSAGE)),
+      (Some(false), _) => Err(InvalidDocument::new(LOSSY_FLAG_MESSAGE)),
+      (Some(true), _) if !display.contains(char::REPLACEMENT_CHARACTER) => {
+        Err(InvalidDocument::new(LOSSY_DISPLAY_MESSAGE))
+      }
+      (Some(true), raw) => match raw.as_ref().and_then(RawPath::decoded) {
         Some((is_unicode, decoded)) if is_unicode || decoded != display => {
           Err(InvalidDocument::new(PATH_DISAGREES_MESSAGE))
         }
         _ => Ok(PortablePath {
           display,
           lossy: true,
-          raw: Some(raw),
+          raw,
         }),
       },
-      (Some(false), _) => Err(InvalidDocument::new(LOSSY_FLAG_MESSAGE)),
-      _ => Err(InvalidDocument::new(LOSSY_PATH_MESSAGE)),
     }
   }
 

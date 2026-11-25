@@ -23,7 +23,7 @@ The evidence for gate G1.3 of the [development plan](../plans/plan-init-project.
 | Crate | Version | Settings | License | What it is for |
 |---|---|---|---|---|
 | `cc-media-probe` | `=` the workspace version | path dependency, with `serde` | Apache-2.0 | The library (plan section 7.1). |
-| `clap` | 4.6.8 | no default features; `std`, `help`, `usage`, `error-context` | MIT OR Apache-2.0 | Argument parsing with the builder API. No color, no terminal detection and no suggestions, so the output that section 8.9 compares byte for byte does not depend on the terminal. Usage errors are turned into the CLI's own messages. |
+| `clap` | 4.6.8 | no default features; `std`, `error-context` | MIT OR Apache-2.0 | Argument parsing with the builder API. No color, no terminal detection and no suggestions, so the output that section 8.9 compares byte for byte does not depend on the terminal. The CLI writes its own help, usage and error messages (G2.3). |
 | `serde_json` | 1.0.154 | default features | MIT OR Apache-2.0 | The JSON document (R21). |
 
 ### 1.3 Development dependencies of the library

@@ -4101,3 +4101,280 @@ The other documents follow:
 - G2.4, which now also confirms the mark of a breaking change;
 - tasks 11 to 13, where task 13 re-runs the checklist against the skeleton;
 - the open items of the twelfth review's entry: the public sources of field guide F30 and the MP4RA registry of track references, which Phase 6 adds through GS.2.
+
+## 2026-11-25 — G2.3 CLI and JSON contract [CONFIRM]
+
+The maintainer delegated the pending gate decisions and asked for a review of the overall plan, the public API and the protocol. G2.3 passed for plan revision 56 at `970fc32`. This approves the [CLI contract](../design/cli.md), the [JSON contract](../guide/json-output.md), D18, and the amendments to the [API specification](../design/api.md) and field guide since G2.2, including the [task 6 checklist](../design/api-guidelines-checklist.md).
+
+- The library and CLI share the document writer. Each input produces one ordered result. The contract defines the usage-error document, exit statuses, and how a caller detects incomplete output.
+- All four root records carry a schema version. Readers accept compatible minor additions, preserve the payload of a new kind or outcome, and check nested versions. Archived fixtures and the first reader of the schema major, the last reader of each earlier minor line and the previous release will test these rules. The plan's Serde summary now points to the six types whose enclosing values supply their serialized form.
+- The JSON writer uses an unescaped solidus, preserves Unicode noncharacters in media text, and writes binary data in lowercase hexadecimal, as proposed in section 11 of the JSON guide.
+- The CLI uses `clap` with default features disabled and only `std` and `error-context` enabled. The CLI owns its help and usage text. All 17 CLI spike tests passed both with and without `clap`'s generated help and usage. The API spike passed all 196 tests, including doc tests, with all features enabled.
+
+## 2026-11-25 — G2.4 Stability policy wording [CONFIRM]
+
+G2.4 passed for revision 56 at `970fc32`. The [stability guide](../guide/stability.md) and its [README summary](../../README.md#stability) state which changes callers can expect. Schema major 1 stays readable throughout the 0.x releases. Patch releases carry fixes and keep the minor line's MSRV. A breaking change begins its changelog entry with **Breaking**. G16.1 owns the decisions reserved for 1.0.
+
+**Next gate.** G2.5 follows the skeleton, examples and contract tests in Phase 2 tasks 11 to 13, including a second pass through the checklist against the implementation. Field-guide F30 and the MP4RA track-reference registry follow their format phases and GS.2.
+
+## 2026-11-25 — Progress: Phase 2, task 11, the first slice of the skeleton
+
+The maintainer sent the summary of G2.3 and G2.4, which passed for revision 56: the plan is ready for implementation, and G2.5 follows the skeleton, examples and contract tests. The next work was task 11. It is large: `api.md` defines about 160 public types with about 600 accessors, of which the stub of `spikes/api-scenarios/` holds about a quarter, and the coverage bar of R28 holds from the skeleton's first change. The agent asked five questions, in two rounds, and the maintainer took the recommended option each time:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Delivery | Three slices, each passing `node scripts/check.ts` and the coverage bar on its own and presented for review before the next: the data model; the options, sources, entry points, detection and async surface; and the serialized form with the contract tests of task 13 that cover it | One review at a time, as for the documents of tasks 1 to 6, keeps each diff readable |
+| Source of the code | Port the stub where it matches `api.md`, check each item against the specification, and write the rest from it | The stub's serialized form holds what nineteen reviews settled; a fresh one could drift from it |
+| Spikes | `spikes/api-scenarios/` stays until the library's own tests cover what its tests show, and is deleted in the change that completes task 13; `spikes/cli-arguments/` stays until Phase 3, task 21; plan section 1.2 allows a spike to stay until its permanent replacement exists | The skeleton is written from the stub, and its tests are the contract tests' reference |
+| The `zlib` feature | Declared together with `miniz_oxide`, the dependency that it enables, when that dependency is first used | A feature that does nothing would mislead, and the Cargo SemVer guide classes adding a feature and adding a dependency as minor changes |
+| Model values in tests | Test-only constructors: fields stay private, and each file's embedded tests build its values; the library's own way of building a report is designed in Phase 3, task 13 | Nothing internal is fixed before the first code that builds a report |
+
+The question on `zlib` named Phase 5 as the first use of `miniz_oxide`. Plan Phase 3, task 14, the inflate integration, comes first, so the feature is declared there; the maintainer's choice, to declare it with its dependency, is unchanged.
+
+**Online check.** The Cargo SemVer reference, read on 2026-11-25: adding a Cargo feature and adding a dependency are minor changes, and removing a feature is a major one, so declaring `zlib` later costs nothing before 0.1.0.
+
+**Written: the data model.** 182 files and about 19,400 lines under `crates/cc-media-probe/src/`, rustdoc and embedded tests included:
+
+- `model/`: the value types, languages, streams with their disposition, languages, declaration range and timecode, protection, codec information with its candidates, raw identifiers, profile, level and tier, the video, audio and subtitle information, chapters and editions, tags and tag sets with their targets, attachments, programs, external references, the usage summary, the detection with its outcome, candidates, confidence and hint, and the report with its inventory class and the three tag lookups; the catch-all payloads; and the trees' operations, which never recurse on their depth.
+- `format/`, `codec/`, `prober/` (`Limit` only), `completeness/`, `diagnostics/`, `details/` with the catch-all only, `source/` and `error/` with the live error and its record.
+- `utilities/`: checked greatest common divisor, the exact `f64` of an integer within 2^53, and lowercase hexadecimal.
+
+How the code meets the rules:
+
+- **R36.** Some 60 enums share one shape, unit variants with a catch-all and `as_str()`; written by hand, two enums with the same number of variants would be duplicates once names are normalized. A private macro, `string_enumeration!`, writes them; its second form adds a second text of each variant, such as a limit's name for people. `data_enumeration!` writes the four enums that carry data, and `details_enumeration!` the two enums of typed details with their shared lists. The first duplicate check found the tables of texts, the two hexadecimal encoders and two constructors of a raw path; each became one body.
+- **Tests.** The test-only constructors are inherent `impl` blocks inside each file's embedded test block, so their literals, lines and code stay out of R33, R31, the coverage and the duplicate check.
+- **Examples.** An accessor's example takes the value as a function's argument, such as `fn summary(report: &MediaReport)`, so it compiles and runs without a probe function; one example serves a type and its accessors (`api.md` section 3.4).
+- **Lints.** `missing_debug_implementations` is denied for the library, as the checklist of task 6 recorded. `clippy.toml` gains `doc-valid-idents` for QuickTime, TrueHD, VobSub, WebM and WebVTT, which the pedantic documentation lint would otherwise ask to write as code. The private fields of `ContentLightLevel` and the identifier of `Program` were renamed to satisfy `struct_field_names`; their accessors keep the specified names.
+
+**A gap for G2.5.** `Protection::sample_description_state()` cannot tell a format without sample descriptions from a count that was not read when `sample_description_count()` is absent, and its serialized form cannot either. The skeleton derives it from `is_fully_examined()`, which gives `Unknown` for a Matroska track cut short, where `api.md` section 6.3 asks for `None`. Section 16 of `api.md` states the alternatives: amend the section to the derivation, or add a member that says whether the stream has sample descriptions.
+
+**Choices made without asking,** listed in `api.md` section 16 with their gates: the enums whose values come with later phases (`Speaker`, `StereoLayout`, the two ambisonic conventions, the companion roles of `SourceRole`), `NativeScope` without members until Phase 6, `Confidence`'s named levels left to G3.5, the name `unknown` of `SampleDescriptionState::Unknown`, the support level and family of each format, the library's names of formats and codecs, the texts for people, drop-frame counting at multiples of 30 frames per second, the widths of `TimecodeLabel`, the table of I/O error kinds, the raw form of a path on a platform that is neither Unix nor Windows, and the key that `tags_with_key()` copies.
+
+**Plan, revision 57:** the status line; section 1.2, a spike kept until its permanent replacement exists; section 7.2, the public `source` module, the shared constants and the two enum macros in the tree; section 8.8, the six types that the values holding them write, from G2.3; Phase 2, its progress and task 11; Appendix E.
+
+**Other documents:** `api.md`, its review history and section 16; the README of `spikes/api-scenarios/`; `clippy.toml`; the expected package list `crates/cc-media-probe-checks/data/package-cc-media-probe.txt`; and `CHANGELOG.md`, whose unreleased section lists the data model.
+
+**Verification.** `node scripts/check.ts` passed: "all checks passed". The library's 163 unit tests and 206 doc tests pass, among them two that must fail to compile, which show that a catch-all's payload never moves into another enum. The structure check found 0 findings and the duplicate check none. Line coverage is 99.81% for the library (2217 of 2221) and 100% for `utilities/`.
+
+**Open:**
+
+- the maintainer's review of the first slice, and the gap above;
+- the second slice: `Prober`, `Limits` and the options, the positional source traits, the ten entry points with their "unsupported format" error, and the async surface with the `tokio` and `futures-io` features;
+- the third slice: the `serde` feature with the strict reader, the catch-alls' kept members, the document and its writer, and the contract tests of task 13 that cover them;
+- tasks 12 and 13, then G2.5.
+
+## 2026-11-25 — Review of the first slice of the skeleton
+
+The maintainer staged the first slice and reviewed it. The review found twelve issues and confirmed five of them with a program that uses the library from outside it. All twelve hold. Ten were places where the slice fell short of an approved contract, and were fixed to it. Two needed a decision:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| Sample descriptions (the gap of the first slice) | `Protection::has_sample_descriptions()`, a plain flag that the format decides, in `api.md` section 6.3 and `json-output.md` section 7.3 as `has_sample_descriptions`. With the count absent, a stream with sample descriptions gives `Unknown` from index 1 on, and one without gives `None`. Reading refuses `false` beside a count, a description entry or a declaration of the scope `sample_description` | It keeps the approved rule of section 6.3, and it survives reading a `Protection` alone, as the review asked. The alternative, amending section 6.3 to derive the state from `is_fully_examined()`, would report the descriptions of a Matroska track cut short as unknown, though Matroska has none |
+| A path where the platform has no exact form | Unix and WASI write a lossy path's bytes as `unix_bytes` and rebuild from them, through `std::os::unix::ffi` and `std::os::wasi::ffi`; Windows writes its units. Any other target writes the flag without a raw form, `raw()` is absent, `to_native()` gives `None`, and a reader takes the flag alone beside a display string that holds U+FFFD | The standard library calls the bytes of `as_encoded_bytes()` unspecified and unfit to store, and plan section 8.8 already said that the internal encoding is never written. The alternatives: a library that refuses to build on such a target, which would lose WebAssembly without WASI, where `probe_bytes` has a use; or those bytes kept as `unix_bytes`, which a Unix reader would rebuild into a path that the writer never had |
+
+**Online check, on 2026-11-25.** The standard library's documentation:
+
+- `std::os::wasi::ffi::OsStrExt` and `OsStringExt` are stable since 1.0, with `as_bytes()` and `from_vec()`.
+- `OsStr::as_encoded_bytes()` gives an "unspecified, platform-specific" encoding. Its bytes that are not UTF-8 are comparable only "within the same Rust version built for the same target platform", and storing them in a file "will likely result in incompatible byte slices".
+- `SystemTime` counts in 100-nanosecond intervals on Windows. Its `checked_add` and `checked_sub` return `Some(self)` for a duration finer than that.
+- The `Hash` trait asks that the data of a value never be a prefix of another's ("prefix collisions").
+
+**What the review found, and what changed:**
+
+1. **`error::Reason`.** `api.md` section 3.2 lists `Reason` in `cc_media_probe::error`, and the path did not compile. `error` now re-exports the one of `completeness`.
+2. **`as_str()` of the detail enums.** Rule 7 of section 1 promises it on every enum with a catch-all. The macro of the two enums now writes it: each variant names the constant of its kind, and the catch-all gives its kept name.
+3. **`SupportLevel`.** It is a model type with its own serialized form (section 3.3), so it needs the catch-all of rule 5. It now has one, with `as_str()`: `probed` and `detect_only`, the names that `cli.md` section 8.5 shows.
+4. **`stream_tags()` of a stream that does not exist.** A wildcard matched any index, so `stream_tags(usize::MAX)` gave the wildcard's tags. An index without a stream now gives no tags.
+5. **Sample descriptions.** As decided above.
+6. **`UtcTime::to_system_time()` on Windows.** One nanosecond after the epoch gave the epoch itself. The method now gives `None` unless the result keeps the requested distance from the epoch exactly. A test covers an instant finer than Windows' precision on each platform.
+7. **Raw paths on other targets.** As decided above. Clippy passes for `x86_64-pc-windows-msvc` and `wasm32-wasip1` as well as the host, with the tests compiled. The maintainer asked for the WASI target, which `rustup` added to the pinned toolchain; `target_os` is `wasi` there and neither `unix` nor `windows` holds, so the WASI branch is the one compiled. Its tests do not run here, since no WASI runtime is installed.
+8. **Opening and reading.** `cli.md` section 8.6 shows `the source could not be opened` for a missing file, but every source failure without an offset said `the source failed`. The live error now keeps, without an accessor, whether the source failed while it was being opened. Its message, and so its record's, says so. The example of `json-output.md` section 5.8 said `the input could not be opened` and now agrees with the CLI contract.
+9. **A cyclic cause chain.** `to_record()` followed `source()` without end when a caller's error named an earlier cause. The chain now ends where a cause repeats. A repeat is the same value, at the same address and of the same type, which `std::ptr::eq` compares on the pointer to the trait object. So a cause at the start of its parent, at the same address but of another type, continues the chain. A test covers both.
+10. **The owned conversion.** `From<Error>` cloned the partial report. The fields that the error and its record share now form one value, `ErrorParts`, with the partial report behind its own pointer. `From<Error>` moves them after taking the texts, and `From<&Error>` clones them. So the two conversions share one construction, and a test checks that the moved report keeps its address.
+11. **Hashing a tree.** A leaf fed the hasher the start of the data of that leaf with a branch below it. The hash now writes the node count first, as a slice writes its length. A test with a hasher that records its bytes checks that neither tree's data is the start of the other's.
+12. **The gate diagram.** The diagram of plan section 1.1 deleted every spike with its gate decision. It now keeps a spike until its replacement exists, as section 1.2 says.
+
+**Choices made without asking,** listed in `api.md` section 16 with their gates:
+
+- the identity that ends a cause chain, the same value, address and type;
+- the opening of a source kept in the live error without an accessor, and in the record only in its message, so that no JSON member is added.
+
+**Plan, revision 57, extended:**
+
+- the status line and the progress of Phase 2;
+- section 1.1, the diagram;
+- section 8.8, the raw form of a path by platform, and the flag alone where there is none;
+- Appendix E, its row and its themes.
+
+**Other documents:**
+
+- `api.md`: its review history, and sections 6.1, 6.3, 6.4, 6.9, 6.15, 10.1, 10.2, 11.1, 12 and 16;
+- `json-output.md`: its review history, and sections 3, 5.8, 7.3, 10 and 11;
+- the expected package list, which gains `src/error/parts.rs`.
+
+The changelog's entry for the data model stands as it is.
+
+**Verification.** `node scripts/check.ts` passed: "all checks passed". The library's 172 unit tests and 206 doc tests pass, the structure check found 0 findings, and the duplicate check none. Line coverage is 99.82% for the library (2229 of 2233) and 100% for `utilities/`. Clippy passes for the Windows and WASI targets as well.
+
+**Open:**
+
+- the maintainer's review of these fixes;
+- the second slice;
+- the third slice, whose reader checks the new rules of protection and of a lossy path without a raw form;
+- tasks 12 and 13, then G2.5.
+
+## 2026-11-25 — Second review of the first slice of the skeleton
+
+The maintainer staged the fixes of the first review and reviewed the slice again. The host checks passed, all 172 library tests in release mode among them. All 170 tests that apply to WASI passed. The accessors that the first review had found missing compiled from a crate outside the library. The review found twelve issues, and all of them hold. Two were builds that failed on targets beyond the three hosts of plan section 9.8. Plan section 2 does not support those targets, but the design must not preclude them. Four issues needed a decision:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| UEFI's operating-system code | `ErrorRecord::operating_system_error_code() -> Option<&str>`, the code in canonical decimal, a string in `json-output.md` section 4.4; a reader takes a 64-bit integer, signed or unsigned | The standard library gives the code as an `i32` on most platforms and as a `usize` status on UEFI, whose error statuses have the high bit set. The maintainer answered "Use string instead" to the three options offered: an `i32` that is absent where the code does not fit, an `i64`, and a typed code of each platform |
+| Ending the cause chain | Follow at most 32 causes (`MAXIMUM_CAUSES`), and leave out a cause whose address and message equal those of a cause already listed | `std::ptr::eq` on `&dyn Error` compares addresses and vtables, and Rust may duplicate or merge vtables. The first review's rule could therefore repeat a message, cut a valid chain or never end, and its scan was quadratic. The other options were the bound alone, which repeats a cycle's messages, and the bound with a stop at the first repeat, which cuts off the causes below a wrapper with its cause's message |
+| Hermit, SOLID and Xous | They write `unix_bytes` and rebuild from them, and each is checked once with nightly's `-Z build-std` | Their `std::os::{hermit,solid,xous}::ffi::{OsStrExt, OsStringExt}` are stable since 1.0, with the same byte conversions as Unix. The other options were to cover them unchecked, or to keep Unix, WASI and Windows alone and state that policy |
+| A timecode's nominal rate | `nominal_frames_per_second() -> u64` stays, at least 1. A source that declares 0 has no start timecode and a diagnostic, and reading refuses 0. `label()` no longer counts 0 as 1 | This keeps the approved signature. The other option was `NonZeroU64` |
+
+**Online check, on 2026-11-25.** In the standard library's source at the `1.100.0` tag:
+
+- `RawOsError` is `usize` where `target_os = "uefi"`, `i16` on 16-bit targets and `i32` elsewhere. Its documentation advises `as` or `into` conversions for portability.
+- `library/std/src/os/mod.rs` declares `hermit`, `solid` (for `solid_asp3`) and `xous` for their `target_os`, and `wasi` only for the environments `p1`, `p2` and `p3`; `wasm32-wasip1` has `target_env` `p1`.
+- `os/hermit/ffi.rs`, `os/solid/ffi.rs` and `os/xous/ffi.rs` re-export Unix's `OsStrExt` and `OsStringExt` as stable since 1.0.
+- `os/uefi` and `os/motor` are unstable; Motor's paths are UTF-8, so a Motor path is never lossy.
+- `std::ptr::addr_eq` compares the addresses of two pointers and ignores their metadata.
+
+**What the review found, and what changed:**
+
+1. **WebAssembly without WASI.** `wasm32-unknown-unknown` denied six warnings, one more than the review counted: the hexadecimal helpers, their re-export and their radix constant were unused, and Clippy's `unused_self` caught the fallback's `to_native`. The helpers now compile only where a path has an exact form. `RawPath::to_native()` is one method, with a free function per platform. The same check found the Windows and byte variants of `RawPath::of` near-duplicates under `cargo-dupes`, so one `of` now serves every platform with an exact form, through `native_encoding()` and `native_data()`.
+2. **UEFI's codes.** As decided above. `x86_64-unknown-uefi` gave E0308 in the record and in a test. The record now keeps the code's decimal text, whatever the type of `raw_os_error()`, and a test reads `2` and `2147024894`.
+3. **The cause chain.** As decided above. Tests cover a self-cycle, which lists `looping` twice, from the I/O error and from the caller's error. A wrapper at its cause's address with the same message loses that repeat but keeps the cause below it. A chain of 40 distinct causes gives 32 messages.
+4. **Hermit, SOLID and Xous.** As decided above. `rustup` added `rust-src` to nightly 1.102.0 of 2026-11-20. `cargo +nightly check -Z build-std=std,panic_abort` passes for `x86_64-unknown-hermit` and `riscv32imac-unknown-xous-elf`. For `aarch64-kmc-solid_asp3` the standard library itself fails to compile, on `c::EMSGSIZE`, which SOLID's bindings lack. The `1.100.0` source holds the same line, so SOLID's branch rests on the standard library's source alone. The test of a path's bytes now runs on every platform of bytes, and takes the traits from the module.
+5. **The spike's reader.** `tests/document.rs` refused a lossy input without its raw form, which `json-output.md` section 5.8 reads on every platform. The reader in `src/source/path.rs` now takes the flag alone beside a display string that holds U+FFFD. `tests/document.rs` and `tests/archive.rs` check that and its refusal elsewhere. The spike's code is now text too, read in canonical decimal of 64 bits, and `tests/record_rules.rs` checks the spellings that fail.
+6. **`cli.md` and the source table.** Section 7 required `input_raw` beside every lossy input, section 10 said only Unix and Windows give a raw form, and `json-output.md` section 7.14 described both members for every lossy path. Each now names the platforms with an exact form and the flag alone elsewhere. Section 10's template takes the decimal text of `raw_os_error()`, and section 8.6 says that the cause lines are the record's, bounded.
+7. **The enum table.** `json-output.md` section 6.1 now lists `probed` and `detect_only` for `SupportLevel`, read or written alone, and `unknown` for `SampleDescriptionState` alone. An entry of a protection's sparse list holds `clear` or `declared` only, which reading checks.
+8. **A nominal rate of 0.** As decided above. The test-only constructor refuses 0, and a test counts at 1 frame a second.
+9. **The report's fixture.** `MediaReport::sample()` is of Matroska, but its streams held `Protection::sample()`, an ISO track's protection with two sample descriptions. They now hold `Protection::matroska_sample()`: blocks encrypted with `ContentEncAlgo` 5, no sample descriptions and clear private data. A test checks that the fixture's protections agree with its format. `api.md` section 6.3 and `json-output.md` sections 7.3 and 10 say that reading a report checks the flag against the format: true for the ISO base media family and false for every other format of this version.
+10. **The foreign path.** The test's raw data, `d800002e0062`, decoded to `�.b` as units and held nulls as bytes. It now holds `�.bin` in the other platform's encoding: `ff2e62696e` as bytes or `d800002e00620069006e` as units.
+11. **The companion's identity.** `Error::failed_source()`, of the primary input, carried an attempted identity, which `json-output.md` section 4.4 reserves for a requested companion. It carries none now. `Error::failed_companion()`, a failure at byte 2048 of source 1 requested as `movie.sub`, carries one, and the live error's and the record's tests check both.
+12. **The JSON contract's status.** `cli.md` section 7 now points to the approved contract.
+
+**Choices made without asking,** listed in `api.md` section 16 with their gates:
+
+- the code written in decimal, the form of the standard library's own `(os error 2)`, and read within 64 bits, signed or unsigned;
+- inside a report, the flag `has_sample_descriptions` true exactly for the ISO base media family, `QuickTime` and `IsoBaseMedia` included;
+- an entry of `sample_descriptions` whose state is `unknown` refused on reading.
+
+The first review's choice of a cause's identity, the same value, address and type, is withdrawn; the maintainer's rule above replaces it.
+
+**Plan, revision 57, extended:**
+
+- the status line and the progress of Phase 2;
+- section 8.8, the error record's code and cause chain, and the platforms that write bytes;
+- Appendix E, its row and its themes, with a new theme, **Errors**.
+
+**Other documents:**
+
+- `api.md`: its review history, and sections 6.3, 6.15, 10.2, 12 and 16;
+- `cli.md`: its review history, and sections 7, 8.6, 10 and 13;
+- `json-output.md`: its review history, and sections 4.4, 5.8, 6.1, 7.3, 7.14, 10 and 11;
+- `spikes/api-scenarios/README.md`: the test list and the results of this review.
+
+The changelog's entry for the data model stands as it is.
+
+**Verification.**
+
+- `node scripts/check.ts` passed: "all checks passed".
+- The library's 179 unit tests pass, as do its 207 doc tests, 3 of which must fail to compile. The structure check found 0 findings, and the duplicate check none.
+- Line coverage is 99.82% for the library (2240 of 2244 lines) and 100% for `utilities/`.
+- Clippy passes with all features and targets for:
+  - the host;
+  - `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`;
+  - `wasm32-wasip1`;
+  - `wasm32-unknown-unknown` and `x86_64-unknown-uefi`, both newly added to the pinned toolchain.
+- In the spike:
+  - every Clippy run passes;
+  - 188 tests and 9 doc tests pass with all features, and 14 tests without a feature;
+  - the structure check reports 0 findings;
+  - all 13 programs end without a panic, and `jq` finds no null in the JSON scenario's document.
+
+**Open:**
+
+- the maintainer's review of these fixes;
+- the second slice;
+- the third slice, whose reader checks the rules of this review and the first: the code's spelling, a nominal rate of 0, an unknown entry of the sparse list, and the flag of a protection against its report's format;
+- tasks 12 and 13, then G2.5.
+
+## 2026-11-25 — Third review of the first slice of the skeleton
+
+The maintainer staged the fixes of the second review and reviewed the slice a third time. `node scripts/check.ts`, all 179 library tests in release mode, the spike's tests and `git diff --cached --check` passed. The review found ten issues, and all of them hold. One needed a decision:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| The indexes of sample descriptions | The entries of `sample_descriptions` rise strictly from 1 and lie within `sample_description_count` when it is present; a declaration's `sample_description_index` counts from 1 and lies within that count too. Reading refuses any other. It does not compare an entry's state with the declarations | ISO/IEC 14496-12 numbers the sample entries of `stsd` from 1 to `entry_count`, the range of `stsc`'s `sample_description_index`, so an index outside names no description. The retained-data limit can drop a declaration whose description's state is kept, so a comparison would need a rule of its own. The maintainer chose "Entries and declarations" over the entries alone and over both with that comparison |
+
+**Online check, on 2026-11-25.**
+
+- The documentation of `std::iter::successors` says that `next` returns the stored item and calls the closure on it to compute and store its successor. So `take(32)` asks the 32nd cause for its own before the take ends.
+- ISO/IEC 14496-12, section 8.7.4: "The index ranges from 1 to the number of sample entries in the Sample Description Box", which holds at least one entry.
+- RFC 8486 allows (1 + n)² + 2j channels in channel mapping family 2, so six are first-order ambisonics with a non-diegetic stereo pair, the layout of the audio fixture. The Matroska codec specifications name `A_OPUS` and `S_TEXT/WEBVTT`.
+
+**What the review found, and what changed:**
+
+1. **The code of a newer kind.** The spike's reader skipped the form of `operating_system_error_code` beside a kind of a newer version, so it accepted `"02"` and `"18446744073709551616"` there. The check now runs in every record, and `tests/record_rules.rs` refuses each bad spelling beside `quota_exceeded` and reads a good one.
+2. **The U+FFFD of every lossy path.** The reader refused `plain.mkv` with the flag alone but accepted it beside a raw form of an unfamiliar encoding. Every lossy display string now must hold U+FFFD, beside any raw form and beside none, with the new message "a lossy path's display string holds U+FFFD". A newer encoding's data is still written back as read, and `tests/archive.rs` checks both.
+3. **The 33rd cause.** `successors` asked the 32nd cause for its successor. `Error::cause_messages()` now counts down the causes that may follow and stops asking at the bound. `Link`, the test's chain, counts the requests. Of a chain of 40, links 0 to 30 are asked, 31 times, and link 31, the 32nd cause, never is.
+4. **The indexes of sample descriptions.** As decided above. The rustdoc of `sample_descriptions()`, `SampleDescriptionProtection::index()` and `ProtectionDeclaration::sample_description_index()` states the range.
+5. **A newer state.** `json-output.md` sections 6.1 and 7.3 now say that this version writes `clear` or `declared` in the sparse list, and that a reader refuses the literal `unknown` there and keeps a state of a newer version. The rustdoc of `SampleDescriptionProtection::state()` says the same.
+6. **The lookup.** `sample_description_state()` now finds the entry by binary search on the sorted list, and a test looks up every index of a list of 1,000 descriptions with gaps.
+7. **The raw form and its writer.** `PortablePath::raw()` and the spike's `raw()` now tie the raw form to the platform that wrote the path. `api.md` section 6.15 already did.
+8. **An interrupted read.** `Error::failed_source()` attached the complete `MediaReport::sample()` and a logical offset, which belongs to a stream of several files. It is now a failure at byte 1040384 of a single file while the tags were read after the inventory. The partial report, from the new `MediaReport::cut_by_a_source_failure()`, has its tags incomplete with a `SourceFailed` reason naming source 0, kept in `reasons()` and as the record's first reason of the tags. The error's record is the partial report's, and it has no logical offset. Each of `From<&Error>` and `From<Error>` is checked to keep the part, the reason and the source.
+9. **One detection error for each ending.** `Error::stopped_detection()` held a limit's reason, a candidate with its own cause, a hint and a family at once. Four fixtures now follow `api.md` section 5.1:
+   - `stopped_detection()`, `FormatNotDetermined` with `BytesRead` and detection stopped;
+   - `unchecked_candidate()`, `FormatNotDetermined` without a reason, its MP4 candidate `NotCheckable` with `RangeUnavailable`;
+   - `hinted_format()`, `UnknownFormat` with a hint of MP4 alone;
+   - `stopped_before_the_inventory()`, `NoStreamInventory` of the ISO base media family, with `MediaSegmentWithoutInitializationData` and the observations.
+
+   The live error's and the record's tests check each one.
+10. **The streams of the report's fixture.** The audio and subtitle streams took the video track's H.264 codec, `TrackUID` and, for the audio, track number. The audio is now Opus, track 2 with `TrackUID` 67890, without a timecode or a frame count. The subtitle is WebVTT, track 3 with `TrackUID` 13579. A test checks that the three tracks' identifiers differ and that each codec implies its stream's kind.
+
+**Choices made without asking:**
+
+- **The subtitle fixture is a track of its own.** It no longer stands embedded in stream 0. F14 gives an embedded stream only to the audio of a type-1 DV stream in AVI, and no subtitle codec of `0.1.0` is carried inside a Matroska video track. A test of its own still covers `embedded_in()`, with the audio of a DV stream as its example.
+- **The interrupted read is the tags.** It replaces discovery. A cut in discovery would also have to leave the stream's protection unexamined, which `MediaReport::sample()` gives in full. The failure moved from byte 1048576, the size of the fixture's file, to byte 1040384.
+- **The bound counts every cause followed.** A repeat that is left out counts too, as section 10.2 had it.
+
+**Plan, revision 57, extended:**
+
+- the status line and the progress of Phase 2;
+- section 8.8, on the U+FFFD of every lossy path, the code's form in every record and the last cause;
+- Appendix E, its row and its themes **Paths** and **Errors**.
+
+**Other documents:**
+
+- `api.md`: its review history, and sections 6.3, 6.15, 10.2, 12 and 16;
+- `json-output.md`: its review history, and sections 4.4, 5.8, 6.1, 7.3, 10 and 11;
+- `spikes/api-scenarios/README.md`: the test list and the results of this review.
+
+`cli.md` states nothing that the review changed.
+
+**Verification.**
+
+- `node scripts/check.ts` passed: "all checks passed".
+- The library's 186 unit tests pass, as do its 207 doc tests, 3 of which must fail to compile.
+- Line coverage is 99.82% for the library (2247 of 2251 lines), 100% for the CLI and 100% for `utilities/`.
+- Clippy passes with all features and targets on the host, `x86_64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`, `wasm32-wasip1`, `wasm32-unknown-unknown` and `x86_64-unknown-uefi`.
+- In the spike:
+  - every Clippy run passes;
+  - 188 tests and 9 doc tests pass with all features, and 14 tests without a feature;
+  - the structure check reports 0 findings;
+  - all 13 programs end without a panic, and `jq` finds no null in the JSON scenario's document.
+
+**Open:**
+
+- the maintainer's review of these fixes;
+- the second slice;
+- the third slice, whose reader adds the rules of this review to those of the first two:
+  - the indexes of the sparse list and of the declarations;
+  - the literal `unknown` refused and a newer state kept;
+  - the code's form in every record;
+  - the U+FFFD of every lossy path;
+- tasks 12 and 13, then G2.5.
