@@ -21,26 +21,29 @@ use super::constants::{
   CONSTANT_BIT_RATE_OVER_SIZE_NAME, DELIVERY_CLOCK_SPAN_NAME, ENDPOINT_TIMESTAMPS_NAME, INDEX_SIZE_TOTALS_NAME,
   LAST_UNIT_START_NAME,
 };
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// An estimated value and how it was made. Estimates come only from the `estimated_` accessors, never from the
-/// normalized ones (R25).
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-///
-/// fn duration_or_estimate(report: &MediaReport) -> Option<String> {
-///     match (report.duration(), report.estimated_duration()) {
-///         (Some(duration), _) => Some(duration.to_string()),
-///         (None, Some(estimate)) => Some(format!("about {} ({})", estimate.value(), estimate.method().as_str())),
-///         (None, None) => None,
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Estimate<Value> {
-  value: Value,
-  method: EstimateMethod,
+form_record! {
+  /// An estimated value and how it was made. Estimates come only from the `estimated_` accessors, never from the
+  /// normalized ones (R25).
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  ///
+  /// fn duration_or_estimate(report: &MediaReport) -> Option<String> {
+  ///     match (report.duration(), report.estimated_duration()) {
+  ///         (Some(duration), _) => Some(duration.to_string()),
+  ///         (None, Some(estimate)) => Some(format!("about {} ({})", estimate.value(), estimate.method().as_str())),
+  ///         (None, None) => None,
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Estimate<Value> {
+    value: Value,
+    method: EstimateMethod,
+  }
 }
 
 impl<Value: Copy> Estimate<Value> {

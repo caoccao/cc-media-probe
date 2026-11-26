@@ -51,6 +51,18 @@ impl IntegerValue {
   pub fn to_u64(&self) -> Option<u64> {
     u64::try_from(self.0).ok()
   }
+
+  /// The integer that the tag value that holds it read, within -2^63 and 2^64 - 1 (`json-output.md` section 6.2).
+  #[cfg(feature = "serde")]
+  pub(crate) fn new(value: i128) -> IntegerValue {
+    IntegerValue(value)
+  }
+
+  /// The integer, which the tag value that holds it writes.
+  #[cfg(feature = "serde")]
+  pub(crate) fn value(&self) -> i128 {
+    self.0
+  }
 }
 
 impl fmt::Display for IntegerValue {

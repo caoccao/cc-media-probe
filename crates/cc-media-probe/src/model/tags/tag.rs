@@ -21,6 +21,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use super::{TagKey, TagName, TagValue};
+use crate::form_record::form_record;
 use crate::model::Language;
 use crate::model::tree::{Branching, copy, equal, format, hash, release};
 
@@ -58,16 +59,22 @@ pub struct Tag {
   branches: Vec<Tag>,
 }
 
-/// A tag's own members, without the tags below it.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct TagNode {
-  name: TagName,
-  key: Option<TagKey>,
-  languages: Vec<Language>,
-  countries: Vec<String>,
-  default: Option<bool>,
-  value: Option<TagValue>,
-  native_type: Option<String>,
+form_record! {
+  /// A tag's own members, without the tags below it.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub(crate) struct TagNode {
+    name: TagName,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    key: Option<TagKey>,
+    languages: Vec<Language>,
+    countries: Vec<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    default: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    value: Option<TagValue>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    native_type: Option<String>,
+  }
 }
 
 impl Tag {
@@ -165,6 +172,28 @@ impl fmt::Debug for Tag {
   /// Writes the nodes of the subtree in depth-first order, each with the position of its parent.
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
     format(self, formatter)
+  }
+}
+
+/// A standalone Tag is the flat array of its subtree, the node itself first (`json-output.md` section 5.9).
+#[cfg(feature = "serde")]
+impl serde::Serialize for Tag {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    crate::model::tree::write_subtree(self, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> crate::form::ReadAlone<'input> for Tag {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Tag, Input::Error> {
+    crate::model::tree::read_subtree(deserializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> serde::Deserialize<'input> for Tag {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Tag, Input::Error> {
+    crate::form::read_alone(deserializer)
   }
 }
 

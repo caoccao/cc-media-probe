@@ -24,59 +24,63 @@ use super::{
   CompanionStatus, DetectionStatus, DiscoveryStatus, HeadersStatus, LimitRecord, PartReason, SectionStatus,
   TimingStatus,
 };
+use crate::form_record::form_record;
 
-/// What a report established, what it did not, and why, from `MediaReport::completeness()`. Every shortfall is
-/// recorded against the part it stopped, so none can exist without changing `is_complete()`.
-///
-/// Each status is a stored enum with a catch-all, so its getter returns it by reference. `Display` writes a
-/// one-line summary, such as "incomplete: discovery stopped by the stream limit".
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-/// use cc_media_probe::completeness::SectionStatus;
-///
-/// fn describe(report: &MediaReport) {
-///     let completeness = report.completeness();
-///     if completeness.is_complete() {
-///         println!("complete");
-///         return;
-///     }
-///     println!("{completeness}");
-///     println!(
-///         "detection {}, discovery {}, headers {}, timing {}, companions {}",
-///         completeness.detection().as_str(),
-///         completeness.discovery().as_str(),
-///         completeness.headers().as_str(),
-///         completeness.timing().as_str(),
-///         completeness.companions().as_str(),
-///     );
-///     for (name, status) in [
-///         ("tags", completeness.tags()),
-///         ("chapters", completeness.chapters()),
-///         ("attachments", completeness.attachments()),
-///     ] {
-///         if matches!(status, SectionStatus::Incomplete) {
-///             println!("{name} may be missing");
-///         }
-///     }
-///     for reason in completeness.reasons() {
-///         println!("{}: {}", reason.part().as_str(), reason.reason().kind().as_str());
-///     }
-///     println!("{} reasons were not kept", completeness.record().omitted_reasons());
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Completeness {
-  detection: DetectionStatus,
-  discovery: DiscoveryStatus,
-  headers: HeadersStatus,
-  tags: SectionStatus,
-  chapters: SectionStatus,
-  attachments: SectionStatus,
-  timing: TimingStatus,
-  companions: CompanionStatus,
-  reasons: Vec<PartReason>,
-  record: LimitRecord,
+form_record! {
+  /// What a report established, what it did not, and why, from `MediaReport::completeness()`. Every shortfall is
+  /// recorded against the part it stopped, so none can exist without changing `is_complete()`.
+  ///
+  /// Each status is a stored enum with a catch-all, so its getter returns it by reference. `Display` writes a
+  /// one-line summary, such as "incomplete: discovery stopped by the stream limit".
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  /// use cc_media_probe::completeness::SectionStatus;
+  ///
+  /// fn describe(report: &MediaReport) {
+  ///     let completeness = report.completeness();
+  ///     if completeness.is_complete() {
+  ///         println!("complete");
+  ///         return;
+  ///     }
+  ///     println!("{completeness}");
+  ///     println!(
+  ///         "detection {}, discovery {}, headers {}, timing {}, companions {}",
+  ///         completeness.detection().as_str(),
+  ///         completeness.discovery().as_str(),
+  ///         completeness.headers().as_str(),
+  ///         completeness.timing().as_str(),
+  ///         completeness.companions().as_str(),
+  ///     );
+  ///     for (name, status) in [
+  ///         ("tags", completeness.tags()),
+  ///         ("chapters", completeness.chapters()),
+  ///         ("attachments", completeness.attachments()),
+  ///     ] {
+  ///         if matches!(status, SectionStatus::Incomplete) {
+  ///             println!("{name} may be missing");
+  ///         }
+  ///     }
+  ///     for reason in completeness.reasons() {
+  ///         println!("{}: {}", reason.part().as_str(), reason.reason().kind().as_str());
+  ///     }
+  ///     println!("{} reasons were not kept", completeness.record().omitted_reasons());
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Completeness {
+    detection: DetectionStatus,
+    discovery: DiscoveryStatus,
+    headers: HeadersStatus,
+    tags: SectionStatus,
+    chapters: SectionStatus,
+    attachments: SectionStatus,
+    timing: TimingStatus,
+    companions: CompanionStatus,
+    reasons: Vec<PartReason>,
+    record: LimitRecord,
+  }
+  check = super::agreement::check_agreement;
 }
 
 impl Completeness {
@@ -203,7 +207,7 @@ mod tests {
         headers: HeadersStatus::Complete,
         tags: SectionStatus::Complete,
         chapters: SectionStatus::Complete,
-        attachments: SectionStatus::NotRequested,
+        attachments: SectionStatus::Complete,
         timing: TimingStatus::Established,
         companions: CompanionStatus::NotApplicable,
         reasons: Vec::new(),
@@ -243,7 +247,7 @@ mod tests {
     assert_eq!(complete.headers(), &HeadersStatus::Complete);
     assert_eq!(complete.tags(), &SectionStatus::Complete);
     assert_eq!(complete.chapters(), &SectionStatus::Complete);
-    assert_eq!(complete.attachments(), &SectionStatus::NotRequested);
+    assert_eq!(complete.attachments(), &SectionStatus::Complete);
     assert_eq!(complete.timing(), &TimingStatus::Established);
     assert_eq!(complete.companions(), &CompanionStatus::NotApplicable);
     assert_eq!(complete.reasons(), []);

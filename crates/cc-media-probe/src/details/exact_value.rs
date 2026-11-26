@@ -17,32 +17,39 @@
 
 //! `ExactValue` and `ExactInput`, a value beyond the exact range (`api.md` section 11.3; R24).
 
+use crate::form_record::form_record;
 use crate::model::EntityLocation;
 
-/// A quantity beyond 2^53 - 1 in magnitude, which the normalized field leaves absent with a diagnostic, kept here
-/// as decimal strings with the named inputs it was computed from (R24; plan section 8.8).
-///
-/// ```
-/// use cc_media_probe::details::ExactValue;
-///
-/// fn describe(exact: &ExactValue) -> String {
-///     let value = match exact.denominator() {
-///         Some(denominator) => format!("{}/{denominator}", exact.numerator()),
-///         None => exact.numerator().to_owned(),
-///     };
-///     let inputs: Vec<String> =
-///         exact.inputs().iter().map(|input| format!("{} = {}", input.name(), input.value())).collect();
-///     format!("{} = {value} from {} ({:?}, {:?})", exact.field(), inputs.join(", "), exact.owner(), exact.stream())
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ExactValue {
-  field: String,
-  owner: Option<EntityLocation>,
-  stream: Option<usize>,
-  numerator: String,
-  denominator: Option<String>,
-  inputs: Vec<ExactInput>,
+form_record! {
+  /// A quantity beyond 2^53 - 1 in magnitude, which the normalized field leaves absent with a diagnostic, kept here
+  /// as decimal strings with the named inputs it was computed from (R24; plan section 8.8).
+  ///
+  /// ```
+  /// use cc_media_probe::details::ExactValue;
+  ///
+  /// fn describe(exact: &ExactValue) -> String {
+  ///     let value = match exact.denominator() {
+  ///         Some(denominator) => format!("{}/{denominator}", exact.numerator()),
+  ///         None => exact.numerator().to_owned(),
+  ///     };
+  ///     let inputs: Vec<String> =
+  ///         exact.inputs().iter().map(|input| format!("{} = {}", input.name(), input.value())).collect();
+  ///     format!("{} = {value} from {} ({:?}, {:?})", exact.field(), inputs.join(", "), exact.owner(), exact.stream())
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ExactValue {
+    field: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    owner: Option<EntityLocation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    stream: Option<usize>,
+    numerator: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    denominator: Option<String>,
+    inputs: Vec<ExactInput>,
+  }
+  check = ExactValue::check_form;
 }
 
 impl ExactValue {
@@ -82,14 +89,74 @@ impl ExactValue {
   pub fn inputs(&self) -> &[ExactInput] {
     &self.inputs
   }
+
+  /// Whether the parts are canonical decimal strings (`json-output.md` section 8): the numerator with a minus sign for
+  /// a negative value, and a denominator of at least 1, since a computed rational has no machine width; a denominator
+  /// exactly for a rational field and none for an integer field, while a field of a newer version takes either; and a
+  /// stream exactly when the owner is one (review of the third slice's first part). As the maintainer chose at the
+  /// second review of that part, a rational is reduced, so every exact value has one form, and each part has at most
+  /// 10000 digits, which bounds the time that the check of its reduction takes. As its third review asked, which read
+  /// a duration of 0/1 and frame counts of 1 and of -9007199254740993, the value of a field that the tables list lies
+  /// beyond the range that its normalized field holds (`json-output.md` section 5.5): a part of the reduced rational
+  /// beyond 2^53 - 1 in magnitude, or an integer beyond it, never negative, since every integer field is a count or a
+  /// size.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::constants::{
+      EXACT_FIELD_MESSAGE, EXACT_REDUCED_MESSAGE, EXACT_VALUE_MESSAGE, INTEGER_FIELDS, MAXIMUM_EXACT_DIGITS,
+      RATIONAL_FIELDS,
+    };
+    use crate::constants::LARGEST_EXACT;
+    let canonical = crate::form::is_whole_decimal(&self.numerator)
+      && self.denominator.as_deref().is_none_or(crate::form::is_positive_decimal);
+    if !canonical {
+      return Err(EXACT_VALUE_MESSAGE);
+    }
+    let magnitude = self
+      .numerator
+      .strip_prefix(crate::form::MINUS_SIGN)
+      .unwrap_or(&self.numerator);
+    let within = magnitude.len() <= MAXIMUM_EXACT_DIGITS
+      && self
+        .denominator
+        .as_ref()
+        .is_none_or(|denominator| denominator.len() <= MAXIMUM_EXACT_DIGITS);
+    let reduced = within
+      && self
+        .denominator
+        .as_deref()
+        .is_none_or(|denominator| super::lowest_terms::is_reduced(magnitude, denominator));
+    if !reduced {
+      return Err(EXACT_REDUCED_MESSAGE);
+    }
+    let field = self.field.as_str();
+    let beyond = |digits: &str| crate::form::canonical::<u64>(digits).is_none_or(|value| value > LARGEST_EXACT);
+    let fits = if RATIONAL_FIELDS.contains(&field) {
+      self
+        .denominator
+        .as_deref()
+        .is_some_and(|denominator| beyond(magnitude) || beyond(denominator))
+    } else if INTEGER_FIELDS.contains(&field) {
+      self.denominator.is_none() && magnitude.len() == self.numerator.len() && beyond(magnitude)
+    } else {
+      true
+    };
+    if !fits {
+      return Err(EXACT_FIELD_MESSAGE);
+    }
+    super::owner::check_owner(self.owner.as_ref(), self.stream)
+  }
 }
 
-/// One named input of an exact value, such as `chapter_time_start`, with its value in canonical decimal.
-/// `ExactValue` shows an example.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ExactInput {
-  name: String,
-  value: String,
+form_record! {
+  /// One named input of an exact value, such as `chapter_time_start`, with its value in canonical decimal.
+  /// `ExactValue` shows an example.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ExactInput {
+    name: String,
+    value: String,
+  }
+  check = ExactInput::check_form;
 }
 
 impl ExactInput {
@@ -103,6 +170,16 @@ impl ExactInput {
   #[must_use]
   pub fn value(&self) -> &str {
     &self.value
+  }
+
+  /// Whether the input's value is a canonical decimal string (`json-output.md` section 8).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    if crate::form::is_whole_decimal(&self.value) {
+      Ok(())
+    } else {
+      Err(super::constants::EXACT_VALUE_MESSAGE)
+    }
   }
 }
 

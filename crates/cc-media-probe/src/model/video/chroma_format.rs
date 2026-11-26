@@ -21,6 +21,7 @@ use super::constants::{
   CHROMA_411_KIND, CHROMA_420_KIND, CHROMA_422_KIND, CHROMA_444_KIND, MONOCHROME_KIND, OTHER_KIND,
 };
 use crate::data_enumeration::data_enumeration;
+use crate::form_record::form_record;
 
 data_enumeration! {
   /// How a video subsamples its chroma. An enum that carries data: serialized, it is a map of its `kind` and, for
@@ -57,12 +58,14 @@ data_enumeration! {
   }
 }
 
-/// A chroma subsampling kept as written: the horizontal and the vertical factors, such as Matroska's
-/// `ChromaSubsamplingHorz` and `ChromaSubsamplingVert`. `ChromaFormat` shows an example.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ChromaSubsampling {
-  horizontal: u64,
-  vertical: u64,
+form_record! {
+  /// A chroma subsampling kept as written: the horizontal and the vertical factors, such as Matroska's
+  /// `ChromaSubsamplingHorz` and `ChromaSubsamplingVert`. `ChromaFormat` shows an example.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ChromaSubsampling {
+    horizontal: u64,
+    vertical: u64,
+  }
 }
 
 impl ChromaSubsampling {

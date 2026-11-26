@@ -18,21 +18,24 @@
 //! `TimeRange`, a start and an end (`api.md` section 6.1).
 
 use super::Seconds;
+use crate::form_record::form_record;
 
-/// A start and an end on a presentation timeline, such as the time that the events of a subtitle stream span.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn subtitle_span(stream: &Stream) -> Option<String> {
-///     let range = stream.subtitle()?.time_range()?;
-///     Some(format!("{} to {}", range.start(), range.end()))
-/// }
-/// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct TimeRange {
-  start: Seconds,
-  end: Seconds,
+form_record! {
+  /// A start and an end on a presentation timeline, such as the time that the events of a subtitle stream span.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn subtitle_span(stream: &Stream) -> Option<String> {
+  ///     let range = stream.subtitle()?.time_range()?;
+  ///     Some(format!("{} to {}", range.start(), range.end()))
+  /// }
+  /// ```
+  #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+  pub struct TimeRange {
+    start: Seconds,
+    end: Seconds,
+  }
 }
 
 impl TimeRange {

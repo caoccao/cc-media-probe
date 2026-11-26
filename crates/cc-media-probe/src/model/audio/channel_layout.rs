@@ -19,43 +19,47 @@
 
 use super::Ambisonics;
 use crate::Rational;
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// Where an audio stream's channels play: one position per channel in stream order, and the ambisonic layout of
-/// the channels that hold ambisonic components. A layout that a format states only by a standardized code without
-/// an approved mapping stays in the details (F11).
-///
-/// ```
-/// use cc_media_probe::model::ChannelLayout;
-///
-/// fn describe(layout: &ChannelLayout) -> Vec<String> {
-///     let mut channels: Vec<String> = layout
-///         .channels()
-///         .iter()
-///         .map(|channel| {
-///             if channel.is_unassigned() {
-///                 return "unassigned".to_owned();
-///             }
-///             if let Some(component) = channel.ambisonic_component() {
-///                 return format!("ambisonic component {component}");
-///             }
-///             match (channel.speaker(), channel.azimuth(), channel.elevation()) {
-///                 (Some(speaker), _, _) => speaker.as_str().to_owned(),
-///                 (None, Some(azimuth), elevation) => format!("azimuth {azimuth}, elevation {elevation:?}"),
-///                 (None, None, _) => "unknown".to_owned(),
-///             }
-///         })
-///         .collect();
-///     if let Some(ambisonics) = layout.ambisonics() {
-///         channels.push(format!("ambisonics of order {}", ambisonics.order()));
-///     }
-///     channels
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ChannelLayout {
-  channels: Vec<ChannelPosition>,
-  ambisonics: Option<Ambisonics>,
+form_record! {
+  /// Where an audio stream's channels play: one position per channel in stream order, and the ambisonic layout of
+  /// the channels that hold ambisonic components. A layout that a format states only by a standardized code without
+  /// an approved mapping stays in the details (F11).
+  ///
+  /// ```
+  /// use cc_media_probe::model::ChannelLayout;
+  ///
+  /// fn describe(layout: &ChannelLayout) -> Vec<String> {
+  ///     let mut channels: Vec<String> = layout
+  ///         .channels()
+  ///         .iter()
+  ///         .map(|channel| {
+  ///             if channel.is_unassigned() {
+  ///                 return "unassigned".to_owned();
+  ///             }
+  ///             if let Some(component) = channel.ambisonic_component() {
+  ///                 return format!("ambisonic component {component}");
+  ///             }
+  ///             match (channel.speaker(), channel.azimuth(), channel.elevation()) {
+  ///                 (Some(speaker), _, _) => speaker.as_str().to_owned(),
+  ///                 (None, Some(azimuth), elevation) => format!("azimuth {azimuth}, elevation {elevation:?}"),
+  ///                 (None, None, _) => "unknown".to_owned(),
+  ///             }
+  ///         })
+  ///         .collect();
+  ///     if let Some(ambisonics) = layout.ambisonics() {
+  ///         channels.push(format!("ambisonics of order {}", ambisonics.order()));
+  ///     }
+  ///     channels
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ChannelLayout {
+    channels: Vec<ChannelPosition>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    ambisonics: Option<Ambisonics>,
+  }
 }
 
 impl ChannelLayout {
@@ -72,15 +76,22 @@ impl ChannelLayout {
   }
 }
 
-/// Where one channel plays: a named speaker, coordinates in degrees, an ambisonic component, or no assigned
-/// position. `ChannelLayout` shows an example.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ChannelPosition {
-  speaker: Option<Speaker>,
-  azimuth: Option<Rational>,
-  elevation: Option<Rational>,
-  ambisonic_component: Option<u64>,
-  unassigned: bool,
+form_record! {
+  /// Where one channel plays: a named speaker, coordinates in degrees, an ambisonic component, or no assigned
+  /// position. `ChannelLayout` shows an example.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ChannelPosition {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    speaker: Option<Speaker>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    azimuth: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    elevation: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    ambisonic_component: Option<u64>,
+    unassigned: bool,
+  }
+  check = ChannelPosition::check_form;
 }
 
 impl ChannelPosition {
@@ -112,6 +123,19 @@ impl ChannelPosition {
   #[must_use]
   pub fn is_unassigned(&self) -> bool {
     self.unassigned
+  }
+
+  /// Whether a channel without an assigned position names none, as the fourth review of the third slice's first
+  /// part asked, which read one that was unassigned and at the front left (`api.md` section 6.6): no speaker and no
+  /// coordinates. An ambisonic component is no position, so an unassigned channel may hold one.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let assigned = self.speaker.is_some() || self.azimuth.is_some() || self.elevation.is_some();
+    if self.unassigned && assigned {
+      Err(super::constants::CHANNEL_POSITION_MESSAGE)
+    } else {
+      Ok(())
+    }
   }
 }
 

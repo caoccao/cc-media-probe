@@ -20,32 +20,38 @@
 use std::fmt;
 
 use super::{HeaderState, Identification, Reason};
+use crate::form_record::form_record;
 
-/// The outcome of header parsing for one stream, from `Stream::header_status()`.
-///
-/// `Display` writes the state with its identification or its reason, such as "not found within the budget
-/// (per-stream header limit)".
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn header(stream: &Stream) -> String {
-///     let status = stream.header_status();
-///     if status.is_parsed() {
-///         "parsed".to_owned()
-///     } else if status.is_final() {
-///         format!("{status}, as far as this version goes")
-///     } else {
-///         let reason = status.reason().map_or("unknown", |reason| reason.kind().as_str());
-///         format!("{} ({reason})", status.state().as_str())
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct HeaderStatus {
-  state: HeaderState,
-  identification: Option<Identification>,
-  reason: Option<Reason>,
+form_record! {
+  /// The outcome of header parsing for one stream, from `Stream::header_status()`.
+  ///
+  /// `Display` writes the state with its identification or its reason, such as "not found within the budget
+  /// (per-stream header limit)".
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn header(stream: &Stream) -> String {
+  ///     let status = stream.header_status();
+  ///     if status.is_parsed() {
+  ///         "parsed".to_owned()
+  ///     } else if status.is_final() {
+  ///         format!("{status}, as far as this version goes")
+  ///     } else {
+  ///         let reason = status.reason().map_or("unknown", |reason| reason.kind().as_str());
+  ///         format!("{} ({reason})", status.state().as_str())
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct HeaderStatus {
+    state: HeaderState,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    identification: Option<Identification>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    reason: Option<Reason>,
+  }
+  check = HeaderStatus::check_form;
 }
 
 impl HeaderStatus {
@@ -79,6 +85,52 @@ impl HeaderStatus {
   #[must_use]
   pub fn is_parsed(&self) -> bool {
     matches!(self.state, HeaderState::Parsed)
+  }
+
+  /// Whether the status holds the identification and the reason that its state allows (`api.md` section 5.4), as
+  /// the maintainer chose at the review of the third slice's first part: an identification only for `identified`,
+  /// which needs one; no reason for a final state; for `not_found_within_budget` and
+  /// `partially_parsed_for_lack_of_bytes` the reason of a cut, `truncated_input`, `limit_exhausted`,
+  /// `range_unavailable` or `source_failed`; for `malformed`, `damaged_structure`; for `compression_unavailable`
+  /// none, or `feature_disabled` naming `zlib`; and for `not_attempted` none, or `source_failed`. A reason, a
+  /// feature, an identification or a state of a newer version is not checked.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::{Feature, ReasonKind};
+    let kind = self.reason.as_ref().map(Reason::kind);
+    let newer = matches!(kind, Some(ReasonKind::Unrecognized(_)));
+    let fits = match self.state {
+      HeaderState::Parsed | HeaderState::PartiallyParsedByDesign | HeaderState::Protected => kind.is_none(),
+      HeaderState::Identified => kind.is_none() && self.identification.is_some(),
+      HeaderState::NotFoundWithinBudget | HeaderState::PartiallyParsedForLackOfBytes => {
+        newer
+          || matches!(
+            kind,
+            Some(
+              ReasonKind::TruncatedInput
+                | ReasonKind::LimitExhausted
+                | ReasonKind::RangeUnavailable
+                | ReasonKind::SourceFailed
+            )
+          )
+      }
+      HeaderState::Malformed => newer || matches!(kind, Some(ReasonKind::DamagedStructure)),
+      HeaderState::CompressionUnavailable => {
+        let feature = self.reason.as_ref().and_then(Reason::feature);
+        kind.is_none()
+          || newer
+          || matches!(kind, Some(ReasonKind::FeatureDisabled))
+            && matches!(feature, Some(Feature::Zlib | Feature::Unrecognized(_)))
+      }
+      HeaderState::NotAttempted => kind.is_none() || newer || matches!(kind, Some(ReasonKind::SourceFailed)),
+      HeaderState::Unrecognized(_) => return Ok(()),
+    };
+    let identified = matches!(self.state, HeaderState::Identified);
+    if fits && (identified || self.identification.is_none()) {
+      Ok(())
+    } else {
+      Err(super::constants::HEADER_STATUS_MESSAGE)
+    }
   }
 }
 

@@ -67,7 +67,6 @@ pub use tags::{
   BinaryValue, IdentifierNamespace, IntegerValue, NativeScope, Tag, TagKey, TagName, TagSet, TagValue, TargetLevel,
   TargetReference, TargetReferenceKind, TargetScope,
 };
-pub(crate) use unrecognized::OwnedText;
 pub use unrecognized::{UnrecognizedKind, UnrecognizedValue};
 pub use usage::Usage;
 pub use values::{

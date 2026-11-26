@@ -49,6 +49,64 @@ impl BinaryValue {
   }
 }
 
+/// A binary value as written: its size as a number or beyond 2^53 - 1 its twin, and its data, when it was kept, in
+/// lowercase hexadecimal of exactly that many bytes (`json-output.md` section 6.2). It borrows the data, so writing
+/// a payload of N bytes allocates no copy of them, as the review of the third slice's first part asked.
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize)]
+struct BinaryValueMembers<'value> {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  size: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  size_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  data: Option<crate::form::BorrowedBytes<'value>>,
+}
+
+/// A binary value as read, in the form that `BinaryValueMembers` writes.
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct BinaryValueForm {
+  size: Option<u64>,
+  size_exact: Option<String>,
+  #[serde(default, deserialize_with = "crate::form::read_optional_bytes")]
+  data: Option<Vec<u8>>,
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for BinaryValue {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    let (size, size_exact) = crate::form::unsigned_members(Some(self.size));
+    let members = BinaryValueMembers {
+      size,
+      size_exact,
+      data: self.data.as_deref().map(crate::form::BorrowedBytes),
+    };
+    serde::Serialize::serialize(&members, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<BinaryValueForm> for BinaryValue {
+  type Error = &'static str;
+
+  fn try_from(form: BinaryValueForm) -> Result<BinaryValue, &'static str> {
+    let size = crate::form::required_unsigned(form.size, form.size_exact)?;
+    let whole = form
+      .data
+      .as_ref()
+      .is_none_or(|data| u64::try_from(data.len()).is_ok_and(|length| length == size));
+    if whole {
+      Ok(BinaryValue { size, data: form.data })
+    } else {
+      Err(super::constants::BINARY_DATA_MESSAGE)
+    }
+  }
+}
+
+#[cfg(feature = "serde")]
+crate::form::checked_form!(BinaryValue from BinaryValueForm);
+
 #[cfg(test)]
 mod tests {
   use super::BinaryValue;

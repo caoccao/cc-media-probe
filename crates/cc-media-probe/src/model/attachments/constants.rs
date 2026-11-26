@@ -15,9 +15,16 @@
 * limitations under the License.
 */
 
-//! The serialized names of `AttachmentRole` (`json-output.md` section 6.1).
+//! The serialized names of `AttachmentRole` (`json-output.md` section 6.1), and the message of an attachment that
+//! contradicts itself.
 
 /// The serialized name of `AttachmentRole::CoverArt`.
 pub const COVER_ART_NAME: &str = "cover_art";
 /// The serialized name of `AttachmentRole::Other`.
 pub const OTHER_NAME: &str = "other";
+
+/// The message of an attachment whose data are not as many bytes as its size, or of a linked picture with a size or
+/// data (`api.md` section 6.10).
+#[cfg(feature = "serde")]
+pub const ATTACHMENT_MESSAGE: &str =
+  "an attachment's data are not as many bytes as its size, or a linked picture embeds data";

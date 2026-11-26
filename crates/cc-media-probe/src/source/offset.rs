@@ -80,6 +80,54 @@ impl SourceOffset {
   }
 }
 
+/// A source offset as written: its source, and each offset as a number or beyond 2^53 - 1 its twin (`json-output.md`
+/// section 5.5).
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct SourceOffsetForm {
+  source_identifier: SourceIdentifier,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  offset: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  offset_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  logical_offset: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  logical_offset_exact: Option<String>,
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for SourceOffset {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    let (offset, offset_exact) = crate::form::unsigned_members(Some(self.offset));
+    let (logical_offset, logical_offset_exact) = crate::form::unsigned_members(self.logical_offset);
+    let form = SourceOffsetForm {
+      source_identifier: self.source_identifier,
+      offset,
+      offset_exact,
+      logical_offset,
+      logical_offset_exact,
+    };
+    serde::Serialize::serialize(&form, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<SourceOffsetForm> for SourceOffset {
+  type Error = &'static str;
+
+  fn try_from(form: SourceOffsetForm) -> Result<SourceOffset, &'static str> {
+    Ok(SourceOffset {
+      source_identifier: form.source_identifier,
+      offset: crate::form::required_unsigned(form.offset, form.offset_exact)?,
+      logical_offset: crate::form::unsigned_value(form.logical_offset, form.logical_offset_exact)?,
+    })
+  }
+}
+
+#[cfg(feature = "serde")]
+crate::form::checked_form!(SourceOffset from SourceOffsetForm);
+
 #[cfg(test)]
 mod tests {
   use super::SourceOffset;

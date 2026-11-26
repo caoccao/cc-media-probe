@@ -56,6 +56,18 @@ string_enumeration! {
   }
 }
 
+#[cfg(feature = "serde")]
+impl Part {
+  /// Whether the part finds external references, whose omission it records (`api.md` section 6.12): discovery, the
+  /// chapters, the attachments and the companions, and a part of a newer version, which only its version knows.
+  pub(crate) fn finds_references(&self) -> bool {
+    matches!(
+      self,
+      Part::Discovery | Part::Chapters | Part::Attachments | Part::Companions | Part::Unrecognized(_)
+    )
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::Part;

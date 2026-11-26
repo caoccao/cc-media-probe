@@ -45,6 +45,8 @@ use super::OwnedText;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct UnrecognizedKind<Owner> {
   kind: OwnedText<Owner>,
+  #[cfg(feature = "serde")]
+  members: crate::form::KeptMembers,
 }
 
 impl<Owner> UnrecognizedKind<Owner> {
@@ -64,6 +66,22 @@ impl<Owner> UnrecognizedKind<Owner> {
   pub fn as_str(&self) -> &str {
     self.kind.as_str()
   }
+
+  /// The catch-all of a kind of a newer version, with its other members as written, as the reader of `Owner` keeps
+  /// them.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_kept(kind: String, members: crate::form::KeptMembers) -> UnrecognizedKind<Owner> {
+    UnrecognizedKind {
+      kind: OwnedText::new(kind),
+      members,
+    }
+  }
+
+  /// Writes the kind and the members that it kept, in the order read.
+  #[cfg(feature = "serde")]
+  pub(crate) fn write_kept<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    crate::form::write_kept(serializer, self.kind.as_str(), &self.members)
+  }
 }
 
 #[cfg(test)]
@@ -77,6 +95,8 @@ pub(crate) mod tests {
     pub(crate) fn sample(kind: &str) -> UnrecognizedKind<Owner> {
       UnrecognizedKind {
         kind: OwnedText::sample(kind),
+        #[cfg(feature = "serde")]
+        members: crate::form::KeptMembers::default(),
       }
     }
   }
@@ -86,6 +106,6 @@ pub(crate) mod tests {
     let kind = UnrecognizedKind::<TagValue>::sample("rating");
     assert_eq!(kind.as_str(), "rating");
     assert_eq!(kind.clone(), kind);
-    assert_eq!(format!("{kind:?}"), "UnrecognizedKind { kind: \"rating\" }");
+    assert!(format!("{kind:?}").starts_with("UnrecognizedKind { kind: \"rating\""));
   }
 }

@@ -20,6 +20,8 @@
 mod candidate;
 mod confidence;
 mod constants;
+#[cfg(feature = "serde")]
+mod detection_form;
 mod hint;
 mod outcome;
 mod result;

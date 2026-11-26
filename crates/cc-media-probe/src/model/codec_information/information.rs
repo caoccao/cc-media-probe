@@ -23,59 +23,76 @@ use super::candidate::codec_text;
 use super::constants::{CANDIDATE_SEPARATOR, MISSING_CANDIDATE_TEXT, UNNAMED_CODEC_TEXT};
 use super::{CodecCandidate, Level, Profile, RawCodecIdentifier, Tier};
 use crate::Codec;
+use crate::form_record::form_record;
 use crate::model::Provenance;
 
-/// What a stream says about its codec, from `Stream::codec()`.
-///
-/// The codec is absent only while it is unresolved, when the description that the fields describe is established
-/// and the probe could not read or keep it, or when the input never named a codec. `Display` writes the codec's
-/// name, or the serialized name of a codec that a newer version wrote, else the first raw identifier as written;
-/// an unresolved codec writes its candidates joined by " or "; and an absent codec without candidates writes "a
-/// description that was not read" or "a codec that was not read".
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn codec(stream: &Stream) -> String {
-///     let codec = stream.codec();
-///     let mut line = codec.to_string();
-///     if let Some(name) = codec.name() {
-///         line.push_str(&format!(" ({name}, {:?})", codec.codec().map(|codec| codec.as_str())));
-///     }
-///     if !codec.candidates().is_empty() && !codec.has_every_candidate() {
-///         line.push_str(", unresolved");
-///     }
-///     for identifier in codec.raw_identifiers() {
-///         line.push_str(&format!(" [{}: {}]", identifier.namespace().as_str(), identifier.value()));
-///     }
-///     if let (Some(profile), Some(provenance)) = (codec.profile(), codec.profile_provenance()) {
-///         line.push_str(&format!(", profile {profile} ({})", provenance.as_str()));
-///     }
-///     if let Some(level) = codec.level() {
-///         line.push_str(&format!(", level {level} ({:?})", codec.level_provenance()));
-///     }
-///     if let Some(tier) = codec.tier() {
-///         line.push_str(&format!(", tier {tier} ({:?})", codec.tier_provenance()));
-///     }
-///     if let Some(codecs) = codec.codec_string() {
-///         line.push_str(&format!(", codecs=\"{codecs}\""));
-///     }
-///     line
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct CodecInformation {
-  codec: Option<Codec>,
-  candidates: Vec<CodecCandidate>,
-  has_every_candidate: bool,
-  raw_identifiers: Vec<RawCodecIdentifier>,
-  profile: Option<Profile>,
-  profile_provenance: Option<Provenance>,
-  level: Option<Level>,
-  level_provenance: Option<Provenance>,
-  tier: Option<Tier>,
-  tier_provenance: Option<Provenance>,
-  codec_string: Option<String>,
+form_record! {
+  /// What a stream says about its codec, from `Stream::codec()`.
+  ///
+  /// The codec is absent only while it is unresolved, when the description that the fields describe is established
+  /// and the probe could not read or keep it, or when the input never named a codec. `Display` writes the codec's
+  /// name, or the serialized name of a codec that a newer version wrote, else the first raw identifier as written;
+  /// an unresolved codec writes its candidates joined by " or "; and an absent codec without candidates writes "a
+  /// description that was not read" or "a codec that was not read".
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn codec(stream: &Stream) -> String {
+  ///     let codec = stream.codec();
+  ///     let mut line = codec.to_string();
+  ///     if let Some(name) = codec.name() {
+  ///         line.push_str(&format!(" ({name}, {:?})", codec.codec().map(|codec| codec.as_str())));
+  ///     }
+  ///     if !codec.candidates().is_empty() && !codec.has_every_candidate() {
+  ///         line.push_str(", unresolved");
+  ///     }
+  ///     for identifier in codec.raw_identifiers() {
+  ///         line.push_str(&format!(" [{}: {}]", identifier.namespace().as_str(), identifier.value()));
+  ///     }
+  ///     if let (Some(profile), Some(provenance)) = (codec.profile(), codec.profile_provenance()) {
+  ///         line.push_str(&format!(", profile {profile} ({})", provenance.as_str()));
+  ///     }
+  ///     if let Some(level) = codec.level() {
+  ///         line.push_str(&format!(", level {level} ({:?})", codec.level_provenance()));
+  ///     }
+  ///     if let Some(tier) = codec.tier() {
+  ///         line.push_str(&format!(", tier {tier} ({:?})", codec.tier_provenance()));
+  ///     }
+  ///     if let Some(codecs) = codec.codec_string() {
+  ///         line.push_str(&format!(", codecs=\"{codecs}\""));
+  ///     }
+  ///     line
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct CodecInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec: Option<Codec>,
+    candidates: Vec<CodecCandidate>,
+    has_every_candidate: bool,
+    raw_identifiers: Vec<RawCodecIdentifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    profile: Option<Profile>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    profile_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    level: Option<Level>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    level_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    tier: Option<Tier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    tier_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec_string: Option<String>,
+  }
+  pairs = [
+    profile with profile_provenance,
+    level with level_provenance,
+    tier with tier_provenance,
+  ];
+  check = super::agreement::check_codec;
 }
 
 impl CodecInformation {

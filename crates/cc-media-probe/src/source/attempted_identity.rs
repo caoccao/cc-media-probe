@@ -17,20 +17,26 @@
 
 //! `AttemptedIdentity`, the identity that a request for a companion asked for (`api.md` sections 6.15 and 13).
 
-/// The identity that a request for a companion asked for: the validated identifier and the requested name, each as
-/// text that the report owns.
-///
-/// ```
-/// use cc_media_probe::source::SourceEntry;
-///
-/// fn requested(entry: &SourceEntry) -> Option<&str> {
-///     entry.attempted_identity()?.requested_name()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct AttemptedIdentity {
-  identifier: Option<String>,
-  requested_name: Option<String>,
+use crate::form_record::form_record;
+
+form_record! {
+  /// The identity that a request for a companion asked for: the validated identifier and the requested name, each as
+  /// text that the report owns.
+  ///
+  /// ```
+  /// use cc_media_probe::source::SourceEntry;
+  ///
+  /// fn requested(entry: &SourceEntry) -> Option<&str> {
+  ///     entry.attempted_identity()?.requested_name()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct AttemptedIdentity {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    identifier: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    requested_name: Option<String>,
+  }
 }
 
 impl AttemptedIdentity {

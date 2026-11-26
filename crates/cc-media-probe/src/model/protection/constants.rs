@@ -47,3 +47,27 @@ pub const MATROSKA_CONTENT_ENCRYPTION_ALGORITHM_NAME: &str = "matroska_content_e
 
 /// The state of a description that the list does not hold, which `sample_description_state()` returns by reference.
 pub static UNKNOWN_STATE: SampleDescriptionState = SampleDescriptionState::Unknown;
+
+/// The bytes of an ISO `scheme_type` (`json-output.md` section 7.3).
+#[cfg(feature = "serde")]
+pub const SCHEME_TYPE_BYTES: usize = 4;
+
+/// The message of a protection scheme whose value is not in the spelling of its namespace.
+#[cfg(feature = "serde")]
+pub const SCHEME_MESSAGE: &str = "a protection scheme's value is not in the spelling of its namespace";
+
+/// The message of a declaration without the members of its scope, or with another scope's (`json-output.md`
+/// section 7.3).
+#[cfg(feature = "serde")]
+pub const DECLARATION_MESSAGE: &str =
+  "a protection declaration lacks the members of its scope or holds another scope's";
+
+/// The message of a protection that is not true to itself (`json-output.md` section 7.3).
+#[cfg(feature = "serde")]
+pub const PROTECTION_MESSAGE: &str = "a protection's sample descriptions disagree with its flag, its count or the \
+                                      order of their indexes, or it declares nothing though examined in full";
+
+/// The message of a sample description's entry whose index is 0 or whose state is `unknown` (`json-output.md`
+/// section 7.3).
+#[cfg(feature = "serde")]
+pub const SAMPLE_DESCRIPTION_MESSAGE: &str = "a sample description's entry has the index 0 or the state unknown";

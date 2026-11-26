@@ -19,26 +19,30 @@
 //! (`api.md` section 6.3).
 
 use super::constants::{CLEAR_NAME, DECLARED_NAME, UNKNOWN_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// The established state of one sample description, as `Protection::sample_descriptions()` lists it.
-///
-/// ```
-/// use cc_media_probe::model::{Protection, SampleDescriptionState};
-///
-/// fn clear_descriptions(protection: &Protection) -> Vec<u64> {
-///     protection
-///         .sample_descriptions()
-///         .iter()
-///         .filter(|entry| matches!(entry.state(), SampleDescriptionState::Clear))
-///         .map(|entry| entry.index())
-///         .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SampleDescriptionProtection {
-  index: u64,
-  state: SampleDescriptionState,
+form_record! {
+  /// The established state of one sample description, as `Protection::sample_descriptions()` lists it.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{Protection, SampleDescriptionState};
+  ///
+  /// fn clear_descriptions(protection: &Protection) -> Vec<u64> {
+  ///     protection
+  ///         .sample_descriptions()
+  ///         .iter()
+  ///         .filter(|entry| matches!(entry.state(), SampleDescriptionState::Clear))
+  ///         .map(|entry| entry.index())
+  ///         .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct SampleDescriptionProtection {
+    index: u64,
+    state: SampleDescriptionState,
+  }
+  check = SampleDescriptionProtection::check_form;
 }
 
 impl SampleDescriptionProtection {
@@ -54,6 +58,17 @@ impl SampleDescriptionProtection {
   #[must_use]
   pub fn state(&self) -> &SampleDescriptionState {
     &self.state
+  }
+
+  /// Whether the entry counts from 1 and holds a state that the list holds, never `unknown`, which needs the entry
+  /// alone, so an entry read alone checks it as its protection does (review of the third slice's first part).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    if self.index >= 1 && !matches!(self.state, SampleDescriptionState::Unknown) {
+      Ok(())
+    } else {
+      Err(super::constants::SAMPLE_DESCRIPTION_MESSAGE)
+    }
   }
 }
 

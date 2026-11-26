@@ -17,25 +17,29 @@
 
 //! `SegmentReference`, a chapter's link to the media of another segment (`api.md` section 6.8).
 
+use crate::form_record::form_record;
 use crate::model::Identifier;
 
-/// A chapter's link to the media of another segment, which the probe never opens.
-///
-/// ```
-/// use cc_media_probe::model::Chapter;
-///
-/// fn linked_segment(chapter: &Chapter) -> Option<String> {
-///     let reference = chapter.segment_reference()?;
-///     Some(match reference.edition() {
-///         Some(edition) => format!("segment {} edition {edition}", reference.segment()),
-///         None => format!("segment {}", reference.segment()),
-///     })
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SegmentReference {
-  segment: Identifier,
-  edition: Option<Identifier>,
+form_record! {
+  /// A chapter's link to the media of another segment, which the probe never opens.
+  ///
+  /// ```
+  /// use cc_media_probe::model::Chapter;
+  ///
+  /// fn linked_segment(chapter: &Chapter) -> Option<String> {
+  ///     let reference = chapter.segment_reference()?;
+  ///     Some(match reference.edition() {
+  ///         Some(edition) => format!("segment {} edition {edition}", reference.segment()),
+  ///         None => format!("segment {}", reference.segment()),
+  ///     })
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct SegmentReference {
+    segment: Identifier,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    edition: Option<Identifier>,
+  }
 }
 
 impl SegmentReference {

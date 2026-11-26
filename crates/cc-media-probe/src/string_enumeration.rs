@@ -19,7 +19,9 @@
 //! catch-all `Unrecognized` that keeps the text a newer version wrote, and `as_str()`, the serialized name, with a
 //! second text of each variant where an enum has one, such as the name for people.
 //!
-//! One macro writes them all, so the many enums of the model share one body (R36).
+//! One macro writes them all, so the many enums of the model share one body (R36). With the `serde` feature, each is
+//! its `snake_case` name, and a name that this version does not know reads into the catch-all, which writes it back
+//! unchanged (`json-output.md` section 6.1).
 
 /// Defines a non-exhaustive enum of unit variants, each with its serialized name, and its catch-all.
 ///
@@ -76,6 +78,38 @@ macro_rules! string_enumeration {
           $($name::$variant => $text,)*
           $name::Unrecognized(value) => value.as_str(),
         }
+      }
+
+      /// The value that a serialized name stands for, or the catch-all that keeps a name of a newer version.
+      #[cfg(feature = "serde")]
+      pub(crate) fn from_text(text: String) -> $name {
+        $(
+          if text == $text {
+            return $name::$variant;
+          }
+        )*
+        $name::Unrecognized($crate::model::UnrecognizedValue::from_text(text))
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl serde::Serialize for $name {
+      fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+        serializer.serialize_str(self.as_str())
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'input> $crate::form::ReadAlone<'input> for $name {
+      fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$name, Input::Error> {
+        <String as serde::Deserialize>::deserialize(deserializer).map($name::from_text)
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'input> serde::Deserialize<'input> for $name {
+      fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$name, Input::Error> {
+        $crate::form::read_alone(deserializer)
       }
     }
   };

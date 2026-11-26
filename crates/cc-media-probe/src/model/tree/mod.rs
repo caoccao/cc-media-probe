@@ -18,6 +18,14 @@
 //! The trees of the report, chapters and tags, and the operations on them that never recurse on their depth
 //! (`api.md` section 3.3; plan section 7.6).
 
+#[cfg(feature = "serde")]
+mod constants;
+#[cfg(feature = "serde")]
+mod flat;
 mod operations;
 
+#[cfg(feature = "serde")]
+pub(crate) use flat::{read_flat, read_subtree, write_flat, write_subtree};
+#[cfg(feature = "serde")]
+pub(crate) use operations::depth_first;
 pub(crate) use operations::{Branching, copy, equal, format, hash, release};

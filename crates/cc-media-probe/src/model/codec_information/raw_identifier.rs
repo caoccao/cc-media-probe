@@ -21,30 +21,34 @@ use super::constants::{
   ISO_SAMPLE_ENTRY_NAME, MATROSKA_CODEC_IDENTIFIER_NAME, MPEG4_OBJECT_TYPE_NAME, QUICKTIME_CODE_NAME,
   RIFF_FOUR_CHARACTER_CODE_NAME, WAVE_FORMAT_TAG_NAME, WAVE_SUBFORMAT_NAME,
 };
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// A codec identifier as the input wrote it, in the spelling of its namespace: a text code is its text, a code of
-/// bytes is its bytes as stored in lowercase hexadecimal, two digits a byte, and a coded number is canonical
-/// decimal. Every code has one spelling, so two identifiers name the same code exactly when their namespaces and
-/// values are equal.
-///
-/// ```
-/// use cc_media_probe::Stream;
-/// use cc_media_probe::model::CodecNamespace;
-///
-/// fn sample_entry(stream: &Stream) -> Option<&str> {
-///     stream
-///         .codec()
-///         .raw_identifiers()
-///         .iter()
-///         .find(|identifier| matches!(identifier.namespace(), CodecNamespace::IsoSampleEntry))
-///         .map(|identifier| identifier.value())
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct RawCodecIdentifier {
-  namespace: CodecNamespace,
-  value: String,
+form_record! {
+  /// A codec identifier as the input wrote it, in the spelling of its namespace: a text code is its text, a code of
+  /// bytes is its bytes as stored in lowercase hexadecimal, two digits a byte, and a coded number is canonical
+  /// decimal. Every code has one spelling, so two identifiers name the same code exactly when their namespaces and
+  /// values are equal.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  /// use cc_media_probe::model::CodecNamespace;
+  ///
+  /// fn sample_entry(stream: &Stream) -> Option<&str> {
+  ///     stream
+  ///         .codec()
+  ///         .raw_identifiers()
+  ///         .iter()
+  ///         .find(|identifier| matches!(identifier.namespace(), CodecNamespace::IsoSampleEntry))
+  ///         .map(|identifier| identifier.value())
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct RawCodecIdentifier {
+    namespace: CodecNamespace,
+    value: String,
+  }
+  check = RawCodecIdentifier::check_form;
 }
 
 impl RawCodecIdentifier {
@@ -59,6 +63,28 @@ impl RawCodecIdentifier {
   #[must_use]
   pub fn value(&self) -> &str {
     &self.value
+  }
+
+  /// Whether the value is in the spelling of its namespace (`json-output.md` section 7.3): a Matroska `CodecID` of
+  /// printable ASCII and U+FFFD only, the one text that its decoder writes; four bytes for a four-character, sample
+  /// entry or QuickTime code; 16 bytes for a WAVE `SubFormat`; and canonical decimal of 16 bits for a WAVE format tag
+  /// and of 8 bits for an MPEG-4 object type. A value of a namespace of a newer version is kept as written.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::constants::{FOUR_CHARACTER_BYTES, PRINTABLE_FIRST, PRINTABLE_LAST, RAW_CODE_MESSAGE, SUBFORMAT_BYTES};
+    let spelled = match self.namespace {
+      CodecNamespace::MatroskaCodecIdentifier => self.value.chars().all(|character| {
+        character == char::REPLACEMENT_CHARACTER || (PRINTABLE_FIRST..=PRINTABLE_LAST).contains(&character)
+      }),
+      CodecNamespace::RiffFourCharacterCode | CodecNamespace::IsoSampleEntry | CodecNamespace::QuickTimeCode => {
+        crate::form::is_bytes(&self.value, FOUR_CHARACTER_BYTES)
+      }
+      CodecNamespace::WaveSubformat => crate::form::is_bytes(&self.value, SUBFORMAT_BYTES),
+      CodecNamespace::WaveFormatTag => crate::form::is_decimal::<u16>(&self.value),
+      CodecNamespace::Mpeg4ObjectType => crate::form::is_decimal::<u8>(&self.value),
+      CodecNamespace::Unrecognized(_) => true,
+    };
+    if spelled { Ok(()) } else { Err(RAW_CODE_MESSAGE) }
   }
 }
 

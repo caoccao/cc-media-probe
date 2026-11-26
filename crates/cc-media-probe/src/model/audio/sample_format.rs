@@ -19,37 +19,42 @@
 //! 6.6).
 
 use super::constants::{BIG_ENDIAN_NAME, FLOATING_POINT_NAME, INTEGER_NAME, LITTLE_ENDIAN_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// How an audio stream stores its samples: their encoding, sign and byte order.
-///
-/// ```
-/// use cc_media_probe::model::{ByteOrder, SampleEncoding, SampleFormat};
-///
-/// fn describe(format: &SampleFormat) -> String {
-///     let sign = match format.is_signed() {
-///         Some(true) => "signed ",
-///         Some(false) => "unsigned ",
-///         None => "",
-///     };
-///     let order = match format.byte_order() {
-///         Some(ByteOrder::LittleEndian) => ", little-endian",
-///         Some(ByteOrder::BigEndian) => ", big-endian",
-///         _ => "",
-///     };
-///     let encoding = match format.encoding() {
-///         SampleEncoding::Integer => "integer",
-///         SampleEncoding::FloatingPoint => "floating point",
-///         other => other.as_str(),
-///     };
-///     format!("{sign}{encoding}{order}")
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SampleFormat {
-  encoding: SampleEncoding,
-  signed: Option<bool>,
-  byte_order: Option<ByteOrder>,
+form_record! {
+  /// How an audio stream stores its samples: their encoding, sign and byte order.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{ByteOrder, SampleEncoding, SampleFormat};
+  ///
+  /// fn describe(format: &SampleFormat) -> String {
+  ///     let sign = match format.is_signed() {
+  ///         Some(true) => "signed ",
+  ///         Some(false) => "unsigned ",
+  ///         None => "",
+  ///     };
+  ///     let order = match format.byte_order() {
+  ///         Some(ByteOrder::LittleEndian) => ", little-endian",
+  ///         Some(ByteOrder::BigEndian) => ", big-endian",
+  ///         _ => "",
+  ///     };
+  ///     let encoding = match format.encoding() {
+  ///         SampleEncoding::Integer => "integer",
+  ///         SampleEncoding::FloatingPoint => "floating point",
+  ///         other => other.as_str(),
+  ///     };
+  ///     format!("{sign}{encoding}{order}")
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct SampleFormat {
+    encoding: SampleEncoding,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    signed: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    byte_order: Option<ByteOrder>,
+  }
 }
 
 impl SampleFormat {

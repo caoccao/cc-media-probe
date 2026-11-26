@@ -20,29 +20,35 @@
 use super::constants::{COUNT_KIND, TIME_KIND};
 use crate::Seconds;
 use crate::data_enumeration::data_enumeration;
+use crate::form_record::form_record;
 use crate::model::EntityLocation;
 
-/// A lower bound of a total that the probe observed while the total itself was not established for the whole. A
-/// partial count is never a total (plan section 8.3).
-///
-/// ```
-/// use cc_media_probe::details::{ObservedBound, ObservedValue};
-///
-/// fn describe(bound: &ObservedBound) -> String {
-///     let value = match bound.value() {
-///         ObservedValue::Count(count) => count.to_string(),
-///         ObservedValue::Time(time) => time.to_string(),
-///         other => other.as_str().to_owned(),
-///     };
-///     format!("{} is at least {value} (owner {:?}, stream {:?})", bound.field(), bound.owner(), bound.stream())
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ObservedBound {
-  field: String,
-  owner: Option<EntityLocation>,
-  stream: Option<usize>,
-  value: ObservedValue,
+form_record! {
+  /// A lower bound of a total that the probe observed while the total itself was not established for the whole. A
+  /// partial count is never a total (plan section 8.3).
+  ///
+  /// ```
+  /// use cc_media_probe::details::{ObservedBound, ObservedValue};
+  ///
+  /// fn describe(bound: &ObservedBound) -> String {
+  ///     let value = match bound.value() {
+  ///         ObservedValue::Count(count) => count.to_string(),
+  ///         ObservedValue::Time(time) => time.to_string(),
+  ///         other => other.as_str().to_owned(),
+  ///     };
+  ///     format!("{} is at least {value} (owner {:?}, stream {:?})", bound.field(), bound.owner(), bound.stream())
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ObservedBound {
+    field: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    owner: Option<EntityLocation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    stream: Option<usize>,
+    value: ObservedValue,
+  }
+  check = ObservedBound::check_form;
 }
 
 impl ObservedBound {
@@ -68,6 +74,12 @@ impl ObservedBound {
   #[must_use]
   pub fn value(&self) -> &ObservedValue {
     &self.value
+  }
+
+  /// Whether the entry's stream is its owner's index exactly when the owner is a stream (`json-output.md` section 8).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    super::owner::check_owner(self.owner.as_ref(), self.stream)
   }
 }
 

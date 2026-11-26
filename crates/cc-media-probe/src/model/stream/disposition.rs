@@ -17,38 +17,50 @@
 
 //! `Disposition`, a stream's flags (`api.md` section 6.3).
 
-/// A stream's flags, each absent when the format states nothing, never assumed false.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn flags(stream: &Stream) -> Vec<&'static str> {
-///     let disposition = stream.disposition();
-///     [
-///         (disposition.is_default(), "default"),
-///         (disposition.is_enabled(), "enabled"),
-///         (disposition.is_forced(), "forced"),
-///         (disposition.is_hearing_impaired(), "hearing impaired"),
-///         (disposition.is_visually_impaired(), "visually impaired"),
-///         (disposition.has_text_descriptions(), "text descriptions"),
-///         (disposition.is_original_language(), "original language"),
-///         (disposition.is_commentary(), "commentary"),
-///     ]
-///     .into_iter()
-///     .filter_map(|(flag, name)| (flag == Some(true)).then_some(name))
-///     .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Disposition {
-  default: Option<bool>,
-  enabled: Option<bool>,
-  forced: Option<bool>,
-  hearing_impaired: Option<bool>,
-  visually_impaired: Option<bool>,
-  text_descriptions: Option<bool>,
-  original_language: Option<bool>,
-  commentary: Option<bool>,
+use crate::form_record::form_record;
+
+form_record! {
+  /// A stream's flags, each absent when the format states nothing, never assumed false.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn flags(stream: &Stream) -> Vec<&'static str> {
+  ///     let disposition = stream.disposition();
+  ///     [
+  ///         (disposition.is_default(), "default"),
+  ///         (disposition.is_enabled(), "enabled"),
+  ///         (disposition.is_forced(), "forced"),
+  ///         (disposition.is_hearing_impaired(), "hearing impaired"),
+  ///         (disposition.is_visually_impaired(), "visually impaired"),
+  ///         (disposition.has_text_descriptions(), "text descriptions"),
+  ///         (disposition.is_original_language(), "original language"),
+  ///         (disposition.is_commentary(), "commentary"),
+  ///     ]
+  ///     .into_iter()
+  ///     .filter_map(|(flag, name)| (flag == Some(true)).then_some(name))
+  ///     .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Disposition {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    default: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    enabled: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    forced: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    hearing_impaired: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    visually_impaired: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(rename = "has_text_descriptions", skip_serializing_if = "Option::is_none"))]
+    text_descriptions: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    original_language: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    commentary: Option<bool>,
+  }
 }
 
 impl Disposition {

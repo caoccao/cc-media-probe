@@ -18,23 +18,27 @@
 //! `ProtectionScheme` and `ProtectionSchemeNamespace`, a protection scheme as written (`api.md` section 6.3).
 
 use super::constants::{ISO_SCHEME_TYPE_NAME, MATROSKA_CONTENT_ENCRYPTION_ALGORITHM_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// A protection scheme as the file writes it, with its namespace, spelled as a raw codec identifier is: four bytes
-/// in lowercase hexadecimal, or a coded number in canonical decimal (`api.md` section 6.4).
-///
-/// ```
-/// use cc_media_probe::model::{ProtectionScheme, ProtectionSchemeNamespace};
-///
-/// fn is_common_encryption(scheme: &ProtectionScheme) -> bool {
-///     // "cenc" as the four bytes of an ISO scheme_type.
-///     matches!(scheme.namespace(), ProtectionSchemeNamespace::IsoSchemeType) && scheme.value() == "63656e63"
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ProtectionScheme {
-  namespace: ProtectionSchemeNamespace,
-  value: String,
+form_record! {
+  /// A protection scheme as the file writes it, with its namespace, spelled as a raw codec identifier is: four bytes
+  /// in lowercase hexadecimal, or a coded number in canonical decimal (`api.md` section 6.4).
+  ///
+  /// ```
+  /// use cc_media_probe::model::{ProtectionScheme, ProtectionSchemeNamespace};
+  ///
+  /// fn is_common_encryption(scheme: &ProtectionScheme) -> bool {
+  ///     // "cenc" as the four bytes of an ISO scheme_type.
+  ///     matches!(scheme.namespace(), ProtectionSchemeNamespace::IsoSchemeType) && scheme.value() == "63656e63"
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ProtectionScheme {
+    namespace: ProtectionSchemeNamespace,
+    value: String,
+  }
+  check = ProtectionScheme::check_form;
 }
 
 impl ProtectionScheme {
@@ -48,6 +52,20 @@ impl ProtectionScheme {
   #[must_use]
   pub fn value(&self) -> &str {
     &self.value
+  }
+
+  /// Whether the value is in the spelling of its namespace (`json-output.md` section 7.3): four bytes for an ISO
+  /// `scheme_type`, and canonical decimal for a Matroska `ContentEncAlgo`. A value of a namespace of a newer version
+  /// is kept as written.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::constants::{SCHEME_MESSAGE, SCHEME_TYPE_BYTES};
+    let spelled = match self.namespace {
+      ProtectionSchemeNamespace::IsoSchemeType => crate::form::is_bytes(&self.value, SCHEME_TYPE_BYTES),
+      ProtectionSchemeNamespace::MatroskaContentEncryptionAlgorithm => crate::form::is_decimal::<u64>(&self.value),
+      ProtectionSchemeNamespace::Unrecognized(_) => true,
+    };
+    if spelled { Ok(()) } else { Err(SCHEME_MESSAGE) }
   }
 }
 

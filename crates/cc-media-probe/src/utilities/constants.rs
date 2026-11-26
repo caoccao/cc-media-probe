@@ -21,6 +21,7 @@
 pub const HALF_WORD_SCALE: f64 = 4_294_967_296.0;
 /// The radix of hexadecimal text.
 #[cfg(any(
+  feature = "serde",
   unix,
   windows,
   target_os = "wasi",
@@ -29,3 +30,7 @@ pub const HALF_WORD_SCALE: f64 = 4_294_967_296.0;
   target_os = "xous"
 ))]
 pub const HEXADECIMAL_RADIX: u32 = 16;
+
+/// The hexadecimal digits of a byte, the form of bytes in the report (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+pub const BYTE_DIGITS: usize = 2;

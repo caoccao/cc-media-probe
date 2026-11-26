@@ -22,78 +22,114 @@ use super::{
   MasteringDisplay, Projection, Rotation, ScanType, StereoMode,
 };
 use crate::Rational;
+use crate::form_record::form_record;
 use crate::model::{Provenance, Size};
 
-/// What a video stream says about its pictures, from `Stream::video()`. Present exactly when the stream's kind is
-/// video; every field inside may still be absent.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn video_summary(stream: &Stream) -> Option<String> {
-///     let video = stream.video()?;
-///     let mut parts = Vec::new();
-///     if let Some(size) = video.visible_size().or(video.coded_size()) {
-///         parts.push(size.to_string());
-///     }
-///     if let Some(display) = video.display_size() {
-///         parts.push(format!("display {display} ({:?})", video.display_size_provenance()));
-///     }
-///     if let Some(rate) = video.frame_rate() {
-///         parts.push(format!("{rate} fps ({}, {:?})", video.frame_rate_mode().as_str(), video.frame_rate_provenance()));
-///     }
-///     if let (Some(pixel), Some(display)) = (video.pixel_aspect_ratio(), video.display_aspect_ratio()) {
-///         parts.push(format!("pixel {pixel}, display {display}"));
-///     }
-///     parts.push(format!("bits {:?}", video.bit_depth().and_then(|depth| depth.common())));
-///     parts.push(format!("chroma {:?}", video.chroma_format().map(|format| format.as_str())));
-///     parts.push(format!("scan {:?} {:?}", video.scan_type(), video.field_order()));
-///     parts.push(format!("color {:?}", video.color().and_then(|color| color.primaries())));
-///     parts.push(format!("mastering {:?}", video.mastering_display().and_then(|display| display.maximum_luminance())));
-///     parts.push(format!("light {:?}", video.content_light_level().and_then(|level| level.maximum_content())));
-///     parts.push(format!("range {:?}", video.dynamic_range().and_then(|range| range.transfer())));
-///     parts.push(format!("rotation {:?}", video.rotation().and_then(|rotation| rotation.degrees())));
-///     parts.push(format!("stereo {:?}", video.stereo_mode().map(|mode| mode.code())));
-///     parts.push(format!("projection {:?}", video.projection().map(|projection| projection.kind().as_str())));
-///     parts.push(format!("alpha {:?} {:?}", video.embedded_alpha(), video.supplemental_alpha()));
-///     parts.push(format!(
-///         "provenance {:?} {:?} {:?} {:?}",
-///         video.coded_size_provenance(),
-///         video.visible_size_provenance(),
-///         video.pixel_aspect_ratio_provenance(),
-///         video.display_aspect_ratio_provenance(),
-///     ));
-///     Some(parts.join(", "))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct VideoInformation {
-  coded_size: Option<Size>,
-  coded_size_provenance: Option<Provenance>,
-  visible_size: Option<Size>,
-  visible_size_provenance: Option<Provenance>,
-  display_size: Option<Size>,
-  display_size_provenance: Option<Provenance>,
-  pixel_aspect_ratio: Option<Rational>,
-  pixel_aspect_ratio_provenance: Option<Provenance>,
-  display_aspect_ratio: Option<Rational>,
-  display_aspect_ratio_provenance: Option<Provenance>,
-  frame_rate: Option<Rational>,
-  frame_rate_mode: FrameRateMode,
-  frame_rate_provenance: Option<Provenance>,
-  bit_depth: Option<BitDepth>,
-  chroma_format: Option<ChromaFormat>,
-  scan_type: Option<ScanType>,
-  field_order: Option<FieldOrder>,
-  color: Option<ColorDescription>,
-  mastering_display: Option<MasteringDisplay>,
-  content_light_level: Option<ContentLightLevel>,
-  dynamic_range: Option<DynamicRange>,
-  rotation: Option<Rotation>,
-  stereo_mode: Option<StereoMode>,
-  projection: Option<Projection>,
-  embedded_alpha: Option<bool>,
-  supplemental_alpha: Option<bool>,
+form_record! {
+  /// What a video stream says about its pictures, from `Stream::video()`. Present exactly when the stream's kind is
+  /// video; every field inside may still be absent.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn video_summary(stream: &Stream) -> Option<String> {
+  ///     let video = stream.video()?;
+  ///     let mut parts = Vec::new();
+  ///     if let Some(size) = video.visible_size().or(video.coded_size()) {
+  ///         parts.push(size.to_string());
+  ///     }
+  ///     if let Some(display) = video.display_size() {
+  ///         parts.push(format!("display {display} ({:?})", video.display_size_provenance()));
+  ///     }
+  ///     if let Some(rate) = video.frame_rate() {
+  ///         parts.push(format!("{rate} fps ({}, {:?})", video.frame_rate_mode().as_str(), video.frame_rate_provenance()));
+  ///     }
+  ///     if let (Some(pixel), Some(display)) = (video.pixel_aspect_ratio(), video.display_aspect_ratio()) {
+  ///         parts.push(format!("pixel {pixel}, display {display}"));
+  ///     }
+  ///     parts.push(format!("bits {:?}", video.bit_depth().and_then(|depth| depth.common())));
+  ///     parts.push(format!("chroma {:?}", video.chroma_format().map(|format| format.as_str())));
+  ///     parts.push(format!("scan {:?} {:?}", video.scan_type(), video.field_order()));
+  ///     parts.push(format!("color {:?}", video.color().and_then(|color| color.primaries())));
+  ///     parts.push(format!("mastering {:?}", video.mastering_display().and_then(|display| display.maximum_luminance())));
+  ///     parts.push(format!("light {:?}", video.content_light_level().and_then(|level| level.maximum_content())));
+  ///     parts.push(format!("range {:?}", video.dynamic_range().and_then(|range| range.transfer())));
+  ///     parts.push(format!("rotation {:?}", video.rotation().and_then(|rotation| rotation.degrees())));
+  ///     parts.push(format!("stereo {:?}", video.stereo_mode().map(|mode| mode.code())));
+  ///     parts.push(format!("projection {:?}", video.projection().map(|projection| projection.kind().as_str())));
+  ///     parts.push(format!("alpha {:?} {:?}", video.embedded_alpha(), video.supplemental_alpha()));
+  ///     parts.push(format!(
+  ///         "provenance {:?} {:?} {:?} {:?}",
+  ///         video.coded_size_provenance(),
+  ///         video.visible_size_provenance(),
+  ///         video.pixel_aspect_ratio_provenance(),
+  ///         video.display_aspect_ratio_provenance(),
+  ///     ));
+  ///     Some(parts.join(", "))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct VideoInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    coded_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    coded_size_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    visible_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    visible_size_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    display_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    display_size_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pixel_aspect_ratio: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pixel_aspect_ratio_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    display_aspect_ratio: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    display_aspect_ratio_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    frame_rate: Option<Rational>,
+    frame_rate_mode: FrameRateMode,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    frame_rate_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_depth: Option<BitDepth>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    chroma_format: Option<ChromaFormat>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    scan_type: Option<ScanType>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    field_order: Option<FieldOrder>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    color: Option<ColorDescription>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    mastering_display: Option<MasteringDisplay>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    content_light_level: Option<ContentLightLevel>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    dynamic_range: Option<DynamicRange>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    rotation: Option<Rotation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    stereo_mode: Option<StereoMode>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    projection: Option<Projection>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    embedded_alpha: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    supplemental_alpha: Option<bool>,
+  }
+  pairs = [
+    coded_size with coded_size_provenance,
+    visible_size with visible_size_provenance,
+    display_size with display_size_provenance,
+    pixel_aspect_ratio with pixel_aspect_ratio_provenance,
+    display_aspect_ratio with display_aspect_ratio_provenance,
+    frame_rate with frame_rate_provenance,
+  ];
 }
 
 impl VideoInformation {

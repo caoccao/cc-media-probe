@@ -2,6 +2,7 @@
 # section 7.1). Columns: package, kind, name; tab-separated. The targets
 # check fails on a target that is missing here or listed here but missing.
 cc-media-probe	lib	cc_media_probe
+cc-media-probe	test	serialization
 cc-media-probe-cli	bin	cc-media-probe
 cc-media-probe-cli	test	placeholder
 cc-media-probe-testkit	lib	cc_media_probe_testkit

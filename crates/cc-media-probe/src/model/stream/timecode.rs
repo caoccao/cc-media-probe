@@ -24,43 +24,47 @@ use super::constants::{
   NEGATIVE_SIGN, NO_SIGN, SECONDS_PER_DAY, SIXTY,
 };
 use crate::Rational;
+use crate::form_record::form_record;
 
-/// A stream's start timecode (F23): a frame number counted at a nominal whole rate of at least 1 frame a second,
-/// with the counting rules that give its label.
-///
-/// `Display` writes the label, such as `01:00:00:00`, with `;` before the frames of a drop-frame timecode.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn start_timecode(stream: &Stream) -> Option<String> {
-///     let timecode = stream.start_timecode()?;
-///     let label = timecode.label();
-///     Some(format!(
-///         "{timecode}: frame {} at {} fps ({}), {}{} h {} min {} s {} frames{}",
-///         timecode.frame_number(),
-///         timecode.rate(),
-///         timecode.nominal_frames_per_second(),
-///         if label.is_negative() { "-" } else { "" },
-///         label.hours(),
-///         label.minutes(),
-///         label.seconds(),
-///         label.frames(),
-///         if timecode.is_drop_frame() { ", drop frame" } else { "" },
-///     ))
-/// }
-///
-/// fn wraps(stream: &Stream) -> bool {
-///     stream.start_timecode().is_some_and(|timecode| timecode.wraps_at_24_hours())
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Timecode {
-  frame_number: i64,
-  rate: Rational,
-  nominal_frames_per_second: u64,
-  drop_frame: bool,
-  wraps_at_24_hours: bool,
+form_record! {
+  /// A stream's start timecode (F23): a frame number counted at a nominal whole rate of at least 1 frame a second,
+  /// with the counting rules that give its label.
+  ///
+  /// `Display` writes the label, such as `01:00:00:00`, with `;` before the frames of a drop-frame timecode.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn start_timecode(stream: &Stream) -> Option<String> {
+  ///     let timecode = stream.start_timecode()?;
+  ///     let label = timecode.label();
+  ///     Some(format!(
+  ///         "{timecode}: frame {} at {} fps ({}), {}{} h {} min {} s {} frames{}",
+  ///         timecode.frame_number(),
+  ///         timecode.rate(),
+  ///         timecode.nominal_frames_per_second(),
+  ///         if label.is_negative() { "-" } else { "" },
+  ///         label.hours(),
+  ///         label.minutes(),
+  ///         label.seconds(),
+  ///         label.frames(),
+  ///         if timecode.is_drop_frame() { ", drop frame" } else { "" },
+  ///     ))
+  /// }
+  ///
+  /// fn wraps(stream: &Stream) -> bool {
+  ///     stream.start_timecode().is_some_and(|timecode| timecode.wraps_at_24_hours())
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Timecode {
+    frame_number: i64,
+    rate: Rational,
+    nominal_frames_per_second: u64,
+    drop_frame: bool,
+    wraps_at_24_hours: bool,
+  }
+  check = Timecode::check_form;
 }
 
 impl Timecode {
@@ -119,6 +123,17 @@ impl Timecode {
       frames: count.checked_rem(nominal).unwrap_or_default(),
     }
   }
+
+  /// Whether the nominal rate is at least 1, since a source that declares a rate of 0 has no start timecode
+  /// (`json-output.md` section 7.3).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    if self.nominal_frames_per_second >= 1 {
+      Ok(())
+    } else {
+      Err(super::constants::TIMECODE_MESSAGE)
+    }
+  }
 }
 
 /// The frame count with the numbers that drop-frame counting skips added back, so that the label counts as if no
@@ -174,7 +189,9 @@ impl fmt::Display for Timecode {
   }
 }
 
-/// The label of a timecode, as `Timecode::label()` computes it.
+/// The label of a timecode, as `Timecode::label()` computes it. It has no serialized form of its own (`api.md` section
+/// 3.3), as the maintainer chose at the second review of the third slice's first part: it is computed from a
+/// `Timecode`, which has one, and no record holds a label.
 ///
 /// ```
 /// use cc_media_probe::model::Timecode;

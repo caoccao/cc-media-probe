@@ -56,6 +56,12 @@ impl Seconds {
     self.0
   }
 
+  /// The seconds of this rational, as the serialized form gives them.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_rational(rational: Rational) -> Seconds {
+    Seconds(rational)
+  }
+
   /// The time as a `Duration`, rounded to the nanosecond with ties away from zero, or `None` when it is negative.
   ///
   /// ```

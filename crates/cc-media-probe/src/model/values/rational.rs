@@ -21,33 +21,37 @@ use std::cmp::Ordering;
 use std::fmt;
 
 use crate::constants::LARGEST_EXACT;
+use crate::form_record::form_record;
 use crate::utilities::{greatest_common_divisor, signed_to_float, unsigned_to_float};
 
-/// An exact fraction, the type of every rate, ratio and time of the report.
-///
-/// A rational is always reduced, its denominator is at least 1, and both parts are at most 2^53 - 1 in magnitude,
-/// so that every JSON reader holds them as exact numbers (R24). Equal values are therefore equal parts, and `Ord`
-/// compares by value.
-///
-/// ```
-/// use cc_media_probe::Rational;
-///
-/// # fn main() -> Result<(), &'static str> {
-/// let rate = Rational::new(48_000, 2_002).ok_or("out of range")?;
-/// assert_eq!((rate.numerator(), rate.denominator()), (24_000, 1_001));
-/// assert_eq!(rate.to_string(), "24000/1001");
-/// assert_eq!(rate.to_integer(), None);
-/// assert!((rate.to_f64() - 23.976).abs() < 0.001);
-/// assert!(rate < Rational::new(24, 1).ok_or("out of range")?);
-/// assert_eq!(Rational::new(48_000, 1).ok_or("out of range")?.to_string(), "48000");
-/// assert_eq!(Rational::new(1, 0), None);
-/// # Ok(())
-/// # }
-/// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Rational {
-  numerator: i64,
-  denominator: u64,
+form_record! {
+  /// An exact fraction, the type of every rate, ratio and time of the report.
+  ///
+  /// A rational is always reduced, its denominator is at least 1, and both parts are at most 2^53 - 1 in magnitude,
+  /// so that every JSON reader holds them as exact numbers (R24). Equal values are therefore equal parts, and `Ord`
+  /// compares by value.
+  ///
+  /// ```
+  /// use cc_media_probe::Rational;
+  ///
+  /// # fn main() -> Result<(), &'static str> {
+  /// let rate = Rational::new(48_000, 2_002).ok_or("out of range")?;
+  /// assert_eq!((rate.numerator(), rate.denominator()), (24_000, 1_001));
+  /// assert_eq!(rate.to_string(), "24000/1001");
+  /// assert_eq!(rate.to_integer(), None);
+  /// assert!((rate.to_f64() - 23.976).abs() < 0.001);
+  /// assert!(rate < Rational::new(24, 1).ok_or("out of range")?);
+  /// assert_eq!(Rational::new(48_000, 1).ok_or("out of range")?.to_string(), "48000");
+  /// assert_eq!(Rational::new(1, 0), None);
+  /// # Ok(())
+  /// # }
+  /// ```
+  #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+  pub struct Rational {
+    numerator: i64,
+    denominator: u64,
+  }
+  check = Rational::check_form;
 }
 
 impl Rational {
@@ -129,6 +133,17 @@ impl Rational {
   #[must_use]
   pub fn to_integer(&self) -> Option<i64> {
     (self.denominator == 1).then_some(self.numerator)
+  }
+
+  /// Whether the parts read are the form that `Rational::new` gives: reduced, with a denominator of at least 1 and
+  /// both parts within 2^53 - 1 (`json-output.md` section 5.6).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    if Rational::new(self.numerator, self.denominator) == Some(*self) {
+      Ok(())
+    } else {
+      Err(super::constants::RATIONAL_MESSAGE)
+    }
   }
 }
 

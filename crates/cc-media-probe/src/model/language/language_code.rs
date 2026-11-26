@@ -18,25 +18,29 @@
 //! `Language`, a language as the file writes it and its BCP 47 form (`api.md` section 6.1).
 
 use super::LanguageCodeSystem;
+use crate::form_record::form_record;
 
-/// A language as the file writes it, with its BCP 47 form.
-///
-/// The BCP 47 tag is absent for `und`, while `mis`, `mul` and `zxx` stay as written (field guide section 2).
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn language(stream: &Stream) -> &str {
-///     stream
-///         .language()
-///         .map_or("unknown", |language| language.tag().unwrap_or(language.as_written()))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Language {
-  as_written: String,
-  tag: Option<String>,
-  code_system: LanguageCodeSystem,
+form_record! {
+  /// A language as the file writes it, with its BCP 47 form.
+  ///
+  /// The BCP 47 tag is absent for `und`, while `mis`, `mul` and `zxx` stay as written (field guide section 2).
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn language(stream: &Stream) -> &str {
+  ///     stream
+  ///         .language()
+  ///         .map_or("unknown", |language| language.tag().unwrap_or(language.as_written()))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Language {
+    as_written: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    tag: Option<String>,
+    code_system: LanguageCodeSystem,
+  }
 }
 
 impl Language {

@@ -17,27 +17,41 @@
 
 //! `TagName`, a tag's name as the file writes it (`api.md` section 6.9).
 
-/// A tag's name as the file writes it: decoded by the rules of its format or namespace, with its namespace, and
-/// where the format defines a key as bytes, the bytes exactly as stored. Two keys that decode alike but differ in
-/// their bytes stay distinct.
-///
-/// ```
-/// use cc_media_probe::model::Tag;
-///
-/// fn name(tag: &Tag) -> String {
-///     let name = tag.name();
-///     match (name.namespace(), name.bytes()) {
-///         (Some(namespace), Some(bytes)) => format!("{namespace}:{} ({bytes:02x?})", name.as_written()),
-///         (Some(namespace), None) => format!("{namespace}:{}", name.as_written()),
-///         (None, _) => name.as_written().to_owned(),
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TagName {
-  as_written: String,
-  namespace: Option<String>,
-  bytes: Option<Vec<u8>>,
+use crate::form_record::form_record;
+
+form_record! {
+  /// A tag's name as the file writes it: decoded by the rules of its format or namespace, with its namespace, and
+  /// where the format defines a key as bytes, the bytes exactly as stored. Two keys that decode alike but differ in
+  /// their bytes stay distinct.
+  ///
+  /// ```
+  /// use cc_media_probe::model::Tag;
+  ///
+  /// fn name(tag: &Tag) -> String {
+  ///     let name = tag.name();
+  ///     match (name.namespace(), name.bytes()) {
+  ///         (Some(namespace), Some(bytes)) => format!("{namespace}:{} ({bytes:02x?})", name.as_written()),
+  ///         (Some(namespace), None) => format!("{namespace}:{}", name.as_written()),
+  ///         (None, _) => name.as_written().to_owned(),
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TagName {
+    as_written: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    namespace: Option<String>,
+    #[cfg_attr(
+      feature = "serde",
+      serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::form::write_optional_bytes",
+        deserialize_with = "crate::form::read_optional_bytes"
+      )
+    )]
+    bytes: Option<Vec<u8>>,
+  }
 }
 
 impl TagName {

@@ -47,6 +47,36 @@ impl fmt::Display for Confidence {
   }
 }
 
+/// A confidence is a number from 0 to 100 (`json-output.md` section 5.6), checked wherever it is read, a candidate
+/// read alone included (fifteenth review of `api.md`).
+#[cfg(feature = "serde")]
+impl serde::Serialize for Confidence {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    serializer.serialize_u8(self.0)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> crate::form::ReadAlone<'input> for Confidence {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Confidence, Input::Error> {
+    let value = <u8 as serde::Deserialize>::deserialize(deserializer)?;
+    if value <= super::constants::LARGEST_CONFIDENCE {
+      Ok(Confidence(value))
+    } else {
+      Err(<Input::Error as serde::de::Error>::custom(
+        super::constants::CONFIDENCE_MESSAGE,
+      ))
+    }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> serde::Deserialize<'input> for Confidence {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Confidence, Input::Error> {
+    crate::form::read_alone(deserializer)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::Confidence;

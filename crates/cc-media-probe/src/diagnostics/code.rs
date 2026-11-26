@@ -32,6 +32,9 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DiagnosticCode(String);
 
+#[cfg(feature = "serde")]
+crate::form::text_form!(DiagnosticCode);
+
 impl DiagnosticCode {
   /// The code as text.
   #[must_use]

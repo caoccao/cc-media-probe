@@ -21,14 +21,24 @@
 //! here as `api.md` section 3.2 lists it.
 
 mod candidate_check;
+#[cfg(feature = "serde")]
+mod candidates;
 mod constants;
+#[cfg(feature = "serde")]
+mod detection_stops;
 mod input_output_kind;
 mod input_output_kinds;
 mod kind;
+#[cfg(feature = "serde")]
+mod kind_rules;
 mod live;
 mod observations;
 mod parts;
 mod record;
+#[cfg(feature = "serde")]
+mod record_form;
+#[cfg(feature = "serde")]
+mod references;
 
 pub use crate::completeness::Reason;
 pub use candidate_check::{CandidateCheck, CheckState};

@@ -19,10 +19,20 @@
 //! tag lookups (section 6.9). The crate root re-exports `MediaReport`.
 
 mod constants;
+#[cfg(feature = "serde")]
+mod header_reasons;
 mod inventory_class;
 mod lookups;
 mod media_report;
+#[cfg(feature = "serde")]
+mod references;
+#[cfg(feature = "serde")]
+mod report_form;
 mod selection;
+#[cfg(feature = "serde")]
+mod shortfalls;
+#[cfg(feature = "serde")]
+mod skipped;
 
 pub use inventory_class::InventoryClass;
 pub use lookups::{FileTags, StreamTags, TagsWithKey};

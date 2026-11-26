@@ -18,6 +18,8 @@
 //! What a stream says about its codec (`api.md` section 6.4): `CodecInformation`, its candidates, its raw
 //! identifiers and its profile, level and tier.
 
+#[cfg(feature = "serde")]
+mod agreement;
 mod candidate;
 mod constants;
 mod information;

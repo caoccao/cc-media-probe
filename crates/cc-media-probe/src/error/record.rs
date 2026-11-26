@@ -74,22 +74,31 @@ use crate::source::{AttemptedIdentity, SourceIdentifier};
 /// }
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Deserialize),
+  serde(try_from = "crate::form::Rooted<crate::form::WithKept<super::record_form::ErrorRecordBody>>")
+)]
 pub struct ErrorRecord {
-  parts: ErrorParts,
-  description: Description,
+  #[cfg(feature = "serde")]
+  pub(super) schema_version: crate::document::SchemaVersion,
+  pub(super) parts: ErrorParts,
+  pub(super) description: Description,
+  #[cfg(feature = "serde")]
+  pub(super) kept: crate::form::KeptMembers,
 }
 
 /// What a record keeps in place of the I/O error, which it cannot keep.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct Description {
+pub(super) struct Description {
   /// The error's message, for people.
-  message: String,
+  pub(super) message: String,
   /// The `std::io::ErrorKind` of a source failure, as a stable string.
-  source_failure_kind: Option<String>,
+  pub(super) source_failure_kind: Option<String>,
   /// The code that `std::io::Error::raw_os_error()` gave, in canonical decimal.
-  operating_system_error_code: Option<String>,
+  pub(super) operating_system_error_code: Option<String>,
   /// The messages of the cause chain, in order.
-  cause_messages: Vec<String>,
+  pub(super) cause_messages: Vec<String>,
 }
 
 impl Description {
@@ -221,25 +230,50 @@ impl ErrorRecord {
   pub fn record(&self) -> &LimitRecord {
     &self.parts.record
   }
+
+  /// The version of the serialized form that the record was read with, or `SchemaVersion::CURRENT` for one that
+  /// this version built, with the `serde` feature (`api.md` section 12). Its partial report has the same version.
+  ///
+  /// ```
+  /// use cc_media_probe::document::SchemaVersion;
+  /// use cc_media_probe::error::ErrorRecord;
+  ///
+  /// let error = cc_media_probe::probe_bytes(b"not a media file").err();
+  /// let record = error.as_ref().map(ErrorRecord::from);
+  /// assert_eq!(record.map(|record| record.schema_version()), Some(SchemaVersion::CURRENT));
+  /// ```
+  #[cfg(feature = "serde")]
+  #[must_use]
+  pub fn schema_version(&self) -> crate::document::SchemaVersion {
+    self.schema_version
+  }
+}
+
+impl ErrorRecord {
+  /// The record that this version builds of an error's description and parts, of the current version.
+  fn built(description: Description, parts: ErrorParts) -> ErrorRecord {
+    ErrorRecord {
+      #[cfg(feature = "serde")]
+      schema_version: crate::document::SchemaVersion::CURRENT,
+      parts,
+      description,
+      #[cfg(feature = "serde")]
+      kept: crate::form::KeptMembers::default(),
+    }
+  }
 }
 
 impl From<&Error> for ErrorRecord {
   /// Copies what the error holds.
   fn from(error: &Error) -> ErrorRecord {
-    ErrorRecord {
-      description: Description::of(error),
-      parts: error.parts().clone(),
-    }
+    ErrorRecord::built(Description::of(error), error.parts().clone())
   }
 }
 
 impl From<Error> for ErrorRecord {
   /// Moves what the error holds, after taking its texts.
   fn from(error: Error) -> ErrorRecord {
-    ErrorRecord {
-      description: Description::of(&error),
-      parts: error.into_parts(),
-    }
+    ErrorRecord::built(Description::of(&error), error.into_parts())
   }
 }
 
@@ -370,7 +404,13 @@ mod tests {
         .map(Reason::kind),
       Some(&ReasonKind::RangeUnavailable)
     );
-    assert!(!unchecked.record().has_first_reason());
+    assert_eq!(
+      unchecked
+        .record()
+        .first_reason(&Part::Detection)
+        .map(|first| first.reason().kind()),
+      Some(&ReasonKind::RangeUnavailable)
+    );
     let hinted = ErrorRecord::from(Error::hinted_format());
     assert_eq!(hinted.kind(), &ErrorKind::UnknownFormat);
     assert_eq!(hinted.hint().map(Hint::format), Some(&Format::Mp4));

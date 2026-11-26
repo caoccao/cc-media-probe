@@ -15,9 +15,16 @@
 * limitations under the License.
 */
 
-//! The serialized names of `ChapterOrigin` (`json-output.md` section 6.1).
+//! The serialized names of `ChapterOrigin` (`json-output.md` section 6.1), and the message of an edition that
+//! contradicts itself.
 
 /// The serialized name of `ChapterOrigin::MatroskaEdition`.
 pub const MATROSKA_EDITION_NAME: &str = "matroska_edition";
 /// The serialized name of `ChapterOrigin::QuickTimeChapterTrack`.
 pub const QUICKTIME_CHAPTER_TRACK_NAME: &str = "quicktime_chapter_track";
+
+/// The message of an edition whose playback values or link flag its order and its chapters rule out (`api.md`
+/// section 6.8).
+#[cfg(feature = "serde")]
+pub const EDITION_MESSAGE: &str = "an unordered edition has playback values, or an edition said to link no segment \
+                                   has a chapter that links one";

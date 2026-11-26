@@ -22,10 +22,16 @@
 mod codec_details;
 mod conflict;
 mod constants;
+#[cfg(feature = "serde")]
+mod detail_value;
 mod enumeration;
 mod exact_value;
 mod format_details;
+#[cfg(feature = "serde")]
+mod lowest_terms;
 mod observed_bound;
+#[cfg(feature = "serde")]
+mod owner;
 mod stored_value;
 mod unrecognized;
 

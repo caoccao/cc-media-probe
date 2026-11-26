@@ -21,24 +21,27 @@ use std::fmt;
 
 use super::constants::SIZE_SEPARATOR;
 use crate::constants::LARGEST_EXACT;
+use crate::form_record::form_record;
 
-/// A width and a height in whole pixels, each at most 2^53 - 1, as every normalized dimension is (R24).
-///
-/// ```
-/// use cc_media_probe::model::Size;
-///
-/// # fn main() -> Result<(), &'static str> {
-/// let size = Size::new(1_920, 1_080).ok_or("out of range")?;
-/// assert_eq!((size.width(), size.height()), (1_920, 1_080));
-/// assert_eq!(size.to_string(), "1920x1080");
-/// assert_eq!(Size::new(1 << 53, 1), None);
-/// # Ok(())
-/// # }
-/// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Size {
-  width: u64,
-  height: u64,
+form_record! {
+  /// A width and a height in whole pixels, each at most 2^53 - 1, as every normalized dimension is (R24).
+  ///
+  /// ```
+  /// use cc_media_probe::model::Size;
+  ///
+  /// # fn main() -> Result<(), &'static str> {
+  /// let size = Size::new(1_920, 1_080).ok_or("out of range")?;
+  /// assert_eq!((size.width(), size.height()), (1_920, 1_080));
+  /// assert_eq!(size.to_string(), "1920x1080");
+  /// assert_eq!(Size::new(1 << 53, 1), None);
+  /// # Ok(())
+  /// # }
+  /// ```
+  #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+  pub struct Size {
+    width: u64,
+    height: u64,
+  }
 }
 
 impl Size {

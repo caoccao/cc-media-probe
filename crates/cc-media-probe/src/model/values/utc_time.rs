@@ -65,6 +65,16 @@ impl UtcTime {
     self.nanoseconds
   }
 
+  /// The instant of these parts, or `None` for nanoseconds of a whole second or more, as the serialized form gives
+  /// them.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_parts(seconds_since_unix_epoch: i64, nanoseconds: u32) -> Option<UtcTime> {
+    (u64::from(nanoseconds) < super::constants::NANOSECONDS_PER_SECOND).then_some(UtcTime {
+      seconds_since_unix_epoch,
+      nanoseconds,
+    })
+  }
+
   /// The instant as a `SystemTime`, or `None` where the platform's `SystemTime` cannot hold it exactly: beyond its
   /// range, or finer than its precision, such as one nanosecond after a whole second on Windows, whose
   /// `SystemTime` counts in 100-nanosecond intervals. A result is therefore always the instant itself, never a

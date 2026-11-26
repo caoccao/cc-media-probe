@@ -78,3 +78,133 @@ pub const BINARY_BASE: u64 = 2;
 pub const GUID_BYTES: usize = 16;
 /// The sign before a time that is not negative in the display of `Seconds`: none.
 pub const NO_SIGN: &str = "";
+
+/// The message of a rational that is not reduced, has a denominator of 0 or a part beyond 2^53 - 1
+/// (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+pub const RATIONAL_MESSAGE: &str = "a rational is not reduced, has a denominator of 0 or a part beyond 2^53 - 1";
+
+/// The hexadecimal digits of the bits of a single-precision value (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+pub const SINGLE_BIT_DIGITS: usize = 8;
+
+/// The hexadecimal digits of the bits of a double-precision value.
+#[cfg(feature = "serde")]
+pub const DOUBLE_BIT_DIGITS: usize = 16;
+
+/// The radix of hexadecimal text.
+#[cfg(feature = "serde")]
+pub const HEXADECIMAL_RADIX: u32 = 16;
+
+/// The message of a floating-point value whose bits are not the lowercase hexadecimal digits of its width.
+#[cfg(feature = "serde")]
+pub const FLOATING_POINT_MESSAGE: &str = "a floating-point value's bits are not the lowercase digits of its width";
+
+/// The message of a GUID that is not 32 lowercase hexadecimal digits (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+pub const GUID_MESSAGE: &str = "a GUID is not 32 lowercase hexadecimal digits";
+
+/// The separator of the parts of an RFC 3339 date (RFC 3339 section 5.6).
+#[cfg(feature = "serde")]
+pub const DATE_SEPARATOR: char = '-';
+
+/// The marker between the date and the time of an RFC 3339 text, which the form writes in uppercase.
+#[cfg(feature = "serde")]
+pub const TIME_MARKER: char = 'T';
+
+/// The separator of the parts of an RFC 3339 time.
+#[cfg(feature = "serde")]
+pub const TIME_SEPARATOR: char = ':';
+
+/// The separator of the fraction of a second.
+#[cfg(feature = "serde")]
+pub const FRACTION_SEPARATOR: char = '.';
+
+/// The suffix of a time in UTC, which the form writes in uppercase.
+#[cfg(feature = "serde")]
+pub const UTC_SUFFIX: char = 'Z';
+
+/// The largest year of the form, which writes four digits.
+#[cfg(feature = "serde")]
+pub const LARGEST_YEAR: i64 = 9_999;
+
+/// The number of the last month of a year.
+#[cfg(feature = "serde")]
+pub const LARGEST_MONTH: i64 = 12;
+
+/// The largest day of any month.
+#[cfg(feature = "serde")]
+pub const LARGEST_MONTH_DAY: i64 = 31;
+
+/// The number of March, the first month of the year in the conversion of a civil date.
+#[cfg(feature = "serde")]
+pub const MARCH: i64 = 3;
+
+/// The months from March to the end of a year, which move January and February to the year before.
+#[cfg(feature = "serde")]
+pub const MONTHS_FROM_MARCH: i64 = 12;
+
+/// The seconds of a day.
+#[cfg(feature = "serde")]
+pub const SECONDS_PER_DAY: i64 = 86_400;
+
+/// The seconds of an hour.
+#[cfg(feature = "serde")]
+pub const SECONDS_PER_HOUR: i64 = 3_600;
+
+/// The seconds of a minute.
+#[cfg(feature = "serde")]
+pub const SECONDS_PER_MINUTE: i64 = 60;
+
+/// The years of an era of the Gregorian calendar, which repeats every 400 years.
+#[cfg(feature = "serde")]
+pub const YEARS_PER_ERA: i64 = 400;
+
+/// The days of an era.
+#[cfg(feature = "serde")]
+pub const DAYS_PER_ERA: i64 = 146_097;
+
+/// The last day of an era, counted from 0.
+#[cfg(feature = "serde")]
+pub const LAST_DAY_OF_ERA: i64 = 146_096;
+
+/// The days of a common year.
+#[cfg(feature = "serde")]
+pub const DAYS_PER_YEAR: i64 = 365;
+
+/// The years of the cycle of leap years.
+#[cfg(feature = "serde")]
+pub const LEAP_YEAR_CYCLE: i64 = 4;
+
+/// The years of a century, whose first year is no leap year unless the era begins with it.
+#[cfg(feature = "serde")]
+pub const YEARS_PER_CENTURY: i64 = 100;
+
+/// The days of four years, the last of which is a leap year.
+#[cfg(feature = "serde")]
+pub const DAYS_PER_FOUR_YEARS: i64 = 1_460;
+
+/// The days of a century of an era, with its leap years.
+#[cfg(feature = "serde")]
+pub const DAYS_PER_CENTURY: i64 = 36_524;
+
+/// The days from 0000-03-01 to 1970-01-01.
+#[cfg(feature = "serde")]
+pub const DAYS_TO_UNIX_EPOCH: i64 = 719_468;
+
+/// The factor of the month lengths from March, which alternate 31 and 30 days in groups of five months.
+#[cfg(feature = "serde")]
+pub const MONTH_LENGTH_FACTOR: i64 = 153;
+
+/// The divisor of the month lengths.
+#[cfg(feature = "serde")]
+pub const MONTH_LENGTH_DIVISOR: i64 = 5;
+
+/// The rounding of the month lengths.
+#[cfg(feature = "serde")]
+pub const MONTH_LENGTH_ROUNDING: i64 = 2;
+
+/// The message of a time that is not one RFC 3339 text in UTC of the years 0000 to 9999 (`json-output.md`
+/// section 5.6).
+#[cfg(feature = "serde")]
+pub const UTC_TIME_MESSAGE: &str = "a UTC time is not the one RFC 3339 text of an instant of the years 0000 to 9999";

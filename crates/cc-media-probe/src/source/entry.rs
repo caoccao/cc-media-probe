@@ -111,7 +111,126 @@ impl SourceEntry {
   pub fn path(&self) -> Option<&PortablePath> {
     self.path.as_ref()
   }
+
+  /// Whether the request was made and the companion was not opened: not found, declined or refused by a limit
+  /// (`api.md` section 13), which gives the companions a reason with its source.
+  #[cfg(feature = "serde")]
+  pub(crate) fn was_refused(&self) -> bool {
+    super::constants::REFUSED_OUTCOMES.contains(&self.outcome)
+  }
 }
+
+/// A source entry as written: its bytes read as a number or beyond 2^53 - 1 its twin, and its path as the display
+/// string with the flag and the raw form of a lossy path beside it (`json-output.md` sections 5.8 and 7.14).
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct SourceEntryForm {
+  identifier: SourceIdentifier,
+  role: SourceRole,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  attempted_identity: Option<AttemptedIdentity>,
+  outcome: SourceOutcome,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  reason: Option<Reason>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  bytes_read: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  bytes_read_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  alias_of: Option<SourceIdentifier>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  path: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  path_lossy: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  path_raw: Option<super::RawPath>,
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for SourceEntry {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    let (bytes_read, bytes_read_exact) = crate::form::unsigned_members(self.bytes_read);
+    let (path, path_lossy, path_raw) = match self.path.as_ref().map(PortablePath::members) {
+      Some((display, lossy, raw)) => (Some(display.to_owned()), lossy, raw.cloned()),
+      None => (None, None, None),
+    };
+    let form = SourceEntryForm {
+      identifier: self.identifier,
+      role: self.role.clone(),
+      attempted_identity: self.attempted_identity.clone(),
+      outcome: self.outcome.clone(),
+      reason: self.reason.clone(),
+      bytes_read,
+      bytes_read_exact,
+      alias_of: self.alias_of,
+      path,
+      path_lossy,
+      path_raw,
+    };
+    serde::Serialize::serialize(&form, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<SourceEntryForm> for SourceEntry {
+  type Error = &'static str;
+
+  fn try_from(form: SourceEntryForm) -> Result<SourceEntry, &'static str> {
+    let path = match (form.path, form.path_lossy, form.path_raw) {
+      (Some(display), lossy, raw) => Some(PortablePath::from_members(display, lossy, raw)?),
+      (None, None, None) => None,
+      (None, _, _) => return Err(super::constants::PATH_MEMBERS_MESSAGE),
+    };
+    let entry = SourceEntry {
+      identifier: form.identifier,
+      role: form.role,
+      attempted_identity: form.attempted_identity,
+      outcome: form.outcome,
+      reason: form.reason,
+      bytes_read: crate::form::unsigned_value(form.bytes_read, form.bytes_read_exact)?,
+      alias_of: form.alias_of,
+      path,
+    };
+    check_entry(&entry)?;
+    Ok(entry)
+  }
+}
+
+/// Whether an entry's identifier, role, outcome and reason describe one request, which needs the entry alone, as the
+/// review of the third slice's first part found (`api.md` section 6.15): the identifier 0 is the primary input's;
+/// an alias was opened and names a source of a lower identifier, since requests take their identifiers in order,
+/// which the fourth review of that part read unchecked on an entry alone that was not found and named source 7; the
+/// primary input and an opened or failed source have no reason; and a companion that was not opened has the reason
+/// of its outcome, `companion_not_found`, `companion_declined` or `companion_limited`, or a reason of a newer kind. An
+/// outcome of a newer version is not checked.
+#[cfg(feature = "serde")]
+fn check_entry(entry: &SourceEntry) -> Result<(), &'static str> {
+  use super::constants::{SOURCE_IDENTITY_MESSAGE, SOURCE_REASON_MESSAGE};
+  use crate::completeness::ReasonKind;
+  let primary = matches!(entry.role, SourceRole::Primary);
+  let alias_fits = entry.alias_of.is_none_or(|first| {
+    first < entry.identifier && matches!(entry.outcome, SourceOutcome::Opened | SourceOutcome::Unrecognized(_))
+  });
+  if primary != (entry.identifier.value() == 0) || !alias_fits {
+    return Err(SOURCE_IDENTITY_MESSAGE);
+  }
+  let expected = match entry.outcome {
+    SourceOutcome::Opened | SourceOutcome::Failed => None,
+    SourceOutcome::NotFound => Some(ReasonKind::CompanionNotFound),
+    SourceOutcome::Declined => Some(ReasonKind::CompanionDeclined),
+    SourceOutcome::LimitReached => Some(ReasonKind::CompanionLimited),
+    SourceOutcome::Unrecognized(_) => return Ok(()),
+  };
+  let fits = match (expected, entry.reason.as_ref().map(Reason::kind)) {
+    (None, None) => true,
+    (Some(expected), Some(kind)) => !primary && (*kind == expected || matches!(kind, ReasonKind::Unrecognized(_))),
+    _ => false,
+  };
+  if fits { Ok(()) } else { Err(SOURCE_REASON_MESSAGE) }
+}
+
+#[cfg(feature = "serde")]
+crate::form::checked_form!(SourceEntry from SourceEntryForm);
 
 #[cfg(test)]
 mod tests {
@@ -119,6 +238,7 @@ mod tests {
 
   use super::SourceEntry;
   use crate::completeness::{Reason, ReasonKind};
+  use crate::model::UnrecognizedValue;
   use crate::source::{AttemptedIdentity, PortablePath, SourceIdentifier, SourceOutcome, SourceRole};
 
   impl SourceEntry {
@@ -133,6 +253,29 @@ mod tests {
         bytes_read: Some(4_096),
         alias_of: None,
         path: Some(PortablePath::from_path(Path::new("movie.mkv"))),
+      }
+    }
+
+    /// The entry of the primary input, which failed after 4096 bytes, as the partial data of a source failure names
+    /// it (`api.md` section 10.1).
+    pub(crate) fn failed_primary() -> SourceEntry {
+      SourceEntry {
+        outcome: SourceOutcome::Failed,
+        ..SourceEntry::sample()
+      }
+    }
+
+    /// The entry of a requested companion, source 1, the `.sub` file of a VobSub index, which failed at byte 2048.
+    /// Its role is one of the release that ships lookup, which this version reads as a role of a newer version.
+    pub(crate) fn failed_companion() -> SourceEntry {
+      SourceEntry {
+        identifier: SourceIdentifier::sample(1),
+        role: SourceRole::Unrecognized(UnrecognizedValue::sample("vob_sub_data")),
+        attempted_identity: Some(AttemptedIdentity::sample(Some("movie"), Some("movie.sub"))),
+        outcome: SourceOutcome::Failed,
+        bytes_read: Some(2_048),
+        path: None,
+        ..SourceEntry::sample()
       }
     }
   }

@@ -33,28 +33,32 @@ use std::os::xous::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
 
 use super::constants::{UNIX_BYTES_NAME, WINDOWS_WIDE_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// The exact form of a path whose display string lost information: its bytes or its 16-bit units in lowercase
-/// hexadecimal, two digits a byte or four a unit. The platform that wrote the record chooses the encoding: Unix,
-/// WASI, Hermit, SOLID and Xous write their bytes, and Windows its units. A platform whose standard library
-/// specifies no exact form of a path writes none.
-///
-/// ```
-/// use cc_media_probe::source::{PortablePath, RawPathEncoding};
-///
-/// fn describe(path: &PortablePath) -> String {
-///     match path.raw() {
-///         Some(raw) if matches!(raw.encoding(), RawPathEncoding::UnixBytes) => format!("bytes {}", raw.data()),
-///         Some(raw) => format!("{} {}", raw.encoding().as_str(), raw.data()),
-///         None => path.display().to_owned(),
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct RawPath {
-  encoding: RawPathEncoding,
-  data: String,
+form_record! {
+  /// The exact form of a path whose display string lost information: its bytes or its 16-bit units in lowercase
+  /// hexadecimal, two digits a byte or four a unit. The platform that wrote the record chooses the encoding: Unix,
+  /// WASI, Hermit, SOLID and Xous write their bytes, and Windows its units. A platform whose standard library
+  /// specifies no exact form of a path writes none.
+  ///
+  /// ```
+  /// use cc_media_probe::source::{PortablePath, RawPathEncoding};
+  ///
+  /// fn describe(path: &PortablePath) -> String {
+  ///     match path.raw() {
+  ///         Some(raw) if matches!(raw.encoding(), RawPathEncoding::UnixBytes) => format!("bytes {}", raw.data()),
+  ///         Some(raw) => format!("{} {}", raw.encoding().as_str(), raw.data()),
+  ///         None => path.display().to_owned(),
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct RawPath {
+    encoding: RawPathEncoding,
+    data: String,
+  }
+  check = RawPath::check_form;
 }
 
 impl RawPath {
@@ -123,6 +127,52 @@ impl RawPath {
   /// The native path, when the encoding belongs to the running platform.
   pub(super) fn to_native(&self) -> Option<PathBuf> {
     native_path(&self.encoding, &self.data)
+  }
+
+  /// The digits of a unit of a known encoding: two a byte, four a 16-bit unit; `None` for an encoding of a newer
+  /// version, whose data is kept as written.
+  #[cfg(feature = "serde")]
+  fn unit_digits(&self) -> Option<usize> {
+    match self.encoding {
+      RawPathEncoding::UnixBytes => Some(super::constants::BYTE_DIGITS),
+      RawPathEncoding::WindowsWide => Some(super::constants::UNIT_DIGITS),
+      RawPathEncoding::Unrecognized(_) => None,
+    }
+  }
+
+  /// Whether the data of a known encoding is whole units of lowercase hexadecimal digits (`json-output.md` section
+  /// 5.8), so `"gg"`, an odd number of digits for `unix_bytes` and a sign fail, and is no valid Unicode, which a
+  /// display string would hold without loss. That needs the data alone, so a raw path read alone checks it, as the
+  /// review of the third slice's first part found; the holder compares the decoding with its display string.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::constants::{RAW_PATH_DATA_MESSAGE, RAW_PATH_UNICODE_MESSAGE};
+    match self.decoded() {
+      Some((true, _)) => Err(RAW_PATH_UNICODE_MESSAGE),
+      None if self.unit_digits().is_some() => Err(RAW_PATH_DATA_MESSAGE),
+      _ => Ok(()),
+    }
+  }
+
+  /// The path that the data of a known encoding spells, decoded with U+FFFD in place of what is not valid, and
+  /// whether it was valid Unicode; `None` for an encoding of a newer version.
+  #[cfg(feature = "serde")]
+  pub(super) fn decoded(&self) -> Option<(bool, String)> {
+    let units = crate::utilities::decode_units(&self.data, self.unit_digits()?)?;
+    match self.encoding {
+      RawPathEncoding::UnixBytes => {
+        let bytes = units
+          .into_iter()
+          .map(u8::try_from)
+          .collect::<Result<Vec<u8>, _>>()
+          .ok()?;
+        Some((
+          std::str::from_utf8(&bytes).is_ok(),
+          String::from_utf8_lossy(&bytes).into_owned(),
+        ))
+      }
+      _ => Some((String::from_utf16(&units).is_ok(), String::from_utf16_lossy(&units))),
+    }
   }
 }
 

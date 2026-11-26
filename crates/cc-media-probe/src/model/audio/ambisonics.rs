@@ -18,28 +18,31 @@
 //! `Ambisonics`, `AmbisonicChannelOrdering` and `AmbisonicNormalization`, an ambisonic layout (`api.md` section
 //! 6.6).
 
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// The ambisonic layout of an audio stream's channels: its order, and the ordering and normalization of its
-/// components.
-///
-/// ```
-/// use cc_media_probe::model::Ambisonics;
-///
-/// fn describe(ambisonics: &Ambisonics) -> String {
-///     format!(
-///         "order {}, {} ordering, {} normalization",
-///         ambisonics.order(),
-///         ambisonics.channel_ordering().as_str(),
-///         ambisonics.normalization().as_str(),
-///     )
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Ambisonics {
-  order: u64,
-  channel_ordering: AmbisonicChannelOrdering,
-  normalization: AmbisonicNormalization,
+form_record! {
+  /// The ambisonic layout of an audio stream's channels: its order, and the ordering and normalization of its
+  /// components.
+  ///
+  /// ```
+  /// use cc_media_probe::model::Ambisonics;
+  ///
+  /// fn describe(ambisonics: &Ambisonics) -> String {
+  ///     format!(
+  ///         "order {}, {} ordering, {} normalization",
+  ///         ambisonics.order(),
+  ///         ambisonics.channel_ordering().as_str(),
+  ///         ambisonics.normalization().as_str(),
+  ///     )
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Ambisonics {
+    order: u64,
+    channel_ordering: AmbisonicChannelOrdering,
+    normalization: AmbisonicNormalization,
+  }
 }
 
 impl Ambisonics {

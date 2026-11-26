@@ -21,8 +21,9 @@
 //!
 //! The library is in development, and nothing is published yet. This build holds the public data model of the
 //! API, whose [specification](https://github.com/caoccao/cc-media-probe/blob/main/docs/design/api.md) the
-//! development plan approved, and its entry points, options, limits and source traits, blocking and async; the
-//! serialized form follows. No format is detected yet: until the detection inventory arrives, the bytes of every
+//! development plan approved, its entry points, options, limits and source traits, blocking and async, and, with
+//! the `serde` feature, the serialized form of the report model and its root records; the document of the command
+//! line follows. No format is detected yet: until the detection inventory arrives, the bytes of every
 //! input match nothing, so detection gives the outcome `Unknown`, or `HintOnly` for a format hint, and a probe the
 //! error `UnknownFormat`.
 //!
@@ -72,9 +73,27 @@
 //! - [`source`]: the source table, the types that name a source, and the trait of a caller's own source.
 //! - [`error`]: the error record and the parts of an error.
 //! - [`asynchronous`]: the async source trait, its functions and handles, and the modules of the two runtimes.
+#![cfg_attr(
+  feature = "serde",
+  doc = "- [`document`]: with the `serde` feature, the version of the serialized form, `SchemaVersion`."
+)]
+#![cfg_attr(
+  not(feature = "serde"),
+  doc = "- `document`: with the `serde` feature, the version of the serialized form, `SchemaVersion`."
+)]
 //!
 //! # Features
 //!
+#![cfg_attr(
+  feature = "serde",
+  doc = "- `serde`, off by default: `Serialize` and `Deserialize` for the report model, read by the strict rules of the
+  JSON contract, and [`document`]."
+)]
+#![cfg_attr(
+  not(feature = "serde"),
+  doc = "- `serde`, off by default: `Serialize` and `Deserialize` for the report model, read by the strict rules of the
+  JSON contract, and `document`."
+)]
 #![cfg_attr(
   feature = "tokio",
   doc = "- `tokio`, off by default: [`asynchronous::tokio`], with Tokio's `AsyncRead`, `AsyncSeek` and file type."
@@ -104,8 +123,13 @@ mod data_enumeration;
 pub mod details;
 mod detect;
 pub mod diagnostics;
+#[cfg(feature = "serde")]
+pub mod document;
 mod entry;
 pub mod error;
+#[cfg(feature = "serde")]
+mod form;
+mod form_record;
 mod format;
 pub mod model;
 mod prober;

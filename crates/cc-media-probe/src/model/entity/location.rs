@@ -18,36 +18,40 @@
 //! `EntityLocation` and `EntityKind` (`api.md` sections 6.9 and 11.3).
 
 use super::constants::{ATTACHMENT_NAME, CHAPTER_NAME, EDITION_NAME, PROGRAM_NAME, STREAM_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// The location of an entity of the report: a stream, an edition, a chapter, an attachment or a program. A tag
-/// target that resolves names its entity this way, and so do the entries of the typed details that name an owner.
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-/// use cc_media_probe::model::{EntityKind, EntityLocation};
-///
-/// fn describe(report: &MediaReport, location: &EntityLocation) -> String {
-///     match location.kind() {
-///         EntityKind::Stream => format!("stream {}", location.index()),
-///         EntityKind::Chapter => {
-///             let title = report
-///                 .chapter_editions()
-///                 .get(location.index())
-///                 .and_then(|edition| edition.chapter_at(location.chapter_path()))
-///                 .and_then(|chapter| chapter.titles().first())
-///                 .map_or("untitled", |title| title.text());
-///             format!("chapter {title} of edition {}", location.index())
-///         }
-///         kind => format!("{} {}", kind.as_str(), location.index()),
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EntityLocation {
-  kind: EntityKind,
-  index: usize,
-  chapter_path: Vec<usize>,
+form_record! {
+  /// The location of an entity of the report: a stream, an edition, a chapter, an attachment or a program. A tag
+  /// target that resolves names its entity this way, and so do the entries of the typed details that name an owner.
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  /// use cc_media_probe::model::{EntityKind, EntityLocation};
+  ///
+  /// fn describe(report: &MediaReport, location: &EntityLocation) -> String {
+  ///     match location.kind() {
+  ///         EntityKind::Stream => format!("stream {}", location.index()),
+  ///         EntityKind::Chapter => {
+  ///             let title = report
+  ///                 .chapter_editions()
+  ///                 .get(location.index())
+  ///                 .and_then(|edition| edition.chapter_at(location.chapter_path()))
+  ///                 .and_then(|chapter| chapter.titles().first())
+  ///                 .map_or("untitled", |title| title.text());
+  ///             format!("chapter {title} of edition {}", location.index())
+  ///         }
+  ///         kind => format!("{} {}", kind.as_str(), location.index()),
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct EntityLocation {
+    kind: EntityKind,
+    index: usize,
+    chapter_path: Vec<usize>,
+  }
+  check = EntityLocation::check_form;
 }
 
 impl EntityLocation {
@@ -67,6 +71,40 @@ impl EntityLocation {
   #[must_use]
   pub fn chapter_path(&self) -> &[usize] {
     &self.chapter_path
+  }
+
+  /// The location of these members, as a record that writes them beside its own reads them (`json-output.md`
+  /// section 7.11), or the message of a location that names no entity.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_members(
+    kind: EntityKind,
+    index: usize,
+    chapter_path: Vec<usize>,
+  ) -> Result<EntityLocation, &'static str> {
+    let location = EntityLocation {
+      kind,
+      index,
+      chapter_path,
+    };
+    location.check_form()?;
+    Ok(location)
+  }
+
+  /// Whether a chapter has a path and a location of another kind that this version knows has none, since an empty
+  /// path names no chapter (`json-output.md` section 5.7, review of the third slice's first part). A kind of a newer
+  /// version is not checked.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let fits = match self.kind {
+      EntityKind::Chapter => !self.chapter_path.is_empty(),
+      EntityKind::Unrecognized(_) => true,
+      _ => self.chapter_path.is_empty(),
+    };
+    if fits {
+      Ok(())
+    } else {
+      Err(super::constants::LOCATION_MESSAGE)
+    }
   }
 }
 

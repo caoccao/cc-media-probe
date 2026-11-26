@@ -55,3 +55,17 @@ pub const FRAME_SEPARATOR: char = ':';
 pub const NEGATIVE_SIGN: &str = "-";
 /// The sign before a timecode that is not negative: none.
 pub const NO_SIGN: &str = "";
+
+/// The message of a timecode whose nominal rate is 0 (`json-output.md` section 7.3).
+#[cfg(feature = "serde")]
+pub const TIMECODE_MESSAGE: &str = "a timecode's nominal rate is 0";
+
+/// The message of a stream whose information does not stand beside its kind (`json-output.md` section 7.3).
+#[cfg(feature = "serde")]
+pub const KIND_INFORMATION_MESSAGE: &str = "a stream's video, audio or subtitle information does not match its kind";
+
+/// The message of a stream whose header state is final while a description that its codec needs is missing, or is
+/// protected beside no protection (`api.md` sections 6.3 and 6.4).
+#[cfg(feature = "serde")]
+pub const HEADER_STATE_MESSAGE: &str = "a stream's header state is final beside a missing description, or protected \
+                                        beside no protection";

@@ -20,37 +20,42 @@
 use super::constants::{NOT_CHECKABLE_NAME, OUTRANKED_NAME, REJECTED_NAME, VALIDATED_NAME};
 use crate::Format;
 use crate::completeness::Reason;
+use crate::form_record::form_record;
 use crate::model::Confidence;
 use crate::string_enumeration::string_enumeration;
 
-/// How the check of one candidate format went, in the rank of `api.md` section 5.1; each candidate is a different
-/// format.
-///
-/// ```
-/// use cc_media_probe::Error;
-/// use cc_media_probe::error::CheckState;
-///
-/// fn checks(error: &Error) -> Vec<String> {
-///     error
-///         .candidates()
-///         .iter()
-///         .map(|check| {
-///             let cause = check.reason().map_or("", |reason| reason.kind().as_str());
-///             let state = match check.state() {
-///                 CheckState::NotCheckable => "could not be checked",
-///                 state => state.as_str(),
-///             };
-///             format!("{} ({}): {state} {cause}", check.format(), check.confidence())
-///         })
-///         .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct CandidateCheck {
-  format: Format,
-  confidence: Confidence,
-  state: CheckState,
-  reason: Option<Reason>,
+form_record! {
+  /// How the check of one candidate format went, in the rank of `api.md` section 5.1; each candidate is a different
+  /// format.
+  ///
+  /// ```
+  /// use cc_media_probe::Error;
+  /// use cc_media_probe::error::CheckState;
+  ///
+  /// fn checks(error: &Error) -> Vec<String> {
+  ///     error
+  ///         .candidates()
+  ///         .iter()
+  ///         .map(|check| {
+  ///             let cause = check.reason().map_or("", |reason| reason.kind().as_str());
+  ///             let state = match check.state() {
+  ///                 CheckState::NotCheckable => "could not be checked",
+  ///                 state => state.as_str(),
+  ///             };
+  ///             format!("{} ({}): {state} {cause}", check.format(), check.confidence())
+  ///         })
+  ///         .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct CandidateCheck {
+    format: Format,
+    confidence: Confidence,
+    state: CheckState,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    reason: Option<Reason>,
+  }
+  check = CandidateCheck::check_form;
 }
 
 impl CandidateCheck {
@@ -77,6 +82,31 @@ impl CandidateCheck {
   #[must_use]
   pub fn reason(&self) -> Option<&Reason> {
     self.reason.as_ref()
+  }
+
+  /// Whether the reason fits the state (`api.md` section 5.1), as the second review of the third slice's first part
+  /// asked, which read a validated candidate with the reason `truncated_input`: only a candidate that could not be
+  /// checked has a cause, an unavailable range, a truncated input or a limit by name, and a state or a reason of a
+  /// newer version is not checked.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use crate::completeness::ReasonKind;
+    let fits = match (&self.state, self.reason.as_ref().map(Reason::kind)) {
+      (_, None) | (CheckState::Unrecognized(_), _) => true,
+      (CheckState::NotCheckable, Some(kind)) => matches!(
+        kind,
+        ReasonKind::RangeUnavailable
+          | ReasonKind::TruncatedInput
+          | ReasonKind::LimitExhausted
+          | ReasonKind::Unrecognized(_)
+      ),
+      _ => false,
+    };
+    if fits {
+      Ok(())
+    } else {
+      Err(super::constants::CANDIDATE_CHECK_MESSAGE)
+    }
   }
 }
 

@@ -22,35 +22,39 @@ use std::fmt;
 use super::RawCodecIdentifier;
 use super::constants::UNKNOWN_CODEC_TEXT;
 use crate::Codec;
+use crate::form_record::form_record;
 
-/// One sample description that could hold the first sample, while the first sample's description is unproven,
-/// with its own codec and identifiers. `Display` writes its codec's name, or the serialized name of a codec that a
-/// newer version wrote, or else its first raw identifier as written.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn candidates(stream: &Stream) -> Vec<String> {
-///     stream
-///         .codec()
-///         .candidates()
-///         .iter()
-///         .map(|candidate| {
-///             let codes: Vec<&str> = candidate.raw_identifiers().iter().map(|code| code.value()).collect();
-///             format!(
-///                 "description {}: {candidate} ({}) {codes:?}",
-///                 candidate.sample_description_index(),
-///                 candidate.codec().as_str(),
-///             )
-///         })
-///         .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct CodecCandidate {
-  sample_description_index: u64,
-  codec: Codec,
-  raw_identifiers: Vec<RawCodecIdentifier>,
+form_record! {
+  /// One sample description that could hold the first sample, while the first sample's description is unproven,
+  /// with its own codec and identifiers. `Display` writes its codec's name, or the serialized name of a codec that a
+  /// newer version wrote, or else its first raw identifier as written.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn candidates(stream: &Stream) -> Vec<String> {
+  ///     stream
+  ///         .codec()
+  ///         .candidates()
+  ///         .iter()
+  ///         .map(|candidate| {
+  ///             let codes: Vec<&str> = candidate.raw_identifiers().iter().map(|code| code.value()).collect();
+  ///             format!(
+  ///                 "description {}: {candidate} ({}) {codes:?}",
+  ///                 candidate.sample_description_index(),
+  ///                 candidate.codec().as_str(),
+  ///             )
+  ///         })
+  ///         .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct CodecCandidate {
+    sample_description_index: u64,
+    codec: Codec,
+    raw_identifiers: Vec<RawCodecIdentifier>,
+  }
+  check = CodecCandidate::check_form;
 }
 
 impl CodecCandidate {
@@ -71,6 +75,15 @@ impl CodecCandidate {
   #[must_use]
   pub fn raw_identifiers(&self) -> &[RawCodecIdentifier] {
     &self.raw_identifiers
+  }
+
+  /// Whether the index counts from 1, as a sample description's does, which needs the candidate alone (review of
+  /// the third slice's first part).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    (self.sample_description_index >= 1)
+      .then_some(())
+      .ok_or(super::constants::CODEC_AGREEMENT_MESSAGE)
   }
 }
 

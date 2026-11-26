@@ -85,11 +85,43 @@ macro_rules! details_enumeration {
       }
 
       /// The variant's details, through the lists that every detail keeps.
-      fn shared(&self) -> &dyn $crate::details::SharedDetails {
+      pub(crate) fn shared(&self) -> &dyn $crate::details::SharedDetails {
         match self {
           $($name::$variant(details) => details,)*
           $name::Unrecognized(details) => details,
         }
+      }
+    }
+
+    // The form of the catch-all, the only kind of the skeleton (`json-output.md` section 8). The match names it
+    // alone, so a phase that adds a variant cannot build until it writes its kind's form here too.
+    #[cfg(feature = "serde")]
+    impl serde::Serialize for $name {
+      fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+        match self {
+          $name::Unrecognized(details) => details.write_kept(serializer),
+        }
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl $crate::form::KindRead for $name {
+      fn unrecognized(kind: String, members: $crate::form::KeptMembers) -> $name {
+        $name::Unrecognized($crate::details::UnrecognizedDetails::from_kept(kind, members))
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'input> $crate::form::ReadAlone<'input> for $name {
+      fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$name, Input::Error> {
+        $crate::form::read_by_kind(deserializer)
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'input> serde::Deserialize<'input> for $name {
+      fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$name, Input::Error> {
+        $crate::form::read_alone(deserializer)
       }
     }
   };

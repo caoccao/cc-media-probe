@@ -17,21 +17,24 @@
 
 //! `StereoMode` and `StereoLayout`, how a single-track stereo video packs its views (`api.md` section 6.5).
 
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// How a single-track stereo video packs its views: the layout, and the code as the file writes it.
-///
-/// ```
-/// use cc_media_probe::model::StereoMode;
-///
-/// fn describe(mode: &StereoMode) -> String {
-///     format!("{} (code {})", mode.layout().as_str(), mode.code())
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StereoMode {
-  layout: StereoLayout,
-  code: String,
+form_record! {
+  /// How a single-track stereo video packs its views: the layout, and the code as the file writes it.
+  ///
+  /// ```
+  /// use cc_media_probe::model::StereoMode;
+  ///
+  /// fn describe(mode: &StereoMode) -> String {
+  ///     format!("{} (code {})", mode.layout().as_str(), mode.code())
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct StereoMode {
+    layout: StereoLayout,
+    code: String,
+  }
 }
 
 impl StereoMode {

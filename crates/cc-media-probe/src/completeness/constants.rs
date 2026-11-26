@@ -168,3 +168,82 @@ pub const UNKNOWN_CODEC_TEXT: &str = "unknown codec";
 pub const PENDING_PARSER_TEXT: &str = "parser pending";
 /// The text for people of `Identification::UnsupportedCompression`.
 pub const UNSUPPORTED_COMPRESSION_TEXT: &str = "unsupported compression";
+
+/// The limits in the order of `api.md` section 4.5, which the record keeps (`json-output.md` section 7.2).
+#[cfg(feature = "serde")]
+pub const LIMIT_ORDER: [crate::Limit; 12] = [
+  crate::Limit::BytesRead,
+  crate::Limit::WorkingMemory,
+  crate::Limit::HeaderBytesPerStream,
+  crate::Limit::RetainedData,
+  crate::Limit::RetainedPayloads,
+  crate::Limit::DecompressedOutput,
+  crate::Limit::WorkUnits,
+  crate::Limit::NestingDepth,
+  crate::Limit::Streams,
+  crate::Limit::Diagnostics,
+  crate::Limit::CompanionRequests,
+  crate::Limit::SourcesOpened,
+];
+
+/// The parts in the order of `api.md` section 5.3, which the record keeps.
+#[cfg(feature = "serde")]
+pub const PART_ORDER: [super::Part; 8] = [
+  super::Part::Detection,
+  super::Part::Discovery,
+  super::Part::Headers,
+  super::Part::Tags,
+  super::Part::Chapters,
+  super::Part::Attachments,
+  super::Part::Timing,
+  super::Part::Companions,
+];
+
+/// The message of a reason of a known kind without the members of its kind, or with another kind's
+/// (`json-output.md` section 7.2).
+#[cfg(feature = "serde")]
+pub const REASON_MESSAGE: &str = "a reason of a known kind lacks the members of its kind or holds another kind's";
+
+/// The message of a record that is not true to itself (`json-output.md` section 7.2).
+#[cfg(feature = "serde")]
+pub const LIMIT_RECORD_MESSAGE: &str = "the limit record names a limit or a part twice, out of order or without its \
+                                        first reason, or holds a first reason with a detail or without its counter";
+
+/// The message of a record that counts an omitted reason without a first reason or the exhausted retained
+/// data, which alone keeps a reason from being kept.
+#[cfg(feature = "serde")]
+pub const OMITTED_REASONS_MESSAGE: &str = "a limit record that counts an omitted reason has no first reason or has not \
+                                           exhausted the retained data";
+
+/// The message of a record that counts an omitted reference without the exhausted retained data and the first
+/// reason of a part that finds references.
+#[cfg(feature = "serde")]
+pub const OMITTED_REFERENCES_MESSAGE: &str = "a limit record that counts an omitted reference has not exhausted the \
+                                              retained data for a part that finds references";
+
+/// The message of a record that counts an omitted declaration without the first reason of discovery and the
+/// exhausted stream limit or retained data, or an omitted diagnostic without the exhausted diagnostics or retained
+/// data (fourth review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const OMITTED_STORAGE_MESSAGE: &str = "a limit record counts an omitted declaration or diagnostic without the \
+                                           limit that kept it from being stored";
+
+/// The message of a record whose limit that stopped detection is recorded as stopping another part first (fourth
+/// review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const DETECTION_LIMIT_MESSAGE: &str = "a limit that stopped detection is recorded as stopping another part first";
+
+/// The message of a completeness whose reasons disagree with its statuses or its record.
+#[cfg(feature = "serde")]
+pub const REASONS_DISAGREE_MESSAGE: &str = "the reasons of a completeness disagree with its statuses or its record";
+
+/// The message of a header status whose identification or reason its state does not allow (`api.md` section 5.4).
+#[cfg(feature = "serde")]
+pub const HEADER_STATUS_MESSAGE: &str = "a header status holds an identification or a reason that its state does not \
+                                         allow";
+
+/// The message of a companion's reason against another part, or of a companion not found or declined without its
+/// source (`api.md` sections 6.15 and 13).
+#[cfg(feature = "serde")]
+pub const COMPANION_REASON_MESSAGE: &str = "a companion's reason stands against another part, or a request's reason \
+                                            names no source";

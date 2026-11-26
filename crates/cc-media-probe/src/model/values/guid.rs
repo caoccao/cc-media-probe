@@ -53,6 +53,12 @@ impl Guid {
   pub fn bytes(&self) -> [u8; GUID_BYTES] {
     self.bytes
   }
+
+  /// The GUID of these stored bytes, as the serialized form gives them.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_bytes(bytes: [u8; GUID_BYTES]) -> Guid {
+    Guid { bytes }
+  }
 }
 
 impl fmt::Display for Guid {

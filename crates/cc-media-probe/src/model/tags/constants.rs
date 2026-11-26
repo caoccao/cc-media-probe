@@ -67,3 +67,16 @@ pub const FLOATING_POINT_KIND: &str = "floating_point";
 pub const BOOLEAN_KIND: &str = "boolean";
 /// The serialized kind of `TagValue::Guid`.
 pub const GUID_KIND: &str = "guid";
+
+/// The message of binary data whose length is not its size (`json-output.md` section 6.2).
+#[cfg(feature = "serde")]
+pub const BINARY_DATA_MESSAGE: &str = "binary data is not as many bytes as its size";
+
+/// The message of a target reference whose kind, identifier and location disagree (`api.md` section 6.9).
+#[cfg(feature = "serde")]
+pub const TARGET_MESSAGE: &str = "a tag target's kind, identifier and location disagree";
+
+/// The message of a tag set whose scope disagrees with its targets, or whose target names an entity of another list's
+/// kind (`api.md` section 6.9).
+#[cfg(feature = "serde")]
+pub const TAG_SET_MESSAGE: &str = "a tag set's scope or the kind of a target's entity disagrees with its targets";

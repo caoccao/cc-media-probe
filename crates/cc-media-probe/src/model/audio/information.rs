@@ -19,56 +19,85 @@
 
 use super::{ChannelLayout, ImmersiveAudio, SampleFormat};
 use crate::Rational;
+use crate::form_record::form_record;
 use crate::model::Provenance;
 
-/// What an audio stream says about its samples, from `Stream::audio()`. Present exactly when the stream's kind is
-/// audio; every field inside may still be absent.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn audio_summary(stream: &Stream) -> Option<String> {
-///     let audio = stream.audio()?;
-///     Some(format!(
-///         "{:?} Hz ({:?}; output {:?} {:?}), {:?} channels ({:?}), layout of {:?} ({:?}), {:?} bits ({:?}), \
-///          format {:?}, delay {:?} ({:?}), padding {:?} ({:?}), immersive {:?}",
-///         audio.sample_rate(),
-///         audio.sample_rate_provenance(),
-///         audio.output_sample_rate(),
-///         audio.output_sample_rate_provenance(),
-///         audio.channel_count(),
-///         audio.channel_count_provenance(),
-///         audio.channel_layout().map(|layout| layout.channels().len()),
-///         audio.channel_layout_provenance(),
-///         audio.bit_depth(),
-///         audio.bit_depth_provenance(),
-///         audio.sample_format().map(|format| format.encoding().as_str()),
-///         audio.encoder_delay(),
-///         audio.encoder_delay_provenance(),
-///         audio.padding(),
-///         audio.padding_provenance(),
-///         audio.immersive().map(|immersive| immersive.kinds().len()),
-///     ))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct AudioInformation {
-  sample_rate: Option<Rational>,
-  sample_rate_provenance: Option<Provenance>,
-  output_sample_rate: Option<Rational>,
-  output_sample_rate_provenance: Option<Provenance>,
-  channel_count: Option<u64>,
-  channel_count_provenance: Option<Provenance>,
-  channel_layout: Option<ChannelLayout>,
-  channel_layout_provenance: Option<Provenance>,
-  bit_depth: Option<u64>,
-  bit_depth_provenance: Option<Provenance>,
-  sample_format: Option<SampleFormat>,
-  encoder_delay: Option<u64>,
-  encoder_delay_provenance: Option<Provenance>,
-  padding: Option<u64>,
-  padding_provenance: Option<Provenance>,
-  immersive: Option<ImmersiveAudio>,
+form_record! {
+  /// What an audio stream says about its samples, from `Stream::audio()`. Present exactly when the stream's kind is
+  /// audio; every field inside may still be absent.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn audio_summary(stream: &Stream) -> Option<String> {
+  ///     let audio = stream.audio()?;
+  ///     Some(format!(
+  ///         "{:?} Hz ({:?}; output {:?} {:?}), {:?} channels ({:?}), layout of {:?} ({:?}), {:?} bits ({:?}), \
+  ///          format {:?}, delay {:?} ({:?}), padding {:?} ({:?}), immersive {:?}",
+  ///         audio.sample_rate(),
+  ///         audio.sample_rate_provenance(),
+  ///         audio.output_sample_rate(),
+  ///         audio.output_sample_rate_provenance(),
+  ///         audio.channel_count(),
+  ///         audio.channel_count_provenance(),
+  ///         audio.channel_layout().map(|layout| layout.channels().len()),
+  ///         audio.channel_layout_provenance(),
+  ///         audio.bit_depth(),
+  ///         audio.bit_depth_provenance(),
+  ///         audio.sample_format().map(|format| format.encoding().as_str()),
+  ///         audio.encoder_delay(),
+  ///         audio.encoder_delay_provenance(),
+  ///         audio.padding(),
+  ///         audio.padding_provenance(),
+  ///         audio.immersive().map(|immersive| immersive.kinds().len()),
+  ///     ))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct AudioInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_rate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_rate_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    output_sample_rate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    output_sample_rate_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    channel_count: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    channel_count_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    channel_layout: Option<ChannelLayout>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    channel_layout_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_depth: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_depth_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_format: Option<SampleFormat>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    encoder_delay: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    encoder_delay_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    padding: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    padding_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    immersive: Option<ImmersiveAudio>,
+  }
+  pairs = [
+    sample_rate with sample_rate_provenance,
+    output_sample_rate with output_sample_rate_provenance,
+    channel_count with channel_count_provenance,
+    channel_layout with channel_layout_provenance,
+    bit_depth with bit_depth_provenance,
+    encoder_delay with encoder_delay_provenance,
+    padding with padding_provenance,
+  ];
+  check = AudioInformation::check_form;
 }
 
 impl AudioInformation {
@@ -167,6 +196,22 @@ impl AudioInformation {
   #[must_use]
   pub fn immersive(&self) -> Option<&ImmersiveAudio> {
     self.immersive.as_ref()
+  }
+
+  /// Whether the layout has one position for each channel that the decoder outputs, the unassigned ones included,
+  /// where both are stated (`api.md` section 6.6), as the fourth review of the third slice's first part asked, which
+  /// read a two-channel stream with a layout of one position.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let fits = match (self.channel_count, &self.channel_layout) {
+      (Some(count), Some(layout)) => u64::try_from(layout.channels().len()).is_ok_and(|positions| positions == count),
+      _ => true,
+    };
+    if fits {
+      Ok(())
+    } else {
+      Err(super::constants::CHANNEL_COUNT_MESSAGE)
+    }
   }
 }
 

@@ -309,12 +309,13 @@ pub(crate) mod tests {
 
     /// A source failure at byte 1040384 of the primary input, a single file, while the probe read its tags after
     /// the inventory. The partial report has its tags incomplete with the reason `SourceFailed`, which names that
-    /// source, and its record is the error's. A single file forms no stream of several files, so the error has no
-    /// logical offset.
+    /// source, and its record and its format are the error's. A single file forms no stream of several files, so the
+    /// error has no logical offset.
     pub(crate) fn failed_source() -> Error {
       let mut error = Error::sample(ErrorKind::SourceFailed);
       let report = MediaReport::cut_by_a_source_failure();
       let parts = &mut error.data.parts;
+      parts.format = Some(report.format().clone());
       parts.source_identifier = Some(SourceIdentifier::sample(0));
       parts.offset = Some(1_040_384);
       parts.record = report.completeness().record().clone();
@@ -324,11 +325,15 @@ pub(crate) mod tests {
     }
 
     /// A source failure at byte 2048 of a requested companion, the `.sub` file of a VobSub index, which carries
-    /// the identity that the probe asked for.
+    /// the identity that the probe asked for, before the inventory: the observations hold the source table that
+    /// names the companion, as every record that names one holds (`api.md` section 10.2), and the usage counts the
+    /// bytes of both sources.
     pub(crate) fn failed_companion() -> Error {
       let mut error = Error::sample(ErrorKind::SourceFailed);
       let parts = &mut error.data.parts;
       parts.source_identifier = Some(SourceIdentifier::sample(1));
+      parts.observations = Some(Observations::of_a_failed_companion());
+      parts.usage = Usage::reading(6_144);
       parts.attempted_identity = Some(AttemptedIdentity::sample(Some("movie"), Some("movie.sub")));
       parts.offset = Some(2_048);
       parts.logical_offset = Some(2_048);
@@ -366,11 +371,20 @@ pub(crate) mod tests {
     /// the readable range. The candidate carries its own cause, so the error has no reason.
     pub(crate) fn unchecked_candidate() -> Error {
       let mut error = Error::sample(ErrorKind::FormatNotDetermined);
+      let cause = Reason::sample(ReasonKind::RangeUnavailable);
+      error.data.parts.record = LimitRecord::first_reason_only(PartReason::sample(Part::Detection, cause.clone()));
       error.data.parts.candidates = vec![CandidateCheck::sample(
         Format::Mp4,
         CheckState::NotCheckable,
-        Some(Reason::sample(ReasonKind::RangeUnavailable)),
+        Some(cause),
       )];
+      error
+    }
+
+    /// The error of a format that this version detects and does not probe, which names it (`api.md` section 5.1).
+    pub(crate) fn unsupported_format() -> Error {
+      let mut error = Error::sample(ErrorKind::UnsupportedFormat);
+      error.data.parts.format = Some(Format::Avi);
       error
     }
 
@@ -551,6 +565,7 @@ pub(crate) mod tests {
     );
     assert!(std::error::Error::source(&error).is_some());
     assert_eq!(error.source_identifier(), Some(SourceIdentifier::sample(0)));
+    assert_eq!(error.format(), error.partial_report().map(MediaReport::format));
     assert_eq!(error.attempted_identity(), None);
     assert_eq!(error.offset(), Some(1_040_384));
     assert_eq!(error.logical_offset(), None);
@@ -662,7 +677,11 @@ pub(crate) mod tests {
       candidate.and_then(CandidateCheck::reason).map(Reason::kind),
       Some(&ReasonKind::RangeUnavailable)
     );
-    assert_eq!(error.record(), &LimitRecord::empty());
+    let first = error.record().first_reason(&Part::Detection);
+    assert_eq!(
+      first.map(|first| first.reason().kind()),
+      Some(&ReasonKind::RangeUnavailable)
+    );
     assert_eq!((error.hint(), error.format()), (None, None));
   }
 
@@ -673,6 +692,13 @@ pub(crate) mod tests {
     assert_eq!(error.hint().map(Hint::format), Some(&Format::Mp4));
     assert_eq!(error.candidates(), []);
     assert_eq!((error.reason(), error.format()), (None, None));
+  }
+
+  #[test]
+  fn names_the_format_that_it_does_not_probe() {
+    let error = Error::unsupported_format();
+    assert_eq!(error.kind(), &ErrorKind::UnsupportedFormat);
+    assert_eq!((error.format(), error.hint()), (Some(&Format::Avi), None));
   }
 
   #[test]

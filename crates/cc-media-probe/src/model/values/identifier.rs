@@ -32,6 +32,9 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Identifier(String);
 
+#[cfg(feature = "serde")]
+crate::form::text_form!(Identifier);
+
 impl Identifier {
   /// The identifier as text. `Display` writes the same text.
   ///

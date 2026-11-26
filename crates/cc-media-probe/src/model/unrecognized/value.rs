@@ -64,6 +64,12 @@ impl<Owner> UnrecognizedValue<Owner> {
   pub fn as_str(&self) -> &str {
     self.0.as_str()
   }
+
+  /// The catch-all of a name of a newer version, as the reader of `Owner` keeps it.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_text(text: String) -> UnrecognizedValue<Owner> {
+    UnrecognizedValue(OwnedText::new(text))
+  }
 }
 
 #[cfg(test)]

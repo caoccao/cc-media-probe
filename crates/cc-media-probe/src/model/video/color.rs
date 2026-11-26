@@ -18,43 +18,60 @@
 //! `ColorDescription` and `ColorRange`, a video's color description (`api.md` section 6.5).
 
 use super::constants::{FULL_NAME, LIMITED_NAME};
+use crate::form_record::form_record;
 use crate::model::Provenance;
 use crate::string_enumeration::string_enumeration;
 
-/// A video's color description: ITU-T H.273 code points and the range, each with its own provenance, since an
-/// override supplies only the components it states (field guide section 2).
-///
-/// ```
-/// use cc_media_probe::model::{ColorDescription, ColorRange};
-///
-/// fn describe(color: &ColorDescription) -> String {
-///     format!(
-///         "primaries {:?} ({:?}), transfer {:?} ({:?}), matrix {:?} ({:?}), {} range ({:?})",
-///         color.primaries(),
-///         color.primaries_provenance(),
-///         color.transfer_characteristics(),
-///         color.transfer_characteristics_provenance(),
-///         color.matrix_coefficients(),
-///         color.matrix_coefficients_provenance(),
-///         match color.range() {
-///             Some(ColorRange::Full) => "full",
-///             Some(ColorRange::Limited) => "limited",
-///             _ => "unknown",
-///         },
-///         color.range_provenance(),
-///     )
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ColorDescription {
-  primaries: Option<u8>,
-  primaries_provenance: Option<Provenance>,
-  transfer_characteristics: Option<u8>,
-  transfer_characteristics_provenance: Option<Provenance>,
-  matrix_coefficients: Option<u8>,
-  matrix_coefficients_provenance: Option<Provenance>,
-  range: Option<ColorRange>,
-  range_provenance: Option<Provenance>,
+form_record! {
+  /// A video's color description: ITU-T H.273 code points and the range, each with its own provenance, since an
+  /// override supplies only the components it states (field guide section 2).
+  ///
+  /// ```
+  /// use cc_media_probe::model::{ColorDescription, ColorRange};
+  ///
+  /// fn describe(color: &ColorDescription) -> String {
+  ///     format!(
+  ///         "primaries {:?} ({:?}), transfer {:?} ({:?}), matrix {:?} ({:?}), {} range ({:?})",
+  ///         color.primaries(),
+  ///         color.primaries_provenance(),
+  ///         color.transfer_characteristics(),
+  ///         color.transfer_characteristics_provenance(),
+  ///         color.matrix_coefficients(),
+  ///         color.matrix_coefficients_provenance(),
+  ///         match color.range() {
+  ///             Some(ColorRange::Full) => "full",
+  ///             Some(ColorRange::Limited) => "limited",
+  ///             _ => "unknown",
+  ///         },
+  ///         color.range_provenance(),
+  ///     )
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ColorDescription {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    primaries: Option<u8>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    primaries_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    transfer_characteristics: Option<u8>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    transfer_characteristics_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    matrix_coefficients: Option<u8>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    matrix_coefficients_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    range: Option<ColorRange>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    range_provenance: Option<Provenance>,
+  }
+  pairs = [
+    primaries with primaries_provenance,
+    transfer_characteristics with transfer_characteristics_provenance,
+    matrix_coefficients with matrix_coefficients_provenance,
+    range with range_provenance,
+  ];
 }
 
 impl ColorDescription {

@@ -28,9 +28,15 @@ mod outcome;
 mod portable_path;
 mod positional;
 mod raw_path;
+#[cfg(feature = "serde")]
+mod request_reasons;
 mod role;
+#[cfg(feature = "serde")]
+mod table;
 
 pub use attempted_identity::AttemptedIdentity;
+#[cfg(feature = "serde")]
+pub(crate) use constants::{BYTES_READ_MESSAGE, REQUEST_REASON_MESSAGE, UNKNOWN_SOURCE_MESSAGE};
 pub use entry::SourceEntry;
 pub use identifier::SourceIdentifier;
 pub use offset::SourceOffset;
@@ -40,4 +46,8 @@ pub use positional::PositionalSource;
 #[cfg(test)]
 pub(crate) use positional::tests::Ranges;
 pub use raw_path::{RawPath, RawPathEncoding};
+#[cfg(feature = "serde")]
+pub(crate) use request_reasons::{request_reasons_not_kept, requests_agree};
 pub use role::SourceRole;
+#[cfg(feature = "serde")]
+pub(crate) use table::{bytes_read_within, reasons_find_counters, table_identifiers};

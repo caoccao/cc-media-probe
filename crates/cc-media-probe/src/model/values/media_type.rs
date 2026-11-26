@@ -32,6 +32,9 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MediaType(String);
 
+#[cfg(feature = "serde")]
+crate::form::text_form!(MediaType);
+
 impl MediaType {
   /// The media type as text. `Display` writes the same text.
   ///

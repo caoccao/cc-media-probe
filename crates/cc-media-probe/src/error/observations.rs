@@ -19,29 +19,34 @@
 
 use crate::details::FormatDetails;
 use crate::diagnostics::Diagnostic;
+use crate::form_record::form_record;
 use crate::source::SourceEntry;
 
-/// What a probe saw before it stopped short of its stream inventory, such as the track identifiers and raw ticks
-/// of an ISO media segment, which are in its format details (R20).
-///
-/// ```
-/// use cc_media_probe::Error;
-///
-/// fn observed(error: &Error) -> Option<String> {
-///     let observations = error.observations()?;
-///     Some(format!(
-///         "details {}, {} diagnostics, {} sources",
-///         observations.format_details().is_some(),
-///         observations.diagnostics().len(),
-///         observations.sources().len(),
-///     ))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Observations {
-  format_details: Option<FormatDetails>,
-  diagnostics: Vec<Diagnostic>,
-  sources: Vec<SourceEntry>,
+form_record! {
+  /// What a probe saw before it stopped short of its stream inventory, such as the track identifiers and raw ticks
+  /// of an ISO media segment, which are in its format details (R20).
+  ///
+  /// ```
+  /// use cc_media_probe::Error;
+  ///
+  /// fn observed(error: &Error) -> Option<String> {
+  ///     let observations = error.observations()?;
+  ///     Some(format!(
+  ///         "details {}, {} diagnostics, {} sources",
+  ///         observations.format_details().is_some(),
+  ///         observations.diagnostics().len(),
+  ///         observations.sources().len(),
+  ///     ))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Observations {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    format_details: Option<FormatDetails>,
+    diagnostics: Vec<Diagnostic>,
+    sources: Vec<SourceEntry>,
+  }
+  check = Observations::check_form;
 }
 
 impl Observations {
@@ -62,6 +67,26 @@ impl Observations {
   pub fn sources(&self) -> &[SourceEntry] {
     &self.sources
   }
+
+  /// Whether the observations hold a source table of their own, which names each source once and holds the primary
+  /// input, and diagnostics that name its sources and no stream, since no stream is known before an inventory, as
+  /// the maintainer chose at the review of the third slice's first part (`json-output.md` section 10).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let sources = crate::source::table_identifiers(&self.sources)?;
+    if self.diagnostics.iter().any(|diagnostic| diagnostic.stream().is_some()) {
+      return Err(super::constants::OBSERVED_STREAM_MESSAGE);
+    }
+    let named = self
+      .diagnostics
+      .iter()
+      .all(|diagnostic| sources.contains(&diagnostic.source_identifier()));
+    if named {
+      Ok(())
+    } else {
+      Err(crate::source::UNKNOWN_SOURCE_MESSAGE)
+    }
+  }
 }
 
 #[cfg(test)]
@@ -78,8 +103,17 @@ mod tests {
         format_details: Some(FormatDetails::Unrecognized(UnrecognizedDetails::sample(
           "iso_base_media",
         ))),
-        diagnostics: vec![Diagnostic::sample(0)],
+        diagnostics: vec![Diagnostic::sample(None)],
         sources: vec![SourceEntry::sample()],
+      }
+    }
+
+    /// What a probe saw before its requested companion, source 1, failed: the source table alone.
+    pub(crate) fn of_a_failed_companion() -> Observations {
+      Observations {
+        format_details: None,
+        diagnostics: Vec::new(),
+        sources: vec![SourceEntry::sample(), SourceEntry::failed_companion()],
       }
     }
   }

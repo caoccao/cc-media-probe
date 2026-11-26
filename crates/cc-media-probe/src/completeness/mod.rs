@@ -18,6 +18,8 @@
 //! What a probe established, what it did not, and why (`api.md` sections 5.3 to 5.5; R23): `Completeness`, the
 //! header status of a stream, the statuses, parts and reasons, and the fixed-size `LimitRecord`.
 
+#[cfg(feature = "serde")]
+mod agreement;
 mod constants;
 mod feature;
 mod header_state;
@@ -30,6 +32,8 @@ mod record;
 mod statuses;
 mod summary;
 
+#[cfg(feature = "serde")]
+pub(crate) use agreement::{Shortfall, omitted_at_least, stated_reasons_not_kept};
 pub use feature::Feature;
 pub use header_state::{HeaderState, Identification};
 pub use header_status::HeaderStatus;

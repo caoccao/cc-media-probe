@@ -18,56 +18,87 @@
 //! `Attachment`, a file attached to the media (`api.md` section 6.10; field guide section 3.9).
 
 use super::AttachmentRole;
+use crate::form_record::form_record;
 use crate::model::{Identifier, MediaType, Provenance};
 
-/// A file attached to the media, such as a font or cover art, from `MediaReport::attachments()`. Cover art whose
-/// layout an approved source gives is always an attachment, whatever its carriage, and the tag lists do not repeat
-/// it (F8).
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-///
-/// fn attachments(report: &MediaReport) {
-///     for attachment in report.attachments() {
-///         println!(
-///             "{} ({:?}, {:?} from {:?}), {:?} bytes, kept {}, link {:?}",
-///             attachment.name().unwrap_or("unnamed"),
-///             attachment.description(),
-///             attachment.media_type().map(|media_type| media_type.as_str()),
-///             attachment.media_type_provenance(),
-///             attachment.size(),
-///             attachment.data().is_some(),
-///             attachment.link(),
-///         );
-///         println!(
-///             "  {:?}x{:?} ({:?}, {:?}), role {:?}, picture type {:?}, identifier {:?}",
-///             attachment.width(),
-///             attachment.height(),
-///             attachment.width_provenance(),
-///             attachment.height_provenance(),
-///             attachment.role().map(|role| role.as_str()),
-///             attachment.picture_type(),
-///             attachment.unique_identifier().map(|identifier| identifier.as_str()),
-///         );
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Attachment {
-  unique_identifier: Option<Identifier>,
-  name: Option<String>,
-  description: Option<String>,
-  media_type: Option<MediaType>,
-  media_type_provenance: Option<Provenance>,
-  size: Option<u64>,
-  link: Option<String>,
-  data: Option<Vec<u8>>,
-  width: Option<u64>,
-  width_provenance: Option<Provenance>,
-  height: Option<u64>,
-  height_provenance: Option<Provenance>,
-  role: Option<AttachmentRole>,
-  picture_type: Option<String>,
+form_record! {
+  /// A file attached to the media, such as a font or cover art, from `MediaReport::attachments()`. Cover art whose
+  /// layout an approved source gives is always an attachment, whatever its carriage, and the tag lists do not repeat
+  /// it (F8).
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  ///
+  /// fn attachments(report: &MediaReport) {
+  ///     for attachment in report.attachments() {
+  ///         println!(
+  ///             "{} ({:?}, {:?} from {:?}), {:?} bytes, kept {}, link {:?}",
+  ///             attachment.name().unwrap_or("unnamed"),
+  ///             attachment.description(),
+  ///             attachment.media_type().map(|media_type| media_type.as_str()),
+  ///             attachment.media_type_provenance(),
+  ///             attachment.size(),
+  ///             attachment.data().is_some(),
+  ///             attachment.link(),
+  ///         );
+  ///         println!(
+  ///             "  {:?}x{:?} ({:?}, {:?}), role {:?}, picture type {:?}, identifier {:?}",
+  ///             attachment.width(),
+  ///             attachment.height(),
+  ///             attachment.width_provenance(),
+  ///             attachment.height_provenance(),
+  ///             attachment.role().map(|role| role.as_str()),
+  ///             attachment.picture_type(),
+  ///             attachment.unique_identifier().map(|identifier| identifier.as_str()),
+  ///         );
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Attachment {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    unique_identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    description: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    media_type: Option<MediaType>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    media_type_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    size: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    link: Option<String>,
+    #[cfg_attr(
+      feature = "serde",
+      serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::form::write_optional_bytes",
+        deserialize_with = "crate::form::read_optional_bytes"
+      )
+    )]
+    data: Option<Vec<u8>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    width: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    width_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    height: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    height_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    role: Option<AttachmentRole>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    picture_type: Option<String>,
+  }
+  pairs = [
+    media_type with media_type_provenance,
+    width with width_provenance,
+    height with height_provenance,
+  ];
+  check = Attachment::check_form;
 }
 
 impl Attachment {
@@ -155,6 +186,23 @@ impl Attachment {
   #[must_use]
   pub fn picture_type(&self) -> Option<&str> {
     self.picture_type.as_deref()
+  }
+
+  /// Whether the data are as many bytes as the size, when both are present, and a linked picture, which embeds
+  /// nothing, has neither (`api.md` section 6.10), as the review of the third slice's first part found two bytes
+  /// read beside a size of 1.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let whole = match (self.size, self.data.as_deref()) {
+      (Some(size), Some(data)) => u64::try_from(data.len()).is_ok_and(|length| length == size),
+      _ => true,
+    };
+    let embedded = self.size.is_some() || self.data.is_some();
+    if whole && !(embedded && self.link.is_some()) {
+      Ok(())
+    } else {
+      Err(super::constants::ATTACHMENT_MESSAGE)
+    }
   }
 }
 

@@ -17,19 +17,23 @@
 
 //! `NativeScope`, the ISO family's scope of a tag set (`api.md` section 6.9).
 
-/// The ISO family's scope of a tag set: file, movie, track or media, with its owner and its `meta` or `udta`
-/// source. Phase 6 fixes its members, which a later release adds as accessors (`json-output.md` section 7.8).
-///
-/// ```
-/// use cc_media_probe::model::TagSet;
-///
-/// fn has_native_scope(set: &TagSet) -> bool {
-///     set.native_scope().is_some()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub struct NativeScope {}
+use crate::form_record::form_record;
+
+form_record! {
+  /// The ISO family's scope of a tag set: file, movie, track or media, with its owner and its `meta` or `udta`
+  /// source. Phase 6 fixes its members, which a later release adds as accessors (`json-output.md` section 7.8).
+  ///
+  /// ```
+  /// use cc_media_probe::model::TagSet;
+  ///
+  /// fn has_native_scope(set: &TagSet) -> bool {
+  ///     set.native_scope().is_some()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub struct NativeScope {}
+}
 
 #[cfg(test)]
 mod tests {

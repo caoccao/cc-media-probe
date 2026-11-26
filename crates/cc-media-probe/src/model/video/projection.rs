@@ -19,30 +19,36 @@
 
 use super::constants::{CUBEMAP_NAME, EQUIRECTANGULAR_NAME, MESH_NAME, RECTANGULAR_NAME};
 use crate::Rational;
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// How a video maps onto a sphere: the kind of projection and its pose, in degrees.
-///
-/// ```
-/// use cc_media_probe::model::{Projection, ProjectionKind};
-///
-/// fn describe(projection: &Projection) -> String {
-///     let spherical = !matches!(projection.kind(), ProjectionKind::Rectangular);
-///     format!(
-///         "{} (spherical {spherical}), yaw {:?}, pitch {:?}, roll {:?}",
-///         projection.kind().as_str(),
-///         projection.yaw(),
-///         projection.pitch(),
-///         projection.roll(),
-///     )
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Projection {
-  kind: ProjectionKind,
-  yaw: Option<Rational>,
-  pitch: Option<Rational>,
-  roll: Option<Rational>,
+form_record! {
+  /// How a video maps onto a sphere: the kind of projection and its pose, in degrees.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{Projection, ProjectionKind};
+  ///
+  /// fn describe(projection: &Projection) -> String {
+  ///     let spherical = !matches!(projection.kind(), ProjectionKind::Rectangular);
+  ///     format!(
+  ///         "{} (spherical {spherical}), yaw {:?}, pitch {:?}, roll {:?}",
+  ///         projection.kind().as_str(),
+  ///         projection.yaw(),
+  ///         projection.pitch(),
+  ///         projection.roll(),
+  ///     )
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Projection {
+    kind: ProjectionKind,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    yaw: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pitch: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    roll: Option<Rational>,
+  }
 }
 
 impl Projection {

@@ -40,3 +40,28 @@ pub const ISO_SAMPLE_ENTRY_NAME: &str = "iso_sample_entry";
 pub const MPEG4_OBJECT_TYPE_NAME: &str = "mpeg4_object_type";
 /// The serialized name of `CodecNamespace::QuickTimeCode`.
 pub const QUICKTIME_CODE_NAME: &str = "quicktime_code";
+
+/// The bytes of a four-character code, a sample entry code and a QuickTime code (`json-output.md` section 7.3).
+#[cfg(feature = "serde")]
+pub const FOUR_CHARACTER_BYTES: usize = 4;
+
+/// The bytes of the `SubFormat` GUID of an extensible WAVE format.
+#[cfg(feature = "serde")]
+pub const SUBFORMAT_BYTES: usize = 16;
+
+/// The first printable ASCII character, the space (RFC 8794 section 7.4).
+#[cfg(feature = "serde")]
+pub const PRINTABLE_FIRST: char = ' ';
+
+/// The last printable ASCII character, the tilde.
+#[cfg(feature = "serde")]
+pub const PRINTABLE_LAST: char = '~';
+
+/// The message of a raw code that is not in the spelling of its namespace (`json-output.md` section 7.3).
+#[cfg(feature = "serde")]
+pub const RAW_CODE_MESSAGE: &str = "a raw codec identifier is not in the spelling of its namespace";
+
+/// The message of a codec's information that disagrees with its candidates, or of a candidate whose index is 0
+/// (`api.md` section 6.4).
+#[cfg(feature = "serde")]
+pub const CODEC_AGREEMENT_MESSAGE: &str = "a codec disagrees with its candidates, or its candidates do not rise from 1";

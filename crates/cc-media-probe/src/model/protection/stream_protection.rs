@@ -19,48 +19,54 @@
 
 use super::constants::UNKNOWN_STATE;
 use super::{ProtectionDeclaration, SampleDescriptionProtection, SampleDescriptionState};
+use crate::form_record::form_record;
 
-/// What a stream declares protected, and where (F22).
-///
-/// Absence is proof: `Stream::protection()` is absent only when every structure of the stream that can declare
-/// protection was examined and none does. A probe that stopped before such a structure, or could not keep a
-/// declaration, gives a `Protection` that says so, even when it holds no declaration.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn protection(stream: &Stream) -> String {
-///     let Some(protection) = stream.protection() else {
-///         return "clear".to_owned();
-///     };
-///     let schemes: Vec<&str> = protection
-///         .declarations()
-///         .iter()
-///         .filter_map(|declaration| declaration.scheme())
-///         .map(|scheme| scheme.value())
-///         .collect();
-///     let configuration = match protection.is_configuration_clear() {
-///         Some(true) => "the configuration is clear",
-///         Some(false) => "the configuration is protected",
-///         None => "the configuration may be protected",
-///     };
-///     let examined = if protection.is_fully_examined() { "" } else { " (not fully examined)" };
-///     if !protection.has_sample_descriptions() {
-///         return format!("{schemes:?}; {configuration}{examined}");
-///     }
-///     let descriptions = protection.sample_description_count().unwrap_or(0);
-///     let first = protection.sample_description_state(1).map(|state| state.as_str());
-///     format!("{schemes:?}; {configuration}{examined}; {descriptions} descriptions, the first {first:?}")
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Protection {
-  declarations: Vec<ProtectionDeclaration>,
-  fully_examined: bool,
-  has_sample_descriptions: bool,
-  sample_description_count: Option<u64>,
-  sample_descriptions: Vec<SampleDescriptionProtection>,
-  configuration_clear: Option<bool>,
+form_record! {
+  /// What a stream declares protected, and where (F22).
+  ///
+  /// Absence is proof: `Stream::protection()` is absent only when every structure of the stream that can declare
+  /// protection was examined and none does. A probe that stopped before such a structure, or could not keep a
+  /// declaration, gives a `Protection` that says so, even when it holds no declaration.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn protection(stream: &Stream) -> String {
+  ///     let Some(protection) = stream.protection() else {
+  ///         return "clear".to_owned();
+  ///     };
+  ///     let schemes: Vec<&str> = protection
+  ///         .declarations()
+  ///         .iter()
+  ///         .filter_map(|declaration| declaration.scheme())
+  ///         .map(|scheme| scheme.value())
+  ///         .collect();
+  ///     let configuration = match protection.is_configuration_clear() {
+  ///         Some(true) => "the configuration is clear",
+  ///         Some(false) => "the configuration is protected",
+  ///         None => "the configuration may be protected",
+  ///     };
+  ///     let examined = if protection.is_fully_examined() { "" } else { " (not fully examined)" };
+  ///     if !protection.has_sample_descriptions() {
+  ///         return format!("{schemes:?}; {configuration}{examined}");
+  ///     }
+  ///     let descriptions = protection.sample_description_count().unwrap_or(0);
+  ///     let first = protection.sample_description_state(1).map(|state| state.as_str());
+  ///     format!("{schemes:?}; {configuration}{examined}; {descriptions} descriptions, the first {first:?}")
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Protection {
+    declarations: Vec<ProtectionDeclaration>,
+    fully_examined: bool,
+    has_sample_descriptions: bool,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_description_count: Option<u64>,
+    sample_descriptions: Vec<SampleDescriptionProtection>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    configuration_clear: Option<bool>,
+  }
+  check = Protection::check_form;
 }
 
 impl Protection {
@@ -135,6 +141,68 @@ impl Protection {
   #[must_use]
   pub fn is_configuration_clear(&self) -> Option<bool> {
     self.configuration_clear
+  }
+
+  /// Whether the protection is true to itself (`json-output.md` section 7.3): without sample descriptions, no count,
+  /// no entry and no declaration of the scope `sample_description`; the entries' indexes rising strictly, within the
+  /// count when it is present, each entry checking its own index from 1 and its state; each declaration's index within
+  /// the count; and at least one declaration once examined in full, since a stream examined in full that declares
+  /// nothing has no protection (review of the third slice's first part). A `declared` entry needs no declaration of
+  /// its index, which the retained-data limit can drop while it keeps the state (`api.md` section 6.3). The
+  /// configuration's clarity agrees with the declarations, as the second review of that part asked, which read a
+  /// declaration of the codec's private data beside a clear configuration: such a declaration covers the
+  /// configuration, which is then protected, `false`, whatever else stays unknown, and a declaration whose scope
+  /// was not read could cover it, which is then not clear. As the fourth review asked, which read a protection
+  /// examined in full beside a scope that was not read, and description 1 kept as clear beside a declaration of
+  /// description 1, a scope that was not read leaves the protection not examined in full, and a description kept as
+  /// clear has no declaration: the protection holds both, so no limit explains the disagreement.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::ProtectionScope;
+    let within = |index: u64| self.sample_description_count.is_none_or(|count| index <= count);
+    let without = !self.has_sample_descriptions
+      && (self.sample_description_count.is_some()
+        || !self.sample_descriptions.is_empty()
+        || self
+          .declarations
+          .iter()
+          .any(|declaration| matches!(declaration.scope(), ProtectionScope::SampleDescription)));
+    let mut previous = 0;
+    let entries_rise = self.sample_descriptions.iter().all(|entry| {
+      let rises = entry.index() > previous && within(entry.index());
+      previous = entry.index();
+      rises
+    });
+    // A stream examined in full that declares nothing has no protection at all (`api.md` section 6.3).
+    let declares = !self.fully_examined || !self.declarations.is_empty();
+    let declarations_within = self
+      .declarations
+      .iter()
+      .filter_map(ProtectionDeclaration::sample_description_index)
+      .all(within);
+    let scoped = |scope: &ProtectionScope| self.declarations.iter().any(|declaration| declaration.scope() == scope);
+    let clarity = if scoped(&ProtectionScope::CodecPrivateData) {
+      self.configuration_clear == Some(false)
+    } else {
+      !scoped(&ProtectionScope::Unread) || self.configuration_clear != Some(true)
+    };
+    // A scope that was not read was cut short, and a description kept as clear declares nothing (fourth review).
+    let unread_fits = !self.fully_examined || !scoped(&ProtectionScope::Unread);
+    let clear_fits = self
+      .declarations
+      .iter()
+      .filter_map(ProtectionDeclaration::sample_description_index)
+      .all(|index| {
+        !matches!(
+          self.sample_description_state(index),
+          Some(SampleDescriptionState::Clear)
+        )
+      });
+    if !without && entries_rise && declarations_within && declares && clarity && unread_fits && clear_fits {
+      Ok(())
+    } else {
+      Err(super::constants::PROTECTION_MESSAGE)
+    }
   }
 }
 

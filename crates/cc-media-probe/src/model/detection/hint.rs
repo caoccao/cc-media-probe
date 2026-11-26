@@ -19,23 +19,26 @@
 
 use super::constants::{FILE_NAME_NAME, FORMAT_OPTION_NAME};
 use crate::Format;
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// A format that a hint suggests while the bytes matched nothing. It is not verified, and never presented as an
-/// identification.
-///
-/// ```
-/// use cc_media_probe::Detection;
-///
-/// fn hint(detection: &Detection) -> Option<String> {
-///     let hint = detection.hint()?;
-///     Some(format!("maybe {} (from the {}), not verified", hint.format(), hint.origin().as_str()))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Hint {
-  format: Format,
-  origin: HintOrigin,
+form_record! {
+  /// A format that a hint suggests while the bytes matched nothing. It is not verified, and never presented as an
+  /// identification.
+  ///
+  /// ```
+  /// use cc_media_probe::Detection;
+  ///
+  /// fn hint(detection: &Detection) -> Option<String> {
+  ///     let hint = detection.hint()?;
+  ///     Some(format!("maybe {} (from the {}), not verified", hint.format(), hint.origin().as_str()))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Hint {
+    format: Format,
+    origin: HintOrigin,
+  }
 }
 
 impl Hint {

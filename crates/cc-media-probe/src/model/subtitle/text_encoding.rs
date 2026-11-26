@@ -65,6 +65,9 @@ data_enumeration! {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EncodingName(String);
 
+#[cfg(feature = "serde")]
+crate::form::text_form!(EncodingName);
+
 impl EncodingName {
   /// The name as written.
   #[must_use]

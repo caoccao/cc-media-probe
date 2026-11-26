@@ -22,25 +22,30 @@ use super::constants::{
   ENTITIES_NAME, INCOMPLETE_NAME, MATROSKA_UNIQUE_IDENTIFIER_NAME, RESOLVED_NAME, UNMATCHED_NAME, WHOLE_FILE_NAME,
   WILDCARD_NAME,
 };
+use crate::form_record::form_record;
 use crate::model::{EntityLocation, Identifier};
 use crate::string_enumeration::string_enumeration;
 
-/// The level of the entity that a tag set describes, such as Matroska's `TargetTypeValue` 50 with `ALBUM`. A key
-/// never says which level a tag describes; its tag set does.
-///
-/// ```
-/// use cc_media_probe::model::TagSet;
-///
-/// fn level(set: &TagSet) -> String {
-///     set.target_level().map_or_else(String::new, |level| {
-///         format!("{:?} {}", level.value(), level.type_name().unwrap_or(""))
-///     })
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TargetLevel {
-  value: Option<u64>,
-  type_name: Option<String>,
+form_record! {
+  /// The level of the entity that a tag set describes, such as Matroska's `TargetTypeValue` 50 with `ALBUM`. A key
+  /// never says which level a tag describes; its tag set does.
+  ///
+  /// ```
+  /// use cc_media_probe::model::TagSet;
+  ///
+  /// fn level(set: &TagSet) -> String {
+  ///     set.target_level().map_or_else(String::new, |level| {
+  ///         format!("{:?} {}", level.value(), level.type_name().unwrap_or(""))
+  ///     })
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TargetLevel {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    value: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    type_name: Option<String>,
+  }
 }
 
 impl TargetLevel {
@@ -57,33 +62,39 @@ impl TargetLevel {
   }
 }
 
-/// One target of a tag set, as the file writes it: an identifier that resolves to an entity of the report, one
-/// that matches none, or a wildcard for every entity of its kind.
-///
-/// ```
-/// use cc_media_probe::model::{TargetReference, TargetReferenceKind};
-///
-/// fn describe(target: &TargetReference) -> String {
-///     match target.kind() {
-///         TargetReferenceKind::Resolved => {
-///             format!("entity {:?}", target.location().map(|location| location.index()))
-///         }
-///         TargetReferenceKind::Unmatched => format!(
-///             "identifier {:?} of {:?}, not in this report",
-///             target.identifier().map(|identifier| identifier.as_str()),
-///             target.namespace().map(|namespace| namespace.as_str()),
-///         ),
-///         TargetReferenceKind::Wildcard => "every entity of its kind".to_owned(),
-///         other => other.as_str().to_owned(),
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TargetReference {
-  kind: TargetReferenceKind,
-  identifier: Option<Identifier>,
-  namespace: Option<IdentifierNamespace>,
-  location: Option<EntityLocation>,
+form_record! {
+  /// One target of a tag set, as the file writes it: an identifier that resolves to an entity of the report, one
+  /// that matches none, or a wildcard for every entity of its kind.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{TargetReference, TargetReferenceKind};
+  ///
+  /// fn describe(target: &TargetReference) -> String {
+  ///     match target.kind() {
+  ///         TargetReferenceKind::Resolved => {
+  ///             format!("entity {:?}", target.location().map(|location| location.index()))
+  ///         }
+  ///         TargetReferenceKind::Unmatched => format!(
+  ///             "identifier {:?} of {:?}, not in this report",
+  ///             target.identifier().map(|identifier| identifier.as_str()),
+  ///             target.namespace().map(|namespace| namespace.as_str()),
+  ///         ),
+  ///         TargetReferenceKind::Wildcard => "every entity of its kind".to_owned(),
+  ///         other => other.as_str().to_owned(),
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct TargetReference {
+    kind: TargetReferenceKind,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    namespace: Option<IdentifierNamespace>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    location: Option<EntityLocation>,
+  }
+  check = TargetReference::check_form;
 }
 
 impl TargetReference {
@@ -109,6 +120,37 @@ impl TargetReference {
   #[must_use]
   pub fn location(&self) -> Option<&EntityLocation> {
     self.location.as_ref()
+  }
+
+  /// Whether the reference's kind, identifier and location agree, which needs the reference alone (`api.md` section
+  /// 6.9), as the review of the third slice's first part found `01` read as a Matroska identifier and a resolved
+  /// target without its entity: a resolved target has a location and no other has one; and an identifier of the
+  /// namespace `matroska_unique_identifier` is present, a 64-bit integer in canonical decimal, and `0` exactly for
+  /// the wildcard. A kind or a namespace of a newer version is not checked. As the second review of that part asked,
+  /// which read `01` beside a kind of a newer version, the namespace's spelling holds whatever the kind, while only a
+  /// kind of this version is held to the wildcard, whose meaning a newer kind does not share.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let wildcard = match self.kind {
+      TargetReferenceKind::Resolved if self.location.is_some() => Some(false),
+      TargetReferenceKind::Unmatched if self.location.is_none() => Some(false),
+      TargetReferenceKind::Wildcard if self.location.is_none() => Some(true),
+      TargetReferenceKind::Unrecognized(_) => None,
+      _ => return Err(super::constants::TARGET_MESSAGE),
+    };
+    let identified = match self.namespace {
+      Some(IdentifierNamespace::MatroskaUniqueIdentifier) => self
+        .identifier
+        .as_ref()
+        .and_then(|identifier| crate::form::canonical::<u64>(identifier.as_str()))
+        .is_some_and(|value| wildcard.is_none_or(|wildcard| (value == 0) == wildcard)),
+      _ => true,
+    };
+    if identified {
+      Ok(())
+    } else {
+      Err(super::constants::TARGET_MESSAGE)
+    }
   }
 }
 

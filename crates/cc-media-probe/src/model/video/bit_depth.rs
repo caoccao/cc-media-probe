@@ -18,28 +18,33 @@
 //! `BitDepth`, `ComponentDepth` and `Component`, the precision of a video's samples (`api.md` section 6.5).
 
 use super::constants::{ALPHA_NAME, BLUE_NAME, CHROMA_NAME, GREEN_NAME, LUMA_NAME, RED_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// The precision of a video's samples: the precision that every component shares, where the file states one, and
-/// each component's own.
-///
-/// ```
-/// use cc_media_probe::model::{BitDepth, Component};
-///
-/// fn luma_bits(depth: &BitDepth) -> Option<u64> {
-///     depth.common().or_else(|| {
-///         depth
-///             .components()
-///             .iter()
-///             .find(|component| matches!(component.component(), Component::Luma))
-///             .map(|component| component.bits())
-///     })
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct BitDepth {
-  common: Option<u64>,
-  components: Vec<ComponentDepth>,
+form_record! {
+  /// The precision of a video's samples: the precision that every component shares, where the file states one, and
+  /// each component's own.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{BitDepth, Component};
+  ///
+  /// fn luma_bits(depth: &BitDepth) -> Option<u64> {
+  ///     depth.common().or_else(|| {
+  ///         depth
+  ///             .components()
+  ///             .iter()
+  ///             .find(|component| matches!(component.component(), Component::Luma))
+  ///             .map(|component| component.bits())
+  ///     })
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct BitDepth {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    common: Option<u64>,
+    components: Vec<ComponentDepth>,
+  }
+  check = BitDepth::check_form;
 }
 
 impl BitDepth {
@@ -54,13 +59,30 @@ impl BitDepth {
   pub fn components(&self) -> &[ComponentDepth] {
     &self.components
   }
+
+  /// Whether every component has the common precision where one is stated, since the common precision is the one
+  /// that all present components share (field guide section 3.4), as the fourth review of the third slice's first
+  /// part asked, which read a common precision of 8 beside a luma of 10 bits.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let shared = self
+      .common
+      .is_none_or(|common| self.components.iter().all(|component| component.bits == common));
+    if shared {
+      Ok(())
+    } else {
+      Err(super::constants::BIT_DEPTH_MESSAGE)
+    }
+  }
 }
 
-/// The precision of one component of a video's samples. `BitDepth` shows an example.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ComponentDepth {
-  component: Component,
-  bits: u64,
+form_record! {
+  /// The precision of one component of a video's samples. `BitDepth` shows an example.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ComponentDepth {
+    component: Component,
+    bits: u64,
+  }
 }
 
 impl ComponentDepth {

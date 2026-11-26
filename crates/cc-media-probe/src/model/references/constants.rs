@@ -34,3 +34,9 @@ pub const PREVIOUS_SEGMENT_NAME: &str = "previous_segment";
 pub const NEXT_SEGMENT_NAME: &str = "next_segment";
 /// The serialized name of `ReferenceRole::TrackData`.
 pub const TRACK_DATA_NAME: &str = "track_data";
+
+/// The message of a reference's owner that holds no reference, an edition or a program, or whose sample description's
+/// index is 0 or stands beside an owner that is no stream (`json-output.md` section 7.11).
+#[cfg(feature = "serde")]
+pub const OWNER_MESSAGE: &str = "a reference's owner is no stream, chapter or attachment, or its sample description \
+                                 does not fit it";

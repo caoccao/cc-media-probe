@@ -18,28 +18,31 @@
 //! `LocalizedText`, a text with the languages and countries it applies to (`api.md` section 6.1).
 
 use super::Language;
+use crate::form_record::form_record;
 
-/// A text, such as a title, with the languages and the countries that it applies to. Both lists may be empty.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn titles(stream: &Stream) -> Vec<String> {
-///     stream
-///         .titles()
-///         .iter()
-///         .map(|title| {
-///             let languages: Vec<&str> = title.languages().iter().map(|language| language.as_written()).collect();
-///             format!("{} [{}] {:?}", title.text(), languages.join(", "), title.countries())
-///         })
-///         .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct LocalizedText {
-  text: String,
-  languages: Vec<Language>,
-  countries: Vec<String>,
+form_record! {
+  /// A text, such as a title, with the languages and the countries that it applies to. Both lists may be empty.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn titles(stream: &Stream) -> Vec<String> {
+  ///     stream
+  ///         .titles()
+  ///         .iter()
+  ///         .map(|title| {
+  ///             let languages: Vec<&str> = title.languages().iter().map(|language| language.as_written()).collect();
+  ///             format!("{} [{}] {:?}", title.text(), languages.join(", "), title.countries())
+  ///         })
+  ///         .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct LocalizedText {
+    text: String,
+    languages: Vec<Language>,
+    countries: Vec<String>,
+  }
 }
 
 impl LocalizedText {

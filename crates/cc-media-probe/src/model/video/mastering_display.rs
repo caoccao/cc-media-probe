@@ -18,50 +18,65 @@
 //! `MasteringDisplay` and `Chromaticity`, the display a video was mastered on (`api.md` section 6.5).
 
 use crate::Rational;
+use crate::form_record::form_record;
 use crate::model::Provenance;
 
-/// The display that a video was mastered on: its primaries and white point, and its luminance. Each value has its
-/// own provenance, since the container and the codec header can each supply some of them (`api.md` section 6.5).
-///
-/// ```
-/// use cc_media_probe::model::{Chromaticity, MasteringDisplay};
-///
-/// fn point(chromaticity: Option<&Chromaticity>) -> String {
-///     chromaticity.map_or_else(String::new, |point| {
-///         format!(
-///             "({:?} {:?}, {:?} {:?})",
-///             point.x_coordinate(),
-///             point.x_coordinate_provenance(),
-///             point.y_coordinate(),
-///             point.y_coordinate_provenance(),
-///         )
-///     })
-/// }
-///
-/// fn describe(display: &MasteringDisplay) -> String {
-///     format!(
-///         "red {} green {} blue {} white {}; {:?} to {:?} cd/m2 ({:?}, {:?})",
-///         point(display.red()),
-///         point(display.green()),
-///         point(display.blue()),
-///         point(display.white_point()),
-///         display.minimum_luminance(),
-///         display.maximum_luminance(),
-///         display.minimum_luminance_provenance(),
-///         display.maximum_luminance_provenance(),
-///     )
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct MasteringDisplay {
-  red: Option<Chromaticity>,
-  green: Option<Chromaticity>,
-  blue: Option<Chromaticity>,
-  white_point: Option<Chromaticity>,
-  maximum_luminance: Option<Rational>,
-  maximum_luminance_provenance: Option<Provenance>,
-  minimum_luminance: Option<Rational>,
-  minimum_luminance_provenance: Option<Provenance>,
+form_record! {
+  /// The display that a video was mastered on: its primaries and white point, and its luminance. Each value has its
+  /// own provenance, since the container and the codec header can each supply some of them (`api.md` section 6.5).
+  ///
+  /// ```
+  /// use cc_media_probe::model::{Chromaticity, MasteringDisplay};
+  ///
+  /// fn point(chromaticity: Option<&Chromaticity>) -> String {
+  ///     chromaticity.map_or_else(String::new, |point| {
+  ///         format!(
+  ///             "({:?} {:?}, {:?} {:?})",
+  ///             point.x_coordinate(),
+  ///             point.x_coordinate_provenance(),
+  ///             point.y_coordinate(),
+  ///             point.y_coordinate_provenance(),
+  ///         )
+  ///     })
+  /// }
+  ///
+  /// fn describe(display: &MasteringDisplay) -> String {
+  ///     format!(
+  ///         "red {} green {} blue {} white {}; {:?} to {:?} cd/m2 ({:?}, {:?})",
+  ///         point(display.red()),
+  ///         point(display.green()),
+  ///         point(display.blue()),
+  ///         point(display.white_point()),
+  ///         display.minimum_luminance(),
+  ///         display.maximum_luminance(),
+  ///         display.minimum_luminance_provenance(),
+  ///         display.maximum_luminance_provenance(),
+  ///     )
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct MasteringDisplay {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    red: Option<Chromaticity>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    green: Option<Chromaticity>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    blue: Option<Chromaticity>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    white_point: Option<Chromaticity>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    maximum_luminance: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    maximum_luminance_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    minimum_luminance: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    minimum_luminance_provenance: Option<Provenance>,
+  }
+  pairs = [
+    maximum_luminance with maximum_luminance_provenance,
+    minimum_luminance with minimum_luminance_provenance,
+  ];
 }
 
 impl MasteringDisplay {
@@ -114,14 +129,24 @@ impl MasteringDisplay {
   }
 }
 
-/// A point of the CIE 1931 chromaticity diagram, each coordinate optional with its own provenance. The coordinates
-/// are spelled out, since R32 allows no name of a single letter. `MasteringDisplay` shows an example.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Chromaticity {
-  x_coordinate: Option<Rational>,
-  x_coordinate_provenance: Option<Provenance>,
-  y_coordinate: Option<Rational>,
-  y_coordinate_provenance: Option<Provenance>,
+form_record! {
+  /// A point of the CIE 1931 chromaticity diagram, each coordinate optional with its own provenance. The coordinates
+  /// are spelled out, since R32 allows no name of a single letter. `MasteringDisplay` shows an example.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Chromaticity {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    x_coordinate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    x_coordinate_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    y_coordinate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    y_coordinate_provenance: Option<Provenance>,
+  }
+  pairs = [
+    x_coordinate with x_coordinate_provenance,
+    y_coordinate with y_coordinate_provenance,
+  ];
 }
 
 impl Chromaticity {

@@ -22,6 +22,7 @@ use std::hash::{Hash, Hasher};
 
 use super::SegmentReference;
 use crate::Seconds;
+use crate::form_record::form_record;
 use crate::model::tree::{Branching, copy, equal, format, hash, release};
 use crate::model::{Identifier, LocalizedText, Provenance};
 
@@ -69,20 +70,36 @@ pub struct Chapter {
   branches: Vec<Chapter>,
 }
 
-/// A chapter's own members, without the chapters below it.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct ChapterNode {
-  unique_identifier: Option<Identifier>,
-  string_identifier: Option<String>,
-  start: Option<Seconds>,
-  start_provenance: Option<Provenance>,
-  end: Option<Seconds>,
-  end_provenance: Option<Provenance>,
-  segment_reference: Option<SegmentReference>,
-  titles: Vec<LocalizedText>,
-  hidden: Option<bool>,
-  enabled: Option<bool>,
-  playback_position: Option<Seconds>,
+form_record! {
+  /// A chapter's own members, without the chapters below it.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub(crate) struct ChapterNode {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    unique_identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    string_identifier: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    start: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    start_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    end: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    end_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    segment_reference: Option<SegmentReference>,
+    titles: Vec<LocalizedText>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    hidden: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    enabled: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    playback_position: Option<Seconds>,
+  }
+  pairs = [
+    start with start_provenance,
+    end with end_provenance,
+  ];
 }
 
 impl Chapter {
@@ -203,6 +220,28 @@ impl fmt::Debug for Chapter {
   /// Writes the nodes of the subtree in depth-first order, each with the position of its parent.
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
     format(self, formatter)
+  }
+}
+
+/// A standalone Chapter is the flat array of its subtree, the node itself first (`json-output.md` section 5.9).
+#[cfg(feature = "serde")]
+impl serde::Serialize for Chapter {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    crate::model::tree::write_subtree(self, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> crate::form::ReadAlone<'input> for Chapter {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Chapter, Input::Error> {
+    crate::model::tree::read_subtree(deserializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> serde::Deserialize<'input> for Chapter {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<Chapter, Input::Error> {
+    crate::form::read_alone(deserializer)
   }
 }
 

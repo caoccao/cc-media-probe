@@ -19,25 +19,29 @@
 //! F6).
 
 use super::constants::{DOLBY_VISION_NAME, HYBRID_LOG_GAMMA_NAME, PERCEPTUAL_QUANTIZER_NAME, STANDARD_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// A video's dynamic range (F6): its transfer, and the marks of the formats that signal one, whose profile and
-/// level stay in the details.
-///
-/// ```
-/// use cc_media_probe::model::{DynamicRange, DynamicRangeMark, DynamicRangeTransfer};
-///
-/// fn is_high_dynamic_range(range: &DynamicRange) -> bool {
-///     matches!(
-///         range.transfer(),
-///         Some(DynamicRangeTransfer::PerceptualQuantizer | DynamicRangeTransfer::HybridLogGamma)
-///     ) || range.marks().iter().any(|mark| matches!(mark, DynamicRangeMark::DolbyVision))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DynamicRange {
-  transfer: Option<DynamicRangeTransfer>,
-  marks: Vec<DynamicRangeMark>,
+form_record! {
+  /// A video's dynamic range (F6): its transfer, and the marks of the formats that signal one, whose profile and
+  /// level stay in the details.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{DynamicRange, DynamicRangeMark, DynamicRangeTransfer};
+  ///
+  /// fn is_high_dynamic_range(range: &DynamicRange) -> bool {
+  ///     matches!(
+  ///         range.transfer(),
+  ///         Some(DynamicRangeTransfer::PerceptualQuantizer | DynamicRangeTransfer::HybridLogGamma)
+  ///     ) || range.marks().iter().any(|mark| matches!(mark, DynamicRangeMark::DolbyVision))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct DynamicRange {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    transfer: Option<DynamicRangeTransfer>,
+    marks: Vec<DynamicRangeMark>,
+  }
 }
 
 impl DynamicRange {

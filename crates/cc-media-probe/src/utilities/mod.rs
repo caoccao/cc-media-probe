@@ -18,13 +18,14 @@
 //! Helpers that several modules of the library use: checked arithmetic, exact conversions and hexadecimal text
 //! (plan section 7.2).
 //!
-//! Only the exact form of a path uses hexadecimal text so far, so it is compiled only on a platform that has one
-//! (`api.md` section 6.15).
+//! Hexadecimal text is the form of bytes in the report (`json-output.md` section 5.6), so it is compiled with the
+//! `serde` feature, and the exact form of a path uses it too, on a platform that has one (`api.md` section 6.15).
 
 mod constants;
 mod exact_float;
 mod greatest_common_divisor;
 #[cfg(any(
+  feature = "serde",
   unix,
   windows,
   target_os = "wasi",
@@ -36,7 +37,10 @@ mod hexadecimal;
 
 pub(crate) use exact_float::{signed_to_float, unsigned_to_float};
 pub(crate) use greatest_common_divisor::greatest_common_divisor;
+#[cfg(feature = "serde")]
+pub(crate) use hexadecimal::{decode_bytes, encode_bytes};
 #[cfg(any(
+  feature = "serde",
   unix,
   windows,
   target_os = "wasi",

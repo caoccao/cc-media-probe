@@ -15,7 +15,8 @@
 * limitations under the License.
 */
 
-//! The serialized names of the audio types (`json-output.md` section 6.1).
+//! The serialized names of the audio types (`json-output.md` section 6.1), and the messages of a layout that
+//! contradicts its channels.
 
 /// The serialized name of `SampleEncoding::Integer`.
 pub const INTEGER_NAME: &str = "integer";
@@ -32,3 +33,12 @@ pub const OBJECTS_NAME: &str = "objects";
 pub const INTERMEDIATE_SPATIAL_FORMAT_NAME: &str = "intermediate_spatial_format";
 /// The serialized name of `ImmersiveKind::HeightChannels`.
 pub const HEIGHT_CHANNELS_NAME: &str = "height_channels";
+
+/// The message of a channel without an assigned position that names one (`api.md` section 6.6).
+#[cfg(feature = "serde")]
+pub const CHANNEL_POSITION_MESSAGE: &str = "an unassigned channel names a speaker or coordinates";
+
+/// The message of a layout whose positions do not number the channels that the decoder outputs (`api.md` section
+/// 6.6).
+#[cfg(feature = "serde")]
+pub const CHANNEL_COUNT_MESSAGE: &str = "a channel layout does not have one position for each output channel";

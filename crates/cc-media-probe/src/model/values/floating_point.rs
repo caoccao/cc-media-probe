@@ -73,6 +73,12 @@ impl FloatingPointValue {
     &self.width
   }
 
+  /// The value of these bits at this width, as the serialized form gives them.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_bits(bits: u64, width: FloatingPointWidth) -> FloatingPointValue {
+    FloatingPointValue { bits, width }
+  }
+
   /// The value as an `f64`, which holds every single-precision value exactly. A width of a newer version, and bits
   /// that do not fit their width, give NaN.
   ///

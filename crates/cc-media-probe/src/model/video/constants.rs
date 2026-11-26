@@ -15,7 +15,8 @@
 * limitations under the License.
 */
 
-//! The serialized names of the video types (`json-output.md` sections 6.1 and 6.2).
+//! The serialized names of the video types (`json-output.md` sections 6.1 and 6.2), and the message of a precision
+//! that a component does not share.
 
 /// The serialized name of `FrameRateMode::Constant`.
 pub const CONSTANT_NAME: &str = "constant";
@@ -96,3 +97,7 @@ pub const EQUIRECTANGULAR_NAME: &str = "equirectangular";
 pub const CUBEMAP_NAME: &str = "cubemap";
 /// The serialized name of `ProjectionKind::Mesh`.
 pub const MESH_NAME: &str = "mesh";
+
+/// The message of a common precision that a component does not share (field guide section 3.4).
+#[cfg(feature = "serde")]
+pub const BIT_DEPTH_MESSAGE: &str = "a component's precision differs from the common precision";

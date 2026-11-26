@@ -17,29 +17,40 @@
 
 //! `ContentLightLevel`, a video's light levels (`api.md` section 6.5).
 
+use crate::form_record::form_record;
 use crate::model::Provenance;
 
-/// A video's content light levels, in candelas per square meter, each with its own provenance.
-///
-/// ```
-/// use cc_media_probe::model::ContentLightLevel;
-///
-/// fn describe(level: &ContentLightLevel) -> String {
-///     format!(
-///         "MaxCLL {:?} ({:?}), MaxFALL {:?} ({:?})",
-///         level.maximum_content(),
-///         level.maximum_content_provenance(),
-///         level.maximum_frame_average(),
-///         level.maximum_frame_average_provenance(),
-///     )
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ContentLightLevel {
-  content: Option<u64>,
-  content_provenance: Option<Provenance>,
-  frame_average: Option<u64>,
-  frame_average_provenance: Option<Provenance>,
+form_record! {
+  /// A video's content light levels, in candelas per square meter, each with its own provenance.
+  ///
+  /// ```
+  /// use cc_media_probe::model::ContentLightLevel;
+  ///
+  /// fn describe(level: &ContentLightLevel) -> String {
+  ///     format!(
+  ///         "MaxCLL {:?} ({:?}), MaxFALL {:?} ({:?})",
+  ///         level.maximum_content(),
+  ///         level.maximum_content_provenance(),
+  ///         level.maximum_frame_average(),
+  ///         level.maximum_frame_average_provenance(),
+  ///     )
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ContentLightLevel {
+    #[cfg_attr(feature = "serde", serde(rename = "maximum_content", skip_serializing_if = "Option::is_none"))]
+    content: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(rename = "maximum_content_provenance", skip_serializing_if = "Option::is_none"))]
+    content_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(rename = "maximum_frame_average", skip_serializing_if = "Option::is_none"))]
+    frame_average: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(rename = "maximum_frame_average_provenance", skip_serializing_if = "Option::is_none"))]
+    frame_average_provenance: Option<Provenance>,
+  }
+  pairs = [
+    content with content_provenance,
+    frame_average with frame_average_provenance,
+  ];
 }
 
 impl ContentLightLevel {

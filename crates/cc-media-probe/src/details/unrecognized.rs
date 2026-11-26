@@ -19,7 +19,7 @@
 
 use super::enumeration::SharedDetails;
 use super::{Conflict, ExactValue, ObservedBound};
-use crate::model::OwnedText;
+use crate::model::UnrecognizedKind;
 
 /// The details of a `kind` that a newer version wrote, for the enum `Owner` that read them. It keeps the kind's
 /// name and, with the `serde` feature, the detail's other members as written and unread, which writing the
@@ -48,15 +48,26 @@ use crate::model::OwnedText;
 /// }
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct UnrecognizedDetails<Owner> {
-  kind: OwnedText<Owner>,
-}
+pub struct UnrecognizedDetails<Owner>(UnrecognizedKind<Owner>);
 
 impl<Owner> UnrecognizedDetails<Owner> {
   /// The kind's name, as written.
   #[must_use]
   pub fn kind(&self) -> &str {
-    self.kind.as_str()
+    self.0.as_str()
+  }
+
+  /// The catch-all of a kind of a newer version, with its other members as written, as the reader of `Owner` keeps
+  /// them.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_kept(kind: String, members: crate::form::KeptMembers) -> UnrecognizedDetails<Owner> {
+    UnrecognizedDetails(UnrecognizedKind::from_kept(kind, members))
+  }
+
+  /// Writes the kind and the members that it kept, in the order read.
+  #[cfg(feature = "serde")]
+  pub(crate) fn write_kept<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    self.0.write_kept(serializer)
   }
 }
 
@@ -81,14 +92,12 @@ impl<Owner> SharedDetails for UnrecognizedDetails<Owner> {
 mod tests {
   use super::UnrecognizedDetails;
   use crate::details::FormatDetails;
-  use crate::model::OwnedText;
+  use crate::model::UnrecognizedKind;
 
   impl<Owner> UnrecognizedDetails<Owner> {
     /// The details of this kind.
     pub(crate) fn sample(kind: &str) -> UnrecognizedDetails<Owner> {
-      UnrecognizedDetails {
-        kind: OwnedText::sample(kind),
-      }
+      UnrecognizedDetails(UnrecognizedKind::sample(kind))
     }
   }
 

@@ -29,6 +29,15 @@ pub(crate) struct OwnedText<Owner> {
 }
 
 impl<Owner> OwnedText<Owner> {
+  /// The text that a reader of `Owner` kept.
+  #[cfg(feature = "serde")]
+  pub(crate) fn new(text: String) -> OwnedText<Owner> {
+    OwnedText {
+      text,
+      owner: PhantomData,
+    }
+  }
+
   /// The text as written.
   pub(crate) fn as_str(&self) -> &str {
     &self.text

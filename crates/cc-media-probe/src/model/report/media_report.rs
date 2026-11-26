@@ -78,29 +78,46 @@ use crate::source::SourceEntry;
 /// }
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Serialize, serde::Deserialize),
+  serde(try_from = "crate::form::Rooted<super::report_form::ReportBody>")
+)]
 pub struct MediaReport {
-  format: Format,
-  media_type: Option<MediaType>,
-  size: Option<u64>,
-  duration: Option<Seconds>,
-  duration_provenance: Option<Provenance>,
-  bit_rate: Option<Rational>,
-  bit_rate_provenance: Option<Provenance>,
-  estimated_duration: Option<Estimate<Seconds>>,
-  estimated_bit_rate: Option<Estimate<Rational>>,
-  creation_time: Option<UtcTime>,
-  streams: Vec<Stream>,
-  programs: Vec<Program>,
-  chapter_editions: Vec<ChapterEdition>,
-  tag_sets: Vec<TagSet>,
-  attachments: Vec<Attachment>,
-  external_references: Vec<ExternalReference>,
-  diagnostics: Vec<Diagnostic>,
-  completeness: Completeness,
-  inventory_class: InventoryClass,
-  usage: Usage,
-  sources: Vec<SourceEntry>,
-  format_details: Option<FormatDetails>,
+  #[cfg(feature = "serde")]
+  pub(super) schema_version: crate::document::SchemaVersion,
+  pub(super) format: Format,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) media_type: Option<MediaType>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) size: Option<u64>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) duration: Option<Seconds>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) duration_provenance: Option<Provenance>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) bit_rate: Option<Rational>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) bit_rate_provenance: Option<Provenance>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) estimated_duration: Option<Estimate<Seconds>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) estimated_bit_rate: Option<Estimate<Rational>>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) creation_time: Option<UtcTime>,
+  pub(super) streams: Vec<Stream>,
+  pub(super) programs: Vec<Program>,
+  pub(super) chapter_editions: Vec<ChapterEdition>,
+  pub(super) tag_sets: Vec<TagSet>,
+  pub(super) attachments: Vec<Attachment>,
+  pub(super) external_references: Vec<ExternalReference>,
+  pub(super) diagnostics: Vec<Diagnostic>,
+  pub(super) completeness: Completeness,
+  pub(super) inventory_class: InventoryClass,
+  pub(super) usage: Usage,
+  pub(super) sources: Vec<SourceEntry>,
+  #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+  pub(super) format_details: Option<FormatDetails>,
 }
 
 impl MediaReport {
@@ -242,6 +259,24 @@ impl MediaReport {
     self.format_details.as_ref()
   }
 
+  /// The version of the serialized form that the report was read with, or `SchemaVersion::CURRENT` for a report
+  /// that this version built, with the `serde` feature (`api.md` section 12). A report written again on its own
+  /// keeps it.
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  /// use cc_media_probe::document::SchemaVersion;
+  ///
+  /// fn is_current(report: &MediaReport) -> bool {
+  ///     report.schema_version() == SchemaVersion::CURRENT
+  /// }
+  /// ```
+  #[cfg(feature = "serde")]
+  #[must_use]
+  pub fn schema_version(&self) -> crate::document::SchemaVersion {
+    self.schema_version
+  }
+
   /// The top-level tags of every tag set whose scope is `WholeFile`. A set of the scope `Incomplete` is never
   /// among them, so a track's title cut off from its target never becomes the file's title.
   #[must_use]
@@ -294,6 +329,8 @@ mod tests {
     /// A complete Matroska report of a video, an audio and a subtitle stream, with every list filled.
     pub(crate) fn sample() -> MediaReport {
       MediaReport {
+        #[cfg(feature = "serde")]
+        schema_version: crate::document::SchemaVersion::CURRENT,
         format: Format::Matroska,
         media_type: Some(MediaType::sample("video/matroska")),
         size: Some(1_048_576),
@@ -317,7 +354,7 @@ mod tests {
         tag_sets: Vec::new(),
         attachments: vec![Attachment::sample()],
         external_references: vec![ExternalReference::sample()],
-        diagnostics: vec![Diagnostic::sample(0)],
+        diagnostics: vec![Diagnostic::sample(Some(0))],
         completeness: Completeness::complete(),
         inventory_class: InventoryClass::Declared,
         usage: Usage::sample(),
@@ -326,10 +363,12 @@ mod tests {
       }
     }
 
-    /// The report established before a failure of the primary input cut its tags short.
+    /// The report established before a failure of the primary input cut its tags short; its entry says that it
+    /// failed.
     pub(crate) fn cut_by_a_source_failure() -> MediaReport {
       MediaReport {
         completeness: Completeness::cut_by_a_source_failure(),
+        sources: vec![SourceEntry::failed_primary()],
         ..MediaReport::sample()
       }
     }

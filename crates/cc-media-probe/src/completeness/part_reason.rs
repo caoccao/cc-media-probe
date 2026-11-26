@@ -18,27 +18,33 @@
 //! `PartReason`, one shortfall and the part it stopped (`api.md` section 5.3).
 
 use super::{Part, Reason};
+use crate::form_record::form_record;
 use crate::source::SourceIdentifier;
 
-/// One shortfall and the part it stopped, from `Completeness::reasons()` and `LimitRecord::first_reason()`.
-///
-/// ```
-/// use cc_media_probe::completeness::Completeness;
-///
-/// fn list_reasons(completeness: &Completeness) {
-///     for reason in completeness.reasons() {
-///         let stream = reason.stream().map(|index| format!(" of stream {index}")).unwrap_or_default();
-///         let source = reason.source_identifier().map(|source| format!(" of source {source}")).unwrap_or_default();
-///         println!("{}{stream}{source}: {}", reason.part().as_str(), reason.reason().kind().as_str());
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PartReason {
-  part: Part,
-  stream: Option<usize>,
-  source_identifier: Option<SourceIdentifier>,
-  reason: Reason,
+form_record! {
+  /// One shortfall and the part it stopped, from `Completeness::reasons()` and `LimitRecord::first_reason()`.
+  ///
+  /// ```
+  /// use cc_media_probe::completeness::Completeness;
+  ///
+  /// fn list_reasons(completeness: &Completeness) {
+  ///     for reason in completeness.reasons() {
+  ///         let stream = reason.stream().map(|index| format!(" of stream {index}")).unwrap_or_default();
+  ///         let source = reason.source_identifier().map(|source| format!(" of source {source}")).unwrap_or_default();
+  ///         println!("{}{stream}{source}: {}", reason.part().as_str(), reason.reason().kind().as_str());
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct PartReason {
+    part: Part,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    stream: Option<usize>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    source_identifier: Option<SourceIdentifier>,
+    reason: Reason,
+  }
+  check = PartReason::check_form;
 }
 
 impl PartReason {
@@ -64,6 +70,39 @@ impl PartReason {
   #[must_use]
   pub fn reason(&self) -> &Reason {
     &self.reason
+  }
+
+  /// Whether the two name the same shortfall: the same part, stream, source, kind, limit and feature, whatever their
+  /// details (`json-output.md` section 7.2).
+  #[cfg(feature = "serde")]
+  pub(crate) fn same_apart_from_detail(&self, other: &PartReason) -> bool {
+    self.part == other.part
+      && self.stream == other.stream
+      && self.source_identifier == other.source_identifier
+      && self.reason.same_apart_from_detail(&other.reason)
+  }
+
+  /// Whether a companion's reason stands against the companions and names its request, as the fourth review of the
+  /// third slice's first part asked, which read `companion_not_found` without a source and against the tags: every
+  /// reason of a companion kind is recorded against `Part::Companions` (`api.md` section 13), or a part of a newer
+  /// version, which only its version knows, and a request that was not found or declined was made, so it names its
+  /// source (section 6.15). A `companion_limited` without a source is a companion refused before its request.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use super::ReasonKind;
+    let companions = matches!(self.part, Part::Companions | Part::Unrecognized(_));
+    let fits = match self.reason.kind() {
+      ReasonKind::CompanionNotFound | ReasonKind::CompanionDeclined => companions && self.source_identifier.is_some(),
+      ReasonKind::CompanionsNotEnabled | ReasonKind::CompanionLimited | ReasonKind::CompanionNameUnavailable => {
+        companions
+      }
+      _ => true,
+    };
+    if fits {
+      Ok(())
+    } else {
+      Err(super::constants::COMPANION_REASON_MESSAGE)
+    }
   }
 }
 

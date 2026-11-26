@@ -64,6 +64,29 @@ impl fmt::Display for SourceIdentifier {
   }
 }
 
+/// A source identifier is a string like every identifier, in canonical decimal within 64 bits (`json-output.md`
+/// section 5.4), so `"+1"` and `"01"` name no source.
+#[cfg(feature = "serde")]
+impl serde::Serialize for SourceIdentifier {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    crate::form::write_decimal(&self.0, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> crate::form::ReadAlone<'input> for SourceIdentifier {
+  fn read_members<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<SourceIdentifier, Input::Error> {
+    crate::form::read_decimal(deserializer).map(SourceIdentifier)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input> serde::Deserialize<'input> for SourceIdentifier {
+  fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<SourceIdentifier, Input::Error> {
+    crate::form::read_alone(deserializer)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::SourceIdentifier;

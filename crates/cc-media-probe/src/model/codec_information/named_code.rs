@@ -20,13 +20,42 @@
 
 use std::fmt;
 
-/// The shape that `Profile`, `Level` and `Tier` share: the specification's name and the coded value as written,
-/// each optional. `Display` writes the name, or the code without one.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct NamedCode {
-  name: Option<String>,
-  code: Option<String>,
+use crate::form_record::form_record;
+
+form_record! {
+  /// The shape that `Profile`, `Level` and `Tier` share: the specification's name and the coded value as written,
+  /// each optional. `Display` writes the name, or the code without one.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  struct NamedCode {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    code: Option<String>,
+  }
 }
+
+/// A profile, a level and a tier are each the record of their name and code (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+macro_rules! named_code_form {
+  ($($value:ident),* $(,)?) => {
+    $(
+      impl serde::Serialize for $value {
+        fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+          self.0.serialize(serializer)
+        }
+      }
+
+      impl<'input> serde::Deserialize<'input> for $value {
+        fn deserialize<Input: serde::Deserializer<'input>>(deserializer: Input) -> Result<$value, Input::Error> {
+          NamedCode::deserialize(deserializer).map($value)
+        }
+      }
+    )*
+  };
+}
+
+#[cfg(feature = "serde")]
+named_code_form!(Profile, Level, Tier);
 
 impl fmt::Display for NamedCode {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -17,31 +17,37 @@
 
 //! `Conflict` and `ConflictingValue`, the raw values of a conflict between sources (`api.md` section 11.3).
 
+use crate::form_record::form_record;
 use crate::model::EntityLocation;
 
-/// The raw values of a conflict between sources of one field: the accessor returns the value of the first source
-/// that establishes one, and the details keep every source's value. The diagnostic of the conflict names the same
-/// field.
-///
-/// ```
-/// use cc_media_probe::details::Conflict;
-///
-/// fn describe(conflict: &Conflict) -> String {
-///     let values: Vec<String> = conflict
-///         .values()
-///         .iter()
-///         .map(|value| format!("{} says {}", value.source(), value.value()))
-///         .collect();
-///     let owner = conflict.owner().map(|owner| owner.kind().as_str()).unwrap_or("the file");
-///     format!("{} of {owner} (stream {:?}): {}", conflict.field(), conflict.stream(), values.join("; "))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Conflict {
-  field: String,
-  owner: Option<EntityLocation>,
-  stream: Option<usize>,
-  values: Vec<ConflictingValue>,
+form_record! {
+  /// The raw values of a conflict between sources of one field: the accessor returns the value of the first source
+  /// that establishes one, and the details keep every source's value. The diagnostic of the conflict names the same
+  /// field.
+  ///
+  /// ```
+  /// use cc_media_probe::details::Conflict;
+  ///
+  /// fn describe(conflict: &Conflict) -> String {
+  ///     let values: Vec<String> = conflict
+  ///         .values()
+  ///         .iter()
+  ///         .map(|value| format!("{} says {}", value.source(), value.value()))
+  ///         .collect();
+  ///     let owner = conflict.owner().map(|owner| owner.kind().as_str()).unwrap_or("the file");
+  ///     format!("{} of {owner} (stream {:?}): {}", conflict.field(), conflict.stream(), values.join("; "))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Conflict {
+    field: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    owner: Option<EntityLocation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    stream: Option<usize>,
+    values: Vec<ConflictingValue>,
+  }
+  check = Conflict::check_form;
 }
 
 impl Conflict {
@@ -68,13 +74,21 @@ impl Conflict {
   pub fn values(&self) -> &[ConflictingValue] {
     &self.values
   }
+
+  /// Whether the entry's stream is its owner's index exactly when the owner is a stream (`json-output.md` section 8).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    super::owner::check_owner(self.owner.as_ref(), self.stream)
+  }
 }
 
-/// One source's value in a conflict, as text. `Conflict` shows an example.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ConflictingValue {
-  source: String,
-  value: String,
+form_record! {
+  /// One source's value in a conflict, as text. `Conflict` shows an example.
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ConflictingValue {
+    source: String,
+    value: String,
+  }
 }
 
 impl ConflictingValue {

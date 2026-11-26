@@ -23,36 +23,43 @@ use super::constants::{
   DATA_REFERENCE_NAME, EXPECTED_COMPANION_NAME, LINKED_PICTURE_NAME, LINKED_SEGMENT_NAME, NEXT_SEGMENT_NAME,
   PLAYLIST_ENTRY_NAME, PREVIOUS_SEGMENT_NAME, TRACK_DATA_NAME,
 };
+use crate::form_record::form_record;
 use crate::model::Identifier;
 use crate::string_enumeration::string_enumeration;
 
-/// A reference to media outside the input, as written and never dereferenced, from
-/// `MediaReport::external_references()`. A reference that the retained-data limit cannot hold is not listed; the
-/// record counts it, and the part that found it is incomplete (`api.md` section 6.12).
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-///
-/// fn references(report: &MediaReport) {
-///     for reference in report.external_references() {
-///         println!(
-///             "{} {:?} at {:?}, role {:?}, owned by {:?}",
-///             reference.kind().as_str(),
-///             reference.identifier().map(|identifier| identifier.as_str()),
-///             reference.location(),
-///             reference.role().map(|role| role.as_str()),
-///             reference.owner().map(|owner| owner.location().index()),
-///         );
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ExternalReference {
-  kind: ReferenceKind,
-  identifier: Option<Identifier>,
-  location: Option<String>,
-  role: Option<ReferenceRole>,
-  owner: Option<ReferenceOwner>,
+form_record! {
+  /// A reference to media outside the input, as written and never dereferenced, from
+  /// `MediaReport::external_references()`. A reference that the retained-data limit cannot hold is not listed; the
+  /// record counts it, and the part that found it is incomplete (`api.md` section 6.12).
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  ///
+  /// fn references(report: &MediaReport) {
+  ///     for reference in report.external_references() {
+  ///         println!(
+  ///             "{} {:?} at {:?}, role {:?}, owned by {:?}",
+  ///             reference.kind().as_str(),
+  ///             reference.identifier().map(|identifier| identifier.as_str()),
+  ///             reference.location(),
+  ///             reference.role().map(|role| role.as_str()),
+  ///             reference.owner().map(|owner| owner.location().index()),
+  ///         );
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ExternalReference {
+    kind: ReferenceKind,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    location: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    role: Option<ReferenceRole>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    owner: Option<ReferenceOwner>,
+  }
 }
 
 impl ExternalReference {

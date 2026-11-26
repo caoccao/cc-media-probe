@@ -19,41 +19,53 @@
 
 use super::constants::{COMPLETE_NAME, INCOMPLETE_NAME};
 use crate::Seconds;
+use crate::form_record::form_record;
 use crate::model::{Identifier, Provenance};
 use crate::string_enumeration::string_enumeration;
 
-/// A program of a multiplex, such as a service of a transport stream, from `MediaReport::programs()`. No format of
-/// `0.1.0` has programs.
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-///
-/// fn programs(report: &MediaReport) {
-///     for program in report.programs() {
-///         println!(
-///             "{:?} {:?} by {:?}: streams {:?}, clock {:?}, {:?} ({:?}), map {}",
-///             program.program_identifier().map(|identifier| identifier.as_str()),
-///             program.name(),
-///             program.provider(),
-///             program.streams(),
-///             program.clock_reference_identifier().map(|identifier| identifier.as_str()),
-///             program.duration(),
-///             program.duration_provenance(),
-///             program.map_state().as_str(),
-///         );
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Program {
-  identifier: Option<Identifier>,
-  name: Option<String>,
-  provider: Option<String>,
-  streams: Vec<usize>,
-  clock_reference_identifier: Option<Identifier>,
-  duration: Option<Seconds>,
-  duration_provenance: Option<Provenance>,
-  map_state: MapState,
+form_record! {
+  /// A program of a multiplex, such as a service of a transport stream, from `MediaReport::programs()`. No format of
+  /// `0.1.0` has programs.
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  ///
+  /// fn programs(report: &MediaReport) {
+  ///     for program in report.programs() {
+  ///         println!(
+  ///             "{:?} {:?} by {:?}: streams {:?}, clock {:?}, {:?} ({:?}), map {}",
+  ///             program.program_identifier().map(|identifier| identifier.as_str()),
+  ///             program.name(),
+  ///             program.provider(),
+  ///             program.streams(),
+  ///             program.clock_reference_identifier().map(|identifier| identifier.as_str()),
+  ///             program.duration(),
+  ///             program.duration_provenance(),
+  ///             program.map_state().as_str(),
+  ///         );
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Program {
+    #[cfg_attr(feature = "serde", serde(rename = "program_identifier", skip_serializing_if = "Option::is_none"))]
+    identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    provider: Option<String>,
+    streams: Vec<usize>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    clock_reference_identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    duration: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    duration_provenance: Option<Provenance>,
+    map_state: MapState,
+  }
+  pairs = [
+    duration with duration_provenance,
+  ];
 }
 
 impl Program {

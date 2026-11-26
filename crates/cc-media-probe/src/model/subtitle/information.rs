@@ -19,35 +19,47 @@
 //! 3.6).
 
 use super::{SubtitleKind, TextEncoding};
+use crate::form_record::form_record;
 use crate::model::{Provenance, Size, TimeRange};
 
-/// What a subtitle stream says about its events, from `Stream::subtitle()`. Present exactly when the stream's
-/// kind is subtitle; every field inside may still be absent.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn subtitle_summary(stream: &Stream) -> Option<String> {
-///     let subtitle = stream.subtitle()?;
-///     Some(format!(
-///         "{:?} in {:?}, canvas {:?} ({:?}), {:?} events over {:?}",
-///         subtitle.subtitle_kind().map(|kind| kind.as_str()),
-///         subtitle.text_encoding().map(|encoding| encoding.as_str()),
-///         subtitle.canvas_size(),
-///         subtitle.canvas_size_provenance(),
-///         subtitle.event_count(),
-///         subtitle.time_range(),
-///     ))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SubtitleInformation {
-  subtitle_kind: Option<SubtitleKind>,
-  text_encoding: Option<TextEncoding>,
-  canvas_size: Option<Size>,
-  canvas_size_provenance: Option<Provenance>,
-  event_count: Option<u64>,
-  time_range: Option<TimeRange>,
+form_record! {
+  /// What a subtitle stream says about its events, from `Stream::subtitle()`. Present exactly when the stream's
+  /// kind is subtitle; every field inside may still be absent.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn subtitle_summary(stream: &Stream) -> Option<String> {
+  ///     let subtitle = stream.subtitle()?;
+  ///     Some(format!(
+  ///         "{:?} in {:?}, canvas {:?} ({:?}), {:?} events over {:?}",
+  ///         subtitle.subtitle_kind().map(|kind| kind.as_str()),
+  ///         subtitle.text_encoding().map(|encoding| encoding.as_str()),
+  ///         subtitle.canvas_size(),
+  ///         subtitle.canvas_size_provenance(),
+  ///         subtitle.event_count(),
+  ///         subtitle.time_range(),
+  ///     ))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct SubtitleInformation {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    subtitle_kind: Option<SubtitleKind>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    text_encoding: Option<TextEncoding>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    canvas_size: Option<Size>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    canvas_size_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    event_count: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    time_range: Option<TimeRange>,
+  }
+  pairs = [
+    canvas_size with canvas_size_provenance,
+  ];
 }
 
 impl SubtitleInformation {

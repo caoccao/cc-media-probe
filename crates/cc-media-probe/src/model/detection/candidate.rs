@@ -19,25 +19,28 @@
 
 use super::Confidence;
 use crate::Format;
+use crate::form_record::form_record;
 
-/// One possible format of an ambiguous detection, in the rank of `api.md` section 5.1, which falls with the
-/// confidence; each candidate is a different format.
-///
-/// ```
-/// use cc_media_probe::Detection;
-///
-/// fn candidates(detection: &Detection) -> Vec<String> {
-///     detection
-///         .candidates()
-///         .iter()
-///         .map(|candidate| format!("{}, confidence {}", candidate.format(), candidate.confidence()))
-///         .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Candidate {
-  format: Format,
-  confidence: Confidence,
+form_record! {
+  /// One possible format of an ambiguous detection, in the rank of `api.md` section 5.1, which falls with the
+  /// confidence; each candidate is a different format.
+  ///
+  /// ```
+  /// use cc_media_probe::Detection;
+  ///
+  /// fn candidates(detection: &Detection) -> Vec<String> {
+  ///     detection
+  ///         .candidates()
+  ///         .iter()
+  ///         .map(|candidate| format!("{}, confidence {}", candidate.format(), candidate.confidence()))
+  ///         .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Candidate {
+    format: Format,
+    confidence: Confidence,
+  }
 }
 
 impl Candidate {

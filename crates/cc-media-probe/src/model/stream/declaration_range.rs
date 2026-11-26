@@ -18,30 +18,37 @@
 //! `DeclarationRange`, where a stream's declaration lies (`api.md` section 6.3).
 
 use crate::Seconds;
+use crate::form_record::form_record;
 use crate::source::SourceOffset;
 
-/// Where a stream's declaration lies: the first and the last byte offsets at which the file declares the stream,
-/// and the time it spans, each optional.
-///
-/// ```
-/// use cc_media_probe::Stream;
-///
-/// fn declared_between(stream: &Stream) -> Option<(u64, u64)> {
-///     let range = stream.declaration_range()?;
-///     Some((range.first_offset()?.offset(), range.last_offset()?.offset()))
-/// }
-///
-/// fn declared_for(stream: &Stream) -> Option<String> {
-///     let range = stream.declaration_range()?;
-///     Some(format!("{} to {}", range.start()?, range.end()?))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DeclarationRange {
-  first_offset: Option<SourceOffset>,
-  last_offset: Option<SourceOffset>,
-  start: Option<Seconds>,
-  end: Option<Seconds>,
+form_record! {
+  /// Where a stream's declaration lies: the first and the last byte offsets at which the file declares the stream,
+  /// and the time it spans, each optional.
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  ///
+  /// fn declared_between(stream: &Stream) -> Option<(u64, u64)> {
+  ///     let range = stream.declaration_range()?;
+  ///     Some((range.first_offset()?.offset(), range.last_offset()?.offset()))
+  /// }
+  ///
+  /// fn declared_for(stream: &Stream) -> Option<String> {
+  ///     let range = stream.declaration_range()?;
+  ///     Some(format!("{} to {}", range.start()?, range.end()?))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct DeclarationRange {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    first_offset: Option<SourceOffset>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    last_offset: Option<SourceOffset>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    start: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    end: Option<Seconds>,
+  }
 }
 
 impl DeclarationRange {

@@ -21,111 +21,149 @@ use super::{DeclarationRange, Disposition, StreamKind, StreamLanguage, Timecode}
 use crate::Seconds;
 use crate::completeness::HeaderStatus;
 use crate::details::CodecDetails;
+use crate::form_record::form_record;
 use crate::model::{
   AudioInformation, CodecInformation, Estimate, Identifier, Language, LocalizedText, Protection, Provenance, Rational,
   SubtitleInformation, VideoInformation,
 };
 
-/// One stream of the report, from `MediaReport::streams()`, in index order.
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-///
-/// fn list_streams(report: &MediaReport) {
-///     for stream in report.streams() {
-///         let language = stream.language().map_or("und", |language| language.as_written());
-///         println!(
-///             "#{} {}: {} [{language}] {}",
-///             stream.index(),
-///             stream.kind().as_str(),
-///             stream.codec(),
-///             stream.title().unwrap_or(""),
-///         );
-///         println!("  header {}", stream.header_status());
-///         if let Some(duration) = stream.duration() {
-///             println!("  duration {duration} ({:?})", stream.duration_provenance());
-///         }
-///         if let Some(start) = stream.start_time() {
-///             println!("  starts at {start} ({:?})", stream.start_time_provenance());
-///         }
-///         if let Some(rate) = stream.bit_rate() {
-///             println!("  {rate} bit/s ({:?})", stream.bit_rate_provenance());
-///         }
-///         if let Some(estimate) = stream.estimated_duration() {
-///             println!("  about {}", estimate.value());
-///         }
-///         if let Some(estimate) = stream.estimated_bit_rate() {
-///             println!("  about {} bit/s", estimate.value());
-///         }
-///         println!(
-///             "  {:?} packets ({:?}), {:?} frames ({:?}), {:?} samples ({:?})",
-///             stream.packet_count(),
-///             stream.packet_count_provenance(),
-///             stream.frame_count(),
-///             stream.frame_count_provenance(),
-///             stream.sample_count(),
-///             stream.sample_count_provenance(),
-///         );
-///         println!(
-///             "  identifiers {:?} {:?}, embedded in {:?}, {} languages, {} titles, default {:?}",
-///             stream.native_identifier().map(|identifier| identifier.as_str()),
-///             stream.unique_identifier().map(|identifier| identifier.as_str()),
-///             stream.embedded_in(),
-///             stream.languages().len(),
-///             stream.titles().len(),
-///             stream.disposition().is_default(),
-///         );
-///         println!(
-///             "  protected {}, declared {:?}, timecode {:?}, details {}",
-///             stream.protection().is_some(),
-///             stream.declaration_range().and_then(|range| range.start()),
-///             stream.start_timecode().map(|timecode| timecode.to_string()),
-///             stream.codec_details().is_some(),
-///         );
-///         println!(
-///             "  video {}, audio {}, subtitle {}",
-///             stream.video().is_some(),
-///             stream.audio().is_some(),
-///             stream.subtitle().is_some(),
-///         );
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Stream {
-  index: usize,
-  native_identifier: Option<Identifier>,
-  unique_identifier: Option<Identifier>,
-  kind: StreamKind,
-  codec: CodecInformation,
-  header_status: HeaderStatus,
-  protection: Option<Protection>,
-  language: Option<Language>,
-  languages: Vec<StreamLanguage>,
-  title: Option<String>,
-  titles: Vec<LocalizedText>,
-  duration: Option<Seconds>,
-  duration_provenance: Option<Provenance>,
-  start_time: Option<Seconds>,
-  start_time_provenance: Option<Provenance>,
-  bit_rate: Option<Rational>,
-  bit_rate_provenance: Option<Provenance>,
-  estimated_duration: Option<Estimate<Seconds>>,
-  estimated_bit_rate: Option<Estimate<Rational>>,
-  packet_count: Option<u64>,
-  packet_count_provenance: Option<Provenance>,
-  frame_count: Option<u64>,
-  frame_count_provenance: Option<Provenance>,
-  sample_count: Option<u64>,
-  sample_count_provenance: Option<Provenance>,
-  disposition: Disposition,
-  declaration_range: Option<DeclarationRange>,
-  embedded_in: Option<usize>,
-  start_timecode: Option<Timecode>,
-  video: Option<VideoInformation>,
-  audio: Option<AudioInformation>,
-  subtitle: Option<SubtitleInformation>,
-  codec_details: Option<CodecDetails>,
+form_record! {
+  /// One stream of the report, from `MediaReport::streams()`, in index order.
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  ///
+  /// fn list_streams(report: &MediaReport) {
+  ///     for stream in report.streams() {
+  ///         let language = stream.language().map_or("und", |language| language.as_written());
+  ///         println!(
+  ///             "#{} {}: {} [{language}] {}",
+  ///             stream.index(),
+  ///             stream.kind().as_str(),
+  ///             stream.codec(),
+  ///             stream.title().unwrap_or(""),
+  ///         );
+  ///         println!("  header {}", stream.header_status());
+  ///         if let Some(duration) = stream.duration() {
+  ///             println!("  duration {duration} ({:?})", stream.duration_provenance());
+  ///         }
+  ///         if let Some(start) = stream.start_time() {
+  ///             println!("  starts at {start} ({:?})", stream.start_time_provenance());
+  ///         }
+  ///         if let Some(rate) = stream.bit_rate() {
+  ///             println!("  {rate} bit/s ({:?})", stream.bit_rate_provenance());
+  ///         }
+  ///         if let Some(estimate) = stream.estimated_duration() {
+  ///             println!("  about {}", estimate.value());
+  ///         }
+  ///         if let Some(estimate) = stream.estimated_bit_rate() {
+  ///             println!("  about {} bit/s", estimate.value());
+  ///         }
+  ///         println!(
+  ///             "  {:?} packets ({:?}), {:?} frames ({:?}), {:?} samples ({:?})",
+  ///             stream.packet_count(),
+  ///             stream.packet_count_provenance(),
+  ///             stream.frame_count(),
+  ///             stream.frame_count_provenance(),
+  ///             stream.sample_count(),
+  ///             stream.sample_count_provenance(),
+  ///         );
+  ///         println!(
+  ///             "  identifiers {:?} {:?}, embedded in {:?}, {} languages, {} titles, default {:?}",
+  ///             stream.native_identifier().map(|identifier| identifier.as_str()),
+  ///             stream.unique_identifier().map(|identifier| identifier.as_str()),
+  ///             stream.embedded_in(),
+  ///             stream.languages().len(),
+  ///             stream.titles().len(),
+  ///             stream.disposition().is_default(),
+  ///         );
+  ///         println!(
+  ///             "  protected {}, declared {:?}, timecode {:?}, details {}",
+  ///             stream.protection().is_some(),
+  ///             stream.declaration_range().and_then(|range| range.start()),
+  ///             stream.start_timecode().map(|timecode| timecode.to_string()),
+  ///             stream.codec_details().is_some(),
+  ///         );
+  ///         println!(
+  ///             "  video {}, audio {}, subtitle {}",
+  ///             stream.video().is_some(),
+  ///             stream.audio().is_some(),
+  ///             stream.subtitle().is_some(),
+  ///         );
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Stream {
+    index: usize,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    native_identifier: Option<Identifier>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    unique_identifier: Option<Identifier>,
+    kind: StreamKind,
+    codec: CodecInformation,
+    header_status: HeaderStatus,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    protection: Option<Protection>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    language: Option<Language>,
+    languages: Vec<StreamLanguage>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    title: Option<String>,
+    titles: Vec<LocalizedText>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    duration: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    duration_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    start_time: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    start_time_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_rate: Option<Rational>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    bit_rate_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    estimated_duration: Option<Estimate<Seconds>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    estimated_bit_rate: Option<Estimate<Rational>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    packet_count: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    packet_count_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    frame_count: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    frame_count_provenance: Option<Provenance>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_count: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_count_provenance: Option<Provenance>,
+    disposition: Disposition,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    declaration_range: Option<DeclarationRange>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    embedded_in: Option<usize>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    start_timecode: Option<Timecode>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    video: Option<VideoInformation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    audio: Option<AudioInformation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    subtitle: Option<SubtitleInformation>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    codec_details: Option<CodecDetails>,
+  }
+  pairs = [
+    duration with duration_provenance,
+    start_time with start_time_provenance,
+    bit_rate with bit_rate_provenance,
+    packet_count with packet_count_provenance,
+    frame_count with frame_count_provenance,
+    sample_count with sample_count_provenance,
+  ];
+  check = Stream::check_form;
 }
 
 impl Stream {
@@ -327,6 +365,32 @@ impl Stream {
   #[must_use]
   pub fn codec_details(&self) -> Option<&CodecDetails> {
     self.codec_details.as_ref()
+  }
+
+  /// Whether the information of a kind stands exactly beside that kind (`json-output.md` section 7.3): `video` for a
+  /// video stream, `audio` for an audio stream and `subtitle` for a subtitle stream, and none for any other kind.
+  ///
+  /// The header state agrees with the codec and the protection, as the fourth review of the third slice's first part
+  /// asked, which read an MP4 stream without every candidate beside a parsed header, and a protected header beside no
+  /// protection: a description that the codec fields need and that the probe did not read or keep cuts the headers
+  /// short, so the state is not final (`api.md` section 6.4), and a protected header needs a protection, whose
+  /// absence says that the stream declares none (section 6.3).
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    use crate::completeness::HeaderState;
+    let fits = self.video.is_some() == matches!(self.kind, StreamKind::Video)
+      && self.audio.is_some() == matches!(self.kind, StreamKind::Audio)
+      && self.subtitle.is_some() == matches!(self.kind, StreamKind::Subtitle);
+    if !fits {
+      return Err(super::constants::KIND_INFORMATION_MESSAGE);
+    }
+    let header_fits = (self.codec.has_every_candidate() || !self.header_status.is_final())
+      && (self.protection.is_some() || !matches!(self.header_status.state(), HeaderState::Protected));
+    if header_fits {
+      Ok(())
+    } else {
+      Err(super::constants::HEADER_STATE_MESSAGE)
+    }
   }
 }
 

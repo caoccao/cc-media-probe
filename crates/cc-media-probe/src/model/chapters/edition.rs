@@ -20,47 +20,68 @@
 use super::Chapter;
 use super::constants::{MATROSKA_EDITION_NAME, QUICKTIME_CHAPTER_TRACK_NAME};
 use crate::Seconds;
+use crate::form_record::form_record;
 use crate::model::{Identifier, Provenance};
 use crate::string_enumeration::string_enumeration;
 
-/// One edition of chapters, from `MediaReport::chapter_editions()`. An ordered edition has a playback timeline of
-/// its own, with a `playback_duration()`; the report's `duration()` is the segment's and is never replaced by it.
-///
-/// ```
-/// use cc_media_probe::MediaReport;
-///
-/// fn editions(report: &MediaReport) {
-///     for edition in report.chapter_editions() {
-///         println!(
-///             "{} edition {:?}: default {:?}, ordered {:?}, hidden {:?}, linked {:?}, {} chapters",
-///             edition.origin().as_str(),
-///             edition.unique_identifier().map(|identifier| identifier.as_str()),
-///             edition.is_default(),
-///             edition.is_ordered(),
-///             edition.is_hidden(),
-///             edition.has_linked_chapters(),
-///             edition.chapters().len(),
-///         );
-///         if let Some(duration) = edition.playback_duration() {
-///             println!("  plays for {duration} ({:?})", edition.playback_duration_provenance());
-///         }
-///         if let Some(second) = edition.chapter_at(&[0, 1]) {
-///             println!("  the second subchapter of the first chapter starts at {:?}", second.start());
-///         }
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ChapterEdition {
-  unique_identifier: Option<Identifier>,
-  origin: ChapterOrigin,
-  default: Option<bool>,
-  ordered: Option<bool>,
-  hidden: Option<bool>,
-  linked_chapters: Option<bool>,
-  playback_duration: Option<Seconds>,
-  playback_duration_provenance: Option<Provenance>,
-  chapters: Vec<Chapter>,
+form_record! {
+  /// One edition of chapters, from `MediaReport::chapter_editions()`. An ordered edition has a playback timeline of
+  /// its own, with a `playback_duration()`; the report's `duration()` is the segment's and is never replaced by it.
+  ///
+  /// ```
+  /// use cc_media_probe::MediaReport;
+  ///
+  /// fn editions(report: &MediaReport) {
+  ///     for edition in report.chapter_editions() {
+  ///         println!(
+  ///             "{} edition {:?}: default {:?}, ordered {:?}, hidden {:?}, linked {:?}, {} chapters",
+  ///             edition.origin().as_str(),
+  ///             edition.unique_identifier().map(|identifier| identifier.as_str()),
+  ///             edition.is_default(),
+  ///             edition.is_ordered(),
+  ///             edition.is_hidden(),
+  ///             edition.has_linked_chapters(),
+  ///             edition.chapters().len(),
+  ///         );
+  ///         if let Some(duration) = edition.playback_duration() {
+  ///             println!("  plays for {duration} ({:?})", edition.playback_duration_provenance());
+  ///         }
+  ///         if let Some(second) = edition.chapter_at(&[0, 1]) {
+  ///             println!("  the second subchapter of the first chapter starts at {:?}", second.start());
+  ///         }
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ChapterEdition {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    unique_identifier: Option<Identifier>,
+    origin: ChapterOrigin,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    default: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    ordered: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    hidden: Option<bool>,
+    #[cfg_attr(
+      feature = "serde",
+      serde(rename = "has_linked_chapters", skip_serializing_if = "Option::is_none")
+    )]
+    linked_chapters: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    playback_duration: Option<Seconds>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    playback_duration_provenance: Option<Provenance>,
+    #[cfg_attr(
+      feature = "serde",
+      serde(serialize_with = "crate::model::tree::write_flat", deserialize_with = "crate::model::tree::read_flat")
+    )]
+    chapters: Vec<Chapter>,
+  }
+  pairs = [
+    playback_duration with playback_duration_provenance,
+  ];
+  check = ChapterEdition::check_form;
 }
 
 impl ChapterEdition {
@@ -126,6 +147,30 @@ impl ChapterEdition {
     rest.iter().try_fold(self.chapters.get(*first)?, |chapter, index| {
       chapter.children().get(*index)
     })
+  }
+
+  /// Whether the edition's playback values and its link flag agree with its chapters, as the fourth review of the
+  /// third slice's first part asked, which read an unordered edition with playback positions and a derived playback
+  /// duration, and an edition said to link no chapter beside a chapter of another segment. An edition stated as
+  /// unordered has no playback timeline, so neither a playback duration nor a chapter's playback position (`api.md`
+  /// section 6.8), and one whose chapters link no other segment is not said to when a chapter does, since one link
+  /// read is enough to say yes (field guide section 3.7). The chapters are walked with an explicit stack.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let chapters = crate::model::tree::depth_first(&self.chapters);
+    let unordered = self.ordered == Some(false);
+    let playback = self.playback_duration.is_some()
+      || chapters
+        .iter()
+        .any(|(_, chapter)| chapter.playback_position().is_some());
+    let linked = chapters
+      .iter()
+      .any(|(_, chapter)| chapter.segment_reference().is_some());
+    if (unordered && playback) || (self.linked_chapters == Some(false) && linked) {
+      Err(super::constants::EDITION_MESSAGE)
+    } else {
+      Ok(())
+    }
   }
 }
 

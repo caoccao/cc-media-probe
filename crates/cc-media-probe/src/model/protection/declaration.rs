@@ -21,33 +21,40 @@ use super::ProtectionScheme;
 use super::constants::{
   CODEC_PRIVATE_DATA_NAME, ENCODING_SETTINGS_NAME, OTHER_NAME, PACKETS_NAME, SAMPLE_DESCRIPTION_NAME, UNREAD_NAME,
 };
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// One declaration of protection: a scheme, as written, and the scope it protects. A declaration establishes a
-/// protection mechanism for its scope; it does not say that every byte of that scope is encrypted.
-///
-/// ```
-/// use cc_media_probe::model::{ProtectionDeclaration, ProtectionScope};
-///
-/// fn describe(declaration: &ProtectionDeclaration) -> String {
-///     let scheme = declaration.scheme().map_or("an unknown scheme", |scheme| scheme.value());
-///     match declaration.scope() {
-///         ProtectionScope::SampleDescription => {
-///             format!("{scheme} for description {:?}", declaration.sample_description_index())
-///         }
-///         ProtectionScope::EncodingSettings => {
-///             format!("{scheme} for the settings of encoding {:?}", declaration.encoding_order())
-///         }
-///         scope => format!("{scheme} for {}", scope.as_str()),
-///     }
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ProtectionDeclaration {
-  scheme: Option<ProtectionScheme>,
-  scope: ProtectionScope,
-  sample_description_index: Option<u64>,
-  encoding_order: Option<u64>,
+form_record! {
+  /// One declaration of protection: a scheme, as written, and the scope it protects. A declaration establishes a
+  /// protection mechanism for its scope; it does not say that every byte of that scope is encrypted.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{ProtectionDeclaration, ProtectionScope};
+  ///
+  /// fn describe(declaration: &ProtectionDeclaration) -> String {
+  ///     let scheme = declaration.scheme().map_or("an unknown scheme", |scheme| scheme.value());
+  ///     match declaration.scope() {
+  ///         ProtectionScope::SampleDescription => {
+  ///             format!("{scheme} for description {:?}", declaration.sample_description_index())
+  ///         }
+  ///         ProtectionScope::EncodingSettings => {
+  ///             format!("{scheme} for the settings of encoding {:?}", declaration.encoding_order())
+  ///         }
+  ///         scope => format!("{scheme} for {}", scope.as_str()),
+  ///     }
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ProtectionDeclaration {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    scheme: Option<ProtectionScheme>,
+    scope: ProtectionScope,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    sample_description_index: Option<u64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    encoding_order: Option<u64>,
+  }
+  check = ProtectionDeclaration::check_form;
 }
 
 impl ProtectionDeclaration {
@@ -75,6 +82,25 @@ impl ProtectionDeclaration {
   #[must_use]
   pub fn encoding_order(&self) -> Option<u64> {
     self.encoding_order
+  }
+
+  /// Whether the declaration holds the members of its scope (`json-output.md` section 7.3): a sample description's
+  /// index from 1 for the scope `sample_description` alone, and an encoding order for the scope `encoding_settings`
+  /// alone, while a scope of a newer version may hold either. The protection checks the index against its count.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let known = !matches!(self.scope, ProtectionScope::Unrecognized(_));
+    let sample_description = matches!(self.scope, ProtectionScope::SampleDescription);
+    let fits =
+      match (sample_description, self.sample_description_index) {
+        (true, index) => index.is_some_and(|index| index >= 1),
+        (false, index) => !known || index.is_none(),
+      } && (!known || matches!(self.scope, ProtectionScope::EncodingSettings) || self.encoding_order.is_none());
+    if fits {
+      Ok(())
+    } else {
+      Err(super::constants::DECLARATION_MESSAGE)
+    }
   }
 }
 

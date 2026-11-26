@@ -27,3 +27,8 @@ pub const CHAPTER_NAME: &str = "chapter";
 pub const ATTACHMENT_NAME: &str = "attachment";
 /// The serialized name of `EntityKind::Program`.
 pub const PROGRAM_NAME: &str = "program";
+
+/// The message of a location whose chapter path does not fit its kind: a chapter without one, or another entity of
+/// this version with one (`json-output.md` section 5.7).
+#[cfg(feature = "serde")]
+pub const LOCATION_MESSAGE: &str = "a location's chapter path does not fit its kind";

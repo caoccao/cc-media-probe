@@ -134,6 +134,43 @@ impl PortablePath {
       Some(PathBuf::from(&self.display))
     }
   }
+
+  /// The path of its three members as read: the display string, the lossy flag and the raw form, which must
+  /// describe one path (`json-output.md` section 5.8). The raw form stands only beside the flag, which is only
+  /// `true`; a lossy display string holds U+FFFD; and the data of a known encoding is not valid Unicode and decodes
+  /// to the display string. Data of an encoding of a newer version is kept as written.
+  #[cfg(feature = "serde")]
+  pub(crate) fn from_members(
+    display: String,
+    lossy: Option<bool>,
+    raw: Option<RawPath>,
+  ) -> Result<PortablePath, &'static str> {
+    use super::constants::{LOSSY_DISPLAY_MESSAGE, LOSSY_FLAG_MESSAGE, PATH_DISAGREES_MESSAGE};
+    match (lossy, raw) {
+      (None, None) => Ok(PortablePath {
+        display,
+        lossy: false,
+        raw: None,
+      }),
+      (None, Some(_)) | (Some(false), _) => Err(LOSSY_FLAG_MESSAGE),
+      (Some(true), _) if !display.contains(char::REPLACEMENT_CHARACTER) => Err(LOSSY_DISPLAY_MESSAGE),
+      (Some(true), raw) => match raw.as_ref().and_then(RawPath::decoded) {
+        Some((_, decoded)) if decoded != display => Err(PATH_DISAGREES_MESSAGE),
+        _ => Ok(PortablePath {
+          display,
+          lossy: true,
+          raw,
+        }),
+      },
+    }
+  }
+
+  /// The three members that the holder of the path writes: the display string, the flag only for a lossy path, and
+  /// the raw form where the writing platform has one.
+  #[cfg(feature = "serde")]
+  pub(crate) fn members(&self) -> (&str, Option<bool>, Option<&RawPath>) {
+    (&self.display, self.lossy.then_some(true), self.raw.as_ref())
+  }
 }
 
 #[cfg(test)]

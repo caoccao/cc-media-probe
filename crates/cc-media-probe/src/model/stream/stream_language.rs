@@ -18,28 +18,31 @@
 //! `StreamLanguage` and `LanguageRole`, one of a stream's languages with its roles (`api.md` section 6.3; F24).
 
 use super::constants::{CLEAN_EFFECTS_NAME, HEARING_IMPAIRED_NAME, VISUALLY_IMPAIRED_COMMENTARY_NAME};
+use crate::form_record::form_record;
 use crate::model::Language;
 use crate::string_enumeration::string_enumeration;
 
-/// One of a stream's languages, with the roles that the file gives it (F24).
-///
-/// ```
-/// use cc_media_probe::Stream;
-/// use cc_media_probe::model::LanguageRole;
-///
-/// fn audio_description_languages(stream: &Stream) -> Vec<&str> {
-///     stream
-///         .languages()
-///         .iter()
-///         .filter(|entry| entry.roles().iter().any(|role| matches!(role, LanguageRole::VisuallyImpairedCommentary)))
-///         .map(|entry| entry.language().as_written())
-///         .collect()
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StreamLanguage {
-  language: Language,
-  roles: Vec<LanguageRole>,
+form_record! {
+  /// One of a stream's languages, with the roles that the file gives it (F24).
+  ///
+  /// ```
+  /// use cc_media_probe::Stream;
+  /// use cc_media_probe::model::LanguageRole;
+  ///
+  /// fn audio_description_languages(stream: &Stream) -> Vec<&str> {
+  ///     stream
+  ///         .languages()
+  ///         .iter()
+  ///         .filter(|entry| entry.roles().iter().any(|role| matches!(role, LanguageRole::VisuallyImpairedCommentary)))
+  ///         .map(|entry| entry.language().as_written())
+  ///         .collect()
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct StreamLanguage {
+    language: Language,
+    roles: Vec<LanguageRole>,
+  }
 }
 
 impl StreamLanguage {

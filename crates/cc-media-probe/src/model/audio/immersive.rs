@@ -18,21 +18,24 @@
 //! `ImmersiveAudio` and `ImmersiveKind`, the immersive signaling of an audio stream (`api.md` section 6.6).
 
 use super::constants::{HEIGHT_CHANNELS_NAME, INTERMEDIATE_SPATIAL_FORMAT_NAME, OBJECTS_NAME};
+use crate::form_record::form_record;
 use crate::string_enumeration::string_enumeration;
 
-/// That an audio stream signals immersive audio, and of which kinds. The list is empty when the source states the
-/// signaling without its kind, as AC-4's indicator does.
-///
-/// ```
-/// use cc_media_probe::model::{ImmersiveAudio, ImmersiveKind};
-///
-/// fn has_objects(immersive: &ImmersiveAudio) -> bool {
-///     immersive.kinds().iter().any(|kind| matches!(kind, ImmersiveKind::Objects))
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ImmersiveAudio {
-  kinds: Vec<ImmersiveKind>,
+form_record! {
+  /// That an audio stream signals immersive audio, and of which kinds. The list is empty when the source states the
+  /// signaling without its kind, as AC-4's indicator does.
+  ///
+  /// ```
+  /// use cc_media_probe::model::{ImmersiveAudio, ImmersiveKind};
+  ///
+  /// fn has_objects(immersive: &ImmersiveAudio) -> bool {
+  ///     immersive.kinds().iter().any(|kind| matches!(kind, ImmersiveKind::Objects))
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct ImmersiveAudio {
+    kinds: Vec<ImmersiveKind>,
+  }
 }
 
 impl ImmersiveAudio {

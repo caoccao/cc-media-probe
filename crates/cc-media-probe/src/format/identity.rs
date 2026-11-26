@@ -132,6 +132,17 @@ impl Format {
       _ => None,
     }
   }
+
+  /// Whether the format has sample descriptions, as the ISO base media family has, `IsoBaseMedia` itself included,
+  /// and no other format of this version (`api.md` section 6.3); `None` for a format of a newer version, which only
+  /// its version knows.
+  #[cfg(feature = "serde")]
+  pub(crate) fn has_sample_descriptions(&self) -> Option<bool> {
+    match self {
+      Format::Unrecognized(_) => None,
+      _ => Some(*self == Format::IsoBaseMedia || self.family() == Some(Format::IsoBaseMedia)),
+    }
+  }
 }
 
 impl fmt::Display for Format {

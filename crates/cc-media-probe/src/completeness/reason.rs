@@ -19,37 +19,44 @@
 
 use super::{Feature, ReasonKind};
 use crate::Limit;
+use crate::form_record::form_record;
 
-/// Why something fell short. A struct, so that a later reason can carry more data without a breaking change.
-///
-/// A reason of a known kind has exactly the members that its kind defines (`ReasonKind`); `detail()` is optional
-/// for every kind and kept only within the retained-data limit.
-///
-/// ```
-/// use cc_media_probe::Limit;
-/// use cc_media_probe::completeness::{Reason, ReasonKind};
-///
-/// fn describe(reason: &Reason) -> String {
-///     match (reason.kind(), reason.limit(), reason.feature()) {
-///         (ReasonKind::LimitExhausted, Some(limit), _) => format!("the limit {} was reached", limit.as_str()),
-///         (ReasonKind::FeatureDisabled, _, Some(feature)) => format!("enable the feature {}", feature.as_str()),
-///         (kind, _, _) => match reason.detail() {
-///             Some(detail) => format!("{}: {detail}", kind.as_str()),
-///             None => kind.as_str().to_owned(),
-///         },
-///     }
-/// }
-///
-/// fn stopped_by_reads(reason: &Reason) -> bool {
-///     reason.limit() == Some(&Limit::BytesRead)
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Reason {
-  kind: ReasonKind,
-  limit: Option<Limit>,
-  feature: Option<Feature>,
-  detail: Option<String>,
+form_record! {
+  /// Why something fell short. A struct, so that a later reason can carry more data without a breaking change.
+  ///
+  /// A reason of a known kind has exactly the members that its kind defines (`ReasonKind`); `detail()` is optional
+  /// for every kind and kept only within the retained-data limit.
+  ///
+  /// ```
+  /// use cc_media_probe::Limit;
+  /// use cc_media_probe::completeness::{Reason, ReasonKind};
+  ///
+  /// fn describe(reason: &Reason) -> String {
+  ///     match (reason.kind(), reason.limit(), reason.feature()) {
+  ///         (ReasonKind::LimitExhausted, Some(limit), _) => format!("the limit {} was reached", limit.as_str()),
+  ///         (ReasonKind::FeatureDisabled, _, Some(feature)) => format!("enable the feature {}", feature.as_str()),
+  ///         (kind, _, _) => match reason.detail() {
+  ///             Some(detail) => format!("{}: {detail}", kind.as_str()),
+  ///             None => kind.as_str().to_owned(),
+  ///         },
+  ///     }
+  /// }
+  ///
+  /// fn stopped_by_reads(reason: &Reason) -> bool {
+  ///     reason.limit() == Some(&Limit::BytesRead)
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct Reason {
+    kind: ReasonKind,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    limit: Option<Limit>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    feature: Option<Feature>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    detail: Option<String>,
+  }
+  check = Reason::check_form;
 }
 
 impl Reason {
@@ -82,6 +89,72 @@ impl Reason {
   /// limit, and the kind's text otherwise.
   pub(crate) fn cause(&self) -> &str {
     self.limit.as_ref().map_or_else(|| self.kind.text(), Limit::text)
+  }
+
+  /// Whether a reason of a known kind holds the members of its kind and no other (`json-output.md` section 7.2):
+  /// the limit of `limit_exhausted` and `companion_limited`, the feature of `feature_disabled`, and neither for the
+  /// other kinds, while a kind of a newer version may hold either.
+  #[cfg(feature = "serde")]
+  fn check_form(&self) -> Result<(), &'static str> {
+    let (limit, feature) = (self.limit.is_some(), self.feature.is_some());
+    let fits = match self.kind {
+      ReasonKind::LimitExhausted | ReasonKind::CompanionLimited => limit && !feature,
+      ReasonKind::FeatureDisabled => feature && !limit,
+      ReasonKind::Unrecognized(_) => true,
+      _ => !limit && !feature,
+    };
+    if fits {
+      Ok(())
+    } else {
+      Err(super::constants::REASON_MESSAGE)
+    }
+  }
+
+  /// Whether a reason that names a limit finds its counter among the limits that the record holds as exhausted
+  /// (`json-output.md` section 7.2), which `exhausted` tells, so that a caller checking many reasons looks each
+  /// limit up once (review of the third slice's first part).
+  #[cfg(feature = "serde")]
+  pub(crate) fn finds_its_counter(&self, exhausted: impl Fn(&Limit) -> bool) -> bool {
+    match (&self.kind, &self.limit) {
+      (ReasonKind::LimitExhausted | ReasonKind::CompanionLimited, Some(limit)) => exhausted(limit),
+      _ => true,
+    }
+  }
+
+  /// Whether the two state the same cause: the same kind, limit and feature, whatever their details, which a first
+  /// reason drops (`api.md` section 5.3).
+  #[cfg(feature = "serde")]
+  pub(crate) fn same_apart_from_detail(&self, other: &Reason) -> bool {
+    self.kind == other.kind && self.limit == other.limit && self.feature == other.feature
+  }
+
+  /// Whether the reason says that too few bytes were there to decide the format: the input's end, a named limit or
+  /// a kind of a newer version (`api.md` section 5.1), as a detection's and an undetermined format's reason does.
+  #[cfg(feature = "serde")]
+  pub(crate) fn tells_too_few_bytes(&self) -> bool {
+    matches!(
+      self.kind,
+      ReasonKind::TruncatedInput | ReasonKind::LimitExhausted | ReasonKind::Unrecognized(_)
+    )
+  }
+
+  /// The limit that a reason of the kind `limit_exhausted` names as exhausted, and `None` for any other kind.
+  #[cfg(feature = "serde")]
+  pub(crate) fn exhausted_limit(&self) -> Option<&Limit> {
+    match self.kind {
+      ReasonKind::LimitExhausted => self.limit.as_ref(),
+      _ => None,
+    }
+  }
+
+  /// Whether the reason is a request's that a source entry keeps: `companion_not_found`, `companion_declined` or
+  /// `companion_limited` (`api.md` section 6.15).
+  #[cfg(feature = "serde")]
+  pub(crate) fn is_a_requests(&self) -> bool {
+    matches!(
+      self.kind,
+      ReasonKind::CompanionNotFound | ReasonKind::CompanionDeclined | ReasonKind::CompanionLimited
+    )
   }
 }
 

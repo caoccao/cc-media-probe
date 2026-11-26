@@ -19,6 +19,8 @@
 
 use std::fmt::{LowerHex, Write};
 
+#[cfg(feature = "serde")]
+use super::constants::BYTE_DIGITS;
 use super::constants::HEXADECIMAL_RADIX;
 
 /// The units as lowercase hexadecimal, `digits` digits a unit: two for a byte, four for a 16-bit unit.
@@ -52,6 +54,24 @@ pub(crate) fn decode_units(data: &str, digits: usize) -> Option<Vec<u16>> {
       u16::from_str_radix(text, HEXADECIMAL_RADIX).ok()
     })
     .collect()
+}
+
+/// The bytes as lowercase hexadecimal, two digits a byte: the form of every byte string of the report, such as a
+/// binary tag value, a GUID and a raw code (`json-output.md` section 5.6).
+#[cfg(feature = "serde")]
+pub(crate) fn encode_bytes(bytes: &[u8]) -> String {
+  encode(bytes.iter().copied(), BYTE_DIGITS)
+}
+
+/// The bytes of lowercase hexadecimal text, two digits a byte, or `None` for any other text, so a sign, an uppercase
+/// digit and an odd number of digits fail.
+#[cfg(feature = "serde")]
+pub(crate) fn decode_bytes(data: &str) -> Option<Vec<u8>> {
+  decode_units(data, BYTE_DIGITS)?
+    .into_iter()
+    .map(u8::try_from)
+    .collect::<Result<Vec<u8>, _>>()
+    .ok()
 }
 
 #[cfg(test)]

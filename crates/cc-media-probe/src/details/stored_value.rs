@@ -16,6 +16,14 @@
 */
 
 //! `StoredValue`, a value with a default, which says whether the file stored it (`api.md` section 11.2; F1).
+//! Serialized, it is a record of `value`, in the form of its type, so that a 64-bit integer is a decimal string
+//! whatever its value, and `stored` (`json-output.md` sections 5.5 and 8).
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+#[cfg(feature = "serde")]
+use super::detail_value::DetailValue;
 
 /// The value of an element that a specification gives a default, which says whether the file stored it or the
 /// effective default applies (F1). The effective default holds only once the element's omission is established:
@@ -49,6 +57,45 @@ impl<Value> StoredValue<Value> {
   #[must_use]
   pub fn is_stored(&self) -> bool {
     self.stored
+  }
+}
+
+/// A stored value as written: its value in the form of its type, and the flag.
+#[cfg(feature = "serde")]
+#[derive(Serialize, Deserialize)]
+struct StoredForm<Form> {
+  value: Form,
+  stored: bool,
+}
+
+#[cfg(feature = "serde")]
+impl<Value: DetailValue> Serialize for StoredValue<Value> {
+  fn serialize<Output: Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    StoredForm {
+      value: self.value.to_form(),
+      stored: self.stored,
+    }
+    .serialize(serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input, Value: DetailValue> crate::form::ReadAlone<'input> for StoredValue<Value> {
+  fn read_members<Input: Deserializer<'input>>(deserializer: Input) -> Result<StoredValue<Value>, Input::Error> {
+    let form = StoredForm::<Value::Form>::deserialize(deserializer)?;
+    let value = Value::from_form(form.value)
+      .ok_or_else(|| <Input::Error as serde::de::Error>::custom(super::constants::DETAIL_VALUE_MESSAGE))?;
+    Ok(StoredValue {
+      value,
+      stored: form.stored,
+    })
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'input, Value: DetailValue> Deserialize<'input> for StoredValue<Value> {
+  fn deserialize<Input: Deserializer<'input>>(deserializer: Input) -> Result<StoredValue<Value>, Input::Error> {
+    crate::form::read_alone(deserializer)
   }
 }
 

@@ -49,15 +49,24 @@ use crate::model::Usage;
 /// }
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(
+  feature = "serde",
+  derive(serde::Deserialize),
+  serde(try_from = "crate::form::Rooted<crate::form::WithKept<super::detection_form::DetectionBody>>")
+)]
 pub struct Detection {
-  outcome: DetectionOutcome,
-  format: Option<Format>,
-  confidence: Option<Confidence>,
-  candidates: Vec<Candidate>,
-  hint: Option<Hint>,
-  bytes_needed: Option<u64>,
-  insufficient_reason: Option<Reason>,
-  usage: Usage,
+  #[cfg(feature = "serde")]
+  pub(super) schema_version: crate::document::SchemaVersion,
+  pub(super) outcome: DetectionOutcome,
+  pub(super) format: Option<Format>,
+  pub(super) confidence: Option<Confidence>,
+  pub(super) candidates: Vec<Candidate>,
+  pub(super) hint: Option<Hint>,
+  pub(super) bytes_needed: Option<u64>,
+  pub(super) insufficient_reason: Option<Reason>,
+  pub(super) usage: Usage,
+  #[cfg(feature = "serde")]
+  pub(super) kept: crate::form::KeptMembers,
 }
 
 impl Detection {
@@ -112,10 +121,30 @@ impl Detection {
     &self.usage
   }
 
+  /// The version of the serialized form that the detection was read with, or `SchemaVersion::CURRENT` for one that
+  /// this version built, with the `serde` feature (`api.md` section 12).
+  ///
+  /// ```
+  /// # fn main() -> Result<(), cc_media_probe::Error> {
+  /// use cc_media_probe::document::SchemaVersion;
+  ///
+  /// let detection = cc_media_probe::detect_bytes(b"not a media file")?;
+  /// assert_eq!(detection.schema_version(), SchemaVersion::CURRENT);
+  /// # Ok(())
+  /// # }
+  /// ```
+  #[cfg(feature = "serde")]
+  #[must_use]
+  pub fn schema_version(&self) -> crate::document::SchemaVersion {
+    self.schema_version
+  }
+
   /// The detection of bytes that matched nothing: `HintOnly` with the hint where there is one, and `Unknown`
   /// otherwise, since a hint never selects a format for such bytes (`api.md` section 4.3).
   pub(crate) fn unmatched(hint: Option<Hint>, usage: Usage) -> Detection {
     Detection {
+      #[cfg(feature = "serde")]
+      schema_version: crate::document::SchemaVersion::CURRENT,
       outcome: if hint.is_some() {
         DetectionOutcome::HintOnly
       } else {
@@ -128,6 +157,8 @@ impl Detection {
       bytes_needed: None,
       insufficient_reason: None,
       usage,
+      #[cfg(feature = "serde")]
+      kept: crate::form::KeptMembers::default(),
     }
   }
 }
@@ -143,6 +174,8 @@ mod tests {
     /// A detection that identified this format with full confidence.
     pub(crate) fn identified(format: Format) -> Detection {
       Detection {
+        #[cfg(feature = "serde")]
+        schema_version: crate::document::SchemaVersion::CURRENT,
         outcome: DetectionOutcome::Identified,
         format: Some(format),
         confidence: Confidence::new(100),
@@ -151,6 +184,8 @@ mod tests {
         bytes_needed: None,
         insufficient_reason: None,
         usage: Usage::sample(),
+        #[cfg(feature = "serde")]
+        kept: crate::form::KeptMembers::default(),
       }
     }
   }

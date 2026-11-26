@@ -41,7 +41,7 @@ pub(crate) trait Branching: Sized {
 }
 
 /// Every node of the trees in depth-first order, each with the position of its parent in that order.
-fn depth_first<Tree: Branching>(roots: &[Tree]) -> Vec<(Option<usize>, &Tree)> {
+pub(crate) fn depth_first<Tree: Branching>(roots: &[Tree]) -> Vec<(Option<usize>, &Tree)> {
   let mut order = Vec::new();
   let mut pending: Vec<(Option<usize>, &Tree)> = roots.iter().rev().map(|tree| (None, tree)).collect();
   while let Some((parent, tree)) = pending.pop() {
@@ -54,7 +54,7 @@ fn depth_first<Tree: Branching>(roots: &[Tree]) -> Vec<(Option<usize>, &Tree)> {
 
 /// The trees of nodes whose parents come before them, built from the last node to the first, so that no node is
 /// built before the nodes below it.
-fn assemble<Tree: Branching>(nodes: Vec<(Option<usize>, Tree::Node)>) -> Vec<Tree> {
+pub(super) fn assemble<Tree: Branching>(nodes: Vec<(Option<usize>, Tree::Node)>) -> Vec<Tree> {
   let mut branches: Vec<Vec<Tree>> = nodes.iter().map(|_| Vec::new()).collect();
   let mut roots = Vec::new();
   for (position, (parent, node)) in nodes.into_iter().enumerate().rev() {

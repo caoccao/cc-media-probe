@@ -17,45 +17,85 @@
 
 //! `LimitRecord`, the fixed-size record of a probe's stops (`api.md` section 5.3; plan section 7.5).
 
+#[cfg(feature = "serde")]
+use std::collections::{HashMap, HashSet};
+
+#[cfg(feature = "serde")]
+use super::Reason;
+#[cfg(feature = "serde")]
+use super::constants::{
+  DETECTION_LIMIT_MESSAGE, LIMIT_ORDER, LIMIT_RECORD_MESSAGE, OMITTED_REASONS_MESSAGE, OMITTED_REFERENCES_MESSAGE,
+  OMITTED_STORAGE_MESSAGE, PART_ORDER,
+};
 use super::{Part, PartReason};
 use crate::Limit;
+use crate::form_record::form_record;
 
-/// The fixed-size record that every limit leaves in place: which counters were exhausted, the part that each
-/// stopped first, the first reason of each part, and the four omitted counts. It exists under any limits and is
-/// never charged to a counter (plan section 7.5).
-///
-/// ```
-/// use cc_media_probe::Limit;
-/// use cc_media_probe::completeness::{LimitRecord, Part};
-///
-/// fn summary(record: &LimitRecord) -> Vec<String> {
-///     let mut lines = Vec::new();
-///     if record.exhausted(&Limit::BytesRead) {
-///         let part = record.first_stopped(&Limit::BytesRead).map_or("nothing", |part| part.as_str());
-///         lines.push(format!("the read limit stopped {part} first"));
-///     }
-///     if let Some(first) = record.first_reason(&Part::Discovery) {
-///         lines.push(format!("discovery: {}", first.reason().kind().as_str()));
-///     }
-///     lines.push(format!(
-///         "omitted: {} diagnostics, {} declarations, {} reasons, {} references",
-///         record.omitted_diagnostics(),
-///         record.omitted_declarations(),
-///         record.omitted_reasons(),
-///         record.omitted_references(),
-///     ));
-///     lines
-/// }
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct LimitRecord {
-  exhausted: Vec<Limit>,
-  first_stopped: Vec<(Limit, Part)>,
-  first_reasons: Vec<PartReason>,
-  omitted_diagnostics: u64,
-  omitted_declarations: u64,
-  omitted_reasons: u64,
-  omitted_references: u64,
+form_record! {
+  /// The fixed-size record that every limit leaves in place: which counters were exhausted, the part that each
+  /// stopped first, the first reason of each part, and the four omitted counts. It exists under any limits and is
+  /// never charged to a counter (plan section 7.5).
+  ///
+  /// ```
+  /// use cc_media_probe::Limit;
+  /// use cc_media_probe::completeness::{LimitRecord, Part};
+  ///
+  /// fn summary(record: &LimitRecord) -> Vec<String> {
+  ///     let mut lines = Vec::new();
+  ///     if record.exhausted(&Limit::BytesRead) {
+  ///         let part = record.first_stopped(&Limit::BytesRead).map_or("nothing", |part| part.as_str());
+  ///         lines.push(format!("the read limit stopped {part} first"));
+  ///     }
+  ///     if let Some(first) = record.first_reason(&Part::Discovery) {
+  ///         lines.push(format!("discovery: {}", first.reason().kind().as_str()));
+  ///     }
+  ///     lines.push(format!(
+  ///         "omitted: {} diagnostics, {} declarations, {} reasons, {} references",
+  ///         record.omitted_diagnostics(),
+  ///         record.omitted_declarations(),
+  ///         record.omitted_reasons(),
+  ///         record.omitted_references(),
+  ///     ));
+  ///     lines
+  /// }
+  /// ```
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub struct LimitRecord {
+    exhausted: Vec<Limit>,
+    first_stopped: Vec<StoppedLimit>,
+    first_reasons: Vec<PartReason>,
+    #[cfg_attr(
+      feature = "serde",
+      serde(serialize_with = "crate::form::write_decimal", deserialize_with = "crate::form::read_decimal")
+    )]
+    omitted_diagnostics: u64,
+    #[cfg_attr(
+      feature = "serde",
+      serde(serialize_with = "crate::form::write_decimal", deserialize_with = "crate::form::read_decimal")
+    )]
+    omitted_declarations: u64,
+    #[cfg_attr(
+      feature = "serde",
+      serde(serialize_with = "crate::form::write_decimal", deserialize_with = "crate::form::read_decimal")
+    )]
+    omitted_reasons: u64,
+    #[cfg_attr(
+      feature = "serde",
+      serde(serialize_with = "crate::form::write_decimal", deserialize_with = "crate::form::read_decimal")
+    )]
+    omitted_references: u64,
+  }
+  check = LimitRecord::check_form;
+}
+
+form_record! {
+  /// A limit and the part that it stopped first, written as a record of `limit` and `part` (`json-output.md` section
+  /// 7.2).
+  #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+  pub(crate) struct StoppedLimit {
+    limit: Limit,
+    part: Part,
+  }
 }
 
 impl LimitRecord {
@@ -84,7 +124,7 @@ impl LimitRecord {
     self
       .first_stopped
       .iter()
-      .find_map(|(stopped, part)| (stopped == limit).then_some(part))
+      .find_map(|stopped| (stopped.limit == *limit).then_some(&stopped.part))
   }
 
   /// The first reason recorded against `part`, with its kind, limit, feature, stream and source, and without its
@@ -129,9 +169,120 @@ impl LimitRecord {
   }
 }
 
+#[cfg(feature = "serde")]
+impl LimitRecord {
+  /// The limits whose counters were exhausted, in the declared order.
+  pub(crate) fn exhausted_limits(&self) -> &[Limit] {
+    &self.exhausted
+  }
+
+  /// The first reason of each part, in the order of the parts.
+  pub(crate) fn first_reasons(&self) -> &[PartReason] {
+    &self.first_reasons
+  }
+
+  /// Whether the record read is true to itself (`json-output.md` section 7.2): each limit once in `exhausted`, and
+  /// the pairs naming exactly those limits in their order; each part once among the first reasons; the limits and
+  /// parts that this version knows in their declared order; each stopped part with its first reason; no first
+  /// reason with a detail, and each limit reason finding its counter; an omitted reason beside a first reason and the
+  /// exhausted retained data; and an omitted reference beside the exhausted retained data and the first reason of a
+  /// part that finds references. As the fourth review of the third slice's first part asked, which read a declaration
+  /// omitted beside complete discovery and no exhausted limit, an omitted diagnostic stands beside the exhausted
+  /// diagnostics or retained data, which alone keep one from being stored, and an omitted declaration beside the
+  /// first reason of discovery and the exhausted stream limit or retained data, which alone stop the enumeration of
+  /// declarations (plan section 7.5). A limit that a first reason of detection names stopped detection first, since
+  /// detection comes first, as the maintainer chose at that review.
+  fn check_form(&self) -> Result<(), &'static str> {
+    let (exhausted_set, parts): (HashSet<&Limit>, Vec<&Part>) = (
+      self.exhausted.iter().collect(),
+      self.first_reasons.iter().map(PartReason::part).collect(),
+    );
+    let retained = exhausted_set.contains(&Limit::RetainedData);
+    if self.omitted_reasons > 0 && (self.first_reasons.is_empty() || !retained) {
+      return Err(OMITTED_REASONS_MESSAGE);
+    }
+    let references_belong = retained && self.first_reasons.iter().any(|first| first.part().finds_references());
+    if self.omitted_references > 0 && !references_belong {
+      return Err(OMITTED_REFERENCES_MESSAGE);
+    }
+    let declarations_belong =
+      parts.contains(&&Part::Discovery) && (retained || exhausted_set.contains(&Limit::Streams));
+    let diagnostics_belong = retained || exhausted_set.contains(&Limit::Diagnostics);
+    if (self.omitted_declarations > 0 && !declarations_belong) || (self.omitted_diagnostics > 0 && !diagnostics_belong)
+    {
+      return Err(OMITTED_STORAGE_MESSAGE);
+    }
+    if !self.stopped_detection_first(LimitRecord::of_detection(self.first_reasons.iter())) {
+      return Err(DETECTION_LIMIT_MESSAGE);
+    }
+    let part_set: HashSet<&Part> = parts.iter().copied().collect();
+    let pairs_name_the_limits = self.exhausted.len() == self.first_stopped.len()
+      && self
+        .exhausted
+        .iter()
+        .zip(&self.first_stopped)
+        .all(|(limit, stopped)| *limit == stopped.limit);
+    let true_to_itself = pairs_name_the_limits
+      && crate::form::each_once(&self.exhausted, |limit| limit)
+      && crate::form::each_once(&parts, |part| *part)
+      && in_declared_order(&self.exhausted, &LIMIT_ORDER)
+      && in_declared_order(&parts, &PART_ORDER.each_ref())
+      && self
+        .first_stopped
+        .iter()
+        .all(|stopped| part_set.contains(&stopped.part))
+      && self.first_reasons.iter().all(|first| {
+        first.reason().detail().is_none() && first.reason().finds_its_counter(|limit| exhausted_set.contains(limit))
+      });
+    if true_to_itself {
+      Ok(())
+    } else {
+      Err(LIMIT_RECORD_MESSAGE)
+    }
+  }
+
+  /// The parts that the limits stopped first, in the order of the limits.
+  pub(crate) fn stopped_parts(&self) -> impl Iterator<Item = &Part> {
+    self.first_stopped.iter().map(|stopped| &stopped.part)
+  }
+
+  /// Whether each limit that one of the reasons of detection names as exhausted stopped detection first (`api.md`
+  /// section 5.3): the record's first reasons, a completeness's kept reasons, or an error's causes. The limits are
+  /// looked up in an index of the pairs, so the check stays linear whatever limits of a newer version a record names.
+  pub(crate) fn stopped_detection_first<'reason>(&self, causes: impl Iterator<Item = &'reason Reason>) -> bool {
+    let first_stopped: HashMap<&Limit, &Part> = self
+      .first_stopped
+      .iter()
+      .map(|stopped| (&stopped.limit, &stopped.part))
+      .collect();
+    causes
+      .filter_map(Reason::exhausted_limit)
+      .all(|limit| first_stopped.get(limit) == Some(&&Part::Detection))
+  }
+
+  /// The reasons of detection among `reasons`, whose limits `stopped_detection_first` checks.
+  pub(crate) fn of_detection<'reason>(
+    reasons: impl Iterator<Item = &'reason PartReason>,
+  ) -> impl Iterator<Item = &'reason Reason> {
+    reasons
+      .filter(|reason| *reason.part() == Part::Detection)
+      .map(PartReason::reason)
+  }
+}
+
+/// Whether the items that the declared order knows stand in that order; one of a newer version may stand anywhere.
+#[cfg(feature = "serde")]
+fn in_declared_order<Item: PartialEq>(items: &[Item], order: &[Item]) -> bool {
+  let ranks: Vec<usize> = items
+    .iter()
+    .filter_map(|item| order.iter().position(|known| known == item))
+    .collect();
+  ranks.is_sorted()
+}
+
 #[cfg(test)]
 mod tests {
-  use super::LimitRecord;
+  use super::{LimitRecord, StoppedLimit};
   use crate::Limit;
   use crate::completeness::{Part, PartReason, Reason};
 
@@ -140,7 +291,10 @@ mod tests {
     pub(crate) fn stopped(limit: Limit, part: Part) -> LimitRecord {
       LimitRecord {
         exhausted: vec![limit.clone()],
-        first_stopped: vec![(limit.clone(), part.clone())],
+        first_stopped: vec![StoppedLimit {
+          limit: limit.clone(),
+          part: part.clone(),
+        }],
         first_reasons: vec![PartReason::sample(part, Reason::exhausted(limit))],
         ..LimitRecord::empty()
       }

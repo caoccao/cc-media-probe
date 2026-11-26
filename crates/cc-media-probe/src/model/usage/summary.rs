@@ -134,6 +134,101 @@ impl Usage {
   }
 }
 
+/// A usage as written: each counter as a number, or beyond 2^53 - 1 as its twin (`json-output.md` sections 5.5 and 7.13).
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct UsageForm {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  bytes_read: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  bytes_read_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  peak_working_memory: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  peak_working_memory_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  retained_data: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  retained_data_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  retained_payloads: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  retained_payloads_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  decompressed_output: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  decompressed_output_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  work_units: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  work_units_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  companion_requests: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  companion_requests_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  sources_opened: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  sources_opened_exact: Option<String>,
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Usage {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    let twin = |counter| crate::form::unsigned_members(Some(counter));
+    let (bytes_read, bytes_read_exact) = twin(self.bytes_read);
+    let (peak_working_memory, peak_working_memory_exact) = twin(self.peak_working_memory);
+    let (retained_data, retained_data_exact) = twin(self.retained_data);
+    let (retained_payloads, retained_payloads_exact) = twin(self.retained_payloads);
+    let (decompressed_output, decompressed_output_exact) = twin(self.decompressed_output);
+    let (work_units, work_units_exact) = twin(self.work_units);
+    let (companion_requests, companion_requests_exact) = twin(self.companion_requests);
+    let (sources_opened, sources_opened_exact) = twin(self.sources_opened);
+    let form = UsageForm {
+      bytes_read,
+      bytes_read_exact,
+      peak_working_memory,
+      peak_working_memory_exact,
+      retained_data,
+      retained_data_exact,
+      retained_payloads,
+      retained_payloads_exact,
+      decompressed_output,
+      decompressed_output_exact,
+      work_units,
+      work_units_exact,
+      companion_requests,
+      companion_requests_exact,
+      sources_opened,
+      sources_opened_exact,
+    };
+    serde::Serialize::serialize(&form, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<UsageForm> for Usage {
+  type Error = &'static str;
+
+  /// Each counter from exactly one of its two members, each in its own range; every counter is required.
+  fn try_from(form: UsageForm) -> Result<Usage, &'static str> {
+    use crate::form::required_unsigned as counter;
+    Ok(Usage {
+      bytes_read: counter(form.bytes_read, form.bytes_read_exact)?,
+      peak_working_memory: counter(form.peak_working_memory, form.peak_working_memory_exact)?,
+      retained_data: counter(form.retained_data, form.retained_data_exact)?,
+      retained_payloads: counter(form.retained_payloads, form.retained_payloads_exact)?,
+      decompressed_output: counter(form.decompressed_output, form.decompressed_output_exact)?,
+      work_units: counter(form.work_units, form.work_units_exact)?,
+      companion_requests: counter(form.companion_requests, form.companion_requests_exact)?,
+      sources_opened: counter(form.sources_opened, form.sources_opened_exact)?,
+    })
+  }
+}
+
+#[cfg(feature = "serde")]
+crate::form::checked_form!(Usage from UsageForm);
+
 #[cfg(test)]
 mod tests {
   use super::Usage;
@@ -152,6 +247,14 @@ mod tests {
         work_units: 120,
         companion_requests: 0,
         sources_opened: 1,
+      }
+    }
+
+    /// The usage of the sample with `bytes_read` bytes read.
+    pub(crate) fn reading(bytes_read: u64) -> Usage {
+      Usage {
+        bytes_read,
+        ..Usage::sample()
       }
     }
   }

@@ -97,6 +97,67 @@ impl Diagnostic {
   }
 }
 
+/// A diagnostic as written: each offset as a number or beyond 2^53 - 1 its twin (`json-output.md` sections 5.5 and
+/// 7.12).
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct DiagnosticForm {
+  severity: Severity,
+  code: DiagnosticCode,
+  message: String,
+  source_identifier: SourceIdentifier,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  offset: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  offset_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  logical_offset: Option<u64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  logical_offset_exact: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  stream: Option<usize>,
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Diagnostic {
+  fn serialize<Output: serde::Serializer>(&self, serializer: Output) -> Result<Output::Ok, Output::Error> {
+    let (offset, offset_exact) = crate::form::unsigned_members(self.offset);
+    let (logical_offset, logical_offset_exact) = crate::form::unsigned_members(self.logical_offset);
+    let form = DiagnosticForm {
+      severity: self.severity.clone(),
+      code: self.code.clone(),
+      message: self.message.clone(),
+      source_identifier: self.source_identifier,
+      offset,
+      offset_exact,
+      logical_offset,
+      logical_offset_exact,
+      stream: self.stream,
+    };
+    serde::Serialize::serialize(&form, serializer)
+  }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<DiagnosticForm> for Diagnostic {
+  type Error = &'static str;
+
+  fn try_from(form: DiagnosticForm) -> Result<Diagnostic, &'static str> {
+    Ok(Diagnostic {
+      severity: form.severity,
+      code: form.code,
+      message: form.message,
+      source_identifier: form.source_identifier,
+      offset: crate::form::unsigned_value(form.offset, form.offset_exact)?,
+      logical_offset: crate::form::unsigned_value(form.logical_offset, form.logical_offset_exact)?,
+      stream: form.stream,
+    })
+  }
+}
+
+#[cfg(feature = "serde")]
+crate::form::checked_form!(Diagnostic from DiagnosticForm);
+
 #[cfg(test)]
 mod tests {
   use super::Diagnostic;
@@ -104,8 +165,8 @@ mod tests {
   use crate::source::SourceIdentifier;
 
   impl Diagnostic {
-    /// A warning about the stream at `stream`.
-    pub(crate) fn sample(stream: usize) -> Diagnostic {
+    /// A warning about the stream at `stream`, or about the file without one.
+    pub(crate) fn sample(stream: Option<usize>) -> Diagnostic {
       Diagnostic {
         severity: Severity::Warning,
         code: DiagnosticCode::sample("matroska.seek_head_disagrees"),
@@ -113,14 +174,14 @@ mod tests {
         source_identifier: SourceIdentifier::sample(0),
         offset: Some(4_096),
         logical_offset: None,
-        stream: Some(stream),
+        stream,
       }
     }
   }
 
   #[test]
   fn gives_each_field() {
-    let diagnostic = Diagnostic::sample(1);
+    let diagnostic = Diagnostic::sample(Some(1));
     assert_eq!(diagnostic.severity(), &Severity::Warning);
     assert_eq!(diagnostic.code().as_str(), "matroska.seek_head_disagrees");
     assert_eq!(diagnostic.message(), "the seek head disagrees with the segment");
