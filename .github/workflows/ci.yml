@@ -141,6 +141,8 @@ jobs:
           CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE: deny
       - name: Build every feature combination of every crate
         run: cargo hack build --locked --workspace --feature-powerset
+      - name: Document every feature combination of every crate
+        run: cargo hack doc --locked --workspace --no-deps --feature-powerset
 
   audit:
     name: Licenses, advisories and allow-list

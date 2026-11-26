@@ -4378,3 +4378,178 @@ The maintainer staged the fixes of the second review and reviewed the slice a th
   - the code's form in every record;
   - the U+FFFD of every lossy path;
 - tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Phase 2 data-model review after the third set of fixes
+
+The maintainer delegated the approval review of plan revision 57 at `1942cf4`. G2.1 through G2.4 had already passed. The first slice of task 11 is approved to proceed to the second slice. The repository checks passed with 186 library unit tests and 99.82% library line coverage. The API scenario spike passed with all features, and the CLI arguments spike passed with its default features.
+
+**G2.5 remains open.** The second and third slices, the permanent examples, the contract tests and the API Guidelines checklist against the implementation are still due. When writing the serialization tests, cover a description whose protection state was kept after its declaration was dropped. The decision in [API section 6.3](../design/api.md#63-stream) allows that case. Align the description of `Declared` with it so callers know that a matching entry in `declarations()` can be absent.
+
+**Before G3.1**, reconcile the I/O spike's deletion point. [Plan section 1.2](plan-init-project.md#12-working-method) keeps a spike until its permanent replacement and tests exist. The [Phase 3 diagram and task 2](plan-init-project.md#phase-3--core-infrastructure) delete it at G3.1, before task 5 builds the permanent toy walker. Apply the retention rule when scheduling that handover.
+
+## 2026-11-26 — Second slice of the skeleton, and the follow-ups of the review of revision 57
+
+The maintainer's approval above held G2.5 open for one clarification and one sequencing issue, and let the second slice of task 11 proceed. Three questions came before the slice:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| What the entry points do before the detection inventory | Detection gives `Unknown`, or `HintOnly` for a format hint, and probing the error `UnknownFormat` with that hint. Only the two file functions, the blocking one and Tokio's, touch the input: they open the file, so one that cannot be opened is `SourceFailed`, "the source could not be opened". Nothing is read, so the usage is zero | With no signature before G3.5, the bytes of every input match nothing, which `api.md` section 5.1 maps to `UnknownFormat`. The alternatives were the plan's wording, `UnsupportedFormat` without the format that section 5.1 gives it (R20), and a prefix read from every source, as the spike's stub reads, whose bytes no budget would count before Phase 3 |
+| The legacy text encoding option | Left out until G3.4; it comes with Phase 3, task 12 | A new setter is a compatible change, and nothing is published before then. The alternative was a provisional default, `Windows1252`, for G3.4 to confirm |
+| When the I/O spike of Phase 3 is deleted | In the commit that completes Phase 3, task 6, with the toy format's source-parity tests | The toy walker of task 5 and the adapters of task 6 together replace what the spike shows, so both are checked against it, as section 1.2 keeps a spike. The alternatives were the commit of task 5 and the measurement of task 7 |
+
+**The follow-ups of the review.**
+
+- **`Declared`.** `api.md` section 6.3, `json-output.md` section 7.3 and the rustdoc of `SampleDescriptionState::Declared` and `Protection::declarations()` now say that a caller can receive `Declared` with no declaration in `declarations()` that names the index, since the retained-data limit can drop the declaration and keep the state, and that `is_fully_examined()` is then false. A unit test, `keeps_a_declared_state_whose_declaration_was_dropped`, covers the lookup. The round trip needs the serialized form, so plan Phase 2, task 13 now lists it, for the third slice; the spike does not model the list of sample descriptions.
+- **The I/O spike.** Plan section 1.2, the Phase 3 diagram and tasks 2 and 6 now keep it until task 6 and its tests exist.
+
+**The second slice.**
+
+- **`prober/`:** `Prober` with its seven options, their setters and getters (`builder.rs`); its ten blocking methods (`blocking.rs`); `Limits` with the proposed defaults of plan section 7.5, a getter and a setter per counter, and `get()` and `with()` by `Limit` (`limits.rs`); `SectionRequest` and `AttachmentHandling`, which `model` re-exports; and `procedure.rs`, where every entry point ends.
+- **`entry/`:** the ten functions at the crate root.
+- **`detect/`:** the detection of bytes that match nothing, which this build gives for every input.
+- **`source/positional.rs`:** `PositionalSource`, implemented for `&mut Source` and `Box<Source>`.
+- **`asynchronous/`:** `AsyncPositionalSource`, with its three implementations; `AsynchronousProber`, `probe_source` and `detect_source`, which need no feature; `asynchronous::tokio` with `TokioProber` and its six functions, the two path functions among them; and `asynchronous::futures` with `FuturesProber` and its four functions.
+- **Production constructors:** `Detection::unmatched()`, `Hint::new()`, `Usage::unused()`, `SourceIdentifier::primary()`, `ErrorParts::new()`, `Error::unknown_format()` and `Error::not_opened()`. `LimitRecord::empty()` moved out of the test block.
+- **Manifest:** the features `tokio` and `futures-io`, the optional dependencies `tokio` 1.54.1 with `fs` and `futures-io` 0.3.34 with `std`, and the development dependencies `tokio` with `rt`, `macros`, `fs` and `io-util` and `futures-lite` 2.6.1, all as the dossier approved them. The resolver chose `pin-project-lite` 0.2.18, newer than the dossier's 0.2.17, so the lock file was pinned to 0.2.17 with `cargo update --precise`. Every other version in it is the dossier's.
+
+**Online check, on 2026-11-26.**
+
+- Tokio's documentation of `tokio::fs::File::open` for 1.54.1 says that it returns an error outside a runtime. `spikes/tokio-file-access/` shows a panic on the first poll instead, and its test passes again with that version. So the path functions keep the "Panics" section of `api.md` section 9.2, and `panics_outside_a_runtime` pins the behavior; a Tokio that returned an error would fail it.
+- futures-io 0.3.34 gives `AsyncSeek` the implementations for `&mut T` and `Box<T>` where `T: ?Sized + Unpin`, and for `Pin<P>` where `P: DerefMut + Unpin`. `AsyncPositionalSource` copies them, as section 9.3 says.
+
+**Choices made without asking,** listed in `api.md` section 16:
+
+- The option enums have no catch-all and no `as_str()`, since no record serializes an option, and are not `Copy`.
+- Each handle sits in the module of its functions, is `Clone` and `Debug`, and has methods on `&self`, so a caller who keeps a future binds the handle first.
+- Clippy denies an `async fn` without an await (`unused_async`) and a function that returns an `async` block where an `async fn` would do (`manual_async_fn`). So the handles' methods stay `async fn` and await `std::future::ready` of their outcome until Phase 3 reads. The future still holds its input until polled, so it is `Send` exactly when the input is.
+- The four reader methods shared by the two runtime handles, and the two pointer implementations of `AsyncPositionalSource`, are each written once by a private macro (R36), as the enums of the first slice are.
+
+**Documents updated:** `api.md`, its review history, the note on the legacy text encoding option in section 4.3, and section 16; `json-output.md`, its review history and section 7.3; the plan, revision 58: the status line, section 1.2, Phase 2's progress and tasks 11 and 13, Phase 3's diagram and tasks 2, 6 and 12, and Appendix E; `CHANGELOG.md`; the expected package list `crates/cc-media-probe-checks/data/package-cc-media-probe.txt`, with the 19 new files; and the library's front page.
+
+**Verification.**
+
+- `node scripts/check.ts` passed: "all checks passed". The structure check and the duplicate check found nothing.
+- With all features, the library's 216 unit tests and 226 doc tests pass; without a feature, 210 and 223 do.
+- Line coverage is 99.85% for the library (2694 of 2698), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- Clippy, with every target of the library, is clean for no feature, `tokio`, `futures-io` and both. Of the library alone, it is clean on x86_64-unknown-linux-gnu and x86_64-pc-windows-msvc with and without the two features, and on wasm32-wasip1, wasm32-unknown-unknown and x86_64-unknown-uefi without a feature and with `futures-io`.
+
+**Open:**
+
+- **The `tokio` feature on WebAssembly and UEFI.** Tokio refuses its `fs` feature on WebAssembly, and its file type does not compile for UEFI, so the library with `tokio` builds for neither. Plan section 2 supports neither target, and the approved feature keeps `fs`. A dependency on `fs` for every target but those would give them Tokio's readers without the two path functions; the maintainer decides at G2.5 whether that is wanted.
+- The maintainer's review of the second slice.
+- The third slice: the `serde` feature with the strict reader and every reading rule that the reviews added, the document and its writer, and the contract tests of task 13 that cover them, the round trip of a `declared` description without its declaration included.
+- Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Review of the second slice of the skeleton
+
+The maintainer's review of the second slice found ten issues, after the repository checks, the builds of every feature combination and the whitespace check of the staged changes had passed. Separate runs reproduced the failures: the documentation without both features, the tests without features for `wasm32-wasip1`, and a test that opens a file. Nine issues hold and were fixed; the maintainer declined the tenth. Asked for their choices, the maintainer first said that WebAssembly is not needed at all, and then decided four questions:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| The Tokio development dependency, whose `fs` keeps the tests without features from building for `wasm32-wasip1` | Declined: the dependency stays as the dossier approved it, with `rt`, `macros`, `fs` and `io-util` | WebAssembly is not supported at all (plan section 2, revision 59). The alternatives were a dependency without `fs`, which the `tokio` feature brings to the only tests that use it, and one scoped to the targets that Tokio's `fs` builds for |
+| The `tokio` feature on WebAssembly and UEFI, open since the second slice | Closed for both: no dependency on `fs` is made target-specific | Plan section 2 supports neither target. The alternative was `fs` for every target but those, which would have given them Tokio's readers without the two path functions |
+| A check against rustdoc that fails for a feature combination | CI documents every feature combination with `cargo hack doc --locked --workspace --no-deps --feature-powerset`, beside the build of every combination (plan section 9.8) | The rustdoc step of `node scripts/check.ts` runs with every feature, so it could not see the failure. The alternatives were the same step in `node scripts/check.ts`, slower and in need of `cargo-hack` locally, and no check |
+| Which cases of the I/O spike move into the test kit before it is deleted with Phase 3, task 6 | Every case that the permanent tests of tasks 5 and 6 do not take over, each with its expected results: the header-assembly cases for task 16 and the two-file toy input with its resolver results for Phase 14, task 1 | The header assembler and the companion lookup that replace those parts of the spike come after task 6, so their inputs would otherwise be lost with it. The alternative was the header-assembly cases alone, as the review asked |
+
+**The fixes.**
+
+- **The crate's front page** linked `asynchronous::tokio` and `asynchronous::futures` whatever the features, so `cargo doc` failed without both. Each line of its Features section is now a pair of `cfg_attr` documentation attributes: a link when the build has the feature, plain code otherwise. All four combinations build, and the rendered page links only the module that the build has.
+- **The waking of an async source.** The rustdoc of `AsyncPositionalSource` and `api.md` section 9.3 now state the rule of waking. Before a call returns `Poll::Pending`, the source arranges for the waker of that call's `context` to be woken once the request can make progress, the latest call's waker after several such calls. Polling an inner future with the given `context` meets the rule. Both methods refer to it.
+- **`Prober`** is `#[non_exhaustive]` again, as plan section 8.10, the stability guide and `api.md` section 14 promise every options type, and as the spike had it.
+- **`Unknown`** is defined by the missing state entry of an index in range, whether the description was not read or its state, clear or declared, was not kept. The rustdoc of the variant and of `Protection::sample_description_state()` and `api.md` section 6.3 say it.
+- **The Tokio note** of `api.md` section 16 is now a decision, and names only the targets that Tokio 1.54.1 refuses `fs` on: Tokio's own guard excludes `wasm32-unknown-emscripten`, which the maintainer's review built with `tokio`.
+- **The file-name hint.** `Prober::with_file_name_hint` says that the detection inventory of G3.5 fixes the role of the hint, and that until then detection consults neither it nor the final component of a path, so only the format hint gives `HintOnly`. The blocking and Tokio file methods and the two file functions at the crate root refer to it, and plan Phase 2, task 11 says it too.
+- **The example of `probe_reader`** passes `File::open("movie.mkv")?` to the function and returns `Box<dyn std::error::Error>`, so the file's error is kept instead of becoming empty input.
+- **The tests that open files** in `prober/blocking.rs`, `entry/` and `asynchronous/tokio.rs` each work in a `TemporaryDirectory`, a test helper of the crate root's `tests.rs`. It creates a new directory with `fs::create_dir`, which fails when the name exists, so it tries the next name, and it removes the directory when dropped. A name inside it names no file until the test writes one, so the missing-file cases need no fixed name, and the successful-open tests truncate nothing outside it. The tests pass with `TMPDIR` set to a folder that holds `cc-media-probe-missing/movie.mkv` and `cc-media-probe-missing/movie.mp4`, and leave nothing behind.
+- **The I/O spike.** Plan section 1.2, the Phase 3 diagram, tasks 2, 6 and 16 of Phase 3 and task 1 of Phase 14 move every case that no permanent test takes over into the test kit before the deletion, as the maintainer chose.
+
+**Online check, on 2026-11-26.**
+
+- Tokio 1.54.1 refuses `fs`, `io-std`, `net`, `process`, `rt-multi-thread` and `signal` on `target_family = "wasm"` with `not(target_os = "emscripten")`, unless `tokio_unstable` is set, and refuses only `net`, `process` and `signal` on Emscripten. Its documentation lists `fs` among the features of `wasm32-unknown-emscripten`. A pull request that would have required pthreads for `fs` there, tokio-rs/tokio#8493, was closed without being merged on 2026-09-20.
+- The standard library's `Future::poll` says that a pending future stores the waker of the current `Context` and wakes it once it can make progress, and that only the waker of the most recent call should be woken. futures-io's `AsyncRead::poll_read` arranges the same for a reader. The rule of section 9.3 follows them.
+
+**Documents updated:** `api.md`, its review history and sections 6.3, 9.3 and 16; the plan, revision 59: the status line, sections 1.2, 2 and 9.8, Phase 2's progress and task 11, Phase 3's diagram and tasks 2, 6 and 16, Phase 14, task 1, and Appendix E; `CLAUDE.md` and `CONTRIBUTING.md`, for the documentation of every feature combination in CI; and `.github/workflows/ci.yml`, which runs it.
+
+**Verification.**
+
+- `node scripts/check.ts` passed: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 217 unit tests and 226 doc tests pass; without a feature, 211 and 223 do. The new test is the helper's own.
+- Line coverage is 99.85% for the library (2694 of 2698), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked --workspace --no-deps --feature-powerset` documents all nine combinations of the workspace, and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` is clean.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- The third slice: the `serde` feature with the strict reader and every reading rule that the reviews added, the document and its writer, and the contract tests of task 13 that cover them, the round trip of a `declared` description without its declaration included.
+- Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Second review of the second slice of the skeleton
+
+The maintainer's second review of the slice found seven issues in the staged changes, after the repository checks and the documentation of every feature combination had passed, and the library and its tests with every feature had compiled for Linux and Windows. All seven hold and were fixed. One needed the maintainer's choice:
+
+| Topic | Decision | Reasoning |
+|---|---|---|
+| `ErrorKind::Interrupted` from `PositionalSource::length` or `AsyncPositionalSource::poll_length`, which `probe_source` called no source failure while both length methods said that any error ends the probe | Retried, as from a read, so one rule holds for every call to a source, blocking and async (`api.md` section 4.4) | The standard library treats `Interrupted` as transient: `read_exact`, `read_to_end`, `write_all` and `io::copy` retry it. futures-io asks an async reader to retry it internally rather than return it. The alternative was to end the probe on it, and to say so under the errors of `probe_source` |
+
+**The fixes.**
+
+- **The rule of waking** of `AsyncPositionalSource` and `api.md` section 9.3 said that the probe is polled again only once the source wakes it. Tokio allows itself spurious wakeups, and another future of the same task can be woken, so both now say that the probe relies on the wake but may call before it: a source called again with its outstanding request arranges the wake again, for that call's waker, and returns `Pending` once more.
+- **Cancellation.** The rustdoc of the `asynchronous` module gains a Cancellation section with the two qualifications of `api.md` section 9.1: an open or read already handed to Tokio's blocking pool runs to its end, its result discarded, and a caller's own source decides the same for its own work. The library spawns no task. The two functions of `asynchronous`, the methods of the three handles and the free functions of both runtime modules link it, and the Tokio file methods name the blocking pool. The section names the Tokio module's path functions without links, which a build without `tokio` could not resolve.
+- **The image header** under `AttachmentHandling::MetadataOnly` is read when a picture leaves out its pixel size, its media type or both, since field guide section 3.9 gives each field its own fallback. The rustdoc of the variant and `api.md` section 4.3 say it.
+- **`Interrupted` from a length query** is retried, as the maintainer chose. `PositionalSource` lists interruptions as a rule of its own, both length methods say it under "Errors", and `Prober::probe_source` names the read and `length()`.
+- **Keeping a reader or a source.** The `detect_reader`, `detect_stream` and `detect_source` functions and methods, the two functions of `asynchronous`, `AsynchronousProber::detect_source`, the four shared reader methods of the runtime handles, and the reader functions of both runtime modules now say how to pass `&mut reader` or `&mut source`, or `Box::pin` of an input that is not `Unpin`. They also say that a seekable reader's position afterwards is unspecified and that a forward-only reader is left after exactly the bytes read from it, as `api.md` section 4.1 requires on each entry point.
+- **The example of `probe_bytes`** is compile-only, as `api.md` section 3.4 and plan section 9.7 require of an example that calls a probe function in Phase 2. It probes the bytes of a file read into memory. The unit test of the crate root's probing functions keeps the assertion of `UnknownFormat`.
+- **The blank line at the end of `api.md`**, which `git diff --cached --check` refused, is removed.
+
+**Online check, on 2026-11-26.**
+
+- Tokio's `runtime` documentation, "Detailed runtime behavior", says that tasks are normally scheduled only once woken, but that this is not guaranteed and Tokio may schedule a task that was not woken, a spurious wakeup.
+- Tokio 1.54.1's `fs` documentation, "Cancellation", says that cancelling a future of the module stops waiting for the result while the blocking operation runs on in the thread pool.
+- futures-io's `AsyncRead::poll_read` says that an implementation may not return `WouldBlock` or `Interrupted`, and must either retry `Interrupted` internally or convert it into another kind.
+
+**Documents updated:** `api.md`, its review history and sections 4.3, 4.4, 9.3 and 16; the plan's status line and the progress of Phase 2, without a new revision, since no rule of the plan changed.
+
+**Verification.**
+
+- `node scripts/check.ts` passed: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 217 unit tests and 226 doc tests pass, the example of `probe_bytes` now among those only compiled; without a feature, 211 and 223 do.
+- Line coverage is 99.85% for the library (2694 of 2698), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` documents all four combinations of the library. The rendered page of the `asynchronous` module has the anchor `cancellation`, which the links of the entry points reach.
+- `git diff --check` finds nothing, and `api.md` ends with a single newline.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- The third slice: the `serde` feature with the strict reader and every reading rule that the reviews added, the document and its writer, and the contract tests of task 13 that cover them, the round trip of a `declared` description without its declaration included.
+- Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Third review of the second slice of the skeleton
+
+The maintainer's third review of the slice found two issues in the rustdoc of the staged changes, after `node scripts/check.ts`, `git diff --cached --check` and the documentation of all four feature combinations of the library had passed, and the library and its tests with every feature had compiled for Linux and Windows. Both hold and were fixed; neither needed a choice.
+
+**The fixes.**
+
+- **Cancellation with a caller's Tokio file.** The Cancellation section of the `asynchronous` module, and `api.md` section 9.1, said that the result of an operation on Tokio's blocking pool is discarded and that the file closes once no operation is in flight. That holds only for a file that the dropped future owns: the file that a path function opens, its open included, and a `tokio::fs::File` passed by value. A `tokio::fs::File` passed as `&mut file` stays open with the caller and keeps the result, so its next read returns the bytes that a read in flight fetched; the review checked it with Tokio 1.54.1. Both now tell the two cases apart by who owns the file, and tell the caller, whose file's position is unspecified after any probe, to seek it before reading again.
+- **The file-name hint of `TokioProber::detect_file`**, to which the free `detect_file` of the Tokio module refers for it, was not stated there. It now says, as the blocking `Prober::detect_file` does, that the path's final component is the hint unless the builder sets one, and that detection consults it from plan gate G3.5 on.
+
+**Online check, on 2026-11-26.**
+
+- Tokio 1.54.1's `fs` documentation, "Cancellation": cancelling a future of the module stops waiting for the result, while the blocking operation runs on in the thread pool.
+- Tokio 1.54.1's `tokio::fs::File`: a file is not closed when it goes out of scope while an operation on it has not completed.
+- Tokio 1.54.1's `AsyncReadExt::read`, "Cancel safety": the method is cancel safe, so a read that is cancelled reads no data. The source of Tokio 1.54.1, a general-purpose crate, shows how a file keeps that promise: its `poll_read` takes the result of the operation in flight into the file's buffer and hands it to the next read, and its `seek` waits for the operation in flight before it starts and drops the buffered bytes.
+
+**Documents updated:** `api.md`, its review history and sections 9.1 and 16; the plan's status line and the progress of Phase 2, without a new revision, since no rule of the plan changed.
+
+**Verification.**
+
+- `node scripts/check.ts` passed: "all checks passed".
+- With all features, the library's 217 unit tests and 226 doc tests pass; without a feature, 211 and 223 do.
+- Line coverage is 99.85% for the library (2694 of 2698), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` documents all four combinations of the library.
+- `git diff --check` finds nothing.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- The third slice: the `serde` feature with the strict reader and every reading rule that the reviews added, the document and its writer, and the contract tests of task 13 that cover them, the round trip of a `declared` description without its declaration included.
+- Tasks 12 and 13, then G2.5.

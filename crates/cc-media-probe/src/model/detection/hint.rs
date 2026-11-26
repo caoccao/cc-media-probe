@@ -50,6 +50,11 @@ impl Hint {
   pub fn origin(&self) -> &HintOrigin {
     &self.origin
   }
+
+  /// The hint of `format`, from `origin`.
+  pub(crate) fn new(format: Format, origin: HintOrigin) -> Hint {
+    Hint { format, origin }
+  }
 }
 
 string_enumeration! {
@@ -76,10 +81,7 @@ mod tests {
   impl Hint {
     /// A hint of this format from the file name.
     pub(crate) fn sample(format: Format) -> Hint {
-      Hint {
-        format,
-        origin: HintOrigin::FileName,
-      }
+      Hint::new(format, HintOrigin::FileName)
     }
   }
 

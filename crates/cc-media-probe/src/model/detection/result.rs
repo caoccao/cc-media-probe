@@ -111,6 +111,25 @@ impl Detection {
   pub fn usage(&self) -> &Usage {
     &self.usage
   }
+
+  /// The detection of bytes that matched nothing: `HintOnly` with the hint where there is one, and `Unknown`
+  /// otherwise, since a hint never selects a format for such bytes (`api.md` section 4.3).
+  pub(crate) fn unmatched(hint: Option<Hint>, usage: Usage) -> Detection {
+    Detection {
+      outcome: if hint.is_some() {
+        DetectionOutcome::HintOnly
+      } else {
+        DetectionOutcome::Unknown
+      },
+      format: None,
+      confidence: None,
+      candidates: Vec::new(),
+      hint,
+      bytes_needed: None,
+      insufficient_reason: None,
+      usage,
+    }
+  }
 }
 
 #[cfg(test)]

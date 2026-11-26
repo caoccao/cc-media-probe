@@ -25,7 +25,7 @@ use super::parts::ErrorParts;
 use super::{CandidateCheck, ErrorKind, ErrorRecord, Observations};
 use crate::Format;
 use crate::completeness::{LimitRecord, Reason};
-use crate::model::{Hint, MediaReport, Usage};
+use crate::model::{Detection, Hint, MediaReport, Usage};
 use crate::source::{AttemptedIdentity, SourceIdentifier};
 
 /// What `probe_*` and `detect_*` return when they end without a result: one ending of the ordered procedure of
@@ -214,6 +214,34 @@ impl Error {
       next = if remaining > 0 { cause.source() } else { None };
     }
     listed.into_iter().map(|(_, message)| message).collect()
+  }
+
+  /// The error of a probe whose detection matched nothing, with or without a hint: `UnknownFormat`, with the
+  /// detection's hint and usage (`api.md` section 5.1).
+  pub(crate) fn unknown_format(detection: &Detection) -> Error {
+    let mut parts = ErrorParts::new(ErrorKind::UnknownFormat, detection.usage().clone());
+    parts.hint = detection.hint().cloned();
+    Error {
+      data: Box::new(ErrorData {
+        parts,
+        source_failure: None,
+        opening: false,
+      }),
+    }
+  }
+
+  /// The error of a primary input that could not be opened, such as a file that does not exist: `SourceFailed`
+  /// before any read, which keeps `cause` as its source (R19).
+  pub(crate) fn not_opened(cause: io::Error) -> Error {
+    let mut parts = ErrorParts::new(ErrorKind::SourceFailed, Usage::unused());
+    parts.source_identifier = Some(SourceIdentifier::primary());
+    Error {
+      data: Box::new(ErrorData {
+        parts,
+        source_failure: Some(cause),
+        opening: true,
+      }),
+    }
   }
 
   /// The parts that the record of the error copies.

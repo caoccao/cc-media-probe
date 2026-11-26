@@ -50,6 +50,11 @@ impl SourceIdentifier {
   pub fn value(&self) -> u64 {
     self.0
   }
+
+  /// The identifier of the primary input, 0.
+  pub(crate) fn primary() -> SourceIdentifier {
+    SourceIdentifier(0)
+  }
 }
 
 impl fmt::Display for SourceIdentifier {

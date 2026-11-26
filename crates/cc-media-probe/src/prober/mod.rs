@@ -15,10 +15,21 @@
 * limitations under the License.
 */
 
-//! The options of a probe (plan section 7.2): the limits and the names of their counters (`api.md` section 4.5).
-//! The crate root re-exports `Limit`.
+//! `Prober` and its options (plan section 7.2; `api.md` sections 4.2 to 4.5): the builder, its blocking methods,
+//! the limits and the names of their counters, and the two option enums. The crate root re-exports `Prober`,
+//! `Limits` and `Limit`, and `model` the option enums.
 
+mod attachment_handling;
+mod blocking;
+mod builder;
 mod constants;
 mod limit;
+mod limits;
+mod procedure;
+mod section_request;
 
+pub use attachment_handling::AttachmentHandling;
+pub use builder::Prober;
 pub use limit::Limit;
+pub use limits::Limits;
+pub use section_request::SectionRequest;

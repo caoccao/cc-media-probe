@@ -65,6 +65,9 @@ pub struct Protection {
 
 impl Protection {
   /// The declarations, in stored order. Empty only when `is_fully_examined()` is false.
+  ///
+  /// A description in the state `Declared` can have no declaration here that names its index: the retained-data
+  /// limit can drop a declaration and keep the description's state, and `is_fully_examined()` is then false.
   #[must_use]
   pub fn declarations(&self) -> &[ProtectionDeclaration] {
     &self.declarations
@@ -104,8 +107,8 @@ impl Protection {
   ///
   /// - the state of its entry, where `sample_descriptions()` holds that index;
   /// - `Unknown` for any other index from 1 to the declared count, and for any index from 1 on while the count of
-  ///   a stream with sample descriptions is unknown, since such a description was not read or its declaration not
-  ///   kept;
+  ///   a stream with sample descriptions is unknown: the list holds no state entry for such an index, whether the
+  ///   description was not read or its state, clear or declared, was not kept;
   /// - `None` for an index outside the declared count, and for every index where `has_sample_descriptions()` is
   ///   false, whether or not the stream was fully examined.
   ///
@@ -259,6 +262,26 @@ mod tests {
     };
     assert!(!without_descriptions.has_sample_descriptions());
     assert_eq!(without_descriptions.sample_description_state(1), None);
+  }
+
+  #[test]
+  fn keeps_a_declared_state_whose_declaration_was_dropped() {
+    let dropped = Protection {
+      declarations: Vec::new(),
+      fully_examined: false,
+      configuration_clear: None,
+      ..Protection::sample()
+    };
+    assert_eq!(dropped.declarations(), []);
+    assert!(!dropped.is_fully_examined());
+    assert_eq!(
+      dropped.sample_description_state(1),
+      Some(&SampleDescriptionState::Declared)
+    );
+    assert_eq!(
+      dropped.sample_description_state(2),
+      Some(&SampleDescriptionState::Clear)
+    );
   }
 
   #[test]

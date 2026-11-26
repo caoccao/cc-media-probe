@@ -10,6 +10,7 @@ Nothing is published yet. The first release will be 0.1.0, once Matroska and Web
 
 ### Added
 
-- The data model of the public API (development plan, Phase 2, task 11): the report, its streams with their codec, video, audio and subtitle information, chapters, tags, attachments, programs and external references, the detection, completeness with its fixed-size record, diagnostics, the source table with portable paths, the typed details with their catch-all, and the error with its serializable record. Probing, the options, the serialized form and the async surface follow.
+- The data model of the public API (development plan, Phase 2, task 11): the report, its streams with their codec, video, audio and subtitle information, chapters, tags, attachments, programs and external references, the detection, completeness with its fixed-size record, diagnostics, the source table with portable paths, the typed details with their catch-all, and the error with its serializable record. The serialized form follows.
+- The entry points of the public API (development plan, Phase 2, task 11): the ten blocking functions that probe or detect a file, a seekable reader, a forward-only reader, bytes and the caller's own positional source; `Prober` with its options and `Limits` with the proposed defaults; the async source trait with its two functions; and the features `tokio` and `futures-io`, each with a module for the reader traits of its runtime. No format is detected yet, so detection gives the outcome "unknown", or "hint only" for a format hint, and a probe the error "unknown format".
 
 [Unreleased]: https://github.com/caoccao/cc-media-probe/commits/main

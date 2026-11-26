@@ -68,10 +68,13 @@ string_enumeration! {
   SampleDescriptionState {
     /// Examined, and it declares no protection.
     Clear => CLEAR_NAME,
-    /// The declarations name its index.
+    /// A declaration names its index. The retained-data limit can drop that declaration and keep this state, so
+    /// `Protection::declarations()` can hold no declaration that names the index; `Protection::is_fully_examined()`
+    /// is then false.
     Declared => DECLARED_NAME,
-    /// Not read, or its declaration not kept. `Protection::sample_description_state()` gives it for a description
-    /// that the list does not hold; the list itself never does.
+    /// No state entry was kept: the description was not read, or its state, clear or declared, was dropped.
+    /// `Protection::sample_description_state()` gives it for an index in range that the sparse list holds no entry
+    /// for; the list itself never holds it.
     Unknown => UNKNOWN_NAME,
   }
 }

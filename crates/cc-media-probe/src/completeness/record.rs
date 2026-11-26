@@ -59,6 +59,19 @@ pub struct LimitRecord {
 }
 
 impl LimitRecord {
+  /// The record of a probe that nothing stopped.
+  pub(crate) fn empty() -> LimitRecord {
+    LimitRecord {
+      exhausted: Vec::new(),
+      first_stopped: Vec::new(),
+      first_reasons: Vec::new(),
+      omitted_diagnostics: 0,
+      omitted_declarations: 0,
+      omitted_reasons: 0,
+      omitted_references: 0,
+    }
+  }
+
   /// Whether the counter of `limit` was exhausted.
   #[must_use]
   pub fn exhausted(&self, limit: &Limit) -> bool {
@@ -123,19 +136,6 @@ mod tests {
   use crate::completeness::{Part, PartReason, Reason};
 
   impl LimitRecord {
-    /// The record of a probe that nothing stopped.
-    pub(crate) fn empty() -> LimitRecord {
-      LimitRecord {
-        exhausted: Vec::new(),
-        first_stopped: Vec::new(),
-        first_reasons: Vec::new(),
-        omitted_diagnostics: 0,
-        omitted_declarations: 0,
-        omitted_reasons: 0,
-        omitted_references: 0,
-      }
-    }
-
     /// The record of a probe whose `limit` stopped `part` first.
     pub(crate) fn stopped(limit: Limit, part: Part) -> LimitRecord {
       LimitRecord {

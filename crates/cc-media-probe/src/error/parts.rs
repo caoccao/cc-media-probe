@@ -57,31 +57,38 @@ pub(super) struct ErrorParts {
   pub(super) record: LimitRecord,
 }
 
+impl ErrorParts {
+  /// The parts of an error of `kind` that holds only what the budget accounted for: no partial data, and a record
+  /// that nothing stopped.
+  pub(super) fn new(kind: ErrorKind, usage: Usage) -> ErrorParts {
+    ErrorParts {
+      kind,
+      format: None,
+      candidates: Vec::new(),
+      hint: None,
+      reason: None,
+      source_identifier: None,
+      attempted_identity: None,
+      offset: None,
+      logical_offset: None,
+      partial_report: None,
+      observations: None,
+      usage,
+      record: LimitRecord::empty(),
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::ErrorParts;
-  use crate::completeness::LimitRecord;
   use crate::error::ErrorKind;
   use crate::model::Usage;
 
   impl ErrorParts {
     /// The parts of an error of this kind, without partial data.
     pub(crate) fn sample(kind: ErrorKind) -> ErrorParts {
-      ErrorParts {
-        kind,
-        format: None,
-        candidates: Vec::new(),
-        hint: None,
-        reason: None,
-        source_identifier: None,
-        attempted_identity: None,
-        offset: None,
-        logical_offset: None,
-        partial_report: None,
-        observations: None,
-        usage: Usage::sample(),
-        record: LimitRecord::empty(),
-      }
+      ErrorParts::new(kind, Usage::sample())
     }
   }
 

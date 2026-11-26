@@ -145,7 +145,7 @@ It runs, in order: the Node.js version, file hygiene, Markdown links, the specif
 
 **Never set `RUSTFLAGS`.** It replaces the flag that marks a repository build, and a guard test then fails. Warnings are denied by the workspace's lint table instead.
 
-CI ([section 9.8](docs/plans/plan-init-project.md#98-continuous-integration)) runs the same checks on Linux, macOS and Windows on every push to `main` and to every `release/*` branch. It also runs the tests on current stable Rust and on the `rust-version` that the crates declare, builds every feature combination with `cargo-hack` 0.6.46, and audits licenses, advisories and the crate allow-list with `cargo-deny` 0.21.0.
+CI ([section 9.8](docs/plans/plan-init-project.md#98-continuous-integration)) runs the same checks on Linux, macOS and Windows on every push to `main` and to every `release/*` branch. It also runs the tests on current stable Rust and on the `rust-version` that the crates declare, builds and documents every feature combination with `cargo-hack` 0.6.46, and audits licenses, advisories and the crate allow-list with `cargo-deny` 0.21.0.
 
 ```mermaid
 flowchart LR

@@ -118,6 +118,20 @@ impl Usage {
       _ => None,
     }
   }
+
+  /// The usage of a probe that read nothing and held nothing.
+  pub(crate) fn unused() -> Usage {
+    Usage {
+      bytes_read: 0,
+      peak_working_memory: 0,
+      retained_data: 0,
+      retained_payloads: 0,
+      decompressed_output: 0,
+      work_units: 0,
+      companion_requests: 0,
+      sources_opened: 0,
+    }
+  }
 }
 
 #[cfg(test)]

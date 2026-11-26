@@ -15,8 +15,9 @@
 * limitations under the License.
 */
 
-//! The source table and the types that name a source (`api.md` sections 6.3 and 6.15): `SourceEntry`,
-//! `SourceIdentifier`, `SourceOffset`, `PortablePath`, `RawPath` and `RawPathEncoding`.
+//! The source table, the types that name a source, and the trait of a caller's own blocking source (`api.md`
+//! sections 4.4, 6.3 and 6.15): `PositionalSource`, `SourceEntry`, `SourceIdentifier`, `SourceOffset`,
+//! `PortablePath`, `RawPath` and `RawPathEncoding`.
 
 mod attempted_identity;
 mod constants;
@@ -25,6 +26,7 @@ mod identifier;
 mod offset;
 mod outcome;
 mod portable_path;
+mod positional;
 mod raw_path;
 mod role;
 
@@ -34,5 +36,8 @@ pub use identifier::SourceIdentifier;
 pub use offset::SourceOffset;
 pub use outcome::SourceOutcome;
 pub use portable_path::PortablePath;
+pub use positional::PositionalSource;
+#[cfg(test)]
+pub(crate) use positional::tests::Ranges;
 pub use raw_path::{RawPath, RawPathEncoding};
 pub use role::SourceRole;

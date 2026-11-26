@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-//! The report model (`api.md` section 6): every type of a report and of a detection, and the value types, except
-//! those that the crate root holds.
+//! The report model (`api.md` section 6): every type of a report and of a detection, the value types, and the
+//! enums of the options (`api.md` section 4.3), except those that the crate root holds.
 
 mod attachments;
 mod audio;
@@ -39,6 +39,7 @@ mod values;
 mod video;
 
 pub use crate::format::SupportLevel;
+pub use crate::prober::{AttachmentHandling, SectionRequest};
 pub use attachments::{Attachment, AttachmentRole};
 pub use audio::{
   AmbisonicChannelOrdering, AmbisonicNormalization, Ambisonics, AudioInformation, ByteOrder, ChannelLayout,

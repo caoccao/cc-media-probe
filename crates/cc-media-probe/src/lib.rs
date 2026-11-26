@@ -21,7 +21,33 @@
 //!
 //! The library is in development, and nothing is published yet. This build holds the public data model of the
 //! API, whose [specification](https://github.com/caoccao/cc-media-probe/blob/main/docs/design/api.md) the
-//! development plan approved; the entry points, the options and the serialized form follow.
+//! development plan approved, and its entry points, options, limits and source traits, blocking and async; the
+//! serialized form follows. No format is detected yet: until the detection inventory arrives, the bytes of every
+//! input match nothing, so detection gives the outcome `Unknown`, or `HintOnly` for a format hint, and a probe the
+//! error `UnknownFormat`.
+//!
+//! # Probing
+//!
+//! ```no_run
+//! # fn main() -> Result<(), cc_media_probe::Error> {
+//! use cc_media_probe::{Limits, Prober};
+//!
+//! let report = cc_media_probe::probe_file("movie.mkv")?;
+//! println!("{}: {} streams", report.format(), report.streams().len());
+//!
+//! let prober = Prober::new().with_limits(Limits::default().with_bytes_read(16 * 1024 * 1024));
+//! let detection = prober.detect_file("unknown.bin")?;
+//! println!("{}", detection.outcome().as_str());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! - Ten functions at the crate root probe or detect with the default options: [`probe_file`], [`probe_reader`]
+//!   for a `Read + Seek`, [`probe_stream`] for a forward-only `Read` such as standard input, [`probe_bytes`] and
+//!   [`probe_source`] for the caller's own [`source::PositionalSource`], and the five `detect_*` functions.
+//! - [`Prober`] carries the options, among them the [`Limits`] of the shared budget, and has the same ten methods.
+//! - [`asynchronous`] holds the async surface: a caller's own async source needs no feature, and the features
+//!   `tokio` and `futures-io` add one module each for the reader traits of their runtime.
 //!
 //! # What a probe reports
 //!
@@ -38,21 +64,47 @@
 //!
 //! # Modules
 //!
-//! - [`model`]: every other type of the report model, and the value types such as [`Rational`] and [`Seconds`].
+//! - [`model`]: every other type of the report model, the value types such as [`Rational`] and [`Seconds`], and
+//!   the enums of the options.
 //! - [`completeness`]: the statuses, parts and reasons, and the fixed-size [`completeness::LimitRecord`].
 //! - [`diagnostics`]: what a probe noticed on the way.
 //! - [`details`]: the typed details of formats and codecs.
-//! - [`source`]: the source table and the types that name a source.
+//! - [`source`]: the source table, the types that name a source, and the trait of a caller's own source.
 //! - [`error`]: the error record and the parts of an error.
+//! - [`asynchronous`]: the async source trait, its functions and handles, and the modules of the two runtimes.
+//!
+//! # Features
+//!
+#![cfg_attr(
+  feature = "tokio",
+  doc = "- `tokio`, off by default: [`asynchronous::tokio`], with Tokio's `AsyncRead`, `AsyncSeek` and file type."
+)]
+#![cfg_attr(
+  not(feature = "tokio"),
+  doc = "- `tokio`, off by default: `asynchronous::tokio`, with Tokio's `AsyncRead`, `AsyncSeek` and file type."
+)]
+#![cfg_attr(
+  feature = "futures-io",
+  doc = "- `futures-io`, off by default: [`asynchronous::futures`], with the `AsyncRead` and `AsyncSeek` of futures-io."
+)]
+#![cfg_attr(
+  not(feature = "futures-io"),
+  doc = "- `futures-io`, off by default: `asynchronous::futures`, with the `AsyncRead` and `AsyncSeek` of futures-io."
+)]
+//!
+//! Features are additive: enabling one never removes or changes an item.
 
 #![deny(missing_debug_implementations)]
 
+pub mod asynchronous;
 mod codec;
 pub mod completeness;
 mod constants;
 mod data_enumeration;
 pub mod details;
+mod detect;
 pub mod diagnostics;
+mod entry;
 pub mod error;
 mod format;
 pub mod model;
@@ -64,7 +116,11 @@ mod tests;
 mod utilities;
 
 pub use codec::Codec;
+pub use entry::{
+  detect_bytes, detect_file, detect_reader, detect_source, detect_stream, probe_bytes, probe_file, probe_reader,
+  probe_source, probe_stream,
+};
 pub use error::{Error, ErrorKind};
 pub use format::Format;
 pub use model::{Detection, MediaReport, Rational, Seconds, Stream, StreamKind};
-pub use prober::Limit;
+pub use prober::{Limit, Limits, Prober};

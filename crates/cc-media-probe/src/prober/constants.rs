@@ -66,3 +66,31 @@ pub const DIAGNOSTICS_TEXT: &str = "diagnostics limit";
 pub const COMPANION_REQUESTS_TEXT: &str = "companion-request limit";
 /// The name for people of `Limit::SourcesOpened`.
 pub const SOURCES_OPENED_TEXT: &str = "source limit";
+
+/// One mebibyte, the unit of the proposed byte limits.
+const MEBIBYTE: u64 = 1_048_576;
+
+/// The proposed default of `Limit::BytesRead`, 64 MiB (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_BYTES_READ: u64 = 64 * MEBIBYTE;
+/// The proposed default of `Limit::WorkingMemory`, 32 MiB (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_WORKING_MEMORY: u64 = 32 * MEBIBYTE;
+/// The proposed default of `Limit::HeaderBytesPerStream`, 1 MiB (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_HEADER_BYTES_PER_STREAM: u64 = MEBIBYTE;
+/// The proposed default of `Limit::RetainedData`, 16 MiB (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_RETAINED_DATA: u64 = 16 * MEBIBYTE;
+/// The proposed default of `Limit::RetainedPayloads`, 64 MiB (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_RETAINED_PAYLOADS: u64 = 64 * MEBIBYTE;
+/// The proposed default of `Limit::DecompressedOutput`, 16 MiB (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_DECOMPRESSED_OUTPUT: u64 = 16 * MEBIBYTE;
+/// The proposed default of `Limit::WorkUnits`, 2,000,000 units (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_WORK_UNITS: u64 = 2_000_000;
+/// The proposed default of `Limit::NestingDepth`, 64 levels (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_NESTING_DEPTH: u64 = 64;
+/// The proposed default of `Limit::Streams`, 4,096 declarations (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_STREAMS: u64 = 4_096;
+/// The proposed default of `Limit::Diagnostics`, 1,000 diagnostics (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_DIAGNOSTICS: u64 = 1_000;
+/// The proposed default of `Limit::CompanionRequests`, 256 requests (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_COMPANION_REQUESTS: u64 = 256;
+/// The proposed default of `Limit::SourcesOpened`, 64 sources (plan section 7.5; confirmed at G3.3).
+pub const DEFAULT_SOURCES_OPENED: u64 = 64;
