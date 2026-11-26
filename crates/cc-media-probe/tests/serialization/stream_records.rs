@@ -139,6 +139,13 @@ fn a_header_states_reason_finds_its_counter_and_is_kept_first_or_counted() {
   // Neither kept: the first is counted among the first reasons that the kept ones lack, and the second once more.
   assert!(!reads(&with_record(json!([]), &["bytes_read", "retained_data"], "1")));
   assert!(reads(&with_record(json!([]), &["bytes_read", "retained_data"], "2")));
+  // The read limit stopped the headers, so the record pairs it, as the maintainer chose at the fifth review of that
+  // part; the retained data, which only kept a reason from being stored, needs no pair.
+  let mut unpaired = with_record(json!([first()]), &["bytes_read", "retained_data"], "1");
+  unpaired["completeness"]["record"]["first_stopped"] = json!([{ "limit": "retained_data", "part": "headers" }]);
+  assert!(!reads(&unpaired));
+  unpaired["completeness"]["record"]["first_stopped"] = json!([{ "limit": "bytes_read", "part": "headers" }]);
+  assert!(reads(&unpaired));
   // A state of a newer version is not checked.
   let mut newer = with_record(json!([first()]), &[], "0");
   newer["streams"][1]["header_status"] = json!({ "state": "decoded", "reason": limited });

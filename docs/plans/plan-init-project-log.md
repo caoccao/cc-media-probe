@@ -4850,3 +4850,156 @@ The maintainer staged the revised part and reviewed it again: twenty findings, s
 - The maintainer's answer to this round, and to the form of a limit that stopped no part (above).
 - The second part: the document, its entries and its writer, with the serialization tests that need them, the cases of the spike's tests about documents among them.
 - Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Fifth review of the third slice's first part
+
+The maintainer approved the overall plan at revision 61 and reviewed the committed part (`32e73d4`) again: one protocol issue, which holds the sign-off of the current part of task 11, and G2.5 on hold until the rest of Phase 2's exit criteria are met: the document and its entries, the incremental writer, the runnable examples, the remaining contract tests and the review of the API checklist. G2.1 to G2.4 had passed, and the maintainer found nothing else that needs a gate decision. In the review, all 196 serialization tests passed, and the maintainer verified that the reader accepts a complete report and refuses it once the only changes are `exhausted: ["diagnostics"]` and `omitted_diagnostics: "1"`, since every exhausted limit had to name the part that it stopped first, though a probe can drop an informational diagnostic while every requested part completes. The finding holds; it is the item that the fourth review's revision left open. Six new tests and four changed ones cover it. Run against an export of `HEAD`, which `git archive` wrote into the scratch directory, seven of the ten failed, at the review's case or at the rule under test; the other three, of a kept reason, an observed entry and an error's reason whose limit has no pair, guard rules that the committed part held through its stricter form, which paired every exhausted limit.
+
+**Decisions of the maintainer:**
+
+| Topic | Decision | Alternative |
+|---|---|---|
+| The limits that name a part | A limit that a reason of the kind `limit_exhausted` or `companion_limited` names has its record in `first_stopped`, wherever the reason stands: among the record's first reasons, in `reasons`, as a header state's or a source entry's reason, and as an error's reason or a candidate's cause; any other exhausted limit may have none | Only the limits of the record's first reasons, or any subset with no rule beyond those of a stopped part and of detection |
+| The limit behind an omitted count | An omitted reference needs the record of `retained_data`, and an omitted declaration that of `streams` or `retained_data`, which the record checks itself, an error's included; an omitted reason or diagnostic needs none | Only through a reason of that limit that is kept or first |
+| The outcome under `--strict` | The library's tests read such a report and write it back as complete, beside one whose limit stopped a part, read back as incomplete; the plan records the document's `ok` entry for the tests of the second part (section 8.8) and the exit status under `--strict` for the tool's tests (section 9.2) | Write enough of the document's entry now to test its outcome |
+
+**The fix.** `first_stopped` names some of the limits of `exhausted`, each once, in their order (`completeness/record.rs`). A limit that a reason names, and the limit behind an omitted reference or declaration, has its record; `LimitRecord::limits_stopped` checks every reason's limit against an index of the records, and the record, the completeness (`completeness/agreement.rs`), the report's entries and header states (`model/report/shortfalls.rs`, `model/report/header_reasons.rs`) and the error's reason, candidates and observations (`error/record_form.rs`, `error/references.rs`) call it. `Reason::named_limit` gives the limit of either kind. The review's report reads back complete, so `is_complete()` is true and its entry will be `ok`, which `--strict` accepts (`cli.md` section 6.3). The new tests are in `tests/serialization/stopping_limits.rs`; `own_checks.rs`, `shortfalls.rs`, `stream_records.rs` and `wire_values.rs` gained cases.
+
+**Choices made without asking,** each in `api.md` section 16 and `json-output.md` section 11, open at G2.5:
+
+- The records of `first_stopped` in the order of `exhausted`.
+- An omitted declaration beside both `streams` and `retained_data` exhausted needs the record of either.
+
+**Found while revising.**
+
+- The one serialization test that listed an exhausted limit without a record as malformed (`wire_values.rs`) now reads it, and checks that `first_stopped()` gives `None` for it.
+- The six checks of a reason's limit each built a set of the exhausted limits of their own. They now share `LimitRecord::limits_stopped`, so `Reason::finds_its_counter`, `source::reasons_find_counters` and `LimitRecord::exhausted_limits` are removed.
+- A refused case passes for any reason, so I printed the message of each refused case of the new and changed tests once: each fails at the rule under test, the record's own reasons, the completeness's kept reasons, an entry's or a header state's reason, an error's reason and an observed entry's.
+
+**Online check, on 2026-11-26.** Elasticsearch's search API keeps a limit's flag apart from whether its result is partial: `terminated_early` says whether `terminate_after` ended the collection, written as `false` since pull request 40839 when the limit was set and ended nothing, and `timed_out` marks results that may be partial (elastic.co, "The _search API"; github.com/elastic/elasticsearch/pull/40839). The record makes the same split: `exhausted` says that a counter ran out, and `first_stopped` and the statuses say what, if anything, it cut short.
+
+**Documents updated:** `api.md`, its review history and sections 5.3 and 16, where the open item is answered; `json-output.md`, its review history and sections 7.2, 10 and 11; the plan at revision 62, its status line, sections 7.5, 8.8 and 9.2, the progress of Phase 2 and Appendix E; the expected package list in `crates/cc-media-probe-checks/data/`.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 238 unit tests, its 202 serialization tests and its 230 doc tests pass; without a feature, 212 unit tests and 223 doc tests do. The 202 serialization tests also pass with serde_json's `arbitrary_precision` and `float_roundtrip` together.
+- Line coverage is 98.22% for the library (5804 of 5909), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` documents all eight combinations of the library, and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` is clean. `cargo check` of the library with all features and targets passes for `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`.
+- `git diff --check` finds nothing, and nothing is staged.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- The second part: the document, its entries and its writer, with the serialization tests that need them, the cases of the spike's tests about documents and the `ok` entry of this review among them.
+- Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Sixth review of the third slice's first part
+
+The maintainer staged the revised part and reviewed it again: six findings, three of priority 2 and three of priority 3. The original regression is fixed: a report complete but for one omitted diagnostic round-trips as complete. In the review, `node scripts/check.ts`, `git diff --cached --check` and all 202 serialization tests passed. Each finding holds. Five new tests and one changed one cover them. Run against an export of the staged index, which `git checkout-index` wrote into the scratch directory without touching the index, all five new tests failed, at the review's case or at the rule under test; the changed one passes there too, since it now leaves the diagnostics limit without a part, which both versions allow.
+
+**Decisions of the maintainer:**
+
+| Topic | Decision | Alternative |
+|---|---|---|
+| A counter of an activity that never ran | `companion_requests` and `sources_opened` are refused beside companions not applicable or not enabled, in an error that ended at detection, and in an error record of neither a partial report nor observations; `header_bytes_per_stream`, `retained_payloads` and `streams` are refused in an error that ended at detection; a status, a kind or a limit of a newer version is not checked | The companion counters only, or also the counters of a section not requested |
+| The diagnostics limit as a cause | A reason of `limit_exhausted` or `companion_limited` that names `diagnostics` is malformed wherever it stands, alone too, a detection's insufficient reason included, and the record pairs it with no part | Refused only where it would name a stopped part |
+| `diagnostics` exhausted | Only beside `omitted_diagnostics` above `"0"`; the converse does not hold, since the retained data can keep a diagnostic too | Allowed beside no omitted diagnostic |
+
+**The fixes:**
+
+- **The record.** A reason names no `diagnostics` (`completeness/reason.rs`), and the record pairs it with no part and exhausts it only beside an omitted diagnostic (`completeness/record.rs`). A completeness whose companions are not applicable or not enabled exhausts no companion counter (`completeness/agreement.rs`), through `LimitRecord::exhausts_none_of` and `crate::constants::COMPANION_LIMITS`. An error checks the counters of its probe's activities (`error/activities.rs`, with `error::constants::PROBER_LIMITS`), and `ErrorKind::ended_at_detection` now serves it and the check of the detection stops (`error/kind.rs`, `error/detection_stops.rs`).
+- **The contracts.** `json-output.md` sections 7.2 and 7.3 and `api.md` section 5.3 say that a header state of a newer version is held to no rule of the record, as reading already did.
+- **The plan's list of malformed records** (section 8.8) no longer refuses first-stopped records that do not name the exhausted limits; it lists a record out of the order of `exhausted`, of a limit that it does not hold, or missing for a limit that a reason names.
+- **The fifth review's decision** in `json-output.md` section 11 no longer says that a complete report can hold a limit that only kept a reason from being stored: a reason is omitted only beside a part that fell short.
+- **The rule of `companion_limited`** was the maintainer's decision and also a choice made without asking. It is now only the decision, here, in `api.md` section 16 and in `json-output.md` section 11.
+- **Tests.** `tests/serialization/activity_counters.rs` holds the three cases of the counters of activities, and `stopping_limits.rs` two of the diagnostics limit. `omitted_counts.rs` no longer pairs the diagnostics limit with a part.
+
+**Choices made without asking,** each in `api.md` section 16 and `json-output.md` section 11, open at G2.5:
+
+- In an error that ended at detection, the counters that detection's checks can charge left open, and `decompressed_output`, which this version ties to no one activity.
+- Observations without a partial report allow a companion counter whatever their entries, since a request that a limit refused before it was made has no entry.
+- Companions complete or cut short are not checked further beside an exhausted companion counter.
+
+**Found while revising.**
+
+- Printing the message of each refused case showed that the fixture of companions not enabled was refused for its missing first reason, since that status records a shortfall, and not for the counter. The fixture now holds the reason `companions_not_enabled`, and a control case without the counter reads. Every other refused case fails at its rule.
+- The controls of an undetermined and of an unsupported format first lacked the candidates that their kinds need, and a detection of insufficient data kept the fixture's confidence. Each control now reads.
+- The duplicate check (R36) found that `ErrorKind::ended_at_detection` had the shape of `Reason::is_a_requests` once normalized, a match of three variants. The three kinds are now the constant `DETECTION_ENDINGS`, as the outcomes of a refusal became `REFUSED_OUTCOMES` at the fourth review.
+- The package check found `src/error/activities.rs` missing from the expected package list, which now names it with `tests/serialization/activity_counters.rs`.
+
+**Online check, on 2026-11-26.** The rules restate plan section 7.5, which says that only companion lookup charges the two companion counters and that diagnostics beyond the cap are counted, not stored, so the design needed no source beyond the fifth review's. The fifth review's fix used `Option::map_or_default`, which rust-lang/rust pull request 156222 stabilized in Rust 1.98.0, below the declared `rust-version` of 1.100, as pull request 164248 added to the release notes.
+
+**Documents updated:** `api.md`, its review history and sections 5.3, 5.5, 10.2 and 16; `json-output.md`, its review history and sections 4.4, 7.2, 7.3, 10 and 11; the plan at revision 63, its status line, sections 7.5 and 8.8, the progress of Phase 2 and Appendix E; the expected package list in `crates/cc-media-probe-checks/data/`.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 238 unit tests, its 207 serialization tests and its 230 doc tests pass; without a feature, 212 unit tests and 223 doc tests do. The 207 serialization tests also pass with serde_json's `arbitrary_precision` and `float_roundtrip` together.
+- Line coverage is 98.23% for the library (5837 of 5942), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` are clean for all eight combinations. `cargo check` of the library with all features and targets passes for `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`.
+- `git diff --check` finds nothing, and the index holds the maintainer's staged changes unchanged.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- The second part: the document, its entries and its writer, with the serialization tests that need them, the cases of the spike's tests about documents and the `ok` entry of the fifth review among them.
+- Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Seventh review of the third slice's first part
+
+The maintainer staged the revised part and reviewed it again: six findings, five of priority 2 in the reader, each reproduced through the public serialization interface, and one of priority 3 in the acceptance criteria. In the review, `node scripts/check.ts`, `git diff --cached --check` and all 207 serialization tests passed. Each finding holds. Ten new tests and one changed one cover them. Run against an export of the staged part, all eleven failed, at the review's case or at the rule under test; the two tests of the sixth review that this round leaves as they were pass in both.
+
+**Decisions of the maintainer:**
+
+| Topic | Decision | Alternative |
+|---|---|---|
+| What a limit can stop | A limit that only one activity charges stops only that activity's parts: `streams` discovery, `header_bytes_per_stream` the headers and the attachments (an attachment's image header, `api.md` section 4.5), `retained_payloads` the attachments, and `companion_requests` and `sources_opened` the companions. Every other limit can stop any part, and `diagnostics` none. Reading checks the table wherever a limit stands against a part: the first-stopped records, every part reason, a known header state's reason (the headers), a source entry's reason (the companions), a candidate's cause and a detection's insufficient reason (detection). A limit or a part of a newer version is not checked | The first-stopped records only, or a list of parts for every limit |
+| A probe that never ran its prober | An error that ended at detection, and a source failure without a format, a partial report or observations, which failed at its source's opening or while detection read. A disabled feature and a probe stopped before its inventory ran it, whatever they hold. Such a record exhausts no counter of a later activity and names detection alone, in its first-stopped records and its first reasons | Asked first as any kind without a partial report or observations, with "counters and parts" chosen over "counters only"; asked again, once that premise proved wrong for two kinds, against a source failure without either whatever its format, and against keeping the premise |
+| The usage of an activity that never ran | `companion_requests` and `sources_opened` are 0 beside companions not applicable or not enabled, in an error whose probe never ran its prober, and in every detection, with no companion among an error's observations; `retained_payloads` is 0 where the prober never ran | The lookup counters only, or also `sources_opened` at most `companion_requests` in every usage |
+| A companion refused by a limit | Before its request, without a source: `companion_requests`, `sources_opened` or `retained_data`. After it, with a source and in a source entry `limit_reached`: `companion_requests`, `sources_opened` or `bytes_read`, which a resolver's `limit_reached` names, or `working_memory`, which cannot hold the source's identity token (`api.md` section 13) | Only before a request |
+
+**The fixes:**
+
+- **The table of what a limit can stop.** `LIMIT_SCOPES` in `prober/constants.rs` gives the parts of the five limits that one activity charges, and `Limit::can_stop` in `prober/limit.rs` reads it. `Reason::can_stop` applies it to the limit that a reason names. The record checks its first-stopped records (`completeness/record.rs`), and a part reason, a known header state and a candidate's check of a known state check their reasons (`completeness/part_reason.rs`, `completeness/header_status.rs`, `error/candidate_check.rs`), read alone too, with the message `crate::constants::SCOPED_LIMIT_MESSAGE`.
+- **A companion refused by a limit.** `Reason::fits_the_request` holds a `companion_limited` to `BEFORE_REQUEST_LIMITS` or `AFTER_REQUEST_LIMITS` (`completeness/constants.rs`), the first in a part reason without a source and the second in one with a source and in a source entry (`source/entry.rs`).
+- **A detection.** A detection of a known outcome refuses an insufficient reason whose limit cannot stop detection, and a usage that counts a companion request, a companion source opened or a retained payload (`model/detection/detection_form.rs`, through `Usage::charges_no_prober`).
+- **An error whose probe never ran its prober.** `error/activities.rs` gives `prober_ran` by kind and, where the prober never ran, refuses an exhausted limit that cannot stop detection (`LimitRecord::exhausted_limits_can_stop`), a usage of a later activity, and an observed companion. `error/detection_stops.rs` holds such a record to detection alone through the same function. `PROBER_LIMITS` is gone, since the table holds its limits.
+- **A report.** Companions not applicable or not enabled stand beside a usage that counts no companion request and no companion source opened (`model/report/shortfalls.rs`, through `Usage::charges_no_lookup`).
+- **The acceptance criteria.** `json-output.md` section 10 and plan section 8.8 now qualify their header-state rules with a header state known to the reader.
+- **The contracts.** `api.md` sections 4.5, 5.3, 5.5, 6.14, 8, 10.2 and 13, and `json-output.md` sections 4.3, 4.4, 7.2, 7.3, 7.13 and 7.14, state the rules. Both now say that `sources_opened` counts only companion sources, as plan section 7.5 does.
+- **Tests.** `tests/serialization/limit_scopes.rs` holds four tests of the table, of the companion's limits and of the review's cause read in a detection and in its error. `activity_usage.rs` holds four of the usage and the observed companions. `activity_counters.rs` reverses the assertion that the review cited, now that a primary file that could not be opened exhausts no counter of a later activity, and adds a test of detection alone and one of a disabled feature and a probe stopped before its inventory.
+
+**Choices made without asking,** each in `api.md` section 16 and `json-output.md` section 11, open at G2.5:
+
+- A detection of a newer outcome is not checked for its cause or its usage, as its members are not.
+- A `companion_limited` against a part of a newer version is still held to the limits before or after its request, which its kind and its source tell.
+- An error's own reason stands against no part of its own. The limit that it names has its first-stopped record, and the record is checked.
+- Observations beside an error that ended at detection still read when they list the primary input alone.
+- A report's retained payloads are not checked against its sections, as the sixth review left the counters of a section not requested.
+
+**Found while revising.**
+
+- **The premise of the sixth review's rule.** "Neither a partial report nor observations" stood for a probe that never reached its prober. But a disabled feature and a probe stopped before its inventory reach it, and they omit observations when they observed nothing (`json-output.md` section 4.4). Holding them to detection alone would have refused a first reason of discovery that they legitimately hold. I asked again, and the maintainer chose to tell the probes apart by kind. That narrows the sixth review's companion-counter rule for those two kinds, and for a source failure that names its format.
+- **The sample usage of the unit tests** counted a source opened beside no companion request, which plan section 7.5 rules out, since it counts only companion sources. Two round trips of the samples failed on the new rules. The sample now counts none, and the test of the accessors gives each counter a distinct value.
+- **A displaced sentence.** The sixth review's edits had left the rule of an omitted declaration's reason, in `json-output.md` section 7.2, inside the new bullet of the companion counters. It is back in the bullet of the omitted counts.
+- **Printing the message of each refused case** showed one fixture refused for its limits out of their declared order, not for the rule under test. It now lists them in order. Every refused case of the new tests fails at its rule. The review's case of a companion refused before its request by `streams` fails at the table, which comes first; `bytes_read`, `working_memory` and `work_units` without a source fail at the limits before a request.
+- **Clippy** found a fixture's argument passed by value and not consumed; it is now a reference.
+
+**Online check, on 2026-11-26.** The table restates plan section 7.5 and `api.md` sections 4.5 and 13, which say what each counter counts and which limits refuse a companion, so the design needed no outside source. The table is a `const` that holds slices of `Part`, a type with a destructor through its catch-all. The Rust Reference's chapter on constant evaluation allows a borrow whose temporary lives to the end of the program, except a mutable borrow or one of a value with interior mutability, and refuses only an expression that would run `Drop::drop`. The destructors chapter says that lifetime extension applies to const items, so the slices live to the end of the program and none is dropped.
+
+**Documents updated:** `api.md`, its review history and sections 4.5, 5.3, 5.5, 6.14, 8, 10.2, 13 and 16; `json-output.md`, its review history and sections 4.3, 4.4, 7.2, 7.3, 7.13, 7.14, 10 and 11; the plan at revision 64, its status line, sections 7.5 and 8.8, the progress of Phase 2 and Appendix E; the expected package list in `crates/cc-media-probe-checks/data/`.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 238 unit tests, its 217 serialization tests and its 230 doc tests pass; without a feature, 212 unit tests and 223 doc tests do. The 217 serialization tests also pass with serde_json's `arbitrary_precision` and `float_roundtrip` together.
+- Line coverage is 98.25% for the library (5921 of 6026), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` are clean for all eight combinations. `cargo check` of the library with all features and targets passes for `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`.
+- `git diff --check` finds nothing, and the index holds the maintainer's staged changes unchanged.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- The second part: the document, its entries and its writer, with the serialization tests that need them, the cases of the spike's tests about documents and the `ok` entry of the fifth review among them.
+- Tasks 12 and 13, then G2.5.

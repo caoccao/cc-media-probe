@@ -22,9 +22,11 @@
 //! - **The first part a limit stopped.** Detection comes first, so a limit that a candidate's cause names, or the
 //!   reason of an undetermined format, stopped detection first. The record checks the same of its first reasons of
 //!   detection, wherever it is read.
-//! - **A probe that ended at detection.** An unknown, undetermined or unsupported format ends the probe before
+//! - **A probe that never ran its prober.** An unknown, undetermined or unsupported format ends the probe before
 //!   discovery begins, so its record names no other part: every part that a limit stopped first, and the part of
-//!   every first reason, is detection.
+//!   every first reason, is detection. As the maintainer chose at the seventh review of that part, which read a
+//!   primary file that could not be opened, the same holds for a source failure before detection found a format
+//!   (`super::activities::prober_ran`).
 //!
 //! A kind of a newer version is not checked.
 
@@ -36,18 +38,16 @@ use crate::completeness::Part;
 /// The checks of the limits and the parts that stopped detection.
 pub(super) fn check_detection_stops(parts: &ErrorParts) -> Result<(), &'static str> {
   let record = &parts.record;
-  let ended_at_detection = match parts.kind {
-    ErrorKind::Unrecognized(_) => return Ok(()),
-    ErrorKind::UnknownFormat | ErrorKind::FormatNotDetermined | ErrorKind::UnsupportedFormat => true,
-    _ => false,
-  };
+  if matches!(parts.kind, ErrorKind::Unrecognized(_)) {
+    return Ok(());
+  }
   let undetermined = parts
     .reason
     .as_ref()
     .filter(|_| matches!(parts.kind, ErrorKind::FormatNotDetermined));
   let causes = parts.candidates.iter().filter_map(CandidateCheck::reason);
   let stopped_first = record.stopped_detection_first(causes.chain(undetermined));
-  let detection_only = !ended_at_detection
+  let detection_only = super::activities::prober_ran(parts)
     || (record
       .first_reasons()
       .iter()

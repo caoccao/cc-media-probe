@@ -206,8 +206,14 @@ pub const REASON_MESSAGE: &str = "a reason of a known kind lacks the members of 
 
 /// The message of a record that is not true to itself (`json-output.md` section 7.2).
 #[cfg(feature = "serde")]
-pub const LIMIT_RECORD_MESSAGE: &str = "the limit record names a limit or a part twice, out of order or without its \
-                                        first reason, or holds a first reason with a detail or without its counter";
+pub const LIMIT_RECORD_MESSAGE: &str = "the limit record names a limit or a part twice or out of order, a stopped part \
+                                        without its first reason or a limit not exhausted, or holds a first reason \
+                                        with a detail";
+
+/// The message of a reason that names a limit which the record does not pair with a part that it stopped first
+/// (`json-output.md` section 7.2; fifth review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const UNSTOPPED_LIMIT_MESSAGE: &str = "a reason names a limit that its record does not say stopped a part";
 
 /// The message of a record that counts an omitted reason without a first reason or the exhausted retained
 /// data, which alone keeps a reason from being kept.
@@ -215,15 +221,16 @@ pub const LIMIT_RECORD_MESSAGE: &str = "the limit record names a limit or a part
 pub const OMITTED_REASONS_MESSAGE: &str = "a limit record that counts an omitted reason has no first reason or has not \
                                            exhausted the retained data";
 
-/// The message of a record that counts an omitted reference without the exhausted retained data and the first
-/// reason of a part that finds references.
+/// The message of a record that counts an omitted reference without the first reason of a part that finds
+/// references and the retained data paired with the part that it stopped first (fifth review of the third slice's
+/// first part).
 #[cfg(feature = "serde")]
-pub const OMITTED_REFERENCES_MESSAGE: &str = "a limit record that counts an omitted reference has not exhausted the \
-                                              retained data for a part that finds references";
+pub const OMITTED_REFERENCES_MESSAGE: &str = "a limit record that counts an omitted reference does not say that the \
+                                              retained data stopped a part, or a part that finds references";
 
-/// The message of a record that counts an omitted declaration without the first reason of discovery and the
-/// exhausted stream limit or retained data, or an omitted diagnostic without the exhausted diagnostics or retained
-/// data (fourth review of the third slice's first part).
+/// The message of a record that counts an omitted declaration without the first reason of discovery and the stream
+/// limit or retained data paired with the part that it stopped first, or an omitted diagnostic without the exhausted
+/// diagnostics or retained data (fourth and fifth reviews of the third slice's first part).
 #[cfg(feature = "serde")]
 pub const OMITTED_STORAGE_MESSAGE: &str = "a limit record counts an omitted declaration or diagnostic without the \
                                            limit that kept it from being stored";
@@ -247,3 +254,46 @@ pub const HEADER_STATUS_MESSAGE: &str = "a header status holds an identification
 #[cfg(feature = "serde")]
 pub const COMPANION_REASON_MESSAGE: &str = "a companion's reason stands against another part, or a request's reason \
                                             names no source";
+
+/// The message of a completeness whose companions never ran beside an exhausted companion counter (sixth review of
+/// the third slice's first part).
+#[cfg(feature = "serde")]
+pub const COMPANION_COUNTER_MESSAGE: &str = "a completeness whose companions never ran exhausts a companion counter";
+
+/// The message of a reason that names the diagnostics limit as its cause, which only bounds the diagnostics stored
+/// and stops no part (sixth review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const DIAGNOSTICS_CAUSE_MESSAGE: &str = "a reason names the diagnostics limit, which stops no part";
+
+/// The message of a record that pairs the diagnostics limit with a part, or holds it as exhausted beside no omitted
+/// diagnostic (sixth review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const DIAGNOSTICS_LIMIT_MESSAGE: &str = "a limit record pairs the diagnostics limit with a part, or holds it as \
+                                             exhausted without an omitted diagnostic";
+
+/// The limits that can refuse a companion before its request, in the order of the checks that a request needs (plan
+/// section 7.7): the request limit, the source limit and the retained data that holds the request's entry (`api.md`
+/// section 13; seventh review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const BEFORE_REQUEST_LIMITS: [crate::Limit; 3] = [
+  crate::Limit::CompanionRequests,
+  crate::Limit::SourcesOpened,
+  crate::Limit::RetainedData,
+];
+
+/// The limits that can stop a companion once its request was made: the request limit, the source limit and the read
+/// limit, which a resolver's `limit_reached` names, and the working memory that cannot hold the source's identity
+/// token (`api.md` section 13; seventh review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const AFTER_REQUEST_LIMITS: [crate::Limit; 4] = [
+  crate::Limit::CompanionRequests,
+  crate::Limit::SourcesOpened,
+  crate::Limit::BytesRead,
+  crate::Limit::WorkingMemory,
+];
+
+/// The message of a `companion_limited` reason whose limit cannot stop a companion where its source places it, before
+/// or after its request (`api.md` section 13; seventh review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const COMPANION_LIMIT_MESSAGE: &str = "a companion_limited reason names a limit that cannot stop a companion \
+                                           before its request, or after it, as its source tells";

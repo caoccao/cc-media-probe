@@ -146,6 +146,10 @@ fn an_errors_limit_reason_finds_its_counter() {
   };
   assert!(read(stopped).is_ok());
   assert!(read(empty_record()).is_err());
+  // The read limit exhausted but not paired with a part, as a limit that a reason names is (fifth review of the
+  // third slice's first part).
+  let unpaired = with(empty_record(), "exhausted", json!(["bytes_read"]));
+  assert!(read(unpaired).is_err());
 }
 
 const PAIR: &str = "a value and its provenance are not present together";

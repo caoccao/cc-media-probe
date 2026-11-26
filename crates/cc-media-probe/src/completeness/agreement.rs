@@ -21,7 +21,7 @@
 //! status of a newer version beside a known header state that is not final, stays with the report.
 //!
 //! - **The kept reasons.** Each reason in `reasons` has the first reason of its part in the record, and a limit
-//!   reason among them finds its counter.
+//!   reason among them names a limit that the record pairs with the part that it stopped first.
 //! - **The statuses.** A known part whose status records a shortfall has a first reason, and one whose status
 //!   records none has no first reason. A status of a newer version leaves its part open.
 //! - **The omitted reasons.** Each first reason that `reasons` lacks or changes was counted in `omitted_reasons`, on
@@ -31,6 +31,10 @@
 //!   the first reasons that `reasons` lacks (nineteenth review). `omitted_at_least` gives the count that both
 //!   rules need, to which a report adds the reasons of its source entries that `reasons` lacks (third review of the
 //!   third slice's first part).
+//! - **The companion counters.** Companions that are not applicable or not enabled never ran, so the record exhausts
+//!   neither of the counters that only companion lookup charges, as the maintainer chose at the sixth review of the
+//!   third slice's first part, which read the companion requests exhausted beside companions not applicable. A
+//!   status of a newer version is not checked.
 //!
 //! Each check looks a part up in an index of the reasons by part, never in a list, so the checks stay linear
 //! whatever parts of a newer version a completeness names (review of the third slice's first part).
@@ -38,16 +42,28 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
-use super::constants::REASONS_DISAGREE_MESSAGE;
-use super::{Completeness, LimitRecord, Part, PartReason, Reason};
+use super::constants::{COMPANION_COUNTER_MESSAGE, REASONS_DISAGREE_MESSAGE};
+use super::{CompanionStatus, Completeness, LimitRecord, Part, PartReason, Reason};
 use crate::Limit;
+use crate::constants::COMPANION_LIMITS;
 
 /// Whether the statuses, the reasons and the record of a completeness agree.
 pub(super) fn check_agreement(completeness: &Completeness) -> Result<(), &'static str> {
   let agree = kept_reasons_agree(completeness)
     && statuses_agree(completeness)
     && omitted_at_least(completeness) <= completeness.record().omitted_reasons();
-  if agree { Ok(()) } else { Err(REASONS_DISAGREE_MESSAGE) }
+  if !agree {
+    return Err(REASONS_DISAGREE_MESSAGE);
+  }
+  let companions_never_ran = matches!(
+    completeness.companions(),
+    CompanionStatus::NotApplicable | CompanionStatus::NotEnabled
+  );
+  if companions_never_ran && !completeness.record().exhausts_none_of(&COMPANION_LIMITS) {
+    Err(COMPANION_COUNTER_MESSAGE)
+  } else {
+    Ok(())
+  }
 }
 
 /// The fewest reasons that the completeness says were omitted: each first reason that the kept reasons lack or
@@ -63,16 +79,18 @@ pub(crate) fn omitted_at_least(completeness: &Completeness) -> u64 {
   }
 }
 
-/// Whether each kept reason has its part's first reason in the record, and finds its counter, which for a reason of
-/// detection stopped detection first (fourth review of the third slice's first part).
+/// Whether each kept reason has its part's first reason in the record, and names only a limit that stopped a part
+/// (fifth review of the third slice's first part), which for a reason of detection stopped detection first (fourth
+/// review).
 fn kept_reasons_agree(completeness: &Completeness) -> bool {
   let record = completeness.record();
   let first_parts: HashSet<&Part> = record.first_reasons().iter().map(PartReason::part).collect();
-  let exhausted: HashSet<&Limit> = record.exhausted_limits().iter().collect();
   record.stopped_detection_first(LimitRecord::of_detection(completeness.reasons().iter()))
-    && completeness.reasons().iter().all(|reason| {
-      first_parts.contains(reason.part()) && reason.reason().finds_its_counter(|limit| exhausted.contains(limit))
-    })
+    && record.limits_stopped(completeness.reasons().iter().map(PartReason::reason))
+    && completeness
+      .reasons()
+      .iter()
+      .all(|reason| first_parts.contains(reason.part()))
 }
 
 /// Whether a known status records a shortfall: `None` for a status of a newer version.

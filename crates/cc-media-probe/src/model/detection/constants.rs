@@ -56,3 +56,9 @@ pub const FEWEST_AMBIGUOUS_CANDIDATES: usize = 2;
 #[cfg(feature = "serde")]
 pub const DETECTION_MESSAGE: &str = "a detection lacks a member of its outcome, holds another outcome's, or ranks \
                                      candidates that name a format twice or rise in confidence";
+
+/// The message of a detection whose usage counts a companion request, a companion source opened or a payload
+/// retained, which detection never charges (`api.md` section 8; seventh review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const DETECTION_USAGE_MESSAGE: &str = "a detection's usage counts a companion request, a source opened or a \
+                                           payload retained, which detection never charges";

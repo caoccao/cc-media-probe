@@ -80,6 +80,20 @@ string_enumeration! {
   }
 }
 
+#[cfg(feature = "serde")]
+impl Limit {
+  /// Whether the limit can stop `part` (`super::constants::LIMIT_SCOPES`): a limit that only one activity charges
+  /// stops only the parts of that activity, and every other limit any part. A limit or a part of a newer version is
+  /// not checked.
+  pub(crate) fn can_stop(&self, part: &crate::completeness::Part) -> bool {
+    matches!(part, crate::completeness::Part::Unrecognized(_))
+      || super::constants::LIMIT_SCOPES
+        .iter()
+        .find(|(limit, _)| limit == self)
+        .is_none_or(|(_, parts)| parts.contains(part))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::Limit;

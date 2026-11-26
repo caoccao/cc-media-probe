@@ -202,7 +202,9 @@ impl TryFrom<SourceEntryForm> for SourceEntry {
 /// which the fourth review of that part read unchecked on an entry alone that was not found and named source 7; the
 /// primary input and an opened or failed source have no reason; and a companion that was not opened has the reason
 /// of its outcome, `companion_not_found`, `companion_declined` or `companion_limited`, or a reason of a newer kind. An
-/// outcome of a newer version is not checked.
+/// outcome of a newer version is not checked. As the maintainer chose at the seventh review of that part, the
+/// `companion_limited` of an entry, whose request was made, names a limit that can stop a companion after its request
+/// (`Reason::fits_the_request`).
 #[cfg(feature = "serde")]
 fn check_entry(entry: &SourceEntry) -> Result<(), &'static str> {
   use super::constants::{SOURCE_IDENTITY_MESSAGE, SOURCE_REASON_MESSAGE};
@@ -226,7 +228,12 @@ fn check_entry(entry: &SourceEntry) -> Result<(), &'static str> {
     (Some(expected), Some(kind)) => !primary && (*kind == expected || matches!(kind, ReasonKind::Unrecognized(_))),
     _ => false,
   };
-  if fits { Ok(()) } else { Err(SOURCE_REASON_MESSAGE) }
+  let requested = entry.reason.as_ref().is_none_or(|reason| reason.fits_the_request(true));
+  if fits && requested {
+    Ok(())
+  } else {
+    Err(SOURCE_REASON_MESSAGE)
+  }
 }
 
 #[cfg(feature = "serde")]

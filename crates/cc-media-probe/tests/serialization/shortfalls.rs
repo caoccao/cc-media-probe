@@ -148,6 +148,22 @@ fn a_companion_refused_by_a_limit_names_a_limit_that_the_record_holds_as_exhaust
   assert!(reads(&cut));
   // The review's case: the entry beside companions that are not applicable and no exhausted limit.
   assert!(!reads(&requested(entry.clone(), "not_applicable")));
+  // The entry's reason counted among the omitted reasons, with the input's end first: the limit that refused the
+  // companion stopped the companions, so the record pairs it (fifth review of the third slice's first part).
+  let truncated = json!({ "kind": "truncated_input" });
+  let mut counted = short(
+    requested(entry.clone(), "cut_short"),
+    "companions",
+    "cut_short",
+    &truncated,
+  );
+  let record = &mut counted["completeness"]["record"];
+  record["exhausted"] = json!(["retained_data", "sources_opened"]);
+  record["first_stopped"] = json!([{ "limit": "sources_opened", "part": "companions" }]);
+  record["omitted_reasons"] = json!("1");
+  assert!(reads(&counted));
+  counted["completeness"]["record"]["first_stopped"] = json!([]);
+  assert!(!reads(&counted));
   // A cut-short report whose entry names a limit that the record does not hold as exhausted.
   let mut unexhausted = requested(entry, "cut_short");
   let declined = json!({ "part": "companions", "source_identifier": "1", "reason": { "kind": "companion_declined" } });

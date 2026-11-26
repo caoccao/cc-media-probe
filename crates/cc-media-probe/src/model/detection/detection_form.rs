@@ -118,11 +118,35 @@ impl TryFrom<Rooted<WithKept<DetectionBody>>> for Detection {
       usage: body.usage,
       kept,
     };
-    if candidates_rank(&detection.candidates) && members_fit_the_outcome(&detection) {
-      Ok(detection)
-    } else {
-      Err(super::constants::DETECTION_MESSAGE)
+    if !candidates_rank(&detection.candidates) || !members_fit_the_outcome(&detection) {
+      return Err(super::constants::DETECTION_MESSAGE);
     }
+    check_activities(&detection)?;
+    Ok(detection)
+  }
+}
+
+/// Whether a detection of a known outcome charged only what detection charges (`api.md` sections 5.3 and 8), as the
+/// maintainer chose at the seventh review of the third slice's first part, which read an insufficient detection whose
+/// reason named the companion requests, a cause that the error of the same detection refuses: detection opens no
+/// companion and runs no prober, so its insufficient reason names a limit that can stop detection
+/// (`crate::Limit::can_stop`), and its usage counts no companion request, no companion source opened and no payload
+/// retained. An outcome of a newer version is not checked.
+fn check_activities(detection: &Detection) -> Result<(), &'static str> {
+  if matches!(detection.outcome, DetectionOutcome::Unrecognized(_)) {
+    return Ok(());
+  }
+  let stopped_detection = detection
+    .insufficient_reason
+    .as_ref()
+    .is_none_or(|reason| reason.can_stop(&crate::completeness::Part::Detection));
+  if !stopped_detection {
+    return Err(crate::constants::SCOPED_LIMIT_MESSAGE);
+  }
+  if detection.usage.charges_no_prober() {
+    Ok(())
+  } else {
+    Err(super::constants::DETECTION_USAGE_MESSAGE)
   }
 }
 

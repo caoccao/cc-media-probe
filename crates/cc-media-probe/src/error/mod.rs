@@ -20,6 +20,8 @@
 //! `Observations`. `Reason`, which an error and a candidate's check give, is the one of `completeness`, re-exported
 //! here as `api.md` section 3.2 lists it.
 
+#[cfg(feature = "serde")]
+mod activities;
 mod candidate_check;
 #[cfg(feature = "serde")]
 mod candidates;

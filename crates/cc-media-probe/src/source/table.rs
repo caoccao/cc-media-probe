@@ -36,7 +36,6 @@
 use std::collections::{HashMap, HashSet};
 
 use super::{SourceEntry, SourceIdentifier, SourceOutcome};
-use crate::Limit;
 
 /// The identifiers of the table, or the message of a table that names a source twice, lacks the primary input or
 /// holds an alias of a source that it does not name, that is not earlier, that is an alias itself or whose outcome
@@ -73,15 +72,4 @@ pub(crate) fn bytes_read_within(sources: &[SourceEntry], total: u64) -> bool {
     .filter_map(SourceEntry::bytes_read)
     .try_fold(0_u64, u64::checked_add)
     .is_some_and(|read| read <= total)
-}
-
-/// Whether the reason of each entry that names a limit, `CompanionLimited`, finds its counter among the exhausted
-/// limits of the record that stands beside the table: a report's, or an error's beside its observations (second
-/// review of the third slice's first part, which read an entry refused by a limit beside no exhausted limit).
-pub(crate) fn reasons_find_counters(sources: &[SourceEntry], exhausted: &[Limit]) -> bool {
-  let exhausted: HashSet<&Limit> = exhausted.iter().collect();
-  sources
-    .iter()
-    .filter_map(SourceEntry::reason)
-    .all(|reason| reason.finds_its_counter(|limit| exhausted.contains(limit)))
 }

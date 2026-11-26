@@ -24,8 +24,8 @@
 //! - **The companions.** A companion's entry in the source table says that lookup was on and a request was made, so
 //!   the companions are complete or cut short, and cut short when the entry was not opened: not found, declined or
 //!   refused by a limit (section 13). An expected companion that the report lists says that the input expects one,
-//!   so the companions are not "not applicable". The reason of an entry that names a limit finds its counter among
-//!   the record's exhausted limits.
+//!   so the companions are not "not applicable". The reason of an entry that names a limit names one that the
+//!   record pairs with the part that it stopped first, so one that it holds as exhausted.
 //!
 //! The third review of that part read a nameless expected companion beside complete companions, so, as the
 //! maintainer chose, an expected companion that no entry requested, whose name no entry's requested name is, rules
@@ -42,18 +42,22 @@
 //! The reasons that the records state agree with the completeness: a reason that names a request is its entry's
 //! (`crate::source::requests_agree`); and the reason of each entry not opened and of each header state is kept, the
 //! first reason of its part, or counted among the omitted reasons, with a limit that a header state's reason names
-//! among the exhausted ones (`super::header_reasons`, fourth review).
+//! among the exhausted ones (`super::header_reasons`, fourth review), and paired with the part that it stopped
+//! first (fifth review).
+//!
+//! The usage states the companion lookup that ran, so, as the maintainer chose at the seventh review of that part,
+//! which read companion requests counted beside companions not applicable, companions that are not applicable or
+//! not enabled stand beside a usage that counts no companion request and no companion source opened. A status of a
+//! newer version is not checked.
 
 use std::collections::HashSet;
 
 use super::MediaReport;
-use super::constants::{SHORTFALL_MESSAGE, UNCOUNTED_REASON_MESSAGE};
-use super::header_reasons::{header_reasons_find_counters, header_reasons_not_kept};
+use super::constants::{LOOKUP_USAGE_MESSAGE, SHORTFALL_MESSAGE, UNCOUNTED_REASON_MESSAGE};
+use super::header_reasons::{header_reasons_not_kept, header_reasons_stopped};
 use crate::completeness::{CompanionStatus, Part, Shortfall, omitted_at_least};
 use crate::model::{Protection, ProtectionDeclaration, ProtectionScope, ReferenceKind, Stream, TagSet, TargetScope};
-use crate::source::{
-  REQUEST_REASON_MESSAGE, SourceRole, reasons_find_counters, request_reasons_not_kept, requests_agree,
-};
+use crate::source::{REQUEST_REASON_MESSAGE, SourceEntry, SourceRole, request_reasons_not_kept, requests_agree};
 
 /// The checks of the shortfalls that the report's records state.
 pub(super) fn check_shortfalls(report: &MediaReport) -> Result<(), &'static str> {
@@ -62,10 +66,17 @@ pub(super) fn check_shortfalls(report: &MediaReport) -> Result<(), &'static str>
   let stated = tags_agree(report)
     && discovery_agrees(report)
     && companions_agree(report)
-    && reasons_find_counters(&report.sources, record.exhausted_limits())
-    && header_reasons_find_counters(report);
+    && record.limits_stopped(report.sources.iter().filter_map(SourceEntry::reason))
+    && header_reasons_stopped(report);
   if !stated {
     return Err(SHORTFALL_MESSAGE);
+  }
+  let lookup_never_ran = matches!(
+    completeness.companions(),
+    CompanionStatus::NotApplicable | CompanionStatus::NotEnabled
+  );
+  if lookup_never_ran && !report.usage.charges_no_lookup() {
+    return Err(LOOKUP_USAGE_MESSAGE);
   }
   let reasons = completeness.reasons().iter().chain(record.first_reasons());
   if !requests_agree(&report.sources, reasons) {

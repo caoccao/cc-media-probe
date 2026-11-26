@@ -87,10 +87,11 @@ impl CandidateCheck {
   /// Whether the reason fits the state (`api.md` section 5.1), as the second review of the third slice's first part
   /// asked, which read a validated candidate with the reason `truncated_input`: only a candidate that could not be
   /// checked has a cause, an unavailable range, a truncated input or a limit by name, and a state or a reason of a
-  /// newer version is not checked.
+  /// newer version is not checked. As the maintainer chose at the seventh review of that part, the limit that the
+  /// cause of a known state names can stop detection (`Limit::can_stop`).
   #[cfg(feature = "serde")]
   fn check_form(&self) -> Result<(), &'static str> {
-    use crate::completeness::ReasonKind;
+    use crate::completeness::{Part, ReasonKind};
     let fits = match (&self.state, self.reason.as_ref().map(Reason::kind)) {
       (_, None) | (CheckState::Unrecognized(_), _) => true,
       (CheckState::NotCheckable, Some(kind)) => matches!(
@@ -102,10 +103,19 @@ impl CandidateCheck {
       ),
       _ => false,
     };
-    if fits {
+    if !fits {
+      return Err(super::constants::CANDIDATE_CHECK_MESSAGE);
+    }
+    let known = !matches!(self.state, CheckState::Unrecognized(_));
+    if !known
+      || self
+        .reason
+        .as_ref()
+        .is_none_or(|reason| reason.can_stop(&Part::Detection))
+    {
       Ok(())
     } else {
-      Err(super::constants::CANDIDATE_CHECK_MESSAGE)
+      Err(crate::constants::SCOPED_LIMIT_MESSAGE)
     }
   }
 }

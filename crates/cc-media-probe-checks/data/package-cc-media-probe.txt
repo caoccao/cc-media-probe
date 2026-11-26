@@ -55,6 +55,7 @@ src/document/schema_version.rs
 src/entry/detection.rs
 src/entry/mod.rs
 src/entry/probing.rs
+src/error/activities.rs
 src/error/candidate_check.rs
 src/error/candidates.rs
 src/error/constants.rs
@@ -267,6 +268,8 @@ src/utilities/exact_float.rs
 src/utilities/greatest_common_divisor.rs
 src/utilities/hexadecimal.rs
 src/utilities/mod.rs
+tests/serialization/activity_counters.rs
+tests/serialization/activity_usage.rs
 tests/serialization/agreements.rs
 tests/serialization/bytes_read.rs
 tests/serialization/candidate_order.rs
@@ -279,6 +282,7 @@ tests/serialization/endings.rs
 tests/serialization/entity_rules.rs
 tests/serialization/fixtures.rs
 tests/serialization/identities.rs
+tests/serialization/limit_scopes.rs
 tests/serialization/main.rs
 tests/serialization/model_checks.rs
 tests/serialization/model_records.rs
@@ -295,6 +299,7 @@ tests/serialization/self_describing.rs
 tests/serialization/shortfalls.rs
 tests/serialization/skipped_sections.rs
 tests/serialization/standalone.rs
+tests/serialization/stopping_limits.rs
 tests/serialization/stream_records.rs
 tests/serialization/trees.rs
 tests/serialization/version_first.rs

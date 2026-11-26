@@ -94,3 +94,30 @@ pub const DEFAULT_DIAGNOSTICS: u64 = 1_000;
 pub const DEFAULT_COMPANION_REQUESTS: u64 = 256;
 /// The proposed default of `Limit::SourcesOpened`, 64 sources (plan section 7.5; confirmed at G3.3).
 pub const DEFAULT_SOURCES_OPENED: u64 = 64;
+
+/// The parts that each limit which only one activity charges can stop (plan section 7.5; `api.md` sections 4.5 and
+/// 13), as the maintainer chose at the seventh review of the third slice's first part, which read the companion
+/// requests paired with the tags and the stream limit with detection: the stream declarations stop discovery, the
+/// bytes held for one header a stream's headers or an attachment's image header, the attachment payloads the
+/// attachments, and the companion requests and the companion sources opened the companions. Every other limit can
+/// stop any part, and the diagnostics limit none, which the record checks on its own.
+#[cfg(feature = "serde")]
+pub const LIMIT_SCOPES: [(super::Limit, &[crate::completeness::Part]); 5] = [
+  (super::Limit::Streams, &[crate::completeness::Part::Discovery]),
+  (
+    super::Limit::HeaderBytesPerStream,
+    &[
+      crate::completeness::Part::Headers,
+      crate::completeness::Part::Attachments,
+    ],
+  ),
+  (
+    super::Limit::RetainedPayloads,
+    &[crate::completeness::Part::Attachments],
+  ),
+  (
+    super::Limit::CompanionRequests,
+    &[crate::completeness::Part::Companions],
+  ),
+  (super::Limit::SourcesOpened, &[crate::completeness::Part::Companions]),
+];

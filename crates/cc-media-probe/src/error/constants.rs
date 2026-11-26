@@ -79,9 +79,11 @@ pub const SOURCE_FAILURE_MESSAGE: &str = "only a source failure, which always na
 pub const OPERATING_SYSTEM_CODE_MESSAGE: &str = "an operating system's error code is not a 64-bit integer in canonical \
                                                  decimal";
 
-/// The message of an error's limit reason without its counter.
+/// The message of an error's limit reason whose limit the record does not pair with the part that it stopped first
+/// (fifth review of the third slice's first part).
 #[cfg(feature = "serde")]
-pub const ERROR_REASON_MESSAGE: &str = "an error's limit reason finds no exhausted counter";
+pub const ERROR_REASON_MESSAGE: &str = "an error's limit reason names a limit that its record does not say stopped a \
+                                        part";
 
 /// The message of an error record whose known kind does not allow its format, its hint, its candidates or its reason,
 /// lacks the source that failed, or lists more causes than the chain is followed for (`json-output.md` section 4.4).
@@ -95,10 +97,10 @@ pub const ERROR_KIND_MESSAGE: &str = "an error record's kind does not allow its 
 pub const OBSERVED_STREAM_MESSAGE: &str = "observations name a stream, which no probe knows before its inventory";
 
 /// The message of an error record whose partial report is of another format, or whose candidate or observed entry
-/// names a limit that the record does not hold as exhausted (`json-output.md` section 10).
+/// names a limit that the record does not say stopped a part (`json-output.md` section 10).
 #[cfg(feature = "serde")]
 pub const ERROR_REFERENCES_MESSAGE: &str = "an error record's partial report is of another format, or a reason names a \
-                                            limit that its record does not hold as exhausted";
+                                            limit that its record does not say stopped a part";
 
 /// The message of a candidate's check whose reason its state does not allow (`json-output.md` section 4.4).
 #[cfg(feature = "serde")]
@@ -140,3 +142,19 @@ pub const DETECTION_STOPS_MESSAGE: &str = "an error record says that a limit of 
 #[cfg(feature = "serde")]
 pub const OBSERVED_REFUSAL_MESSAGE: &str = "an error's observations hold a companion that was not opened, and its \
                                             record has no first reason of the companions";
+
+/// The message of an error record whose probe never ran its prober and that exhausts or counts a counter of a later
+/// activity, or observes a companion (`json-output.md` section 4.4; sixth and seventh reviews of the third slice's
+/// first part).
+#[cfg(feature = "serde")]
+pub const ACTIVITY_COUNTER_MESSAGE: &str = "an error record exhausts or counts a counter, or observes a companion, of \
+                                            an activity that its probe never ran";
+
+/// The kinds of an error whose probe ended at detection, before discovery began: an unknown, undetermined or
+/// unsupported format (`api.md` section 5.1).
+#[cfg(feature = "serde")]
+pub const DETECTION_ENDINGS: [super::ErrorKind; 3] = [
+  super::ErrorKind::UnknownFormat,
+  super::ErrorKind::FormatNotDetermined,
+  super::ErrorKind::UnsupportedFormat,
+];

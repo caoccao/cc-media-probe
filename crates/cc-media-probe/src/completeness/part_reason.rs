@@ -87,6 +87,11 @@ impl PartReason {
   /// reason of a companion kind is recorded against `Part::Companions` (`api.md` section 13), or a part of a newer
   /// version, which only its version knows, and a request that was not found or declined was made, so it names its
   /// source (section 6.15). A `companion_limited` without a source is a companion refused before its request.
+  ///
+  /// As the maintainer chose at the seventh review of that part, which read the companion requests paired with the
+  /// tags and a companion refused before its request by the stream limit, a limit that the reason names can stop its
+  /// part (`Limit::can_stop`), and a `companion_limited` names a limit that can stop a companion before its request,
+  /// or after it where it names its source (`Reason::fits_the_request`).
   #[cfg(feature = "serde")]
   fn check_form(&self) -> Result<(), &'static str> {
     use super::ReasonKind;
@@ -98,10 +103,16 @@ impl PartReason {
       }
       _ => true,
     };
-    if fits {
+    if !fits {
+      return Err(super::constants::COMPANION_REASON_MESSAGE);
+    }
+    if !self.reason.can_stop(&self.part) {
+      return Err(crate::constants::SCOPED_LIMIT_MESSAGE);
+    }
+    if self.reason.fits_the_request(self.source_identifier.is_some()) {
       Ok(())
     } else {
-      Err(super::constants::COMPANION_REASON_MESSAGE)
+      Err(super::constants::COMPANION_LIMIT_MESSAGE)
     }
   }
 }

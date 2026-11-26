@@ -19,6 +19,10 @@
 //! stand alone (`json-output.md`), read from JSON documents and written back with `serde_json`.
 
 #[cfg(test)]
+mod activity_counters;
+#[cfg(test)]
+mod activity_usage;
+#[cfg(test)]
 mod agreements;
 #[cfg(test)]
 mod bytes_read;
@@ -42,6 +46,8 @@ mod entity_rules;
 mod fixtures;
 #[cfg(test)]
 mod identities;
+#[cfg(test)]
+mod limit_scopes;
 #[cfg(test)]
 mod model_checks;
 #[cfg(test)]
@@ -72,6 +78,8 @@ mod shortfalls;
 mod skipped_sections;
 #[cfg(test)]
 mod standalone;
+#[cfg(test)]
+mod stopping_limits;
 #[cfg(test)]
 mod stream_records;
 #[cfg(test)]

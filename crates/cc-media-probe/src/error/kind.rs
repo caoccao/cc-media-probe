@@ -55,6 +55,16 @@ string_enumeration! {
   }
 }
 
+#[cfg(feature = "serde")]
+impl ErrorKind {
+  /// Whether the probe of an error of this kind ended at detection, before discovery began: an unknown, undetermined
+  /// or unsupported format (`api.md` section 5.1), whose record names no later activity (fourth and sixth reviews of
+  /// the third slice's first part).
+  pub(crate) fn ended_at_detection(&self) -> bool {
+    super::constants::DETECTION_ENDINGS.contains(self)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::ErrorKind;

@@ -217,15 +217,12 @@ fn check_record(parts: &ErrorParts, description: &Description) -> Result<(), &'s
   if !code_canonical {
     return Err(OPERATING_SYSTEM_CODE_MESSAGE);
   }
-  let reason_found = parts
-    .reason
-    .as_ref()
-    .is_none_or(|reason| reason.finds_its_counter(|limit| parts.record.exhausted(limit)));
-  if !reason_found {
+  if !parts.record.limits_stopped(parts.reason.iter()) {
     return Err(ERROR_REASON_MESSAGE);
   }
   super::candidates::check_candidates(parts)?;
   super::detection_stops::check_detection_stops(parts)?;
+  super::activities::check_activities(parts)?;
   super::kind_rules::check_kind(parts, description)?;
   super::references::check_references(parts)
 }

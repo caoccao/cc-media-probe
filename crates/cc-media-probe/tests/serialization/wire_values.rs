@@ -151,6 +151,16 @@ fn the_record_names_each_limit_or_part_once_in_each_array() {
   let reason = json!([{ "part": "discovery", "reason": { "kind": "limit_exhausted", "limit": "bytes_read" } }]);
   let read_record = read(with(stopped, "first_reasons", reason)).unwrap();
   assert!(read_record.exhausted(&cc_media_probe::Limit::WorkingMemory));
+  // A limit that stopped no part has no pair (fifth review of the third slice's first part).
+  let unpaired = with(
+    with(record(), "exhausted", json!(["bytes_read"])),
+    "first_stopped",
+    json!([]),
+  );
+  assert_eq!(
+    read(unpaired).unwrap().first_stopped(&cc_media_probe::Limit::BytesRead),
+    None
+  );
   let detection_reason = json!([{ "part": "detection", "reason": { "kind": "truncated_input" } }]);
   for (exhausted, first_stopped, first_reasons) in [
     (
@@ -163,7 +173,6 @@ fn the_record_names_each_limit_or_part_once_in_each_array() {
       json!([pair("bytes_read", "detection"), pair("bytes_read", "discovery")]),
       detection_reason.clone(),
     ),
-    (json!(["bytes_read"]), json!([]), json!([])),
     (
       json!([]),
       json!([pair("bytes_read", "detection")]),

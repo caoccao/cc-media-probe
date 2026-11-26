@@ -61,3 +61,8 @@ pub const SKIPPED_SECTION_MESSAGE: &str = "a section that was not requested hold
 #[cfg(feature = "serde")]
 pub const UNCOUNTED_REASON_MESSAGE: &str = "a reason that a report's records state is neither kept, first nor counted \
                                             among the omitted reasons";
+
+/// The message of a report whose usage counts a companion request or a companion source opened beside companions that
+/// never ran, not applicable or not enabled (plan section 7.5; seventh review of the third slice's first part).
+#[cfg(feature = "serde")]
+pub const LOOKUP_USAGE_MESSAGE: &str = "a report's usage counts companion lookup beside companions that never ran";

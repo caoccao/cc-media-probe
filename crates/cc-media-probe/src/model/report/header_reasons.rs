@@ -21,17 +21,15 @@
 //! version knows and that holds a reason records a shortfall of the headers, which the report records against
 //! `Part::Headers` with the stream, so:
 //!
-//! - **Its counter.** A limit that the reason names is among the record's exhausted limits.
+//! - **Its counter.** A limit that the reason names is among the record's exhausted limits, paired with the part that
+//!   it stopped first, as the maintainer chose at the fifth review of that part.
 //! - **Its record.** The reason is kept among the reasons of the headers with the stream, or is the record's first
 //!   reason of the headers, or was counted among the omitted reasons, as a source entry's reason is
 //!   (`crate::source::request_reasons_not_kept`).
 //!
 //! A state of a newer version is not checked, since only its version knows what its reason records.
 
-use std::collections::HashSet;
-
 use super::MediaReport;
-use crate::Limit;
 use crate::completeness::{HeaderState, Part, PartReason, Reason, stated_reasons_not_kept};
 use crate::model::Stream;
 
@@ -44,10 +42,11 @@ fn header_reasons(streams: &[Stream]) -> impl Iterator<Item = (usize, &Reason)> 
   })
 }
 
-/// Whether each limit that a header state's reason names is among the record's exhausted limits.
-pub(super) fn header_reasons_find_counters(report: &MediaReport) -> bool {
-  let exhausted: HashSet<&Limit> = report.completeness.record().exhausted_limits().iter().collect();
-  header_reasons(&report.streams).all(|(_, reason)| reason.finds_its_counter(|limit| exhausted.contains(limit)))
+/// Whether each limit that a header state's reason names stopped a part, so the record pairs it with the part that it
+/// stopped first and holds it as exhausted (fifth review of the third slice's first part).
+pub(super) fn header_reasons_stopped(report: &MediaReport) -> bool {
+  let reasons = header_reasons(&report.streams).map(|(_, reason)| reason);
+  report.completeness.record().limits_stopped(reasons)
 }
 
 /// The reasons of the header states that the completeness neither keeps nor gives as the first reason of the

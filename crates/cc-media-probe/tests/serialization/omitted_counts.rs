@@ -87,15 +87,25 @@ fn an_omitted_diagnostic_or_reason_needs_the_limit_that_kept_it() {
   let first = || json!([exhausted("discovery", "streams")]);
   let alone = [("streams", "discovery")];
   let retained = [("retained_data", "discovery"), ("streams", "discovery")];
-  let diagnostics = [("streams", "discovery"), ("diagnostics", "discovery")];
+  // The diagnostics limit stops no part, so it has no pair, and it is exhausted beside a diagnostic that it kept.
+  let diagnostics = |count: (&str, &str)| {
+    let mut record = stopped(
+      first(),
+      &[("streams", "discovery"), ("diagnostics", "discovery")],
+      count,
+    );
+    record["first_stopped"] = json!([{ "limit": "streams", "part": "discovery" }]);
+    record["omitted_diagnostics"] = json!("1");
+    record
+  };
   let omitted_diagnostic = ("omitted_diagnostics", "1");
   assert!(!reads_record(&stopped(first(), &alone, omitted_diagnostic)));
   assert!(reads_record(&stopped(first(), &retained, omitted_diagnostic)));
-  assert!(reads_record(&stopped(first(), &diagnostics, omitted_diagnostic)));
+  assert!(reads_record(&diagnostics(omitted_diagnostic)));
   let omitted_reason = ("omitted_reasons", "1");
   assert!(!reads_record(&stopped(first(), &alone, omitted_reason)));
   assert!(reads_record(&stopped(first(), &retained, omitted_reason)));
-  assert!(!reads_record(&stopped(first(), &diagnostics, omitted_reason)));
+  assert!(!reads_record(&diagnostics(omitted_reason)));
 }
 
 #[test]

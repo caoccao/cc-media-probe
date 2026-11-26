@@ -26,7 +26,8 @@
 //!   inventory, and name only sources of its table. A partial report checks its own, which are the record's.
 //! - **The format** of a partial report is the error's, when both are of this version.
 //! - **The counters.** A candidate's reason and the reason of an entry of the observations that name a limit find it
-//!   among the record's exhausted limits, as the error's own reason does.
+//!   among the record's exhausted limits, as the error's own reason does, and, as the maintainer chose at the fifth
+//!   review of that part, paired with the part that it stopped first.
 //!
 //! Its third review read a Matroska partial report beside no format, a source failure that named a request that a
 //! resolver declined, an entry not found beside the reason of a decline, and usage that counted fewer bytes than the
@@ -51,12 +52,12 @@ use super::constants::{
 };
 use super::parts::ErrorParts;
 use super::{CandidateCheck, ErrorKind, Observations};
+use crate::Format;
 use crate::completeness::{Part, PartReason};
 use crate::source::{
   REQUEST_REASON_MESSAGE, SourceEntry, SourceIdentifier, SourceOutcome, UNKNOWN_SOURCE_MESSAGE, bytes_read_within,
-  reasons_find_counters, requests_agree,
+  requests_agree,
 };
-use crate::{Format, Limit};
 
 /// The checks of what the error record names.
 pub(super) fn check_references(parts: &ErrorParts) -> Result<(), &'static str> {
@@ -89,7 +90,7 @@ pub(super) fn check_references(parts: &ErrorParts) -> Result<(), &'static str> {
   if !failed_source_failed(parts, table.unwrap_or_default()) {
     return Err(FAILED_SOURCE_MESSAGE);
   }
-  if !formats_agree(parts) || !counters_found(parts) {
+  if !formats_agree(parts) || !limits_stopped(parts) {
     return Err(ERROR_REFERENCES_MESSAGE);
   }
   let observed = parts.observations.as_ref().map(Observations::sources);
@@ -137,18 +138,15 @@ fn formats_agree(parts: &ErrorParts) -> bool {
   }
 }
 
-/// Whether the limits that the candidates' reasons and the observed entries' reasons name are exhausted.
-fn counters_found(parts: &ErrorParts) -> bool {
-  let exhausted = parts.record.exhausted_limits();
-  let exhausted_set: HashSet<&Limit> = exhausted.iter().collect();
-  let candidates_found = parts
+/// Whether each limit that a candidate's reason or an observed entry's reason names stopped a part, so the record pairs
+/// it with the part that it stopped first and holds it as exhausted (fifth review of the third slice's first part).
+/// The error's own reason is checked with the error's description.
+fn limits_stopped(parts: &ErrorParts) -> bool {
+  let observed = parts.observations.as_ref().map_or_default(Observations::sources);
+  let reasons = parts
     .candidates
     .iter()
     .filter_map(CandidateCheck::reason)
-    .all(|reason| reason.finds_its_counter(|limit| exhausted_set.contains(limit)));
-  candidates_found
-    && parts
-      .observations
-      .as_ref()
-      .is_none_or(|observations| reasons_find_counters(observations.sources(), exhausted))
+    .chain(observed.iter().filter_map(SourceEntry::reason));
+  parts.record.limits_stopped(reasons)
 }

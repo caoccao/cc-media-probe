@@ -93,7 +93,8 @@ impl HeaderStatus {
   /// `partially_parsed_for_lack_of_bytes` the reason of a cut, `truncated_input`, `limit_exhausted`,
   /// `range_unavailable` or `source_failed`; for `malformed`, `damaged_structure`; for `compression_unavailable`
   /// none, or `feature_disabled` naming `zlib`; and for `not_attempted` none, or `source_failed`. A reason, a
-  /// feature, an identification or a state of a newer version is not checked.
+  /// feature, an identification or a state of a newer version is not checked. As the maintainer chose at the seventh
+  /// review of that part, the limit that the reason of a known state names can stop the headers (`Limit::can_stop`).
   #[cfg(feature = "serde")]
   fn check_form(&self) -> Result<(), &'static str> {
     use super::{Feature, ReasonKind};
@@ -126,10 +127,17 @@ impl HeaderStatus {
       HeaderState::Unrecognized(_) => return Ok(()),
     };
     let identified = matches!(self.state, HeaderState::Identified);
-    if fits && (identified || self.identification.is_none()) {
+    if !fits || !(identified || self.identification.is_none()) {
+      return Err(super::constants::HEADER_STATUS_MESSAGE);
+    }
+    if self
+      .reason
+      .as_ref()
+      .is_none_or(|reason| reason.can_stop(&super::Part::Headers))
+    {
       Ok(())
     } else {
-      Err(super::constants::HEADER_STATUS_MESSAGE)
+      Err(crate::constants::SCOPED_LIMIT_MESSAGE)
     }
   }
 }

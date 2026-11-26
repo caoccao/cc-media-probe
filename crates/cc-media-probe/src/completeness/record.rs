@@ -24,8 +24,8 @@ use std::collections::{HashMap, HashSet};
 use super::Reason;
 #[cfg(feature = "serde")]
 use super::constants::{
-  DETECTION_LIMIT_MESSAGE, LIMIT_ORDER, LIMIT_RECORD_MESSAGE, OMITTED_REASONS_MESSAGE, OMITTED_REFERENCES_MESSAGE,
-  OMITTED_STORAGE_MESSAGE, PART_ORDER,
+  DETECTION_LIMIT_MESSAGE, DIAGNOSTICS_LIMIT_MESSAGE, LIMIT_ORDER, LIMIT_RECORD_MESSAGE, OMITTED_REASONS_MESSAGE,
+  OMITTED_REFERENCES_MESSAGE, OMITTED_STORAGE_MESSAGE, PART_ORDER, UNSTOPPED_LIMIT_MESSAGE,
 };
 use super::{Part, PartReason};
 use crate::Limit;
@@ -33,8 +33,8 @@ use crate::form_record::form_record;
 
 form_record! {
   /// The fixed-size record that every limit leaves in place: which counters were exhausted, the part that each
-  /// stopped first, the first reason of each part, and the four omitted counts. It exists under any limits and is
-  /// never charged to a counter (plan section 7.5).
+  /// stopped first where it stopped one, the first reason of each part, and the four omitted counts. It exists under
+  /// any limits and is never charged to a counter (plan section 7.5).
   ///
   /// ```
   /// use cc_media_probe::Limit;
@@ -171,58 +171,66 @@ impl LimitRecord {
 
 #[cfg(feature = "serde")]
 impl LimitRecord {
-  /// The limits whose counters were exhausted, in the declared order.
-  pub(crate) fn exhausted_limits(&self) -> &[Limit] {
-    &self.exhausted
-  }
-
   /// The first reason of each part, in the order of the parts.
   pub(crate) fn first_reasons(&self) -> &[PartReason] {
     &self.first_reasons
   }
 
   /// Whether the record read is true to itself (`json-output.md` section 7.2): each limit once in `exhausted`, and
-  /// the pairs naming exactly those limits in their order; each part once among the first reasons; the limits and
-  /// parts that this version knows in their declared order; each stopped part with its first reason; no first
-  /// reason with a detail, and each limit reason finding its counter; an omitted reason beside a first reason and the
-  /// exhausted retained data; and an omitted reference beside the exhausted retained data and the first reason of a
-  /// part that finds references. As the fourth review of the third slice's first part asked, which read a declaration
-  /// omitted beside complete discovery and no exhausted limit, an omitted diagnostic stands beside the exhausted
-  /// diagnostics or retained data, which alone keep one from being stored, and an omitted declaration beside the
-  /// first reason of discovery and the exhausted stream limit or retained data, which alone stop the enumeration of
-  /// declarations (plan section 7.5). A limit that a first reason of detection names stopped detection first, since
-  /// detection comes first, as the maintainer chose at that review.
+  /// the pairs naming some of those limits, each once, in their order; each part once among the first reasons; the
+  /// limits and parts that this version knows in their declared order; each stopped part with its first reason; no
+  /// first reason with a detail; an omitted reason beside a first reason and the exhausted retained data; and an
+  /// omitted reference beside the first reason of a part that finds references. As the fourth review of the third
+  /// slice's first part asked, which read a declaration omitted beside complete discovery and no exhausted limit, an
+  /// omitted diagnostic stands beside the exhausted diagnostics or retained data, which alone keep one from being
+  /// stored, and an omitted declaration beside the first reason of discovery. A limit that a first reason of
+  /// detection names stopped detection first, since detection comes first, as the maintainer chose at that review.
+  ///
+  /// As the maintainer chose at the fifth review of that part, which read a complete report whose diagnostics limit
+  /// was exhausted and kept one diagnostic from being stored, a limit is paired with a part only when it stopped one:
+  /// a limit that a first reason names stopped that part, the retained data stopped the part of an omitted reference,
+  /// and the stream limit or the retained data stopped discovery for an omitted declaration (plan section 7.5), so
+  /// each has its pair. A limit that only kept a diagnostic or a reason from being stored stopped no part. As the
+  /// maintainer chose at the sixth review of that part, which read discovery stopped by the diagnostics limit, that
+  /// limit, which only bounds the diagnostics stored, is never paired with a part, and is exhausted only beside a
+  /// diagnostic that it kept from being stored, so beside an omitted diagnostic. As the maintainer chose at its
+  /// seventh review, which read the companion requests paired with the tags, a limit that only one activity charges is
+  /// paired only with a part of that activity (`Limit::can_stop`).
   fn check_form(&self) -> Result<(), &'static str> {
     let (exhausted_set, parts): (HashSet<&Limit>, Vec<&Part>) = (
       self.exhausted.iter().collect(),
       self.first_reasons.iter().map(PartReason::part).collect(),
     );
-    let retained = exhausted_set.contains(&Limit::RetainedData);
-    if self.omitted_reasons > 0 && (self.first_reasons.is_empty() || !retained) {
+    let stopping = self.stopping_limits();
+    if self.omitted_reasons > 0 && (self.first_reasons.is_empty() || !exhausted_set.contains(&Limit::RetainedData)) {
       return Err(OMITTED_REASONS_MESSAGE);
     }
-    let references_belong = retained && self.first_reasons.iter().any(|first| first.part().finds_references());
+    let references_belong =
+      stopping.contains(&Limit::RetainedData) && self.first_reasons.iter().any(|first| first.part().finds_references());
     if self.omitted_references > 0 && !references_belong {
       return Err(OMITTED_REFERENCES_MESSAGE);
     }
-    let declarations_belong =
-      parts.contains(&&Part::Discovery) && (retained || exhausted_set.contains(&Limit::Streams));
-    let diagnostics_belong = retained || exhausted_set.contains(&Limit::Diagnostics);
+    let declarations_belong = parts.contains(&&Part::Discovery)
+      && (stopping.contains(&Limit::RetainedData) || stopping.contains(&Limit::Streams));
+    let diagnostics_belong =
+      exhausted_set.contains(&Limit::RetainedData) || exhausted_set.contains(&Limit::Diagnostics);
     if (self.omitted_declarations > 0 && !declarations_belong) || (self.omitted_diagnostics > 0 && !diagnostics_belong)
     {
       return Err(OMITTED_STORAGE_MESSAGE);
     }
+    let diagnostics_unused = exhausted_set.contains(&Limit::Diagnostics) && self.omitted_diagnostics == 0;
+    if stopping.contains(&Limit::Diagnostics) || diagnostics_unused {
+      return Err(DIAGNOSTICS_LIMIT_MESSAGE);
+    }
     if !self.stopped_detection_first(LimitRecord::of_detection(self.first_reasons.iter())) {
       return Err(DETECTION_LIMIT_MESSAGE);
     }
+    let mut remaining = self.exhausted.iter();
     let part_set: HashSet<&Part> = parts.iter().copied().collect();
-    let pairs_name_the_limits = self.exhausted.len() == self.first_stopped.len()
-      && self
-        .exhausted
-        .iter()
-        .zip(&self.first_stopped)
-        .all(|(limit, stopped)| *limit == stopped.limit);
-    let true_to_itself = pairs_name_the_limits
+    let true_to_itself = self
+      .first_stopped
+      .iter()
+      .all(|stopped| remaining.any(|limit| *limit == stopped.limit))
       && crate::form::each_once(&self.exhausted, |limit| limit)
       && crate::form::each_once(&parts, |part| *part)
       && in_declared_order(&self.exhausted, &LIMIT_ORDER)
@@ -231,14 +239,53 @@ impl LimitRecord {
         .first_stopped
         .iter()
         .all(|stopped| part_set.contains(&stopped.part))
-      && self.first_reasons.iter().all(|first| {
-        first.reason().detail().is_none() && first.reason().finds_its_counter(|limit| exhausted_set.contains(limit))
-      });
-    if true_to_itself {
+      && self.first_reasons.iter().all(|first| first.reason().detail().is_none());
+    if !true_to_itself {
+      return Err(LIMIT_RECORD_MESSAGE);
+    }
+    if !self
+      .first_stopped
+      .iter()
+      .all(|stopped| stopped.limit.can_stop(&stopped.part))
+    {
+      return Err(crate::constants::SCOPED_LIMIT_MESSAGE);
+    }
+    if self.limits_stopped(self.first_reasons.iter().map(PartReason::reason)) {
       Ok(())
     } else {
-      Err(LIMIT_RECORD_MESSAGE)
+      Err(UNSTOPPED_LIMIT_MESSAGE)
     }
+  }
+
+  /// The limits that stopped a part, which the pairs name (`json-output.md` section 7.2).
+  fn stopping_limits(&self) -> HashSet<&Limit> {
+    self.first_stopped.iter().map(|stopped| &stopped.limit).collect()
+  }
+
+  /// Whether the record holds none of `limits` as exhausted, as a result whose activities never charge them requires
+  /// (`api.md` section 5.3; sixth review of the third slice's first part).
+  pub(crate) fn exhausts_none_of(&self, limits: &[Limit]) -> bool {
+    !self.exhausted.iter().any(|limit| limits.contains(limit))
+  }
+
+  /// Whether each limit that the record holds as exhausted can stop `part` (`Limit::can_stop`), as a probe that ran
+  /// no activity after it requires: none is a limit that only a later activity charges (seventh review of the third
+  /// slice's first part).
+  pub(crate) fn exhausted_limits_can_stop(&self, part: &Part) -> bool {
+    self.exhausted.iter().all(|limit| limit.can_stop(part))
+  }
+
+  /// Whether each limit that one of `reasons` names, of the kind `limit_exhausted` or `companion_limited`, stopped a
+  /// part, so the record pairs it with the part that it stopped first and holds it as exhausted (`json-output.md`
+  /// section 7.2): the record's first reasons, a completeness's kept reasons, a header state's or a source entry's
+  /// reason, or an error's reason and its candidates' causes. A limit that stopped no part, as the diagnostics limit
+  /// can beside a complete report, has no pair, and no reason names it, as the maintainer chose at the fifth review
+  /// of the third slice's first part. The limits are looked up in an index of the pairs, so the check stays linear.
+  pub(crate) fn limits_stopped<'reason>(&self, reasons: impl Iterator<Item = &'reason Reason>) -> bool {
+    let stopping = self.stopping_limits();
+    reasons
+      .filter_map(Reason::named_limit)
+      .all(|limit| stopping.contains(limit))
   }
 
   /// The parts that the limits stopped first, in the order of the limits.

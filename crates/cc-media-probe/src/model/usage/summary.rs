@@ -119,6 +119,22 @@ impl Usage {
     }
   }
 
+  /// Whether the usage counts no companion request and no companion source opened (plan section 7.5), as a result
+  /// whose companion lookup never ran has it, as the maintainer chose at the seventh review of the third slice's
+  /// first part, which read requests counted beside companions not applicable.
+  #[cfg(feature = "serde")]
+  pub(crate) fn charges_no_lookup(&self) -> bool {
+    self.companion_requests == 0 && self.sources_opened == 0
+  }
+
+  /// Whether the usage counts nothing that only an activity after detection charges: no companion lookup and no
+  /// attachment payload retained, as a detection and an error whose probe never ran its prober have it (seventh
+  /// review of the third slice's first part).
+  #[cfg(feature = "serde")]
+  pub(crate) fn charges_no_prober(&self) -> bool {
+    self.charges_no_lookup() && self.retained_payloads == 0
+  }
+
   /// The usage of a probe that read nothing and held nothing.
   pub(crate) fn unused() -> Usage {
     Usage {
@@ -236,7 +252,7 @@ mod tests {
   use crate::model::UnrecognizedValue;
 
   impl Usage {
-    /// The usage of a probe that read 4096 bytes.
+    /// The usage of a probe that read 4096 bytes and looked up no companion.
     pub(crate) fn sample() -> Usage {
       Usage {
         bytes_read: 4_096,
@@ -246,7 +262,7 @@ mod tests {
         decompressed_output: 0,
         work_units: 120,
         companion_requests: 0,
-        sources_opened: 1,
+        sources_opened: 0,
       }
     }
 
@@ -261,16 +277,23 @@ mod tests {
 
   #[test]
   fn gives_each_counter_by_accessor_and_by_name() {
-    let usage = Usage::sample();
+    // Each counter distinct, so that a counter reached by the wrong name shows.
+    let usage = Usage {
+      retained_payloads: 8,
+      decompressed_output: 16,
+      companion_requests: 3,
+      sources_opened: 2,
+      ..Usage::sample()
+    };
     let counters = [
       (Limit::BytesRead, usage.bytes_read(), 4_096),
       (Limit::WorkingMemory, usage.peak_working_memory(), 65_536),
       (Limit::RetainedData, usage.retained_data(), 1_024),
-      (Limit::RetainedPayloads, usage.retained_payloads(), 0),
-      (Limit::DecompressedOutput, usage.decompressed_output(), 0),
+      (Limit::RetainedPayloads, usage.retained_payloads(), 8),
+      (Limit::DecompressedOutput, usage.decompressed_output(), 16),
       (Limit::WorkUnits, usage.work_units(), 120),
-      (Limit::CompanionRequests, usage.companion_requests(), 0),
-      (Limit::SourcesOpened, usage.sources_opened(), 1),
+      (Limit::CompanionRequests, usage.companion_requests(), 3),
+      (Limit::SourcesOpened, usage.sources_opened(), 2),
     ];
     for (limit, accessor, expected) in counters {
       assert_eq!(accessor, expected);

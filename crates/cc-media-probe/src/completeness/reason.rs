@@ -17,6 +17,8 @@
 
 //! `Reason`, why something fell short (`api.md` section 5.5).
 
+#[cfg(feature = "serde")]
+use super::Part;
 use super::{Feature, ReasonKind};
 use crate::Limit;
 use crate::form_record::form_record;
@@ -93,7 +95,10 @@ impl Reason {
 
   /// Whether a reason of a known kind holds the members of its kind and no other (`json-output.md` section 7.2):
   /// the limit of `limit_exhausted` and `companion_limited`, the feature of `feature_disabled`, and neither for the
-  /// other kinds, while a kind of a newer version may hold either.
+  /// other kinds, while a kind of a newer version may hold either. As the maintainer chose at the sixth review of the
+  /// third slice's first part, which read discovery stopped by the diagnostics limit, neither of the two kinds that
+  /// name a limit names `diagnostics`, which only bounds the diagnostics stored and stops no part, wherever the reason
+  /// stands, alone too.
   #[cfg(feature = "serde")]
   fn check_form(&self) -> Result<(), &'static str> {
     let (limit, feature) = (self.limit.is_some(), self.feature.is_some());
@@ -103,20 +108,52 @@ impl Reason {
       ReasonKind::Unrecognized(_) => true,
       _ => !limit && !feature,
     };
-    if fits {
-      Ok(())
+    if !fits {
+      return Err(super::constants::REASON_MESSAGE);
+    }
+    if self.named_limit() == Some(&Limit::Diagnostics) {
+      Err(super::constants::DIAGNOSTICS_CAUSE_MESSAGE)
     } else {
-      Err(super::constants::REASON_MESSAGE)
+      Ok(())
     }
   }
 
-  /// Whether a reason that names a limit finds its counter among the limits that the record holds as exhausted
-  /// (`json-output.md` section 7.2), which `exhausted` tells, so that a caller checking many reasons looks each
-  /// limit up once (review of the third slice's first part).
+  /// The limit that a reason of the kind `limit_exhausted` or `companion_limited` names, and `None` for any other
+  /// kind. The limit stopped the reason's part, so the record pairs it with the part that it stopped first
+  /// (`json-output.md` section 7.2; fifth review of the third slice's first part).
   #[cfg(feature = "serde")]
-  pub(crate) fn finds_its_counter(&self, exhausted: impl Fn(&Limit) -> bool) -> bool {
+  pub(crate) fn named_limit(&self) -> Option<&Limit> {
+    match self.kind {
+      ReasonKind::LimitExhausted | ReasonKind::CompanionLimited => self.limit.as_ref(),
+      _ => None,
+    }
+  }
+
+  /// Whether the limit that the reason names, where it names one, can stop `part` (`Limit::can_stop`): a reason
+  /// stands against the part that it stopped, as the maintainer chose at the seventh review of the third slice's
+  /// first part, which read the companion requests paired with the tags.
+  #[cfg(feature = "serde")]
+  pub(crate) fn can_stop(&self, part: &Part) -> bool {
+    self.named_limit().is_none_or(|limit| limit.can_stop(part))
+  }
+
+  /// Whether a reason of the kind `companion_limited` names a limit that can stop a companion where it stands
+  /// (`api.md` section 13), as the maintainer chose at the seventh review of the third slice's first part, which read
+  /// one that named the stream limit without a source: before its request, which a reason without a source tells,
+  /// the request limit, the source limit or the retained data for its entry, and once `requested`, the request, source
+  /// or read limit of a resolver's `limit_reached`, or the working memory that cannot hold the source's identity
+  /// token. A limit of a newer version, and a reason of any other kind, is not checked.
+  #[cfg(feature = "serde")]
+  pub(crate) fn fits_the_request(&self, requested: bool) -> bool {
+    use super::constants::{AFTER_REQUEST_LIMITS, BEFORE_REQUEST_LIMITS};
     match (&self.kind, &self.limit) {
-      (ReasonKind::LimitExhausted | ReasonKind::CompanionLimited, Some(limit)) => exhausted(limit),
+      (ReasonKind::CompanionLimited, Some(limit)) if !matches!(limit, Limit::Unrecognized(_)) => {
+        if requested {
+          AFTER_REQUEST_LIMITS.contains(limit)
+        } else {
+          BEFORE_REQUEST_LIMITS.contains(limit)
+        }
+      }
       _ => true,
     }
   }

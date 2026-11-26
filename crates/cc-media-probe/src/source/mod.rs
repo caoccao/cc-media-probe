@@ -50,4 +50,4 @@ pub use raw_path::{RawPath, RawPathEncoding};
 pub(crate) use request_reasons::{request_reasons_not_kept, requests_agree};
 pub use role::SourceRole;
 #[cfg(feature = "serde")]
-pub(crate) use table::{bytes_read_within, reasons_find_counters, table_identifiers};
+pub(crate) use table::{bytes_read_within, table_identifiers};
