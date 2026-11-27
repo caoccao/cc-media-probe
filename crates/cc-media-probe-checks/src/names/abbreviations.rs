@@ -43,6 +43,7 @@ pub static ABBREVIATIONS: &[&str] = &[
 pub static FIXED_NAMES: &[&str] = &[
   "Err",
   "IntoIter",
+  "SerializeSeq",
   "as_str",
   "cmp",
   "fill_buf",
@@ -56,6 +57,7 @@ pub static FIXED_NAMES: &[&str] = &[
   "min",
   "partial_cmp",
   "poll_fill_buf",
+  "serialize_seq",
   "to_str",
   "visit_borrowed_str",
   "visit_byte_buf",

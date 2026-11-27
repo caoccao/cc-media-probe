@@ -240,3 +240,32 @@ pub fn detection_stopped(reason: &Value) -> Value {
     json!([{ "part": "detection", "reason": reason }]),
   )
 }
+
+/// The generator of the documents of these tests.
+pub fn generator() -> Value {
+  json!({ "name": "catalog", "version": "1" })
+}
+
+/// A document of that version, by the generator of these tests, with those entries.
+pub fn document(version: &str, results: Value) -> Value {
+  let mut document = json!({ "schema_version": version, "generator": generator() });
+  document["results"] = results;
+  document
+}
+
+/// An entry at that index for the input `input.bin`, of that outcome, that holds the record under that member.
+pub fn entry(index: usize, outcome: &str, member: &str, record: Value) -> Value {
+  let mut entry = json!({ "index": index, "input": "input.bin", "outcome": outcome });
+  entry[member] = record;
+  entry
+}
+
+/// A document of version 1.0 whose one entry, of that outcome, holds the record under that member.
+pub fn document_holding(outcome: &str, member: &str, record: Value) -> Value {
+  document("1.0", json!([entry(0, outcome, member, record)]))
+}
+
+/// Whether the value reads as a document.
+pub fn reads_document(document: &Value) -> bool {
+  serde_json::from_value::<cc_media_probe::document::Document>(document.clone()).is_ok()
+}

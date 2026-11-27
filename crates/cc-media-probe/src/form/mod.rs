@@ -38,7 +38,7 @@ mod tests;
 
 pub(crate) use alone::{ReadAlone, checked_form, read_alone, text_form};
 pub(crate) use bytes::{BorrowedBytes, read_optional_bytes, write_optional_bytes};
-pub(crate) use constants::{KIND_MEMBER, MINUS_SIGN, PROVENANCE_MESSAGE, VERSION_FORM_MESSAGE};
+pub(crate) use constants::{KIND_MEMBER, MINUS_SIGN, PROVENANCE_MESSAGE, SCHEMA_VERSION_MEMBER, VERSION_FORM_MESSAGE};
 pub(crate) use each_once::each_once;
 pub(crate) use kept::{KeptMembers, KindRead, MemberValue, Outcome, WithKept, read_by_kind, write_kept};
 pub(crate) use kind_value::KindValue;

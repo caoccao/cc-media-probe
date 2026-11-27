@@ -16,16 +16,17 @@
 */
 
 //! Each root record reads its version before anything else is decoded, wherever the member stands, through plain
-//! Serde on a bare record (plan section 8.8; `json-output.md` section 2). A member that holds null fails at any depth,
-//! and so does a map that names a member twice; neither fails before the version error, which names both versions.
-//! Only the members before the version are held, so an error in a member after it keeps its place in the input.
+//! Serde on a bare record and on a document (plan section 8.8; `json-output.md` section 2). A member that holds null
+//! fails at any depth, and so does a map that names a member twice; neither fails before the version error, which
+//! names both versions. Only the members before the version are held, so an error in a member after it keeps its
+//! place in the input.
 
-use cc_media_probe::document::SchemaVersion;
+use cc_media_probe::document::{Document, SchemaVersion};
 use cc_media_probe::error::ErrorRecord;
 use cc_media_probe::{Detection, MediaReport};
 use serde_json::{Value, json};
 
-use crate::fixtures::{detection, error_record, members_of, report, text_of, with_member};
+use crate::fixtures::{detection, document, error_record, members_of, report, text_of, with_member};
 
 /// The version error of version 2.0, which names both versions.
 pub const OTHER_MAJOR: &str = "the version error: the root record has version: 2.0; this reader reads 1.0";
@@ -47,7 +48,7 @@ struct RootRecord {
   read: fn(&str) -> Result<SchemaVersion, serde_json::Error>,
 }
 
-/// The three root records that stand alone; the document's version comes with the document.
+/// The four root records: the three that stand alone, and the document.
 fn root_records() -> Vec<RootRecord> {
   vec![
     RootRecord {
@@ -67,6 +68,12 @@ fn root_records() -> Vec<RootRecord> {
       members: members_of(&error_record("1.0")),
       broken: ["kind", "message"],
       read: |text| serde_json::from_str::<ErrorRecord>(text).map(|record| record.schema_version()),
+    },
+    RootRecord {
+      name: "Document",
+      members: members_of(&document("1.0", json!([]))),
+      broken: ["generator", "results"],
+      read: |text| serde_json::from_str::<Document>(text).map(|record| record.schema_version()),
     },
   ]
 }

@@ -133,6 +133,11 @@ mod tests {
       messages("impl Visitor for Reader { fn visit_byte_buf(self, value: Vec<u8>) {} }"),
       Vec::<String>::new()
     );
+    // Serde's `Serializer` fixes these names, which a serializer of the tests defines.
+    assert_eq!(
+      messages("impl Serializer for Noting { type SerializeSeq = Compound; fn serialize_seq(self) {} }"),
+      Vec::<String>::new()
+    );
   }
 
   #[test]

@@ -182,17 +182,28 @@ fn a_member_of_a_known_integer_type_refuses_the_map_wherever_it_is_read() {
 
 #[test]
 fn a_nested_record_refuses_a_number_that_is_not_finite_before_its_version_in_either_order() {
+  // The member stands first in the partial report and its version last, written as text, so the order holds
+  // whichever order `serde_json::Value` gives its maps, as inserted with `preserve_order` too, which had put the
+  // member after the version, as the second review of the third slice's second part found.
   for report_first in [true, false] {
-    let partial = with(report("2.0"), "future", private("1e400"));
-    let record = with(error_record("1.0"), "partial_report", partial);
-    let members = members_of(&record);
-    let position = if report_first { members.len() } else { 0 };
-    let error = serde_json::from_str::<ErrorRecord>(&text_of(&members, Some((position, "1.0")))).unwrap_err();
-    assert!(error.to_string().starts_with(NOT_JSON), "{report_first}: {error}");
-    let partial = with(report("2.0"), PRIVATE_NAME, json!("hi"));
-    let record = with(error_record("1.0"), "partial_report", partial);
-    let members = members_of(&record);
-    let error = serde_json::from_str::<ErrorRecord>(&text_of(&members, Some((position, "1.0")))).unwrap_err();
-    assert!(error.to_string().starts_with(NESTED), "{report_first}: {error}");
+    for (name, value, expected) in [
+      ("future", private("1e400"), NOT_JSON),
+      (PRIVATE_NAME, json!("hi"), NESTED),
+    ] {
+      let partial = with_member(&members_of(&report("2.0")), name, &value.to_string(), 0);
+      let partial = text_of(&partial, Some((usize::MAX, "2.0")));
+      let members = with_member(
+        &members_of(&error_record("1.0")),
+        "partial_report",
+        &partial,
+        usize::MAX,
+      );
+      let position = if report_first { members.len() } else { 0 };
+      let error = serde_json::from_str::<ErrorRecord>(&text_of(&members, Some((position, "1.0")))).unwrap_err();
+      assert!(
+        error.to_string().starts_with(expected),
+        "{report_first}, {name}: {error}"
+      );
+    }
   }
 }

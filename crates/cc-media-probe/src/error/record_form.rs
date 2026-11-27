@@ -148,7 +148,7 @@ impl Outcome for ErrorRecordBody {
   const MEMBER: &'static str = super::constants::KIND_MEMBER;
 
   fn is_newer(text: &str) -> bool {
-    matches!(ErrorKind::from_text(text.to_owned()), ErrorKind::Unrecognized(_))
+    ErrorKind::from_known_text(text).is_none()
   }
 }
 
@@ -225,4 +225,15 @@ fn check_record(parts: &ErrorParts, description: &Description) -> Result<(), &'s
   super::activities::check_activities(parts)?;
   super::kind_rules::check_kind(parts, description)?;
   super::references::check_references(parts)
+}
+
+impl ErrorRecord {
+  /// Gives the record and its partial report that version, as a document gives each record that it holds (`api.md`
+  /// section 12). The partial report keeps its allocation, as the review of the third slice's second part asked.
+  pub(crate) fn set_schema_version(&mut self, version: SchemaVersion) {
+    self.schema_version = version;
+    if let Some(report) = &mut self.parts.partial_report {
+      report.set_schema_version(version);
+    }
+  }
 }

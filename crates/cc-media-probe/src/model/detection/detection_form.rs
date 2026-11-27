@@ -94,10 +94,7 @@ impl Outcome for DetectionBody {
   const MEMBER: &'static str = super::constants::OUTCOME_MEMBER;
 
   fn is_newer(text: &str) -> bool {
-    matches!(
-      DetectionOutcome::from_text(text.to_owned()),
-      DetectionOutcome::Unrecognized(_)
-    )
+    DetectionOutcome::from_known_text(text).is_none()
   }
 }
 
@@ -190,5 +187,12 @@ fn members_fit_the_outcome(detection: &Detection) -> bool {
     }
     DetectionOutcome::Unknown => no_format && no_candidates && no_hint && no_shortage,
     DetectionOutcome::Unrecognized(_) => true,
+  }
+}
+
+impl Detection {
+  /// Gives the detection that version, as a document gives each detection that it holds (`api.md` section 12).
+  pub(crate) fn set_schema_version(&mut self, version: SchemaVersion) {
+    self.schema_version = version;
   }
 }

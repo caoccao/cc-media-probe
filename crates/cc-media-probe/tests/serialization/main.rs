@@ -33,11 +33,25 @@ mod consistency;
 #[cfg(test)]
 mod data_enums;
 #[cfg(test)]
+mod declared_lengths;
+#[cfg(test)]
 mod detail_values;
 #[cfg(test)]
 mod detection_stops;
 #[cfg(test)]
 mod detections;
+#[cfg(test)]
+mod document_formats;
+#[cfg(test)]
+mod document_inputs;
+#[cfg(test)]
+mod document_outcomes;
+#[cfg(test)]
+mod document_versions;
+#[cfg(test)]
+mod document_writer;
+#[cfg(test)]
+mod documents;
 #[cfg(test)]
 mod endings;
 #[cfg(test)]
@@ -54,6 +68,8 @@ mod model_checks;
 mod model_records;
 #[cfg(test)]
 mod neutral_values;
+#[cfg(test)]
+mod newer_entries;
 #[cfg(test)]
 mod omitted_counts;
 #[cfg(test)]

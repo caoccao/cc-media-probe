@@ -33,7 +33,7 @@ mod statuses;
 mod summary;
 
 #[cfg(feature = "serde")]
-pub(crate) use agreement::{Shortfall, omitted_at_least, stated_reasons_not_kept};
+pub(crate) use agreement::{Shortfall, omitted_at_least, shortfalls, stated_reasons_not_kept};
 pub use feature::Feature;
 pub use header_state::{HeaderState, Identification};
 pub use header_status::HeaderStatus;

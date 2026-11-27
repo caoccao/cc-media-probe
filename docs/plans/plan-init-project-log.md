@@ -5003,3 +5003,143 @@ The maintainer staged the revised part and reviewed it again: six findings, five
 - The maintainer's answer to this round.
 - The second part: the document, its entries and its writer, with the serialization tests that need them, the cases of the spike's tests about documents and the `ok` entry of the fifth review among them.
 - Tasks 12 and 13, then G2.5.
+
+## 2026-11-26 — Third slice of the skeleton, second part: the document, its entries and its writer
+
+After the seventh review's revision was committed and pushed (`0916332`), the maintainer sent the standing brief again, so the next step was the second part of the third slice of Phase 2, task 11: the document of `api.md` section 12, its entries and its writer, with the serialization tests of task 13 that need a document. Two questions came before it:
+
+| Topic | Decision | Alternative |
+|---|---|---|
+| When reading checks an entry | As soon as the entry has been read: its index against its position, its one record and the outcome that the record allows. The read stops at the first broken entry, before the next is decoded, and the error has the place where the read stopped, just after that entry. A usage error beside results is checked once the document has been read, since the two members can stand in either order | Once the whole document has been read, as the spike did and `json-output.md` section 2 stated, so every entry is decoded before any entry's rule is checked and the error has no place |
+| How the rest of Phase 2 is presented | This part alone, as the first part was; task 12 and the rest of task 13 follow it | This part, the examples and the remaining contract tests in one change before G2.5 |
+
+**The second part.**
+
+- **`document/`** gains the types of `api.md` section 12: `Document` with `from_results`, `from_usage_error` and its accessors (`contents.rs`), its form (`document_form.rs`) and the writer `Document::serialize_results` (`writer.rs`); `DocumentEntry` with `from_report`, `from_detection` and `from_error` (`entry.rs`) and its form with its position as its index (`entry_form.rs`); `EntryOutcome` (`outcome.rs`) and the outcome that a record warrants by the table of plan section 8.9 (`warranted.rs`); `DeriveOutcomeError` (`derive_outcome_error.rs`); and `Generator` and `UsageError` (`generator.rs`, `usage_error.rs`), records of `form_record!`.
+- **Reading.** A document is a root record read through `Rooted`, so its version comes first wherever it stands, and every record that an entry holds compares its version with the document's before it decodes its body. The entries are read by a sequence visitor of their own, which checks each entry at its position, counted in a `u64`, as soon as it has been read. An entry of a newer outcome keeps its unread members through `WithKept`, as a detection and an error record do.
+- **Writing.** The document held in memory gives the length of its results up front, and the writer writes them as a sequence of unknown length, one entry at a time, each stamped with the document's version. One function writes the members of both, with their exact count. `MediaReport`, `Detection` and `ErrorRecord` gain a crate-private `with_schema_version`, the error record's down to its partial report.
+- **The shared list of shortfalls.** `completeness::shortfalls` gives each part's shortfall, or `None` for a status of a newer version. The agreement of a completeness and an entry's outcome both read it.
+- **Tests.** 60 new serialization tests, in `documents.rs`, `document_outcomes.rs`, `document_versions.rs`, `document_inputs.rs`, `document_writer.rs`, `document_formats.rs` and `newer_entries.rs`. Beside them, `version_first.rs` holds the document among its root records, `standalone.rs` a generator, a usage error and a document read alone, and `trees.rs` the chain of 200,000 tags in a document. They take over every case of the spike's tests that needs a document, except the identifiers of the ISO details, which the library's details do not have yet, and they include the fifth review's entry `ok` beside the entry `partial` of a report that a limit cut short. Three unit tests check the writer's positions past 2^32 and at 2^53 − 1, and the writer asked twice. The doc tests include a compile-fail test showing that `Generator` has no inherent `deserialize`.
+
+**Choices made without asking,** listed in `api.md` section 16 and `json-output.md` section 11, each open at G2.5:
+
+- `DeriveOutcomeError` holds its input and either its report or its detection behind its one pointer, with no second pointer around the record.
+- `Document::serialize_results` names its type parameters, `Entries` and `Output`, since its return type names the serializer's associated types.
+- The writer takes an entry before it knows that there is one, so it takes the entry at position 2^53 and refuses it before writing it.
+- A serializer that asks the writer for the results a second time gets an error, since the writer has given its entries away.
+- A document gives the serializer its exact number of members, three for results and four with a usage error, since a format that writes the length of a map up front, such as CBOR, writes the one given.
+- A document read at a newer minor version and written again on its own keeps that version, as a bare root record does.
+- An entry's outcome is derived from the report's completeness alone; a known header state that is not final beside a headers status of a newer version is seen through the first reason of the headers, which reading requires beside it.
+
+**Found while writing.**
+
+- **The place of an entry's error.** serde_json gives an error raised inside a sequence its line and column, but only after it has checked the end of the sequence. That check consumes the comma and the white space after the entry. So the place is where the read stopped, just after the entry, not its closing brace. The contracts say so, and the test asserts that the place comes before the later entry that the read never reached.
+- **A test of the place held the results before the version,** since `serde_json::Value` writes `schema_version` last. A held member's error takes the place where the reader stands after the version, as `json-output.md` section 2 says. The test now writes the version first.
+- **A name in a test.** A variable named `null` inside `json!` is the JSON literal `null`, not the variable; the build's unused-variable warning showed it.
+- **The duplicate-code check** found five groups in the first draft: the four accessors of the refusal, the two constructors that derive an outcome, the two outcome checks and the two version setters. The refusal now holds two optional records, the constructors share one helper, the outcome checks share one rule, and each setter is two statements.
+
+**Online check, on 2026-11-26.** serde_json 1.0.154, the version that the lock file pins, read in the local registry: `deserialize_any` passes an error from `visit_seq` through `fix_position`, which gives a custom error without a place the reader's current line and column (`de.rs`, `error.rs`). An error raised after the root record's read, in its `try_from`, has none, which the usage error's rule keeps. ciborium 0.2.2, read in the same registry: `serialize_struct` writes `Header::Map(Some(length))` with the length given, and it keeps the default `skip_field` of serde_core 1.0.229, which does nothing. A count of four beside a skipped usage error would leave a CBOR map one member short, so the document counts its members exactly.
+
+**Documents updated:** `api.md`, its review history and sections 12 and 16; `json-output.md`, its review history and sections 2, 3, 10 and 11; the plan at revision 65, its status line, section 8.8, the progress of Phase 2 and Appendix E; `CHANGELOG.md`; the library's front page; the expected package list in `crates/cc-media-probe-checks/data/`.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 242 unit tests, its 277 serialization tests and its 252 doc tests pass; without a feature, 212 unit tests and 223 doc tests do. The 277 serialization tests also pass with serde_json's `arbitrary_precision` and `float_roundtrip` together.
+- Line coverage is 98.30% for the library (6245 of 6353), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` are clean for all eight combinations. `cargo check` of the library with all features and targets passes for `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`.
+- `git diff --check` finds nothing.
+- The macOS linker's note that the `__eh_frame` section of the coverage build's serialization test binary exceeds 16 MB, which Rust's `linker_messages` lint keeps out of `-D warnings`, appeared in the seventh round's runs too, and fails nothing.
+
+**Open:**
+
+- The maintainer's review of this part.
+- Task 12, the examples, and the rest of task 13: the compile-fail tests of non-exhaustiveness, the rendering part of the quick start with a complete and an incomplete report, the checklist of task 6 run again against the code, and the spike deleted.
+- G2.5.
+
+## 2026-11-27 — Review of the third slice's second part
+
+The maintainer staged the second part and reviewed it: six findings, one of priority 2 and five of priority 3. In the review, `node scripts/check.ts`, `git diff --cached --check` and all 277 serialization tests passed. Each finding holds, and none needed a decision, so no question came before the fixes. Seven new tests cover them, six serialization tests and one unit test, as the second review counted. Run against an export of the staged index, which `git checkout-index` wrote into the scratch directory without touching the index, three failed at the review's case: the unit test of the entry's size, at 2,096 bytes; the addresses of an error record and of its partial report, each of which failed when checked alone; and the entries prepared for an output that failed before the results. The other four pass there, since they pin what the staged part already did right: the place of an entry held before the version, which the contracts now state, and the member counts, which the staged part declared exactly. With the count of a document of results set to four, the tests of both writers fail at the root's declaration.
+
+**The findings and their fixes:**
+
+| Finding | Fix |
+|---|---|
+| An entry reserved space for a report, a detection and an error record, 2,096 bytes on a 64-bit build, about 200 MiB of slots for 100,000 detections (priority 2) | `DocumentEntry` holds each record as an `Option<Box<_>>` (`document/entry.rs`), 152 bytes in all; the entry's form reads and writes through the pointers (`document/entry_form.rs`); a unit test keeps an entry smaller than the smallest record |
+| With the results before the version, an entry's error had the version's place, while `api.md` promised the place after the entry | `api.md` section 12 and `json-output.md` sections 2 and 3 state that an entry held before the version fails where the version was read; `documents.rs` asserts the line and column with the version after the results, the version last and the version first |
+| `serialize_results` called `into_iter()` before it wrote the document's opening | The writer keeps the `IntoIterator` until `serialize_seq(None)` has succeeded (`document/writer.rs`); `document_writer.rs` checks outputs that fail at the first byte, at the second and at the results' opening bracket, and one that writes that bracket |
+| Giving an error record's partial report its version allocated a new box | `MediaReport`, `Detection` and `ErrorRecord` take their version in place through `set_schema_version`, which replaces `with_schema_version`, the error record's down to its partial report (`error/record_form.rs`), and `from_results` sets it on the entries where they stand (`document/contents.rs`); `document_versions.rs` checks the addresses, read at 1.0 and at 1.1 |
+| No test observed the declared member counts | `tests/serialization/declared_lengths.rs`: a serializer of the tests' own notes each declared length and the count written, for both writers, the root, the results and every nested struct, map and sequence, an entry's kept members included |
+| The module documentation said that the command-line tool writes a document with `--json`, while `cc-media-probe --json --version` prints only its version line | The rustdoc of `document`, `Document`, `DocumentEntry` and the crate's front page, and `CHANGELOG.md`, call the document the output that the command-line contract specifies, which the tool writes from its skeleton on (plan Phase 3, task 21) |
+
+**Choices made without asking,** each in `api.md` section 16, open at G2.5:
+
+- An entry holds each of its three records as an `Option<Box<_>>`, 24 bytes, rather than one enum of a single record or a boxed set for a newer outcome, 16 bytes: the accessors and the constructors stay as they were, an entry of a newer outcome needs no case of its own, and the eight bytes are small beside the entry's 152.
+- An entry's `PortablePath`, 80 bytes, stays in place, since every entry has one and a pointer would cost an allocation for each entry.
+- `DeriveOutcomeError` still holds its record inside its one box, so `with_outcome` moves the record into a box of the entry's; a refusal is rare.
+
+**Found while revising.**
+
+- **The place after a held entry,** measured in a scratch crate against the library: with `"schema_version": "1.0"  ,` after the results, line 5, column 25, past the two spaces; with the version last before `}`, the column of the brace; with the version last and the brace on a line of its own, column 1 of that line. serde_json runs `end_map` after the visitor of a map fails, as it runs `end_seq` after the visitor of a sequence, and only then gives a custom error its place. The new test asserts the three orders.
+- **An entry read after the version** fails past its comma and the line break after it, at column 0 of the next line, which the new test asserts exactly; the second part's test asserted only that the first error came before the later null's.
+- **Clippy** found, in the new test serializer, a field named after its struct, two arithmetic operations and a function whose `Result` was never an error: the record is now `Declaration` with a `length`, the count saturates, and `close` returns nothing.
+- **The package check** needs `tests/serialization/declared_lengths.rs` in the expected package list, which now names it.
+- **The name check (D23)** flagged `SerializeSeq` and `serialize_seq`, which Serde's `Serializer` fixes and the new test serializer defines. Both join the fixed names of `crates/cc-media-probe-checks/src/names/abbreviations.rs`, with a case in the check's tests, as `visit_seq` did.
+
+**Online check, on 2026-11-27.** Serde's documentation of `Serializer::serialize_struct` says that `len` "is the number of data fields that will be serialized" and "does not include fields which are skipped with `SerializeStruct::skip_field`", which the new test checks for the document's skipped usage error. serde_json 1.0.154, read in the local registry: `deserialize_map`, and the object branch of `deserialize_any`, call `end_map` after `visit_map` returns, whatever it returned, and pass the error through `fix_position` afterwards; `end_map` skips white space and eats a closing brace, and stops before a comma.
+
+**Documents updated:** `api.md`, its review history and sections 12 and 16; `json-output.md`, its review history and sections 2 and 3; the plan at revision 66, its status line, section 8.8, the progress of Phase 2 and Appendix E; `CHANGELOG.md`; the library's front page; the expected package list in `crates/cc-media-probe-checks/data/`.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 243 unit tests, its 283 serialization tests and its 252 doc tests pass; without a feature, 212 unit tests and 223 doc tests do. The 283 serialization tests also pass with serde_json's `arbitrary_precision` and `float_roundtrip` together. The 147 tests of `cc-media-probe-checks` pass.
+- Line coverage is 98.31% for the library (6246 of 6353), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` are clean for all eight combinations. `cargo check` of the library with all features and targets passes for `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`.
+- `git diff --check` finds nothing, and the index holds the maintainer's staged changes unchanged.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- Task 12, the examples, and the rest of task 13: the compile-fail tests of non-exhaustiveness, the rendering part of the quick start with a complete and an incomplete report, the checklist of task 6 run again against the code, and the spike deleted.
+- G2.5.
+
+## 2026-11-27 — Second review of the third slice's second part
+
+The maintainer staged the revised part and reviewed it again: six findings, one of priority 2 and five of priority 3. In the review, `node scripts/check.ts` and `git diff --cached --check` passed, and with serde_json's `preserve_order` 281 of the 283 serialization tests did; the review traced the other failure, in `private_numbers.rs`, to the commit before this part. Each finding holds, and none needed a decision, so no question came before the fixes. The failure in `private_numbers.rs` has the cause of the first finding and is fixed with it. Run against an export of the staged index with `preserve_order`, both tests fail as the review found; the fixed tests pass against the staged library with and without the feature, so the library read both cases right and only the tests depended on the order of a map. One new unit test covers the lookup of the second finding.
+
+**The findings and their fixes:**
+
+| Finding | Fix |
+|---|---|
+| The test of the kept members' lengths failed with `preserve_order`: its fixture, built with `json!`, put `skip_reason` before `attempts`, while the default build sorts them (priority 2) | The entry of a newer outcome is JSON text with its members in a fixed order (`tests/serialization/declared_lengths.rs`), read once and shared by the tests of that file |
+| `is_newer` copied an entry's outcome into a `String` and built an `EntryOutcome` that it dropped | `string_enumeration!` gives every enum of strings `from_known_text(&str) -> Option<…>`, which `from_text` uses too (`src/string_enumeration.rs`); an entry's outcome, a detection's outcome and an error record's kind ask it (`document/entry_form.rs`, `model/detection/detection_form.rs`, `error/record_form.rs`); a unit test in `document/outcome.rs` |
+| The examples of `Document` and `Document::serialize_results` kept only failed probes | Both keep one entry for each input, whichever way its probe ends, and check the inputs in order; the streaming one ends the scan on an entry that cannot be built and returns its error once the document is closed, as `api.md` section 15.6 does (`document/contents.rs`, `document/writer.rs`) |
+| The reader's module comment still promised the place just after a broken entry | It names the place after the version for an entry held before it (`document/document_form.rs`) |
+| The writer said that no index beyond 2^53 − 1 is carried exactly, while a double holds 2^53 exactly | The rustdoc of the writer, the comment of `POSITION_RANGE_MESSAGE` and `api.md` section 12 give the limit of the form: beyond it, JSON implementations need not agree on an integer's value (RFC 8259 section 6; RFC 7493 section 2.2) |
+| The first review's record counted six new tests and five serialization tests | Seven new tests, six serialization tests and one unit test, of which four, not three, pass against the part that it reviewed, in this log and in `api.md` section 16 |
+
+**Found while revising.**
+
+- **The test of `private_numbers.rs`** meant a number that is not finite to stand before the nested report's version, and did so only because `"future"` sorts before `"schema_version"`; with `preserve_order`, `with` appended it after the version, so the version error came first. It now writes the member first and the version last through `with_member` and `text_of`, for the private map's name too, and passes in both builds.
+- **The siblings of the copy.** A detection's outcome and an error record's kind were copied the same way, so all three checks now ask the borrowed lookup. Counted with a global allocator in a scratch crate that reads 1 and 1001 entries, reading a document takes two allocations fewer for each entry: 127 instead of 129 for an entry of an error record and 83 instead of 85 for one of a detection. The two are the entry's outcome and the record's own outcome or kind.
+- **An enum whose only value is its catch-all,** such as `AmbisonicChannelOrdering`, left the text of a plain chain of comparisons unused, which the build denies. The lookup therefore searches a slice of names and values, which reads the text whatever the enum holds; the unit test covers such an enum.
+- **A sibling of the rationale.** `api.md` section 12 said that the writer's limit makes an index "always an exact number", the same claim; it now gives the form's limit too.
+
+**Online check, on 2026-11-27.** RFC 8259 section 6 says that integers in the range [-(2**53)+1, (2**53)-1] "are interoperable in the sense that implementations will agree exactly on their numeric values", and RFC 7493 section 2.2 that a sender "cannot expect a receiver to treat an integer whose absolute value is greater than 9007199254740991 ... as an exact value", both read in the verbatim texts of `docs/specs/rfc/`. serde_json 1.0.154, read in the local registry: its map "is backed by a `BTreeMap`" by default, and `preserve_order` uses `IndexMap` instead (`src/map.rs`), which keeps the order of insertion.
+
+**Documents updated:** `api.md`, its review history and sections 12 and 16; the plan's status line and the progress of Phase 2, without a new revision, since no rule of the plan changed; this log's entry of the first review.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". The structure check and the duplicate checks found nothing.
+- With all features, the library's 244 unit tests, its 283 serialization tests and its 252 doc tests pass; without a feature, 212 unit tests and 223 doc tests do. The 283 serialization tests also pass with serde_json's `preserve_order`, with `arbitrary_precision` and `float_roundtrip` together, and with all three.
+- Line coverage is 98.31% for the library (6247 of 6354), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack doc --locked -p cc-media-probe --no-deps --feature-powerset` and `cargo hack clippy --locked -p cc-media-probe --all-targets --feature-powerset` are clean for all eight combinations. `cargo check` of the library with all features and targets passes for `x86_64-unknown-linux-gnu` and `x86_64-pc-windows-msvc`.
+- `git diff --check` finds nothing, and the index holds the maintainer's staged changes unchanged.
+
+**Open:**
+
+- The maintainer's answer to this round.
+- Task 12, the examples, and the rest of task 13: the compile-fail tests of non-exhaustiveness, the rendering part of the quick start with a complete and an incomplete report, the checklist of task 6 run again against the code, and the spike deleted.
+- G2.5.

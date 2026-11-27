@@ -297,3 +297,7 @@ pub const AFTER_REQUEST_LIMITS: [crate::Limit; 4] = [
 #[cfg(feature = "serde")]
 pub const COMPANION_LIMIT_MESSAGE: &str = "a companion_limited reason names a limit that cannot stop a companion \
                                            before its request, or after it, as its source tells";
+
+/// The parts that this version knows, each with a status of its own (`api.md` section 5.3).
+#[cfg(feature = "serde")]
+pub const PART_COUNT: usize = 8;

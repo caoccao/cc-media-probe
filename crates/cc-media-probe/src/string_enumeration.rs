@@ -80,15 +80,19 @@ macro_rules! string_enumeration {
         }
       }
 
+      /// The value that a serialized name of this version stands for, read without a copy of the text, or `None`
+      /// for a name of a newer version.
+      #[cfg(feature = "serde")]
+      pub(crate) fn from_known_text(text: &str) -> Option<$name> {
+        let known: &[(&str, $name)] = &[$(($text, $name::$variant)),*];
+        known.iter().find(|(name, _)| *name == text).map(|(_, value)| value.clone())
+      }
+
       /// The value that a serialized name stands for, or the catch-all that keeps a name of a newer version.
       #[cfg(feature = "serde")]
       pub(crate) fn from_text(text: String) -> $name {
-        $(
-          if text == $text {
-            return $name::$variant;
-          }
-        )*
-        $name::Unrecognized($crate::model::UnrecognizedValue::from_text(text))
+        $name::from_known_text(&text)
+          .unwrap_or_else(|| $name::Unrecognized($crate::model::UnrecognizedValue::from_text(text)))
       }
     }
 

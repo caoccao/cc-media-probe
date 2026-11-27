@@ -158,3 +158,10 @@ fn sample_descriptions_agree(format: &Format, streams: &[Stream]) -> bool {
       .all(|protection| protection.has_sample_descriptions() == expected)
   })
 }
+
+impl MediaReport {
+  /// Gives the report that version, as a document gives each report that it holds (`api.md` section 12).
+  pub(crate) fn set_schema_version(&mut self, version: crate::document::SchemaVersion) {
+    self.schema_version = version;
+  }
+}

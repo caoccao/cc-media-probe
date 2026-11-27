@@ -42,7 +42,7 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
-use super::constants::{COMPANION_COUNTER_MESSAGE, REASONS_DISAGREE_MESSAGE};
+use super::constants::{COMPANION_COUNTER_MESSAGE, PART_COUNT, REASONS_DISAGREE_MESSAGE};
 use super::{CompanionStatus, Completeness, LimitRecord, Part, PartReason, Reason};
 use crate::Limit;
 use crate::constants::COMPANION_LIMITS;
@@ -98,10 +98,10 @@ fn shortfall(satisfied: bool, unrecognized: bool) -> Option<bool> {
   (!unrecognized).then_some(!satisfied)
 }
 
-/// Whether each known part's status and its first reason agree.
-fn statuses_agree(completeness: &Completeness) -> bool {
-  let record = completeness.record();
-  let statuses = [
+/// Each part with whether its status records a shortfall, or `None` for a status of a newer version, which the
+/// agreement of a completeness and the outcome of a document's entry read.
+pub(crate) fn shortfalls(completeness: &Completeness) -> [(Part, Option<bool>); PART_COUNT] {
+  [
     (Part::Detection, completeness.detection().shortfall()),
     (Part::Discovery, completeness.discovery().shortfall()),
     (Part::Headers, completeness.headers().shortfall()),
@@ -110,8 +110,13 @@ fn statuses_agree(completeness: &Completeness) -> bool {
     (Part::Attachments, completeness.attachments().shortfall()),
     (Part::Timing, completeness.timing().shortfall()),
     (Part::Companions, completeness.companions().shortfall()),
-  ];
-  statuses
+  ]
+}
+
+/// Whether each known part's status and its first reason agree.
+fn statuses_agree(completeness: &Completeness) -> bool {
+  let record = completeness.record();
+  shortfalls(completeness)
     .iter()
     .all(|(part, shortfall)| shortfall.is_none_or(|expected| expected == record.first_reason(part).is_some()))
 }

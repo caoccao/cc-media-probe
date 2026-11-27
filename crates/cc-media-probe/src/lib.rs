@@ -22,10 +22,10 @@
 //! The library is in development, and nothing is published yet. This build holds the public data model of the
 //! API, whose [specification](https://github.com/caoccao/cc-media-probe/blob/main/docs/design/api.md) the
 //! development plan approved, its entry points, options, limits and source traits, blocking and async, and, with
-//! the `serde` feature, the serialized form of the report model and its root records; the document of the command
-//! line follows. No format is detected yet: until the detection inventory arrives, the bytes of every
-//! input match nothing, so detection gives the outcome `Unknown`, or `HintOnly` for a format hint, and a probe the
-//! error `UnknownFormat`.
+//! the `serde` feature, the serialized form of the report model and its root records, with the document that the
+//! command-line contract specifies and its writer. No format is detected yet: until the detection inventory
+//! arrives, the bytes of every input match nothing, so detection gives the outcome `Unknown`, or `HintOnly` for a
+//! format hint, and a probe the error `UnknownFormat`.
 //!
 //! # Probing
 //!
@@ -75,11 +75,13 @@
 //! - [`asynchronous`]: the async source trait, its functions and handles, and the modules of the two runtimes.
 #![cfg_attr(
   feature = "serde",
-  doc = "- [`document`]: with the `serde` feature, the version of the serialized form, `SchemaVersion`."
+  doc = "- [`document`]: with the `serde` feature, the document of the command-line contract, its entries and its
+  writer, and the version of the serialized form, `SchemaVersion`."
 )]
 #![cfg_attr(
   not(feature = "serde"),
-  doc = "- `document`: with the `serde` feature, the version of the serialized form, `SchemaVersion`."
+  doc = "- `document`: with the `serde` feature, the document of the command-line contract, its entries and its
+  writer, and the version of the serialized form, `SchemaVersion`."
 )]
 //!
 //! # Features

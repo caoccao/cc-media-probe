@@ -18,10 +18,15 @@
 //! The flat trees of chapters and tags (`json-output.md` section 5.9): one array of every node in depth-first order,
 //! each with the position of its parent, read back in its order and only in depth-first order, so a node that
 //! returns to a closed subtree fails. A standalone chapter or tag is the flat array of its subtree, with exactly one
-//! root. The trees add no depth, so `serde_json`'s default recursion limit reads a chain of 200,000 tags.
+//! root. The trees add no depth, so `serde_json`'s default recursion limit reads a chain of 200,000 tags, alone and in
+//! a document.
+
+use std::path::Path;
 
 use cc_media_probe::MediaReport;
+use cc_media_probe::document::{Document, DocumentEntry, Generator};
 use cc_media_probe::model::{Chapter, Tag};
+use cc_media_probe::source::PortablePath;
 use serde_json::{Value, json};
 
 use crate::fixtures::report;
@@ -153,7 +158,15 @@ fn a_chain_of_two_hundred_thousand_tags_reads_with_the_default_recursion_limit()
   let report: MediaReport = serde_json::from_str(&text).unwrap();
   let written = serde_json::to_string(&report).unwrap();
   assert_eq!(written.len(), text.len());
-  drop(report);
+  // In a document too, which reads the report at its typed size and compares it without recursing on its depth.
+  let entry = DocumentEntry::from_report(PortablePath::from_path(Path::new("movie.mkv")), report).unwrap();
+  let document = Document::from_results(Generator::new("catalog", "1"), vec![entry]);
+  let text = serde_json::to_string(&document).unwrap();
+  let read: Document = serde_json::from_str(&text).unwrap();
+  assert_eq!(read, document);
+  let tags = &read.results()[0].report().unwrap().tag_sets()[0].tags()[0];
+  assert_eq!(tags.children().len(), 1);
+  drop((read, document));
 }
 
 #[test]

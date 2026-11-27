@@ -15,10 +15,29 @@
 * limitations under the License.
 */
 
-//! The document of the serialized form and the version of its root records (`api.md` section 12; `json-output.md`
-//! sections 3 and 4), with the `serde` feature.
+//! The document of the serialized form, its entries and its writer, and the version of its root records (`api.md`
+//! section 12; `json-output.md` sections 3 and 4), with the `serde` feature. A document is the output of `--json`
+//! that the command-line contract specifies, which the command-line tool does not write yet: it writes it from its
+//! skeleton on (development plan, Phase 3, task 21). A library user writes the same document with
+//! [`Document::from_results`] or, one entry at a time, [`Document::serialize_results`].
 
 mod constants;
+mod contents;
+mod derive_outcome_error;
+mod document_form;
+mod entry;
+mod entry_form;
+mod generator;
+mod outcome;
 mod schema_version;
+mod usage_error;
+mod warranted;
+mod writer;
 
+pub use contents::Document;
+pub use derive_outcome_error::DeriveOutcomeError;
+pub use entry::DocumentEntry;
+pub use generator::Generator;
+pub use outcome::EntryOutcome;
 pub use schema_version::SchemaVersion;
+pub use usage_error::UsageError;
