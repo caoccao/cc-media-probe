@@ -1,0 +1,67 @@
+# Spike for Phase 3, task 1: the smallest end-to-end slice of D8, D9, D15 and
+# D17 on a toy format, for gate G3.1. Its own workspace and lock file, excluded
+# from the root workspace (plan section 7.1). It depends on the library by path
+# for the approved source traits and limits, as the maintainer chose on
+# 2026-11-27. See README.md.
+
+[workspace]
+resolver = "3"
+
+[package]
+name = "input"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+cc-media-probe = { path = "../../crates/cc-media-probe", features = ["tokio", "futures-io"] }
+futures-io = { version = "=0.3.34", default-features = false, features = ["std"] }
+tokio = { version = "=1.54.1", default-features = false, features = ["fs"] }
+
+[dev-dependencies]
+criterion = { version = "=0.8.2", default-features = false }
+futures-lite = "=2.6.1"
+peak_alloc = "=0.3.0"
+tokio = { version = "=1.54.1", default-features = false, features = ["rt", "macros", "fs", "io-util"] }
+
+[[test]]
+name = "cases"
+
+[[test]]
+name = "peak"
+harness = false
+
+[[bench]]
+name = "overhead"
+harness = false
+
+# One codegen unit for the benchmark, as the maintainer chose on 2026-11-27 at
+# the spike's review. With the default 16 units, the hand-written baseline's
+# speed moved by about 15% between builds whose hand-written code was the same,
+# because the partition into units decides what is inlined across them, so the
+# 10% bar of D8 measured the partition rather than the async code.
+[profile.bench]
+codegen-units = 1
+
+# The lint table of the root workspace, so the spike's walker, assembler and
+# parser meet the rules that the permanent code of tasks 5 and 6 must meet.
+[lints.rust]
+warnings = { level = "deny", priority = -1 }
+unsafe_code = "forbid"
+missing_docs = "deny"
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(fuzzing)", "cfg(cc_media_probe_repository)"] }
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+self_named_module_files = "deny"
+definition_in_module_root = "deny"
+min_ident_chars = "deny"
+single_char_lifetime_names = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"

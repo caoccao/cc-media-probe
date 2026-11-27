@@ -5307,3 +5307,374 @@ The maintainer reviewed the staged snapshot again, at revision 67 of the plan. T
 
 - The maintainer's review of these fixes, the staging of the working tree's fixes of both reviews, and G2.5.
 - Whether the examples get a duplicate-code threshold or exclusion of their own, the maintainer's decision, if the four-line `main` of `dump_tags` is not wanted.
+
+## 2026-11-27 — G2.5 Phase gate [CONFIRM]
+
+**Approved** for revision 69 at `701601b` on `main`. G2.1 through G2.4 approved the names, Rust API, CLI and JSON contracts, and stability policy. G2.5 accepts the permanent library, the thirteen examples, the contract tests and the completed [API Guidelines checklist](../design/api-guidelines-checklist.md#15-the-run-against-the-code). The commit contains the fixes from both reviews of tasks 12 and 13.
+
+- **API and protocols.** The downstream tests cover public enum matches, struct construction, traits and borrowed inputs. The document writer emits one entry per input in order and stops consuming inputs on an output failure. The reader checks schema versions and preserves the payload of unfamiliar entry outcomes. These behaviors give the Phase 3 CLI a tested library contract to implement.
+- **Verification.** `node scripts/check.ts` passed. The library passed 245 unit tests, 283 serialization tests, 18 public API tests, seven example rendering tests and 617 rustdoc tests, including 183 compile-fail cases. The 283 serialization tests also passed with serde_json’s `preserve_order`, `arbitrary_precision` and `float_roundtrip` enabled together. Rustdoc built with warnings denied. Line coverage was 98.34% for the library and 100% for the CLI. Both R28 library areas with executable lines, `detect/` and `utilities/`, reached 100%.
+- **Output and implementation choices.** The quick start and tag example now test the text a caller sees, including quoted file text, chapter paths and unfamiliar tag targets. The example formatting choices and the short `dump_tags` entry point are accepted under the existing duplicate-code rule. The package excludes integration tests, the structure check enforces private library fields, and CI builds example and test targets across feature combinations.
+- **Later evidence.** The [deferred cases](../design/deferred-cases.md) preserve the inputs and expected results for real source reads in Phase 3 and typed H.264, Matroska and ISO base media details in Phases 4 through 6. Phase 3 introduces the resource measurements and fuzz targets. Phase 2 had no optional acceptance step.
+
+Phase 3 may start with the disposable I/O spike. G3.1 reviews its blocking and async results and measurements before the permanent I/O implementation.
+
+## 2026-11-27 — Phase 3, task 1: the I/O spike
+
+After G2.5 the standing brief applied: the next work is Phase 3, task 1, the disposable I/O spike for G3.1. `spikes/input/` holds it, a workspace of its own, and [its README](../../spikes/input/README.md) holds the toy format, the cases, the measurements and what they show. It waits for G3.1.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How the spike reaches the caller's source traits: depend on the library by path, or carry copies of `PositionalSource` and `AsyncPositionalSource` | Depend on the library |
+| Whether the spike's toy container and codec are the draft of the permanent toy format of task 5, or disposable | The draft of task 5's |
+| How the spike's tests, the resolver's check-then-open sequence against links among them, run on Linux, macOS and Windows: a temporary CI job, by hand on each platform, or a workflow started by hand | "If it's one time, just do it on macos. Do not create CI jobs." |
+| How the overhead against a hand-written blocking version is measured, and what passes D8 | Criterion, with a bar of 10% on the in-memory cases; otherwise the spike writes the fallback's state machine before G3.1 |
+
+**Online check, on 2026-11-27.** `Waker::noop` is stable since Rust 1.85 (doc.rust-lang.org, `std::task::Waker`), so the minimal executor needs no `unsafe` code. Writing code once as `async` over a provider whose futures are ready compiles to plain code in a small example (swatinem.de, "Rust async can truly be zero-cost"); no published measurement covers code the size of a walker, which is what the spike measures. `std::os::windows::fs::junction_point` is nightly-only (rust-lang/rust#121709), so a test on stable Rust cannot make a junction. GitHub's Windows runners run as administrators (docs.github.com, "GitHub-hosted runners reference"), which the maintainer's answer made moot. Criterion 0.8.2's `cargo_bench_support` feature has no code in its packaged source, so it runs under `cargo bench` without default features, as the dossier approves it.
+
+**What was built.** In `spikes/input/`, under the root workspace's lint table, R29 to R33 and the header:
+
+- the internal source of D8 with its two paths, plain-code `read_now` and `async` `read_at`, over the raw inputs of every entry point;
+- the block cache, and the sliding window with the pinned detection prefix (D9);
+- the minimal executor, one poll with `Waker::noop`;
+- the walker, the probe with detection and companions, the reduced budget, and the assembler and toy codec of D17;
+- the companions' blocking and async resolvers and the built-in resolver's check-then-open sequence;
+- the entry points of `api.md` sections 4.1 and 9.1, which give the spike's own report, since `MediaReport` has no public constructors;
+- the hand-written blocking probe, and the builders of toy files.
+
+48 cases, the measured heap peak and the Criterion benchmark run on macOS.
+
+**Found while building, each fixed:**
+
+- **The walker as first written missed the bar,** by 65% and 96% in memory: every read was an `async fn`, and each element went through nested `async fn`s. Profiles with macOS `sample` put the time in the futures themselves. Changes tried one at a time brought it within the bar: a read that the source can give at once builds no future (`fill!`), and an element's path is one `async fn` with no nested one. `#[inline]` on the read helper changed nothing. The README's section 5 has every step.
+- **The pinned prefix** was released once the walker read past it, so a reference back into it was lost on a forward-only input while the window still held the bytes after it. It is pinned for the whole probe.
+- **The assembler** doubled its buffer on every packet, so a waiting stream held the whole 1 MiB per-stream limit; the measured heap peak showed it. It grows only when the bytes do not fit, and a case asserts the bound.
+- **The toy parser** waited for a payload unit's whole body before saying "no header present" in packet mode, which cost a second piece per headerless packet. It decides from the unit's kind byte.
+- Clippy's `unused_async_trait_impl` asked the blocking adapters for `std::future::ready`, which states D8's premise in the code: a blocking read is made before its future exists.
+
+**Measurements**, on an Apple M4 Max with Rust 1.100.0 in the release profile. Corrected at the spike's review (the next entry): the figures are Criterion's typical estimate, the slope, or the mean for `cursor/many` and `file/many`, and not medians. The medians were +8.4% and −9.8% in memory, −2.1% and −18.3% through the cache, and +2.0% and −4.4% from a file.
+
+| Group | Input | Async | Hand-written | Difference |
+|---|---|---|---|---|
+| memory | few | 763.6 ns | 707.4 ns | +7.9% |
+| memory | many | 1.336 ms | 1.461 ms | −8.6% |
+| cursor | few | 1.836 µs | 1.867 µs | −1.7% |
+| cursor | many | 2.405 ms | 2.937 ms | −18.1% |
+| file | few | 16.40 µs | 16.40 µs | 0.0% |
+| file | many | 2.628 ms | 2.747 ms | −4.3% |
+
+The measured heap peak exceeds the charged working memory by less than 1 KiB on every input: 5,031 against 4,383 bytes from memory, 529,639 against 528,671 through the cache, and 1,250,215 against 1,249,567 through the window. The async and hand-written probes have the same peaks. The probe futures are 2,048 to 2,232 bytes in the release profile; the 2,144 to 2,328 bytes first written here were an earlier build's (corrected at the review).
+
+**Choices made without asking, each open at G3.1:**
+
+- D8's condition above, proposed for every permanent walker, and the fallback of explicit state machines not written, since the bar holds. Superseded at the review (the next entry): after its fixes the bar no longer held, and the fallback was written.
+- The pinned prefix held for the whole probe, and a detection sample beyond its capacity given as insufficient data with the range unavailable.
+- The internal sizes: a block of 64 KiB, 8 blocks in the cache, a window of 1 MiB, a prefix of at most 64 KiB, reads of 64 KiB on a forward-only input, and a piece of 4 KiB.
+- A cap on bytes examined of 16 times the per-stream header limit, which names `HeaderBytesPerStream` when reached.
+- The toy format's rules, among them a backward-only title reference, an identifier of 1 to 16 lowercase ASCII letters and digits, and the fixed extension `toyc`.
+- Companion requests registered as found and resolved after the primary input's walk, in order, with a companion's own companions not followed.
+- No length method on the internal source, since the toy needs none; the library's walkers will.
+
+**Plan revision 70:** task 1 runs the check-then-open sequence on macOS alone, measures with Criterion against a bar of 10% on the in-memory cases, and builds on the library's source traits and `Limits`; task 5 starts from the spike's toy format; the status line and Appendix E.
+
+**Documents updated:** the plan; the spike's README; this log. `api.md` and `deferred-cases.md` stay as they are until G3.1 decides.
+
+**Verification.**
+
+- In `spikes/input/`: `cargo clippy --all-targets` finds nothing, `cargo test` passes the 48 cases and the heap measurement, `cargo test --release --test peak` passes, and `cargo bench --bench overhead` gave the table above.
+- The structure check of `cc-media-probe-checks` gives no finding on the spike, and one on a literal planted in it, which was removed.
+- `node scripts/check.ts` passes on the final tree.
+
+**Open:**
+
+- G3.1: D8 with the condition above, D9, D15 and D17, the internal sizes, and the toy format as the start of task 5.
+- Tasks 5 and 6 take the spike as their reference, and task 6's commit deletes it.
+
+## 2026-11-27 — Phase 3, task 1: the review of the I/O spike
+
+The maintainer reviewed the staged spike and asked to keep G3.1 open. The review has 24 findings: 3 P1, 17 P2 and 4 P3, under codec parsing and assembly (5), source reads and traversal (9), failures and companion lookup (6), and gate measurements and fixtures (4). Every finding is fixed.
+
+After the fixes the async walker missed D8's bar, so, as the maintainer's rule asks, the spike now also holds the fallback's state machine for comparison. That fallback costs more than the async walker. G3.1 stays open.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| Which Criterion statistic decides D8's 10% bar on the in-memory cases: the median of three runs, the median of one run, Criterion's headline estimate (the slope, or the mean where it samples flat), or the median and the slope of three runs | The median, in each of three runs |
+| How the spike covers the parser's representation, context and known packet length of plan section 7.4: carry them through, with a second representation of the toy codec; carry only the packet length; or record them as unverified at G3.1 | Carry them through |
+| Asked once the first measurements after the fixes showed it: the default profile's 16 codegen units moved the hand-written baseline by about 15% between builds whose hand-written code was the same. Measure the gate with one codegen unit and apply the rule; take the default profile as chosen; or write the fallback at once | One codegen unit, then the rule |
+| Whether to run the gate now on a busy machine, at a load average of 38 to 56, and record the load, or to wait for the maintainer's signal | Run now, and record the load |
+
+**Online check, on 2026-11-27.** Criterion 0.8.2's printed "time" is its typical estimate, the slope where it sampled linearly and the mean otherwise (its `Estimates::typical` in the packaged source). Its book says only that the center value is "Criterion.rs' best estimate", and that the analysis of the average "is sensitive to outliers" (bheisler.github.io, "Command-Line Output" and "Analysis Process"). POSIX `open` says that "an open() for reading-only shall block the calling thread until a thread opens the file for writing" for a FIFO without `O_NONBLOCK` (pubs.opengroup.org). `std::os::unix::fs::mkfifo` is still nightly-only (rust-lang/rust#139324), so the test makes its pipe with the system's `mkfifo` program.
+
+**Reproduced first.** A temporary test module asserted what the review asks for, against the staged API. All 17 of its cases failed, one of them covering two findings:
+
+| Finding | What the staged build gave |
+|---|---|
+| A stream's delivery taken for its end | One-byte deliveries of a setup and 32 parameters under a header limit of 96 bytes: `PartiallyParsedCutShort(…, HeaderBytesPerStream)`; one delivery: parsed |
+| Parser work charged after use | Work limit 5 and a packet of a setup and one parameter: `PartiallyParsedCutShort(setup, WorkUnits)`, from a call whose work the budget did not cover |
+| The continuation outside the header limit | A header limit of 8 bytes plus the continuation's size less one: parsed |
+| A payload-only packet needs a second byte | `parse` of the one byte `0` in packet mode: `NeedsMoreBytes { total: Some(2) }` |
+| Read-ahead drops the requested byte | A chunk of 16 and a window of 4 on a two-title stream: no title, and "range unavailable" at 12 and 25 |
+| Detection drops the bytes read | A read allowance of 1 and an input that starts with `e`, forward-only: `InsufficientData(BytesRead)`; from bytes: unknown |
+| A larger cache reads less | The working-memory peak of a one-block cache, with two blocks: one title of two, working memory exhausted |
+| The end inside an open list | A `LIST` header that declares 20 bytes at the end of the file: no diagnostic |
+| A work unit charged at the end | One title and a work limit of 1: work units exhausted |
+| A title reference reads through itself | A reference to a `TITL` header whose body covers the reference: the title "TREF\0\0\0\u{8}\0\0" |
+| Partial detection ignores what rules out | `CCToy\0` with version 2, and an unknown code with two bytes of its length: insufficient data |
+| A source failure drops the fields read | A source failing at byte 128 after a setup: `NotFound(TruncatedInput)` and the assembler's charge left at the end |
+| The primary input always opened | The same failure, and `probe_file` of a missing path: the primary entry "opened" |
+| Missing companions use the open allowance | A sources-opened limit of 1, a missing companion, then one that exists: the second never requested |
+| A custom token aliases the primary file | A token equal to the primary file's device and file numbers under `probe_file`: `alias_of` 0, no byte read |
+| Tokens outside working memory | A token of 1 MiB under a working memory of 64 KiB: "opened" |
+| Opening a named pipe waits | A companion that is a FIFO, through the built-in resolver: no answer within 5 seconds |
+| The builder writes a wrong length | `parameters_unit` of 128 parameters: a length byte of 255 and 256 bytes of body |
+
+The other six were shown in other ways:
+
+- The staged run's saved Criterion estimates hold slopes and means under the README's heading of medians, and its medians put `memory/few` at +8.4%.
+- The window's embedded test failed on the staged window code, whose ring kept 96 bytes after the chunk did not fit.
+- A copy of the staged tree, taken with `git write-tree` and `git archive` without touching the index, gives release futures of 2,048, 2,072, 2,232 and 2,072 bytes, as the review measured. The staged README's figures came from an earlier build.
+- The benchmark's skipped and unchecked cases, the zero piece size, which would loop, and the parser's missing inputs were found by reading the code.
+
+**Changes:**
+
+| Finding | Change |
+|---|---|
+| [P1] A stream's delivery taken for its end | In stream mode only the end of the input ends the stream: a delivery's end no longer calls the parser as ended, and `finish` tells the parser of the input's end once (plan section 7.4, "When the assembler calls again") |
+| [P2] Parser work charged after use | A call sees no more bytes than the work units and the cap on bytes examined leave; a parser that needs more ends with the limit that set the allowance |
+| [P2] The continuation outside both limits | Its fixed size, `CONTINUATION_SIZE`, counts toward the per-stream header limit and is charged to working memory from the first offer until the header is final |
+| [P2] D17's inputs not exercised | `parse` takes `Input` (framing mode and representation) and `Context` (the packet's known length); `Piece` carries that length; the toy codec has units with one-byte and two-byte lengths, which `STRM` states in a seventh byte; a unit that runs past a known packet end is malformed once its header is read (the maintainer's choice) |
+| [P2] A payload-only packet needs a second byte | The parser decides a payload unit from its kind byte alone |
+| [P1] Read-ahead drops the requested byte | Before a chunk joins the ring, only bytes before the read position make room, so a chunk larger than the window keeps the requested byte and the ring never outgrows its reserved capacity |
+| [P2] Detection drops the bytes read | The window delivers the prefix's bytes at the position before it reports the exhausted allowance |
+| [P2] A larger cache reads less | A block that working memory cannot hold makes the cache reuse its least recently used block |
+| [P2] A failed window allocation keeps the ring | The ring is reserved locally and kept only once the chunk is reserved too |
+| [P2] The end inside an open list | The cursor keeps each open list's position, and the end of the input inside it is a truncated element at the list |
+| [P2] A work unit charged at the end | An element costs its work unit once its header is read |
+| [P2] A zero piece size | Every internal size is a `NonZeroUsize` |
+| [P2] A title reference reads through itself | `title_target`, shared by both walkers, accepts only a title that ends before the reference |
+| [P3] Partial detection ignores what rules out | A short file header with another version, and a whole unknown first code, are unknown |
+| [P1] A source failure drops the fields read | `fail_streams` ends each waiting stream of the failed source cut short or not found with `Reason::SourceFailed`, or `HeaderStatus::NotAttempted(SourceFailed)` for one that no packet began (plan section 7.4, "End of input, limits") |
+| [P2] The primary input always opened | `into_report` takes the primary input's outcome: failed for its read error and for `probe_file`'s failed open |
+| [P2] Missing companions use the open allowance | A companion waits after the walk, and the request and sources-opened limits are checked just before each call; a found source counts as opened |
+| [P2] A custom token aliases the primary file | `probe_file` takes the primary file's identity for the built-in resolver alone (`api.md` section 13) |
+| [P2] Tokens outside working memory | `Identities` charges each token by its capacity before it is kept; one that cannot be held makes the entry `LimitReached(WorkingMemory)`, unread, and every charge returns at the end (`api.md` section 13) |
+| [P2] Opening a named pipe waits | The built-in resolver checks that the resolved path names a regular file before it opens it, and still checks the handle |
+| [P2] The statistic of the D8 table | The README and this log name the statistic: the median, in each of three runs, beside the mean and the slope (the maintainer's choice) |
+| [P3] The future sizes | Measured again in the release profile on the final build |
+| [P3] The benchmark can pass without its cases | A fixture that cannot be written ends the run with status 1, and every probe of every case is checked once against the reference report before it is timed |
+| [P3] The builder writes a wrong length | `unit` and `parameters_unit` return `None` for a body that the length field cannot hold, and `unit` writes both representations |
+
+**Tests.** 26 new cases in five modules take the reproductions' place: `limits.rs`, `representation.rs`, `traversal.rs`, `failures.rs` and `lookup.rs`. So does the window's embedded test, and the temporary module is deleted. One older case changed: a stream that waits through a thousand packets now holds the continuation's 8 bytes beside its piece. `machine.rs`, a 27th case, compares the fallback's reports with the async walker's. In all, `tests/cases/` holds 75 cases.
+
+**D8's measurement after the fixes.**
+
+- **The default profile.** Three Criterion runs on the default release profile put the async probe at +17.7%, +18.9% and +20.1% in memory with few packets, and +8.1% to +9.3% with many. The hand-written probe had not slowed.
+- **The cause.** A temporary harness, since deleted, alternated the two probes round by round and took the median ratio, which cancels drift in the machine's load. It showed the cause: with 16 codegen units, the hand-written baseline ran at 672 to 679 ns in one build and 786 to 841 ns in another, though its code was the same. The async probe stayed at 816 to 882 ns. The partition into units decides what the compiler inlines across them.
+- **One codegen unit.** With one unit the baseline held at about 691 ns, and the async probe was +11.6% (few) and +9.6% (many).
+- **The nested function.** This revision had first wrapped each source's walk in one more `async fn`, against the spike's own condition for D8. It cost 3.6 more points with few packets, so the final probe walks each source inline again.
+- **The gate.** The maintainer chose one codegen unit (above), and the spike's `[profile.bench]` now has `codegen-units = 1`. The gate's three runs then missed the bar in every run.
+
+**D8's fallback.** `src/machine/` holds the walk as an explicit state machine of ten phases. It reads nothing itself: it says which range it needs, takes in what a read delivered, and runs the same `Walk`, `Packet`, detection, assembler and parser as the other two walkers. Two drivers feed it: a blocking loop over the hand-written probe's sources, and an async loop over the internal source, which awaits only a read that must wait. Its reports equal the async walker's, usage included, for eight files under six sets of limits, through both drivers. The heap measurement covers it too.
+
+**Found while revising:**
+
+- **A companion could loop on its packets.** The scratch buffers were reserved only before the primary input's walk, so a companion walked after that reservation failed would read its packets in pieces of 0 bytes and never advance. Every walk now reserves them first.
+- **The first fix of the window could outgrow the ring.** Dropping bytes after a chunk joined the ring, but never the requested one, let a second chunk larger than the window push the ring beyond its reserved capacity of a window and a chunk, an allocation that nothing charged. Room is now made before the chunk joins.
+- **The order of diagnostics.** A companion that a limit refuses now gets its diagnostic when its request would be made, after the primary input's walk, instead of when its element is found.
+- **Criterion's figures in the first table** were the slope for four cases and the mean for the two that Criterion sampled flat, `cursor/many` and `file/many`. The earlier entry above is corrected, as are its future sizes.
+- **The codegen units** of the default profile moved the baseline by more than the bar (above), which neither the first round nor the review had seen.
+
+**Choices made without asking, each open at G3.1:**
+
+- Where the work units left and the cap on bytes examined set the same allowance, a parser that needs more names the work units.
+- A primary file's identity that working memory cannot hold is not kept, so no companion can be its alias; the budget records working memory as exhausted.
+- A found source counts against the sources-opened limit whether it is read or closed again as an alias, since the resolver opened it.
+- The continuation's size is charged from a stream's first offer, not from its declaration.
+- The parser is told of a stream's end at the end of the input only, not when a limit stops the traversal or the source fails.
+- A regular file replaced by a named pipe between the type check and the open would still wait: the condition of containment, that nobody changes the folder tree during the probe, covers it.
+- The representation byte follows the framing byte in `STRM`, with 0 for one-byte lengths and 1 for two-byte lengths; another value is a bad body.
+- The state machine is the straightforward form of the fallback, neither profiled nor tuned, with no companions and no forward-only window, as the hand-written probe has none. Its benchmark uses the blocking driver over the hand-written probe's sources, so the comparison isolates the walker's form.
+
+**Measurements**, on the same Apple M4 Max with Rust 1.100.0 in the release profile, three runs of `cargo bench --bench overhead`:
+
+With one codegen unit, at a load average of 42 to 68, the medians, as differences from the hand-written probe:
+
+| Set | Run | Async, few | Async, many | State machine, few | State machine, many |
+|---|---|---|---|---|---|
+| Gate | 1 | +11.5% | +7.4% | | |
+| Gate | 2 | +20.3% | +10.5% | | |
+| Gate | 3 | +19.4% | +12.6% | | |
+| Three walkers | 1 | +9.9% | +7.7% | +32.5% | +55.0% |
+| Three walkers | 2 | +8.6% | +8.5% | +32.1% | +56.9% |
+| Three walkers | 3 | +11.5% | +3.0% | +34.7% | +73.2% |
+
+D8 misses its bar in every gate run, so it does not hold by the maintainer's rule. The fallback costs three times the async walker's overhead or more. Through the cache and from a file, the async probe is −20.3% to +11.7%, and the state machine −4.3% to +23.0%. The README's section 5 has every table, with the means and the slopes.
+
+The measured heap peaks of the three walkers are equal: 5,095 bytes against 4,391 charged from memory, 529,703 against 528,679 through the cache, and 1,250,279 against 1,249,575 through the window, for the async walker. In the release profile the async probe futures are 2,112 to 2,296 bytes, and the state machine's `machine::probe_source` 1,072 bytes.
+
+**Plan revision 71:**
+
+- Task 1 judges D8's bar by the median of each in-memory case in each of three runs, measured with one codegen unit.
+- Its parser takes the representation and the context of plan section 7.4, with a toy codec of two representations.
+- The status line records the missed bar and the fallback, and Appendix E has the row.
+
+Each was the maintainer's choice.
+
+**Documents updated:** the plan; the spike's README, sections 1 to 7; this log, including the earlier entry's figures. `api.md` and `deferred-cases.md` stay as they are until G3.1 decides.
+
+**Verification.**
+
+- In `spikes/input/`: `cargo fmt --check` and `cargo clippy --all-targets` find nothing. `cargo test` passes the 75 cases, the embedded test and the heap measurement, and `cargo test --release --test peak` passes. `cargo bench --bench overhead` ran three times for the gate and three times with the state machine, giving the tables above.
+- The temporary reproductions failed on the staged code, as listed above, and the window's embedded test failed on the staged window. Both were run before the fixes.
+- The structure check of `cc-media-probe-checks` gives no finding.
+- `node scripts/check.ts` passes on the final tree.
+
+**Open:**
+
+- G3.1 decides on D8: confirm it with the overhead above, change the bar, or switch to the fallback despite its measured cost.
+- G3.1 also confirms D9, D15 and D17 with the corrections above, the internal sizes, and the toy format with its representation byte as the start of task 5.
+- The measurements were taken on a busy machine, and a quiet one may move them.
+
+## 2026-11-27 — Phase 3, task 1: the second review of the I/O spike
+
+The maintainer reviewed the spike as staged at plan revision 71 and asked to keep G3.1 open. The review has 17 findings: 2 P1, 11 P2 and 4 P3, under header parsing and source failures (4), cache and memory accounting (5), traversal and detection (4), and the resolver, tests and measurements (4). Every finding is fixed, in all three walkers where it touches a walker. The fixes met one sibling of their own, the stack of open lists, which is charged now too.
+
+As the maintainer chose, all six runs of the benchmark were taken again on the fixed code. The async walker misses D8's bar in each of the gate's three runs, as it did after the first review, and the fallback's state machine still costs more than twice its overhead in memory. G3.1 stays open.
+
+**Question asked and the maintainer's answer, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| The fixes change the per-element path of all three walkers, so README section 5's D8 tables would measure code that no longer exists: rerun all six runs (the gate's three and three of all three walkers, with one codegen unit, by the median, the load recorded), rerun the gate's three only, or keep the earlier numbers marked as taken before this round | Rerun all six runs |
+
+**Online check, on 2026-11-27.** `RandomState::new` "constructs a new `RandomState` that is initialized with random keys", and the standard library's maps use it for "resistance against HashDoS attacks", with SipHash 1-3 at present (doc.rust-lang.org, `std::hash::RandomState` and `std::collections::HashMap`); `BuildHasher::hash_one` is stable since Rust 1.71. `Vec::try_reserve_exact` returns an error "if the capacity overflows, or the allocator reports a failure", and "the allocator may give the collection more space than it requests" (`std::vec::Vec`). Trait upcasting, from `&mut dyn Holdings` to `&mut dyn Reclaim`, is stable since Rust 1.86 (rust-lang/rust#65991; releases.rs, 1.86.0). `fs::canonicalize` is `realpath` on Unix, which fails with `EACCES`, `EIO`, `ELOOP`, `ENAMETOOLONG`, `ENOENT` and `ENOTDIR` among others (doc.rust-lang.org, `std::fs::canonicalize`; pubs.opengroup.org, `realpath`), so a resolution can fail for reasons that say nothing about an absent folder or a change.
+
+**Reproduced first.** New cases asserted what the review asks for, against the staged code with one builder method added, `ToyFile::raw`, for stray bytes inside a list. All 15 failed, and the Windows build failed as the review said:
+
+| Finding | What the staged build gave |
+|---|---|
+| [P1] A valid packet header depends on piece size | A setup, a payload unit and then a parameters packet under a header limit of 9 bytes and the continuation value: `PartiallyParsedCutShort(setup, HeaderBytesPerStream)` with pieces of 8 bytes, parsed with the sum 7 with pieces of 9 |
+| [P1] An I/O error during a piece loses bytes already delivered | A source that fails 12 bytes into the first packet's payload: with pieces of 16 bytes, `NotAttempted(SourceFailed)`; with pieces of 8, the setup kept as cut short; 48 bytes read in both |
+| [P2] An already malformed unit reported as a header-limit failure | An unknown kind with a body of 200 bytes under a header limit of 32 bytes and the continuation value: `NotFound(HeaderBytesPerStream)`, in packet mode as in stream mode; a two-byte length that contradicts the setup: `PartiallyParsedCutShort(setup, HeaderBytesPerStream)` |
+| [P2] Reaching the exact examination cap reports truncation | 1,024 headerless packets under a header limit of 64 bytes, which examine exactly 16 times the limit: `NotFound(TruncatedInput)` |
+| [P2] Growing the cache during detection prevents traversal | The first element at offset 80, blocks of 64 bytes and 335 bytes of working memory: the title with one block, none with two |
+| [P2] Successful cache eviction leaves a false exhaustion flag | A title of 60 bytes and one of 1 byte under 345 bytes of working memory: both titles, and `[WorkingMemory]` exhausted with two blocks, nothing with one |
+| [P2] An allocator refusal drops the whole inventory | A piece of 2^63 bytes under an unlimited working memory, which the charge allows and `try_reserve_exact` refuses: identified, no title, nothing exhausted |
+| [P2] Pending companion requests grow outside the budget | 200 companions, each named twice, under a request limit of 0: a peak working memory of 271 bytes, the scratch buffers alone |
+| [P2] An uncharged copy of the primary identity | A one-title file under `probe_file` with built-in lookup and exactly the working memory that it needs without lookup: `[WorkingMemory]` exhausted |
+| [P2] The end of the input after a skipped payload hides a truncated element | A final packet cut by 25 bytes, after its stream's header was parsed: no diagnostic, from bytes, a seekable reader and a forward-only reader |
+| [P2] A short child header consumes bytes of the next sibling | A list with one stray byte before a second title, under an allowance of exactly the 46 bytes needed: the first title only |
+| [P2] A title reference accepts title-shaped bytes inside another element | A reference into the body of an unknown `PADX` element, at the bytes of a `TITL` header: the title "z", referenced |
+| [P3] An impossible first-element prefix reported as insufficient data | A file header followed by `Z`: `InsufficientData(TruncatedInput)` |
+| [P2] Resolver path errors lose their cause | A built-in resolver whose folder does not exist: declined with "no folder to look in" |
+| [P3] A Unix-only import keeps the cases from compiling on Windows | `cargo check --test cases --target x86_64-pc-windows-msvc`: `E0433`, no `unix` in `std::os`, and `E0599` for `dev` and `ino` |
+
+The other two were found by reading the code: the benchmark discards the result of a timed probe, and the heap test reads only the reported peak.
+
+The Windows build cannot compile Criterion's `alloca` dependency, whose build script compiles C (dependency dossier, section 4), so it ran in a copy of the spike in the scratchpad without the benchmark and Criterion, with the repository's `clippy.toml` and `.cargo/config.toml`, through the pinned toolchain, whose Windows target is installed.
+
+**Changes:**
+
+| Finding | Change |
+|---|---|
+| [P1] A valid packet header depends on piece size | At a unit boundary in packet mode the parser asks for the kind byte alone, the smallest total that it can make progress with (plan section 7.4), since a payload kind ends the packet's part of the header |
+| [P1] An I/O error during a piece loses bytes already delivered | A fill whose read fails returns the bytes that arrived with the error, `Failure`, and each walker offers a packet's delivered bytes as a piece that ends nothing before the error ends the probe: the async walker, the hand-written one and the state machine, whose drivers call `Machine::fail` |
+| [P2] An already malformed unit reported as a header-limit failure | The parser decides an unknown kind and parameters before any setup from the kind byte, and a setup of another length than 6 and parameters of another length than the setup's count gives from the length field, so it never waits for a body that it does not need |
+| [P2] Reaching the exact examination cap reports truncation | A call that leaves the parser waiting once the bytes examined reach the cap ends the stream with the header limit named, or with the work units when they ran out at the same time; at the input's end in stream mode the end of the input stopped it instead |
+| [P2] Growing the cache during detection prevents traversal | A buffer that the walk requires goes through `Budget::require`: when working memory refuses it, the source's `Reclaim` gives back every cache block but the one used last, and the charge runs once more. The walk's scratch buffers, the assembler's buffer and continuation, the record of titles, the catalog and the stack of open lists all do so, and the walkers pass their source to the walk's plain code for it |
+| [P2] Successful cache eviction leaves a false exhaustion flag | A charge of working memory is an attempt that marks nothing; a cache block beyond the first is optional and marks nothing when it does not fit, while the first is required |
+| [P2] An allocator refusal drops the whole inventory | `require` marks working memory exhausted when the final charge fails, whether the limit or the allocator refused it |
+| [P2] Pending companion requests grow outside the budget | The catalog lists each identifier once, in the order found, and with lookup on queues only the offset of its first element beside it, charged before the queue grows; a queue that does not fit stops the traversal with working memory named. An `IdentifierSet` finds an identifier again in a bounded number of steps: an open-addressing table of 16-byte keys under SipHash with random keys, never more than half full, charged before it grows |
+| [P2] An uncharged copy of the primary identity | `probe_file` keeps the primary file's device and file numbers as a fixed-size value; with no companion waiting the probe takes no identity, and otherwise it charges one copy before it reserves it |
+| [P2] The end of the input after a skipped payload hides a truncated element | `Holdings::delivered_before` says whether a source delivered the byte before a position: bytes and the window know it, and the cache knows it of the blocks it holds. Where it was not delivered, the walker reads that byte; without it, the element or list that the cursor last moved past is truncated, and a limit that kept the read from being made stops the traversal with it named (plan section 7.5) |
+| [P2] A short child header consumes bytes of the next sibling | `Walk::next_header` leaves every list whose rest is too short for a header, with the diagnostic that its element overruns its list, before any read |
+| [P2] A title reference accepts title-shaped bytes inside another element | The walk records each title element by source and position, charged, and a reference names only a recorded title before it, checked before anything is read |
+| [P3] An impossible first-element prefix reported as insufficient data | Detection compares the bytes read with the prefixes of the six codes |
+| [P2] Resolver path errors lose their cause | The built-in resolver resolves its root when the first request needs it, and a root that cannot be resolved fails that request with the file system's error. After the open, a path that names nothing any more is declined as changed, and any other error fails the request |
+| [P3] A Unix-only import keeps the cases from compiling on Windows | The Unix imports and the two cases that use device and file numbers or `mkfifo` are compiled on Unix alone |
+| [P3] A timed file probe can fail without failing the benchmark | Every timed probe, in all three groups, ends the run with status 1 when it fails |
+| [P3] The heap test can pass if every walker stops early | Each measured probe must read the title, parse the first header, offer all 20,000 packets to the waiting stream until the input ends, and exhaust no limit |
+
+**Found while revising:**
+
+- **The stack of open lists** grew outside the budget too, one entry for each nested list, a sibling of the queue's finding: 100 nested lists, with the nesting limit lifted and 1,295 bytes of working memory, read the title on the staged build. The stack now belongs to the walk, which charges it before it grows and releases it with the report, and a stack that does not fit stops the traversal.
+- **The list of identities** grew outside the budget as well, and is now charged before it grows.
+- **The primary input's buffers** stayed held while each companion was walked, so a companion's cache competed with the primary's idle blocks or window. They are released once the primary input's walk is over.
+- **The request loop,** as first rewritten, found the i-th request by walking the queue from its start, which would have made the requests quadratic again; the catalog gives each by its index.
+- **Validation** built the companion's name only to discard it; `is_valid` checks the identifier alone.
+- **Older cases met the new rules.** The case of a known packet length used a setup of length 250, which its length alone now makes malformed, so it uses a parameters unit. The working-memory case's last limit, one byte below the peak, now stops nothing, since that byte costs an optional block, and the case says so. The memory cases count the record of titles, 16 bytes for each title, and its first reservation was lowered from four entries to one, so a one-title file charges 16 bytes.
+
+**Tests.** 17 new cases: `units.rs` (3), `memory.rs` (4, the stack among them), `catalog.rs` (2), and additions to `limits.rs` (1), `failures.rs` (1), `traversal.rs` (4) and `lookup.rs` (2). The failing source of `failures.rs` takes its failing position. With the 75 before, `tests/cases/` holds 92 cases, and `src/source/window.rs` one embedded test.
+
+**Choices made without asking, each open at G3.1, or at G3.3 for the budget:**
+
+- A cache block beyond the first is optional. `reclaim` gives back every block but the one used last, which is all a cache of one block would hold, and a required charge runs once more after it (G3.3).
+- Working storage that the walk requires and that does not fit, such as the record of titles, the catalog or the stack, stops the traversal with working memory named. A companion is not refused by working memory before its request, which the strict reader refuses (plan section 8.8).
+- The record of titles holds the source and position of each title element, and the reference still reads the title's header again before its text, so a reference behind the forward-only window still gives "range unavailable".
+- The end of the input at an element's position is confirmed from what the source holds where it can be, and otherwise by a read of one byte, which can read a block again on a seekable input. The truncation is diagnosed at the element or list that the cursor last moved past.
+- The identifier set's table starts at 8 slots and doubles, at most half full.
+- The primary file's device and file numbers are a fixed-size value during the walk; elsewhere than Unix its identity is its resolved path, resolved when a companion is first requested.
+- The built-in resolver's root is resolved at the first request; a path that names nothing after the open is a change, and any other resolution error a failure.
+- The cap rule leaves the final call at the input's end in stream mode to the end of the input.
+
+**Measurements**, on the same Apple M4 Max with Rust 1.100.0 in the release profile, with one codegen unit, six runs of `cargo bench --bench overhead` from 17:04 to 17:22, at a load average of 8.5 to 32.9. No timed probe failed. The gate's three runs, in memory, by the median, the mean and the slope:
+
+| Run | Input | Async | Hand-written | Median | Mean | Slope |
+|---|---|---|---|---|---|---|
+| 1 | few | 807.5 ns | 728.6 ns | +10.8% | +11.4% | +10.4% |
+| 1 | many | 1.571 ms | 1.459 ms | +7.7% | +7.4% | +7.5% |
+| 2 | few | 817.7 ns | 759.7 ns | +7.6% | +7.5% | +7.7% |
+| 2 | many | 1.644 ms | 1.460 ms | +12.6% | +12.7% | +14.4% |
+| 3 | few | 817.2 ns | 735.4 ns | +11.1% | +12.0% | +12.9% |
+| 3 | many | 1.573 ms | 1.476 ms | +6.6% | +7.2% | +8.0% |
+
+The bar fails in every run: with few packets in runs 1 and 3, and with many in run 2. Through the cache and from a file the async walker was −19.5% to +12.6% in these runs. The three runs of all three walkers, by the median:
+
+| Run | Group | Input | Async | State machine | Hand-written | Async | State machine |
+|---|---|---|---|---|---|---|---|
+| 4 | memory | few | 809.3 ns | 924.1 ns | 740.3 ns | +9.3% | +24.8% |
+| 4 | memory | many | 1.550 ms | 2.172 ms | 1.459 ms | +6.3% | +48.9% |
+| 4 | cursor | few | 1.917 µs | 2.047 µs | 1.952 µs | −1.8% | +4.8% |
+| 4 | cursor | many | 2.576 ms | 3.487 ms | 2.966 ms | −13.2% | +17.6% |
+| 4 | file | few | 17.54 µs | 17.72 µs | 17.46 µs | +0.4% | +1.5% |
+| 4 | file | many | 2.771 ms | 3.585 ms | 3.086 ms | −10.2% | +16.2% |
+| 5 | memory | few | 811.9 ns | 915.4 ns | 726.7 ns | +11.7% | +26.0% |
+| 5 | memory | many | 1.553 ms | 2.177 ms | 1.468 ms | +5.8% | +48.3% |
+| 5 | cursor | few | 1.940 µs | 2.056 µs | 2.108 µs | −8.0% | −2.5% |
+| 5 | cursor | many | 2.774 ms | 3.462 ms | 2.946 ms | −5.9% | +17.5% |
+| 5 | file | few | 18.33 µs | 20.02 µs | 18.84 µs | −2.7% | +6.3% |
+| 5 | file | many | 2.720 ms | 3.557 ms | 3.047 ms | −10.7% | +16.7% |
+| 6 | memory | few | 781.9 ns | 906.3 ns | 715.6 ns | +9.3% | +26.6% |
+| 6 | memory | many | 1.574 ms | 2.234 ms | 1.551 ms | +1.5% | +44.0% |
+| 6 | cursor | few | 1.949 µs | 2.088 µs | 1.945 µs | +0.2% | +7.4% |
+| 6 | cursor | many | 2.704 ms | 3.604 ms | 2.996 ms | −9.8% | +20.3% |
+| 6 | file | few | 20.11 µs | 19.71 µs | 23.18 µs | −13.3% | −14.9% |
+| 6 | file | many | 2.775 ms | 3.690 ms | 3.201 ms | −13.3% | +15.3% |
+
+In memory the state machine is +24.8% to +26.6% with few packets and +44.0% to +48.9% with many, against +9.3% to +11.7% and +1.5% to +6.3% for the async walker, which misses the bar in run 5. Both walkers slowed alike under the fixes: with few packets in memory the async walker's medians moved from 745 to 757 ns to 782 to 818 ns, the hand-written walker's from 679 to 686 ns to 716 to 760 ns. The measured heap peaks are 16 bytes higher, the record of the file's one title: 5,111 bytes against 4,407 charged from memory, 529,719 against 528,695 through the cache, and 1,250,295 against 1,249,591 through the window, the same for the three walkers. The release futures are 2,176, 2,200, 2,360 and 2,200 bytes, and the state machine's 1,152, 64 and 80 bytes more than after the first review.
+
+**Plan revision 72:**
+
+- Section 7.4: a parser reports "malformed" as soon as the bytes that it was given establish it, and a stream's buffer that cannot be charged ends the stream only after the optional cache blocks were given back.
+- Section 7.5: a reservation that the allocator refuses stops the activity with working memory named, as a charge that does not fit does; and a new rule, "Optional memory gives way": a cache block beyond the first is optional, marks nothing when it does not fit, and is given back to a buffer that an activity requires.
+- Section 7.7: the trusted root is resolved when the first request needs it, and a folder or path that cannot be resolved fails the request with its error.
+- The status line, and Appendix E.
+
+**Documents updated:** the plan; the spike's README, sections 1 to 7; this log. `api.md` and `deferred-cases.md` stay as they are until G3.1 decides.
+
+**Verification.**
+
+- In `spikes/input/`: `cargo fmt --check` and `cargo clippy --all-targets` find nothing; `cargo test` passes the 92 cases, the embedded test and the heap measurement, which `cargo test --release --test peak` passes too.
+- For `x86_64-pc-windows-msvc`, `cargo clippy --tests` finds nothing in the scratch copy without Criterion described above.
+- The structure check of `cc-media-probe-checks` gives no finding on the spike, and one on a literal planted in a new, untracked file, which was removed.
+- The stack's case, run against a copy of the staged tree taken with `git write-tree` and `git archive`, read the title under 1,295 bytes of working memory, as "found while revising" says.
+- `node scripts/check.ts` passes on the final tree.
+
+**Open:**
+
+- G3.1: D8, with the measurements above, D9, D15 and D17, the internal sizes, and the toy format as the start of task 5. The maintainer decides whether to confirm D8 with the measured overhead, to change the bar, or to switch to the fallback despite its cost.
+- Tasks 5 and 6 take the spike as their reference, and task 6's commit deletes it.
