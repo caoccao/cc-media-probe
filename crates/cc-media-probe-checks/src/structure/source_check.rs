@@ -20,12 +20,12 @@
 use crate::findings::{Finding, Rule};
 use crate::literals::check_literals;
 use crate::names::check_names;
-use crate::repository::SourceFile;
-use crate::rules::{check_header, check_inclusion, check_line_limit, check_module_root};
+use crate::repository::{Purpose, SourceFile};
+use crate::rules::{check_header, check_inclusion, check_line_limit, check_module_root, check_public_fields};
 use crate::syntax::ParsedSource;
 
 /// Checks one file: the copyright header, R30 for module roots, R31, R32 and
-/// R33.
+/// R33, and for the library's own code the private fields of plan section 8.1.
 #[must_use]
 pub fn check_source(file: &SourceFile, source: &str) -> Vec<Finding> {
   let path = file.relative_path.as_str();
@@ -49,6 +49,9 @@ pub fn check_source(file: &SourceFile, source: &str) -> Vec<Finding> {
     file.is_exempt_from_constants(),
     file.is_module_root(),
   ));
+  if file.purpose == Purpose::Code {
+    findings.extend(check_public_fields(path, &parsed));
+  }
   findings
 }
 
@@ -110,6 +113,20 @@ mod tests {
     assert_eq!(
       rules("src/reader.rs", "include!(\"other.rs\");\n"),
       vec![Rule::Inclusion, Rule::Constants]
+    );
+    assert_eq!(
+      rules(
+        "crates/cc-media-probe/src/size.rs",
+        "//! Size.\n\npub struct Size {\n    pub width: u32,\n}\n"
+      ),
+      vec![Rule::PublicField]
+    );
+    assert_eq!(
+      rules(
+        "crates/cc-media-probe/src/tests.rs",
+        "pub struct Sample {\n    pub width: u32,\n}\n"
+      ),
+      Vec::new()
     );
     let long = "// line\n".repeat(500);
     assert_eq!(rules("src/long.rs", &long), vec![Rule::LineLimit]);

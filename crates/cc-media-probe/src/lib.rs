@@ -27,6 +27,81 @@
 //! arrives, the bytes of every input match nothing, so detection gives the outcome `Unknown`, or `HintOnly` for a
 //! format hint, and a probe the error `UnknownFormat`.
 //!
+//! # Quick start
+//!
+//! A probe, and a report rendered with every value that a file may not state checked. The `list_streams` example
+//! holds the same program, and its tests call `print_report` with a complete and an incomplete report.
+//!
+//! ```no_run
+//! use std::io::{self, Write};
+//!
+//! use cc_media_probe::{MediaReport, probe_file};
+//!
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let report = probe_file("movie.mkv")?;
+//!     print_report(&mut io::stdout().lock(), &report)?;
+//!     Ok(())
+//! }
+//!
+//! /// Writes what the report holds. Every value that a file may not state is an `Option`, so each one says what an
+//! /// absent value means here.
+//! fn print_report(output: &mut impl Write, report: &MediaReport) -> io::Result<()> {
+//!     writeln!(output, "{}", report.format())?;
+//!     if let Some(media_type) = report.media_type() {
+//!         writeln!(output, "media type: {media_type}")?;
+//!     }
+//!     match report.duration() {
+//!         Some(duration) => writeln!(output, "duration: {duration}")?,
+//!         None => writeln!(output, "duration: unknown")?,
+//!     }
+//!     for stream in report.streams() {
+//!         // The codec displays its name, or for an unknown codec the identifier that the file wrote.
+//!         write!(
+//!             output,
+//!             "#{} {} {}",
+//!             stream.index(),
+//!             stream.kind().as_str(),
+//!             stream.codec()
+//!         )?;
+//!         if let Some(tag) = stream.language().and_then(|language| language.tag()) {
+//!             write!(output, " [{tag}]")?;
+//!         }
+//!         // A title is the file's own text: written as a quoted string, its quotes and control
+//!         // characters escaped, it stays on its line.
+//!         if let Some(title) = stream.title() {
+//!             write!(output, " {title:?}")?;
+//!         }
+//!         // `video()` and `audio()` are present exactly for their kinds, but every field inside them may be absent.
+//!         if let Some(video) = stream.video() {
+//!             match video.display_size() {
+//!                 Some(size) => write!(output, ", {size}")?,
+//!                 None => write!(output, ", size unknown")?,
+//!             }
+//!         }
+//!         if let Some(audio) = stream.audio() {
+//!             match audio.sample_rate() {
+//!                 Some(rate) => write!(output, ", {rate} Hz")?,
+//!                 None => write!(output, ", sample rate unknown")?,
+//!             }
+//!             match audio.channel_count() {
+//!                 Some(channels) => write!(output, ", {channels} channels")?,
+//!                 None => write!(output, ", channels unknown")?,
+//!             }
+//!         }
+//!         writeln!(output)?;
+//!         // A header that was not parsed says why.
+//!         if !stream.header_status().is_parsed() {
+//!             writeln!(output, "    headers: {}", stream.header_status())?;
+//!         }
+//!     }
+//!     // An incomplete report names what stopped it.
+//!     if !report.completeness().is_complete() {
+//!         writeln!(output, "note: {}", report.completeness())?;
+//!     }
+//!     Ok(())
+//! }
+//! ```
+//!
 //! # Probing
 //!
 //! ```no_run
@@ -114,6 +189,17 @@
 )]
 //!
 //! Features are additive: enabling one never removes or changes an item.
+//!
+//! # Guides
+//!
+//! - [The field guide](https://github.com/caoccao/cc-media-probe/blob/main/docs/guide/fields.md): what each
+//!   format can state about a file, a stream, a chapter, a tag and an attachment, and where each value comes from.
+//! - [The JSON output](https://github.com/caoccao/cc-media-probe/blob/main/docs/guide/json-output.md): the
+//!   serialized form, its root records and their versions, and the rules of reading.
+//! - [Stability](https://github.com/caoccao/cc-media-probe/blob/main/docs/guide/stability.md): what a release may
+//!   change in the API and in the output, and the minimum supported Rust version.
+//! - [The examples](https://github.com/caoccao/cc-media-probe/blob/main/docs/design/examples.md): one program per
+//!   common task, with the features that each needs.
 
 #![deny(missing_debug_implementations)]
 
@@ -127,6 +213,8 @@ mod detect;
 pub mod diagnostics;
 #[cfg(feature = "serde")]
 pub mod document;
+#[cfg(any(test, doctest))]
+mod downstream;
 mod entry;
 pub mod error;
 #[cfg(feature = "serde")]

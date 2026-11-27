@@ -17,13 +17,16 @@
 
 //! `Language`, a language as the file writes it and its BCP 47 form (`api.md` section 6.1).
 
+use std::fmt;
+
 use super::LanguageCodeSystem;
 use crate::form_record::form_record;
 
 form_record! {
   /// A language as the file writes it, with its BCP 47 form.
   ///
-  /// The BCP 47 tag is absent for `und`, while `mis`, `mul` and `zxx` stay as written (field guide section 2).
+  /// The BCP 47 tag is absent for `und`, while `mis`, `mul` and `zxx` stay as written (field guide section 2). A
+  /// language displays its tag, or the code as written where it has none (`api.md` section 3.3).
   ///
   /// ```
   /// use cc_media_probe::Stream;
@@ -87,6 +90,12 @@ impl Language {
   }
 }
 
+impl fmt::Display for Language {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str(self.tag().unwrap_or(&self.as_written))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::Language;
@@ -111,5 +120,13 @@ mod tests {
     assert_eq!(german.code_system(), &LanguageCodeSystem::Iso639Alpha3);
     let undetermined = Language::sample("und", None, LanguageCodeSystem::Bcp47);
     assert_eq!(undetermined.tag(), None);
+  }
+
+  #[test]
+  fn displays_its_tag_or_else_the_code_as_written() {
+    let german = Language::sample("ger", Some("de"), LanguageCodeSystem::Iso639Alpha3);
+    assert_eq!(german.to_string(), "de");
+    let undetermined = Language::sample("und", None, LanguageCodeSystem::Iso639Alpha3);
+    assert_eq!(undetermined.to_string(), "und");
   }
 }

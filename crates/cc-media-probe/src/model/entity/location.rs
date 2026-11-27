@@ -39,7 +39,9 @@ form_record! {
   ///                 .and_then(|edition| edition.chapter_at(location.chapter_path()))
   ///                 .and_then(|chapter| chapter.titles().first())
   ///                 .map_or("untitled", |title| title.text());
-  ///             format!("chapter {title} of edition {}", location.index())
+  ///             // Titles can be missing or repeated, so the path tells two chapters apart.
+  ///             let path: Vec<String> = location.chapter_path().iter().map(ToString::to_string).collect();
+  ///             format!("chapter {} ({title}) of edition {}", path.join("."), location.index())
   ///         }
   ///         kind => format!("{} {}", kind.as_str(), location.index()),
   ///     }

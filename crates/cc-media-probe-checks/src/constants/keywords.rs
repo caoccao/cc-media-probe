@@ -110,6 +110,25 @@ pub const MAIN_FUNCTION_NAME: &str = "main";
 /// rather than the start of a constant item.
 pub const CONSTANT_FUNCTION_KEYWORDS: &[&str] =
   &[FUNCTION_KEYWORD, UNSAFE_KEYWORD, ASYNCHRONOUS_KEYWORD, EXTERN_KEYWORD];
+/// The keywords that start an item after `pub`, so a `pub` before anything else but the parenthesis of a
+/// restriction marks a field.
+pub const VISIBLE_ITEM_KEYWORDS: &[&str] = &[
+  ASYNCHRONOUS_KEYWORD,
+  AUTO_KEYWORD,
+  CONSTANT_KEYWORD,
+  ENUMERATION_KEYWORD,
+  EXTERN_KEYWORD,
+  FUNCTION_KEYWORD,
+  MODULE_KEYWORD,
+  SAFE_KEYWORD,
+  STATIC_KEYWORD,
+  STRUCTURE_KEYWORD,
+  TRAIT_KEYWORD,
+  TYPE_KEYWORD,
+  UNION_KEYWORD,
+  UNSAFE_KEYWORD,
+  USE_KEYWORD,
+];
 /// Keywords that never name a binding in a pattern.
 pub const PATTERN_KEYWORDS: &[&str] = &[
   "ref", "mut", "box", "_", "true", "false", "self", "Self", "crate", "super", "in", "if", "else", "as", "const",

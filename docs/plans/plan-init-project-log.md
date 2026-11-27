@@ -5143,3 +5143,167 @@ The maintainer staged the revised part and reviewed it again: six findings, one 
 - The maintainer's answer to this round.
 - Task 12, the examples, and the rest of task 13: the compile-fail tests of non-exhaustiveness, the rendering part of the quick start with a complete and an incomplete report, the checklist of task 6 run again against the code, and the spike deleted.
 - G2.5.
+
+## 2026-11-27 — Approval review of revision 66 and the completed API skeleton
+
+Revision 66 and the Phase 2 task 11 skeleton at `024e3b7` are approved to proceed to tasks 12 and 13. G2.1 (naming), G2.2 (public API), G2.3 (CLI and JSON) and G2.4 (stability and MSRV) had already passed. The document writer preserves input order and stops taking inputs on an output failure. The reader checks nested schema versions and preserves the payload of an unfamiliar entry outcome across a round trip. The repository checks passed. All 283 serialization tests also passed with serde_json's `preserve_order`, `arbitrary_precision` and `float_roundtrip` enabled together.
+
+**G2.5 remains open.** Two tasks still need evidence against the permanent library.
+
+- **Task 12.** Twelve of the thirteen programs from the API scenario spike compile against the library. The format-details program refers to `CodecDetails::H264` and `FormatDetails::Matroska`, which first appear in Phases 4 and 5. For Phase 2 the program can use the shared detail accessors, including `as_str()` and `conflicts()`. Add the typed examples in their respective phases. Ship the examples with their required features and list them in `docs/design/examples.md`.
+- **Task 13.** Complete the downstream compile-fail tests for non-exhaustiveness, test quick-start rendering with both a complete and an incomplete report, and record the checklist results against the library. Before retiring the API spike, preserve the inputs and expected results of cases whose types arrive later, including the H.264 parameter-set links in Phase 4 and the ISO track identifiers in Phase 6. The temporary stub currently exercises those cases. The catch-all variants alone cannot verify their typed accessors or validation rules.
+
+## 2026-11-27 — Tasks 12 and 13: the examples and the contract tests
+
+After the approval review above, the standing brief applied: the next work is tasks 12 and 13. The survey reproduced the review's count first. In a scratch crate outside the repository that depends on the library by path, with every feature, twelve of the spike's thirteen programs compiled and `format_details` failed on `FormatDetails::Matroska` and `CodecDetails::H264`. Every one of the thirteen calls a probe function, so all of them ship compile-only.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How far the compile-fail tests reach: every public type, one per mechanism with a static rule in the structure check, or both | Every public type: a doc test for each of the 70 public enums and 109 public structs, in a private module built only for the doc tests, each with a twin that compiles |
+| What the rendering half of the quick start shows, and what its test checks | The shape of plan section 8.2, the video size and the audio parameters included, written to `&mut impl io::Write`, with the text compared byte for byte; `api.md` section 15.1 and the crate's front page follow |
+| Where the spike's typed cases go before the spike is deleted | A design document, `docs/design/deferred-cases.md`, which Phases 4 to 6 empty |
+
+**Online check, on 2026-11-27.** The rustdoc book lists the error numbers of compile-fail doc tests among its nightly-gated features, and projects report that stable rustdoc passes a `compile_fail,EXXXX` test on any compile error, a typo included. So each compile-fail test has a twin, the same code with the one construct that must fail removed, which fails on stable when a name is wrong.
+
+**Task 12, the examples.**
+
+- The thirteen programs are `crates/cc-media-probe/examples/`, with `required-features` for `export_json` (`serde`), `probe_with_tokio` (`tokio`) and `probe_with_futures` (`futures-io`), and `test = true` for `list_streams`. They are listed in `docs/design/examples.md` with their dev-dependencies, in the package list and in the expected targets of `targets.tsv`.
+- The spike checked them with Clippy's default lints; the workspace's table denies more, and four programs changed without a new rule: `dump_tags` and `list_chapters` grow a depth with `saturating_add` and an indent with `saturating_mul`, `remote_source_async` reads a range with `get` and copies with `zip`, and `dump_tags` uses `map_or_default`.
+- `format_details` shows, for the report's format details and each stream's codec details, the stable name through `as_str()`, the conflicts, the observed lower bounds and the exact values, as the review proposed. `api.md` section 15.10 keeps the approved typed sketch, which joins the example in Phases 4 and 5.
+- `list_streams` is the quick start. Its `print_report` writes to any `io::Write` and renders the video display size and the audio sample rate and channel count as well. Its tests read a complete report and one without media type, duration, display size, sample rate and channel count, whose headers were cut short, from JSON, and compare the text written for each. The crate's front page shows the same program.
+- `api.md` section 15 holds the shipped code: a script in the scratchpad found each spike program's code there exactly once and replaced the five that changed.
+
+**Task 13, the contract tests.**
+
+- **The compile-fail tests.** The private module `src/downstream/`, declared under `cfg(any(test, doctest))`, holds two macros and one list per public module. For each enum, a match naming every variant without a wildcard arm must not compile and the same match with one must; for each struct, `Type { ..todo!() }` must not compile, which a struct of public fields would, and `Option<Type>` must. Each pair stands on an item named after its type, so a failure names it. Under `cfg(test)` the same lists match each enum exhaustively in a constant, which adds no code that coverage counts, so a variant left out stops the build. The lists were generated from the rendered rustdoc's item list and enum pages. A prototype in the scratchpad confirmed each mechanism, and its planted struct of public fields failed its test. In the library, the twin of `Estimate` found that it takes a type parameter. A mutation that removed `#[non_exhaustive]` from the string enums' macro and made `Size`'s fields public failed 63 compile-fail tests, the 62 public string enums and `Size`, while all 431 passing doc tests still passed; both files were restored.
+- **The earlier compile-fail tests.** Of the four that the slices wrote, those of the payloads of a string enum and of an enum that carries data had twins; the payload of a typed detail and `Generator`'s `deserialize` without the trait each gained one.
+- **The checklist against the code.** `api-guidelines-checklist.md` section 15 records each of the 54 items with its evidence. Where the evidence was a test that did not exist, the run wrote it: `tests/surface/traits.rs` asserts at compile time the four traits with `Debug`, `Send` and `Sync` on all 171 model types, records and types of `document`, the `Copy`, `Ord`, `Default` and `Display` lists of `api.md` section 3.3, the errors, and `Serialize` and `Deserialize` on the 160 types with a form; `tests/surface/readers.rs` probes and detects through `&mut` of every kind of reader and source and uses each afterwards. The run found three shortfalls, fixed: `Language` had no `Display`, which now gives its BCP 47 tag or else the code as written; the front page had no links to the guides; `asynchronous::detect_source` named no example. It found one gap of `api.md`: section 3.3 did not say that the options and `DeriveOutcomeError` have no form.
+- **The spike.** `docs/design/deferred-cases.md` keeps the inputs and expected results of the cases whose types arrive later: the H.264 parameter-set links and the required lists of the H.264 details (Phase 4), the Matroska accessors of scenario 15.10 (Phase 5), and the ISO track details' first sample description index, the 32-bit fragment track identifiers in an error's observations and in canonical decimal, and the required `tracks` (Phase 6). Each case names the review that asked for it, checked against this log. Then `spikes/api-scenarios/` was deleted, 138 tracked files. `json-output.md` now gives the library's tests as its evidence, and `api.md` section 15 the shipped examples.
+
+**Plan revision 67:** section 8.10 gives every public enum and struct a compile-fail test with a twin from one list per public module; section 9.7 makes the quick start the `list_streams` example whose tests compare its text, and section 8.2 shows its code; section 7.2 adds `downstream/`; section 10 adds `deferred-cases.md` and the checklist's run in task 13; tasks 12 and 13 record what was done; Phases 4, 5 and 6 add the typed parts of `format_details` and the deferred cases. `CLAUDE.md` and `CONTRIBUTING.md` say that a public type or variant joins its module's list in `src/downstream/`.
+
+**Documents updated:** the plan, its status line, the progress of Phase 2 and Appendix E; `api.md`, its review history and sections 3.3, 15 and 16; `api-guidelines-checklist.md`, its status and sections 13 to 15; `json-output.md`, its evidence, its review history and section 11; `CHANGELOG.md`; `CLAUDE.md`; `CONTRIBUTING.md`; the new `examples.md` and `deferred-cases.md`.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". Its first two runs failed, as they should, on the expected targets and the package contents, which now list the thirteen examples, the `surface` test, `src/downstream/` and `tests/surface/`.
+- With all features: 245 unit tests, 283 serialization tests, 17 surface tests, the 2 tests of the quick start, and 434 doc tests passing with 183 compile-fail doc tests, 179 of them new. Without a feature: 213 unit tests, 9 surface tests, and 395 doc tests with 173 compile-fail ones. The 283 serialization tests also pass with serde_json's `preserve_order`, with `arbitrary_precision` and `float_roundtrip`, and with all three.
+- Line coverage is 98.31% for the library (6250 of 6357), 100% for `detect/` and `utilities/`, and 100% for the CLI. The module `downstream` adds no line that coverage counts.
+- `cargo hack doc --no-deps --feature-powerset` and `cargo hack clippy --all-targets --feature-powerset` of the library are clean for all eight combinations, so each example builds wherever its required features are on. `cargo check` of the library with all features and targets passes for Linux and Windows.
+- `cargo dupes` finds no duplicate among the examples, and the structure check none in them, in `src/downstream/` or in `tests/surface/`.
+- `git diff --check` finds nothing, and nothing is staged.
+
+**Open:**
+
+- The maintainer's review of tasks 12 and 13, and G2.5.
+- CI's `cargo-hack` runs build only the library's targets, so an example's required features are checked only by a run by hand of `cargo hack clippy --all-targets --feature-powerset` until the tarball job; adding `--all-targets` to CI's build is a proposal for the maintainer.
+- Phases 4 to 6 take over the cases of `deferred-cases.md`, and Phases 4 and 5 the typed parts of `format_details`.
+
+## 2026-11-27 — Review of tasks 12 and 13
+
+The maintainer staged tasks 12 and 13 and reviewed them: three findings of priority 2 and eleven of priority 3, with `node scripts/check.ts` and `git diff --cached --check` passing. The priority 2 findings were that the spike's tests of the source protocol were deleted with no record, and that two shipped examples could attribute a line to the wrong chapter or file. Each finding holds. Reproduced before the fixes: in Phase 2 the library reads nothing, so no source is ever asked for bytes and the protocol's cases cannot run; `dump_tags` printed a resolved chapter as `chapter {edition index}` and dropped its path; and `export_json` and `scan_directory` exited successfully, with two error entries and with four per-file errors, while the other eleven programs exited unsuccessfully. The staged revision stays in the index; the fixes are unstaged on top of it.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How each field's privacy is checked, since the struct-literal test passes while one field stays private: a rule of the structure check, a compile-fail test per field, or the claim narrowed alone | A rule of the structure check: no field of the library's source is `pub` without a restriction, outside the embedded tests |
+| How the package and plan section 9.7 agree, since the package shipped `tests/serialization/` since task 11 and now `tests/surface/` too: exclude `tests/`, or amend section 9.7 to ship the tests that need only registry dependencies | Exclude `tests/`, as section 9.7 says |
+
+**Online check, on 2026-11-27.** Since cargo#13713 (2024), `cargo package` drops a test, example or benchmark target whose root file `include` or `exclude` leaves out of the package, and warns "ignoring test … is not included in the published package" for each; packaging still succeeds, and cargo#14290 asks to quiet the warning for implicit targets, without a fix yet. Locally, `cargo package` printed the warning for `serialization` and `surface`, the published manifest lists the thirteen examples and no test target, and `cargo package --quiet`, which the check script runs, prints nothing.
+
+**The findings and their changes:**
+
+- **The source protocol** (P2). `docs/design/deferred-cases.md` section 5 keeps the three cases of the spike's `tests/async_source.rs` that need reads: a pending read asked again with the same request, a source reused after a dropped probe, which the first review of `api.md` asked for, and no read of zero bytes, which its eighth review asked for, blocking and async. Each case gives its source's behavior and its expected results relative to the probe's own requests, since the library's first read need not be the stub's 16 bytes. The fourth case, a source that is not `Unpin`, was already held by the tests of `src/asynchronous/`. Plan Phase 3's tests take the three cases. The document's status no longer claims that the library's tests took over every other case. Found while checking that claim: a comparison of the names of the spike's 187 tests with the library's left 93 without a counterpart of the same name; the serialization cases among them were taken over under other names in task 11, as its log entries say, and a check of the rational form, the schema version's text, the positional arrays, the wide integers and the codec's display found each under another name. The spike's `bounds.rs` was not quite: the surface tests now assert that the model types and the prober are `'static` and that the completeness statuses are returned by reference, read from JSON.
+- **A forward-only reader's cursor** (P3). The surface tests compare it with the bytes that the result counts, the usage of an error or of a detection, since before detection finds a format the primary input is the only source. They run blocking `detect_stream` too, and the same comparison for the futures-io and Tokio readers, which had only checked that the cursor stayed within the input.
+- **Each field private** (P3). The structure check of `cc-media-probe-checks` has a rule, `public-field`, that refuses a `pub` before anything but an item's keyword or a restriction's parenthesis, in the library's source outside the embedded tests and `tests.rs`, so it covers named and tuple fields. Made public alone, `Size::width` gives one finding; the repository gives none. `api-guidelines-checklist.md` claims construction only for the struct-literal tests and each field for the rule.
+- **`dump_tags`** (P2) prints a resolved chapter as `chapter 1.0 of edition 0`, with its path of child indexes, and a name as a quoted string. `EntityLocation`'s rustdoc example had the same gap and prints the path too.
+- **`scan_directory`** (P2) probes a file and then writes its lines under one lock of standard output; a worker returns the output's error, and the scope passes it on. A run over four files kept each file's lines together.
+- **`video_summary`** (P3) prints a rate beside a variable mode as `{rate} fps, variable`.
+- **`default_audio_language`** (P3) prints "first audio, none marked default" when no stream is marked default.
+- **The quick start's titles** (P3) are written with `{title:?}`, a quoted string whose quotes and control characters are escaped; `escape_debug` was tried first and escaped an apostrophe as well. A third test renders `The "director's" cut`, a line break and a tab. The crate's front page and plan section 8.2 show the same line.
+- **The quick start's fixtures** (P3) hold `languages` and `titles` beside the primary language and the title, through a helper that sets all four.
+- **`format_details`** (P3) says that a kind of a newer version keeps its lists unread instead of printing nothing for them, and prints an observed value of a newer kind as a bound of that kind. Found while revising: the rustdoc of the three accessors and of `UnrecognizedDetails` did not say that the catch-all's lists are empty, and `ObservedBound`'s example printed the kind's name as the value; both are fixed, and `api.md` section 11.1 says so. The rustdoc examples of `ChromaFormat`, `TargetReference`, `SampleFormat` and `DetectionOutcome` print a newer kind's name as a kind and stay.
+- **The package** (P3) excludes `/tests/`, as chosen; the expected package list drops its 47 files.
+- **CI** (P3) builds every target of every feature combination, examples and tests included: `cargo hack build --locked --workspace --feature-powerset --all-targets`, which passed locally for all thirteen runs.
+- **The exit statuses** (P3). `examples.md` and `api.md` section 15 tell the probe's outcome from the program's exit status.
+
+**Choices made without asking, each open at G2.5:**
+
+- The protocol's cases are recorded, not ported, since the library reads nothing before Phase 3.
+- The rule covers the library's source only; the command-line tool has no public Rust API, and the checks crate's fields are its own business.
+- Titles are written with `str`'s `Debug`, which escapes what Rust's string literals escape and keeps other characters as they are.
+- CI builds `--all-targets` rather than `--examples`, so a test target's feature gates are built for each combination too.
+
+**Plan revision 68:** D23 and section 8.10 add the rule; section 9.7 excludes `tests/` from the package; section 9.8 builds every target; section 8.2 writes a title as a quoted string; section 10 and Phase 3 take the protocol's cases; task 13 and the progress of Phase 2 record the review; the status line and Appendix E.
+
+**Documents updated:** the plan; `api.md`, its review history and sections 11.1, 14, 15 and 16, whose code blocks a script replaced from the shipped examples, the six that changed; `api-guidelines-checklist.md`, the rows C-STRUCT-PRIVATE and C-RW-VALUE and section 15; `deferred-cases.md`; `examples.md`; `CLAUDE.md`; `CONTRIBUTING.md`; the CI workflow.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed".
+- With all features: 245 unit tests, 283 serialization tests, 18 surface tests, the 3 tests of the quick start, and 434 doc tests with 183 compile-fail doc tests. Without a feature: 213 unit tests, 9 surface tests, and 395 doc tests with 173 compile-fail ones. The checks crate has 150 tests, 3 of them the new rule's, and one more case in the structure check's own test of every rule.
+- Line coverage is 98.31% for the library (6250 of 6357), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack build --locked --workspace --feature-powerset --all-targets`, CI's new build, passed for all thirteen runs.
+- `cargo package` of the library lists no file of `tests/`, its published manifest has the thirteen examples and no test target, and the expected package list matches `cargo package --list`.
+- The structure check gives no finding on the repository, and one, `public-field`, with `Size::width` made public; the file was restored.
+- `api.md` section 15 matches the shipped examples, all ten scenario blocks that hold one program, by the script that replaced them.
+- All thirteen examples were run in a scratch directory with junk inputs, for the exit statuses that `examples.md` now states.
+- `git diff --check` finds nothing, and the index still holds the maintainer's staged revision unchanged.
+
+**Open:**
+
+- The maintainer's review of these fixes, and G2.5.
+- Phase 3 takes over the protocol's cases, and Phases 4 to 6 the typed ones.
+
+## 2026-11-27 — Second review of tasks 12 and 13
+
+The maintainer reviewed the staged snapshot again, at revision 67 of the plan. The fixes of the review above are outside the index, so the reviewer listed its fourteen findings as still present there, and found four new ones: one of priority 2 and three of priority 3. `git diff --cached --check` passed, and the 17 surface tests and both tests of the quick start passed in a copy of the index. Each new finding holds. Reproduced before the fixes, by running the staged `describe_targets` of `dump_tags` in a scratch crate outside the repository: a set for the whole file at level 50 without a name printed "the whole file (no level)", and a set of the newer scope `partial` with a stream target of the newer kind `borrowed` printed "stream 5, unresolved in this report, and targets that were not read (no level)". The third finding was already fixed in the working tree, as the reviewer noted: `model_type` asks for `'static`, `MediaReport` is one of the model types, and `owned::<Prober>()` asks for `Send` and `'static`.
+
+**Question asked and the maintainer's answer, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How the fixed `dump_tags` is checked, since nothing can run it before Phase 3 and its targets were misreported a second time: tests like the quick start's, reading tag sets from JSON and comparing the text byte for byte, or a check outside the repository, leaving the example compile-only until Phase 5 | Tests like the quick start's |
+
+**Online check, on 2026-11-27.** The standard library's documentation of `Debug` (doc.rust-lang.org, `std::fmt::Debug`): derived for a struct, it writes the struct's name and then its fields; for an enum, the name of the variant and then, where it has any, its fields in parentheses. Derived output is not stable. RFC 9559, in `docs/specs/rfc/`: `TargetTypeValue` (section 5.1.8.1.1.1) occurs exactly once and defaults to 50, and `TargetType` (section 5.1.8.1.1.2) is optional and informational, so a level with a number and no name is valid and common.
+
+**The findings and their changes:**
+
+- **The level** (P2). `dump_tags` prints a level's number and its name, either one alone, or "no level": `level 50`, `level 30 "TRACK"`, `level "ALBUM"`.
+- **Scopes and reference kinds of a newer version** (P3). The scope's match names `Incomplete`, which now says "the targets were not all read or kept", since the probe can also read a target that it cannot keep, and a scope of a newer version is named as written. The reference's match names `Unmatched`, and a kind of a newer version is named as written: "a reference of the kind borrowed". A resolved reference without its location, which the strict reader refuses, would fall to the same arm and be named "resolved".
+- **The ownership assertions** (P3). No change: the working tree had them since the review above.
+- **The checklist's evidence for nonempty debug output** (P3). C-DEBUG-NONEMPTY says what each derived `Debug` writes, a struct's name or a variant's, and section 15 of the checklist records the review. The conclusion holds.
+
+**As chosen, `dump_tags` has tests of its own.** Its output moved into `print_tag_sets`, which writes to any `io::Write`, and `main` probes and hands over. The manifest declares the example with `test = true`, and four tests behind the `serde` feature read a report of one stream, an edition of three chapters, one of them a child, and an attachment from JSON, each with a tag set of its own, and compare the text byte for byte. They cover a level with a number alone beside a tree of tags, a value of two lines with quotes and a tag that only groups its children; every kind of target, with two chapters told apart by their paths, one without a title; an incomplete scope with the target that was kept and a level with a name alone; and a scope and a reference kind of a newer version. Writing them showed that the strict reader refuses a resolved Matroska target whose identifier is not its entity's unique identifier, so each entity of the fixture has the identifier that its target holds.
+
+**Found while revising:**
+
+- **The file's text in `dump_tags`.** A tag's name and value and the flat title were written as they came, so a value of several lines broke the tree, as a title did in the quick start. They are written as quoted strings. A tag that only groups its children ended in " = ", which would also have put trailing whitespace into the expected text; it now ends with its name or key.
+- **The changelog** said that each example ends with an ordinary error, the claim that the review above corrected in `examples.md`. It says that every probe does, and names the rendering of `dump_tags` beside the quick start's.
+
+**Choices made without asking, each open at G2.5:**
+
+- Written as quoted strings are the file's own text: names, values, titles and the level's name. Identifiers and the names of newer kinds stay as written: they are tokens, and a Matroska identifier is canonical decimal.
+- `main` of `dump_tags` hands over with `Ok(print_tag_sets(&mut io::stdout().lock(), &report)?)`. Written like the quick start's `main`, the two were an exact duplicate to `cargo-dupes` once names are normalized, and the first check run failed on them. Two examples cannot share a function, so the expression that converts the error in place keeps the function at four lines, below the five-line threshold. The alternative is the maintainer's to make: a threshold or an exclusion for the examples, which only the maintainer may change.
+
+**Plan revision 69:** section 9.7 tests the rendering half of `dump_tags` like the quick start's; tasks 12 and 13 record the review; the status line and Appendix E.
+
+**Documents updated:** the plan; `api.md`, its review history and sections 15.4, whose code block the script replaced from the shipped example, and 16; `api-guidelines-checklist.md`, the row C-DEBUG-NONEMPTY and section 15; `examples.md`, the row of `dump_tags`, the commands of section 2 and a new section 4 on the tests, after which "What later phases add" is section 5; `CHANGELOG.md`; the library's manifest.
+
+**Verification.**
+
+- `node scripts/check.ts` passed on the final tree: "all checks passed". Its first run failed on the duplicate of the two `main` functions, as above.
+- With all features: 245 unit tests, 283 serialization tests, 18 surface tests, the 4 tests of `dump_tags`, the 3 of the quick start, and 434 doc tests with 183 compile-fail doc tests. Without a feature: 213 unit tests, 9 surface tests, no example test, and 395 doc tests with 173 compile-fail ones. The checks crate has 150 tests.
+- Line coverage is 98.34% for the library (6252 of 6357), 100% for `detect/` and `utilities/`, and 100% for the CLI.
+- `cargo hack build --locked -p cc-media-probe --feature-powerset --all-targets` built all eight combinations; the linker's note on the size of `__eh_frame` predates this change.
+- `api.md` section 15 matches the shipped examples, all ten scenario blocks that hold one program, by the script that replaced section 15.4's.
+- The staged `describe_targets`, run outside the repository, printed what the review reports; the new one prints `the whole file (level 50)` and `stream 5, a reference of the kind borrowed; the target scope partial is of a newer version (no level)`.
+- `git diff --check` finds nothing, and the index still holds the maintainer's staged revision unchanged.
+
+**Open:**
+
+- The maintainer's review of these fixes, the staging of the working tree's fixes of both reviews, and G2.5.
+- Whether the examples get a duplicate-code threshold or exclusion of their own, the maintainer's decision, if the four-line `main` of `dump_tags` is not wanted.

@@ -66,19 +66,21 @@ macro_rules! details_enumeration {
         }
       }
 
-      /// The raw values of each conflict between sources (`api.md` section 11.3).
+      /// The raw values of each conflict between sources (`api.md` section 11.3). Like the two lists below, it is
+      /// empty for the catch-all, which keeps the members of a kind of a newer version unread, its lists among
+      /// them: an empty list from it says nothing about what its writer recorded.
       #[must_use]
       pub fn conflicts(&self) -> &[$crate::details::Conflict] {
         $crate::details::SharedDetails::conflicts(self.shared())
       }
 
-      /// The observed lower bounds of totals that were not established for the whole.
+      /// The observed lower bounds of totals that were not established for the whole; empty for the catch-all.
       #[must_use]
       pub fn observed_lower_bounds(&self) -> &[$crate::details::ObservedBound] {
         $crate::details::SharedDetails::observed_lower_bounds(self.shared())
       }
 
-      /// The values beyond the exact range, as decimal strings.
+      /// The values beyond the exact range, as decimal strings; empty for the catch-all.
       #[must_use]
       pub fn exact_values(&self) -> &[$crate::details::ExactValue] {
         $crate::details::SharedDetails::exact_values(self.shared())

@@ -76,5 +76,11 @@ pub const PATH_ATTRIBUTE_FORBIDDEN: &str = "`#[path]` attributes are not used (R
 /// An `include!` call.
 pub const INCLUDE_FORBIDDEN: &str = "`include!` of Rust source is not used (R31)";
 
+/// The library's source files, relative to the repository root, with `/`: the files whose fields stay private.
+pub const LIBRARY_SOURCE_PREFIX: &str = "crates/cc-media-probe/src/";
+/// A field of the library declared `pub` without a restriction (plan section 8.1).
+pub const PUBLIC_FIELD: &str =
+  "a public field; keep it private, or within the crate, and give it an accessor (plan section 8.1)";
+
 /// A file named like a directory module beside that directory.
 pub const MODULE_FILE_BESIDE_DIRECTORY: &str = "module file beside a directory of the same name; use name/mod.rs (R30)";

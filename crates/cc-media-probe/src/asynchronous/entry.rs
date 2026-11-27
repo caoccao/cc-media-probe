@@ -35,7 +35,8 @@ pub async fn probe_source<Source: AsyncPositionalSource + Unpin>(source: Source)
 
 /// Detects the format of the caller's own async positional source with the default options. Pass `&mut source`
 /// to keep it, or `Box::pin(source)` for a source that is not `Unpin`. Dropping the future stops the detection, as
-/// [the rule of cancellation](crate::asynchronous#cancellation) says.
+/// [the rule of cancellation](crate::asynchronous#cancellation) says. [`AsyncPositionalSource`] shows a source
+/// detected both ways.
 ///
 /// # Errors
 ///

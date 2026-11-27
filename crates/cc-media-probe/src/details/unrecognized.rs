@@ -23,9 +23,10 @@ use crate::model::UnrecognizedKind;
 
 /// The details of a `kind` that a newer version wrote, for the enum `Owner` that read them. It keeps the kind's
 /// name and, with the `serde` feature, the detail's other members as written and unread, which writing the
-/// enclosing detail gives back unchanged. Like `UnrecognizedKind`, it has no serialized form of its own, and its
-/// type parameter binds it to the enum that read it, so a format's catch-all never becomes a codec's. The library
-/// never produces it while probing.
+/// enclosing detail gives back unchanged. Its lists are among them, so the three lists that the enclosing enum
+/// gives are empty for it, whatever its writer recorded. Like `UnrecognizedKind`, it has no serialized form of its
+/// own, and its type parameter binds it to the enum that read it, so a format's catch-all never becomes a codec's.
+/// The library never produces it while probing.
 ///
 /// ```
 /// use cc_media_probe::details::FormatDetails;
@@ -38,7 +39,17 @@ use crate::model::UnrecognizedKind;
 /// }
 /// ```
 ///
-/// A payload never moves into the other enum:
+/// A payload goes back into its own enum:
+///
+/// ```
+/// use cc_media_probe::details::{FormatDetails, UnrecognizedDetails};
+///
+/// fn again(details: UnrecognizedDetails<FormatDetails>) -> FormatDetails {
+///     FormatDetails::Unrecognized(details)
+/// }
+/// ```
+///
+/// and never into the other enum:
 ///
 /// ```compile_fail
 /// use cc_media_probe::details::{CodecDetails, FormatDetails, UnrecognizedDetails};

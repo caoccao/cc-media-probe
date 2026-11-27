@@ -7,6 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
+# The package ships no integration tests (plan section 9.7). Cargo drops their targets from the published manifest
+# and says so with a warning for each.
+exclude = ["/tests/"]
 
 [lints]
 workspace = true
@@ -34,3 +37,31 @@ tokio = { version = "1.54.1", default-features = false, features = ["rt", "macro
 [[test]]
 name = "serialization"
 required-features = ["serde"]
+
+# The tests of the public surface as a dependent crate sees it: the traits of `api.md` section 3.3 and the entry
+# points that leave a reader with its caller, which the guidelines checklist names (plan Phase 2, task 13).
+[[test]]
+name = "surface"
+
+# The shipped examples of `docs/design/examples.md`. Cargo skips an example whose required features are off, so
+# that list names them. The rendering halves of the quick start in `list_streams` and of `dump_tags` are tested
+# with `cargo test` (plan section 9.7).
+[[example]]
+name = "list_streams"
+test = true
+
+[[example]]
+name = "dump_tags"
+test = true
+
+[[example]]
+name = "export_json"
+required-features = ["serde"]
+
+[[example]]
+name = "probe_with_tokio"
+required-features = ["tokio"]
+
+[[example]]
+name = "probe_with_futures"
+required-features = ["futures-io"]

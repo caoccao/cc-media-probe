@@ -31,6 +31,8 @@ pub const INCLUSION_LABEL: &str = "inclusion";
 pub const NAMES_LABEL: &str = "names";
 /// Literals live in constants modules (R33).
 pub const CONSTANTS_LABEL: &str = "constants";
+/// The library's fields are private (plan section 8.1).
+pub const PUBLIC_FIELD_LABEL: &str = "public-field";
 /// A source file that cannot be analyzed.
 pub const SYNTAX_LABEL: &str = "syntax";
 /// Line coverage above 90% (R28).

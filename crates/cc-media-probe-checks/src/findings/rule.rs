@@ -21,7 +21,7 @@ use std::fmt;
 
 use crate::findings::constants::{
   BUILD_OUTPUT_LABEL, CONSTANTS_LABEL, COVERAGE_LABEL, HEADER_LABEL, INCLUSION_LABEL, INVENTORY_LABEL,
-  LINE_LIMIT_LABEL, MODULE_FILE_LABEL, MODULE_ROOT_LABEL, NAMES_LABEL, SYNTAX_LABEL, TARGETS_LABEL,
+  LINE_LIMIT_LABEL, MODULE_FILE_LABEL, MODULE_ROOT_LABEL, NAMES_LABEL, PUBLIC_FIELD_LABEL, SYNTAX_LABEL, TARGETS_LABEL,
 };
 
 /// The rule a finding breaks.
@@ -41,6 +41,8 @@ pub enum Rule {
   Names,
   /// Literals live in constants modules (R33).
   Constants,
+  /// The library's fields are private (plan section 8.1).
+  PublicField,
   /// A source file that cannot be analyzed.
   Syntax,
   /// Line coverage above 90% (R28).
@@ -65,6 +67,7 @@ impl Rule {
       Self::Inclusion => INCLUSION_LABEL,
       Self::Names => NAMES_LABEL,
       Self::Constants => CONSTANTS_LABEL,
+      Self::PublicField => PUBLIC_FIELD_LABEL,
       Self::Syntax => SYNTAX_LABEL,
       Self::Coverage => COVERAGE_LABEL,
       Self::Targets => TARGETS_LABEL,
@@ -94,6 +97,7 @@ mod tests {
       Rule::Inclusion,
       Rule::Names,
       Rule::Constants,
+      Rule::PublicField,
       Rule::Syntax,
       Rule::Coverage,
       Rule::Targets,

@@ -3,6 +3,20 @@
 # check fails on a target that is missing here or listed here but missing.
 cc-media-probe	lib	cc_media_probe
 cc-media-probe	test	serialization
+cc-media-probe	test	surface
+cc-media-probe	example	default_audio_language
+cc-media-probe	example	dump_tags
+cc-media-probe	example	estimated_duration
+cc-media-probe	example	export_json
+cc-media-probe	example	format_details
+cc-media-probe	example	list_chapters
+cc-media-probe	example	list_streams
+cc-media-probe	example	other_inputs
+cc-media-probe	example	probe_with_futures
+cc-media-probe	example	probe_with_tokio
+cc-media-probe	example	remote_source_async
+cc-media-probe	example	scan_directory
+cc-media-probe	example	video_summary
 cc-media-probe-cli	bin	cc-media-probe
 cc-media-probe-cli	test	placeholder
 cc-media-probe-testkit	lib	cc_media_probe_testkit

@@ -42,6 +42,16 @@ form_record! {
   /// let mut input = serde_json::Deserializer::from_str(r#"["media-catalog", "1.2.3"]"#);
   /// let _ = Generator::deserialize(&mut input);
   /// ```
+  ///
+  /// With the trait in scope, the same call reaches it:
+  ///
+  /// ```
+  /// use cc_media_probe::document::Generator;
+  /// use serde::Deserialize;
+  ///
+  /// let mut input = serde_json::Deserializer::from_str(r#"["media-catalog", "1.2.3"]"#);
+  /// assert!(Generator::deserialize(&mut input).is_err());
+  /// ```
   #[derive(Clone, Debug, PartialEq, Eq, Hash)]
   pub struct Generator {
     name: String,

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Written on 2026-11-25 for plan Phase 2, task 6, against [`api.md`](api.md) at revision 56 of the plan. The amendments that it made (section 13) are confirmed at G2.3, and the mark of a breaking change in the changelog at G2.4. Task 13 re-runs the checklist against the skeleton's code, and Phase 16, task 1, before 1.0. |
+| **Status** | Written on 2026-11-25 for plan Phase 2, task 6, against [`api.md`](api.md) at revision 56 of the plan. The amendments that it made (section 13) are confirmed at G2.3, and the mark of a breaking change in the changelog at G2.4. Task 13 re-ran the checklist against the skeleton's code on 2026-11-27 (section 15), and Phase 16, task 1, runs it again before 1.0. |
 | **Guidelines** | The [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/) and their [checklist](https://rust-lang.github.io/api-guidelines/checklist.html), read on 2026-11-25. The repository `rust-lang/api-guidelines` was at commit `97a0969` of 2025-07-08, and its checklist, `src/checklist.md`, last changed at commit `b2f62d6` of 2021-08-23. It has 54 items in 11 groups. |
 | **Scope** | The public Rust API of the library, `cc-media-probe`, as `api.md` specifies it, and the plan's rules where an item reaches beyond the API: the manifests, the release notes and the license. The command-line tool has no public Rust API: its contract is its command line ([`cli.md`](cli.md)), so only the items on manifests, release notes and licenses apply to it. |
 
@@ -24,6 +24,7 @@ This checklist says, item by item, how the specification meets the Rust API Guid
 12. [Necessities](#12-necessities)
 13. [What the checklist changed](#13-what-the-checklist-changed)
 14. [Gate decisions and remaining checks](#14-gate-decisions-and-remaining-checks)
+15. [The run against the code](#15-the-run-against-the-code)
 
 ## 1. How to read it
 
@@ -148,7 +149,7 @@ The crate exports no macro (3.2, since this task), so none of the five items app
 | Item | Verdict | Where | How | Task 13 checks |
 |---|---|---|---|---|
 | **C-SEALED** Sealed traits protect against downstream implementations | Amended | 14 | A trait that callers are not meant to implement is sealed, and section 14 now asks its rustdoc to say so, as the guideline does. In `0.1.0` callers implement every public trait: the two source traits, and from the release of lookup the two resolver traits. So no trait is sealed yet. | Review |
-| **C-STRUCT-PRIVATE** Structs have private fields | Met | 1 (rule 1), 14 | Every public struct has private fields, read through accessors and built through constructors and builders. | The compile-fail tests of plan section 8.10 |
+| **C-STRUCT-PRIVATE** Structs have private fields | Met | 1 (rule 1), 14 | Every public struct has private fields, read through accessors and built through constructors and builders. | The compile-fail tests of plan section 8.10, which show that no struct can be built from its fields, and the structure check of plan D23, which keeps each field private |
 | **C-NEWTYPE-HIDE** Newtypes encapsulate implementation details | Met | 2, 6.9, 9.1 | The tag lookups and the async handles are named types, never a nested iterator type. An `async fn` returns an opaque future, which hides its type as `impl Trait` does and still carries `Send` (9.1); a caller who stores one boxes it. | Review |
 | **C-STRUCT-BOUNDS** Data structures do not duplicate derived trait bounds | Amended | 3.3 | No generic type bounds its parameters: `Estimate<Value>`, `StoredValue<Value>`, the payloads of the catch-alls, the iterators and the handles. Each implementation carries the bounds it needs, which section 3.3 now states. | Review |
 
@@ -184,12 +185,82 @@ The 15 items marked "Amended" changed these documents:
 - **`CHANGELOG.md`, `stability.md` section 1 and plan section 10:** a breaking change begins its entry with **Breaking**.
 - **Plan Phase 16, G16.1:** whether `asynchronous::futures` stays at 1.0 while futures-io is below 1.0.
 
-The spike `spikes/api-scenarios/` follows the parts of these changes that its stub holds: the new name with its accessors, `Limits::new()` and the scenario of section 15.6, which its example program type-checks.
+The spike `spikes/api-scenarios/` followed the parts of these changes that its stub held, until task 13 deleted it: the new name with its accessors, `Limits::new()` and the scenario of section 15.6, which its example program type-checks.
 
 ## 14. Gate decisions and remaining checks
 
 - **G2.3** approved the amendments of `api.md` and `json-output.md` on 2026-11-25, with the other amendments since G2.2.
 - **G2.4** approved the changelog's **Breaking** mark and the stability wording on 2026-11-25.
-- **Task 13** re-runs this checklist against the skeleton, through the checks of the last column, and records its results here.
+- **Task 13** re-ran this checklist against the skeleton on 2026-11-27, through the checks of the last column; section 15 records the results, for G2.5.
 - **G16.1** decides C-STABLE for futures-io. Phase 16, task 1, re-runs the checklist before 1.0.
 - **Phase 8** completes the manifests of C-METADATA (plan Appendix C.2.1).
+
+## 15. The run against the code
+
+Task 13 ran the checklist against the skeleton's code on 2026-11-27, at the first slice's data model, the second slice's entry points and the third slice's serialized form, through the check that the last column of each item names. Where that check is a test that did not exist yet, the run wrote it: the integration tests of `tests/surface/` assert the traits of `api.md` section 3.3 and the entry points through `&mut`, as a crate that depends on the library sees them, and the doc tests of `src/downstream/` are the compile-fail tests of plan section 8.10. The non-exhaustiveness of the 70 public enums, which no item names, has its compile-fail tests there too: each lists every variant, with a twin that adds a wildcard arm, and the crate's own tests match the same lists exhaustively, so a variant that a later phase adds joins them.
+
+The run found three shortfalls of the code against the specification, each fixed in the same change, and one gap of the specification, which `api.md` section 3.3 now closes:
+
+- **`Language` had no `Display`,** which section 3.3 promises. It displays its BCP 47 tag, or the code as written where it has none, as its own example did by hand.
+- **The front page had no links to the guides,** which section 3.4 requires (C-CRATE-DOC).
+- **`asynchronous::detect_source` named no example** (C-EXAMPLE).
+- **The specification did not say** that the options and `DeriveOutcomeError` have no serialized form (C-SERDE).
+
+The maintainer's review of tasks 12 and 13, the same day, found two rows that claimed more than their check showed, C-STRUCT-PRIVATE and C-RW-VALUE. Each now says what its check proves, and a check was added for the rest: the structure check keeps each field of the library private, and the surface tests compare a forward-only reader's cursor with the bytes counted. Its second review found the evidence of C-DEBUG-NONEMPTY inexact, though the row's conclusion holds: a derived `Debug` of an enum writes the name of its variant, not of its type.
+
+| Item | In the code | Evidence |
+|---|---|---|
+| C-CASE | Holds | The workspace denies warnings, rustc's casing lints among them; the name check of D23 reports no finding. |
+| C-CONV | Holds | `as_str()`, `as_written()` and `as_rational()` take `&self` and give a view or a `Copy` value; `to_f64()`, `to_i64()`, `to_u64()`, `to_integer()`, `to_rational()`, `to_duration()`, `to_system_time()`, `to_native()` and `to_record()` take `&self` and convert; `into_report()`, `into_detection()` and `into_partial_report()` take `self`. `as_bytes()` belongs to `SourceIdentityToken`, which ships with lookup in Phase 14. |
+| C-GETTER | Holds | No public function's name begins with `get_`; `Limits::get()` and `Usage::get()` look a counter up by its `Limit`. |
+| C-ITER | Not applicable | — |
+| C-ITER-TY | Holds | `file_tags()`, `stream_tags()` and `tags_with_key()` return `FileTags<'_>`, `StreamTags<'_>` and `TagsWithKey<'_>`. |
+| C-FEATURE | Holds | `cargo hack` builds, lints and documents every combination of the three features, all targets included. |
+| C-WORD-ORDER | Holds | Review: the error types are `Error`, `ErrorKind`, `ErrorRecord` and `DeriveOutcomeError`, verb before object as the standard library orders them. |
+| C-COMMON-TRAITS | Holds | The integration test `tests/surface/traits.rs` asserts, as a dependent crate sees them, `Clone`, `PartialEq`, `Eq`, `Hash`, `Debug`, `Send` and `Sync` on all 171 model types, records and types of `document`, and the `Copy`, `Ord`, `Default` and `Display` lists of `api.md` section 3.3. It found `Display` missing on `Language`, which now displays its BCP 47 tag, or the code as written where it has none. Review: no other public type derives `Copy` or `Ord`. |
+| C-CONV-TRAITS | Holds | `From<Error>` and `From<&Error>` for `ErrorRecord`; the path functions take `impl AsRef<Path>`. |
+| C-COLLECT | Not applicable | — |
+| C-SERDE | Holds | The 283 serialization tests, and a compile-time test that 160 types read and write their form, every type of the model and of `document` but the seven of section 3.3, the options and `DeriveOutcomeError`, which section 3.3 now names (`api.md` section 16). |
+| C-SEND-SYNC | Holds | The surface test asserts `Send` and `Sync` on every model type, `Prober`, its handles and the lookups; the unit tests of `asynchronous` assert that the probe futures are `Send` for a `Send` source. |
+| C-GOOD-ERR | Holds | The surface test asserts that `Error` and `DeriveOutcomeError` are `std::error::Error + Send + Sync + 'static` and display; of the 447 string constants, only two proper names begin in uppercase, and none ends in punctuation. |
+| C-NUM-FMT | Not applicable | — |
+| C-RW-VALUE | Holds | `tests/surface/readers.rs` probes and detects through `&mut` of a seekable reader, a forward-only reader, a positional source, an async source, and the readers of futures-io and Tokio, and uses each one afterwards. A forward-only reader, blocking or of either runtime, is left with its cursor at exactly the bytes that the probe or the detection counts as read, as the maintainer's review of tasks 12 and 13 asked: comparing the rest of the input after the cursor alone passed even for a probe that consumed more than it counts. |
+| C-EVOCATIVE | Not applicable | No `#[macro_export]`; the library's macros are private. |
+| C-MACRO-ATTR | Not applicable | — |
+| C-ANYWHERE | Not applicable | — |
+| C-MACRO-VIS | Not applicable | — |
+| C-MACRO-TY | Not applicable | — |
+| C-CRATE-DOC | Holds, after a fix | The front page gives the overview, the quick start in its two parts, the modules and the features. It lacked the links to the guides that section 3.4 requires; it now links the field guide, the JSON contract, the stability guide and the examples. |
+| C-EXAMPLE | Holds, after a fix | A count of the rendered rustdoc: 176 of the 203 public items have an example of their own, and 26 of the others name the item whose example serves them. `asynchronous::detect_source` named none; it now names `AsyncPositionalSource`, whose example detects a source both ways. Every doc test compiles. |
+| C-QUESTION-MARK | Holds | Clippy's `unwrap_used` and `expect_used` pass on every target, the examples included; no doc test calls `unwrap` or `expect`. |
+| C-FAILURE | Holds | Clippy's `missing_errors_doc` and `missing_panics_doc` pass, denied with the `pedantic` group. |
+| C-LINK | Holds | The documentation builds with `broken_intra_doc_links` and `private_intra_doc_links` denied, for every combination of features. |
+| C-METADATA | Deviation, as recorded | Phase 8 and Appendix C.2. |
+| C-RELNOTES | Holds | `CHANGELOG.md` lists the skeleton under Unreleased. |
+| C-HIDDEN | Holds | No item is `#[doc(hidden)]`; the downstream tests and the test-only constructors are not compiled into a build that rustdoc documents. |
+| C-SMART-PTR | Not applicable | — |
+| C-CONV-SPECIFIC | Holds | Review: each conversion is a method of the more specific type, such as `Seconds::to_duration()` and `Error::to_record()`. |
+| C-METHOD | Holds | Review: no free function takes a value of the library as its first argument; the ten entry points take an input. |
+| C-NO-OUT | Holds | Review: no function takes an out parameter; the source traits fill the caller's buffer, as `Read` does. |
+| C-OVERLOAD | Holds | No type implements an operator of `std::ops`. |
+| C-DEREF | Holds | No type implements `Deref` or `DerefMut`. |
+| C-CTOR | Holds | The surface test checks that `Limits::new()` equals `Limits::default()`, and that `Prober::new()` and `Prober::default()` debug alike. |
+| C-INTERMEDIATE | Holds | `DeriveOutcomeError::into_report()` and `into_detection()` give back what was refused, tested in `newer_entries.rs`, `identities.rs` and `document_outcomes.rs`. |
+| C-CALLER-CONTROL | Holds | Review: every input is taken by value, so a caller passes ownership or `&mut`, and a report owns copies of what it keeps. |
+| C-GENERIC | Holds | Review: the readers and sources are generic parameters, and a path is `impl AsRef<Path>`. |
+| C-OBJECT | Holds | The unit tests of `source/positional.rs` and `asynchronous/source.rs` box each source trait as `dyn`. |
+| C-NEWTYPE | Holds | Review: `Seconds`, `Confidence`, `SourceIdentifier`, `MediaType` and `Identifier` are newtypes of their values. |
+| C-CUSTOM-TYPE | Phase 14 | Lookup and its resolution ship then. |
+| C-BITFLAG | Not applicable | — |
+| C-BUILDER | Holds | Review: `Prober` and `Limits` take each option through a `with_*` method that returns the value. |
+| C-VALIDATE | Holds | `Size::new()` and `Rational::new()` return `None` beyond 2^53 − 1 or for a zero denominator, and `DocumentEntry::from_report()` and `from_detection()` refuse an outcome that this version cannot derive; their unit and serialization tests reach the edge of each range. |
+| C-DTOR-FAIL | Holds | Only `Chapter` and `Tag` implement `Drop`, and neither can fail; a tree of 200,000 levels is dropped in the unit tests of `model/tree/operations.rs` and read in `tests/serialization/trees.rs`. |
+| C-DTOR-BLOCK | Holds | Neither `Drop` blocks: each walks its tree with an explicit stack in memory. |
+| C-DEBUG | Holds | The library denies `missing_debug_implementations`, and the surface test asserts `Debug` on every public type. |
+| C-DEBUG-NONEMPTY | Holds | No derived `Debug` writes an empty string: a struct's writes the struct's name, and an enum's the name of its variant, so `Format::Matroska` writes `Matroska` (the standard library's documentation of `Debug`), as the maintainer's second review of tasks 12 and 13 corrected. The three written by hand, of `Chapter`, `Tag` and a catch-all's text, have unit tests of their text. |
+| C-SEALED | Holds | The two public traits, `PositionalSource` and `AsyncPositionalSource`, are for callers to implement, and no trait is sealed. |
+| C-STRUCT-PRIVATE | Holds | Two checks, each with its own claim. Construction: `src/downstream/` gives each of the 109 public structs a compile-fail doc test of a struct literal, with a twin that compiles, and a struct whose fields are all public fails its test, which a mutation of `Size` confirmed. That test passes while one field stays private, so it proves nothing of the others: `Size` with only `width` public still refused the literal, as the maintainer's review of tasks 12 and 13 found. Each field: the structure check refuses a field of the library's source declared `pub` without a restriction, outside the embedded tests, and gave that finding for `Size::width` (plan D23 and section 8.10). |
+| C-NEWTYPE-HIDE | Holds | Review: no public type exposes the type that it wraps, such as the `OwnedText` of a catch-all's payload. |
+| C-STRUCT-BOUNDS | Holds | No public struct bounds its parameters: `Estimate`, `StoredValue`, the three payloads, the lookups and the handles. |
+| C-STABLE | Deviation, as recorded | G16.1. |
+| C-PERMISSIVE | Deviation, as recorded | `cargo-deny` checks the licenses of `deny.toml`. |

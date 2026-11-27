@@ -17,7 +17,7 @@
 
 //! The structure rules that need no knowledge of names or literals: the
 //! copyright header, module roots (R30), the line limit and inclusions
-//! (R31), and module files beside directories (R30).
+//! (R31), module files beside directories (R30), and the library's private fields (plan section 8.1).
 
 mod constants;
 mod header;
@@ -25,9 +25,11 @@ mod inclusion;
 mod line_limit;
 mod module_files;
 mod module_roots;
+mod public_fields;
 
 pub use header::check_header;
 pub use inclusion::check_inclusion;
 pub use line_limit::{check_line_limit, counted_lines};
 pub use module_files::check_module_files;
 pub use module_roots::check_module_root;
+pub use public_fields::check_public_fields;

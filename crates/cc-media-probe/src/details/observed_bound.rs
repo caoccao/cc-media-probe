@@ -34,7 +34,8 @@ form_record! {
   ///     let value = match bound.value() {
   ///         ObservedValue::Count(count) => count.to_string(),
   ///         ObservedValue::Time(time) => time.to_string(),
-  ///         other => other.as_str().to_owned(),
+  ///         // A kind that a newer version wrote keeps its name, and this version reads no value of it.
+  ///         other => format!("a value of the kind {}", other.as_str()),
   ///     };
   ///     format!("{} is at least {value} (owner {:?}, stream {:?})", bound.field(), bound.owner(), bound.stream())
   /// }

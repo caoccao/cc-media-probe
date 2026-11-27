@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | G2.2 approved the public API on 2026-11-23. G2.3 approved the amendments through revision 56 on 2026-11-25. See the [gate decisions](../plans/plan-init-project-log.md). |
-| **Review history** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). The sixth review, of revision 39, the seventh, of revision 40, the eighth, of revision 41, the ninth, of revision 42, the tenth, of revision 43, the eleventh, of revision 44, and the twelfth, of revision 45, amended the approved specification where section 16 lists; G2.3 confirms the amendments with the JSON contract. Task 5 drafted that contract in [`docs/guide/json-output.md`](../guide/json-output.md) and changed section 12 where section 16 says. The thirteenth review, of the contract with this specification and `cli.md`, amended sections 3.1, 3.3, 6.3, 6.4, 6.9, 12 and 14 on the same day, and the fourteenth, on 2026-11-24, sections 5.3, 6.4, 8, 10.2, 11.3, 12 and 14. The fifteenth, of revision 49, amended sections 3.3, 5.1, 5.3, 5.5, 8, 10.2, 12 and 14 on the same day. The draft of [`docs/guide/stability.md`](../guide/stability.md), at revision 51, added a sentence to sections 4.5 and 14. The sixteenth review, of revision 50 with the drafts of revision 51, amended sections 5.3, 10.2, 12 and 14 on the same day, at revision 52. The seventeenth, of revision 52, amended sections 5.3, 12 and 14 on the same day, at revision 53. The eighteenth, of revision 53, amended the baseline above section 1 and sections 5.3, 6.12, 12 and 14 on the same day, at revision 54. The nineteenth, of revision 54, amended sections 3.3, 5.3, 6.1, 6.12, 12 and 14 on the same day, at revision 55. The Rust API Guidelines checklist of task 6, [`api-guidelines-checklist.md`](api-guidelines-checklist.md), amended sections 3.2, 3.3, 4.1, 4.5, 6.5, 11.4, 12 to 14 and 15.6 and added section 3.4 on 2026-11-25, at revision 56; section 16 lists the changes. The first slice of the skeleton of task 11, on the same day at revision 57, changed no signature and found one gap. The maintainer's review of that slice, on the same day, closed the gap with `Protection::has_sample_descriptions()`, kept no raw form of a path on a platform without an exact one, and amended sections 6.1, 6.3, 6.4, 6.9, 6.15, 10.1, 10.2, 11.1 and 12 where the skeleton had found them short; section 16 lists the changes. The maintainer's second review of the slice, on the same day, made the operating system's code text, bounded the cause chain, kept the bytes of a path on Hermit, SOLID and Xous, and bounded a timecode's nominal rate below by 1, and amended sections 6.3, 6.15, 10.2 and 12; section 16 lists the changes. The maintainer's third review of the slice, on the same day, bounded the indexes of a protection's sample descriptions and of its declarations, kept a newer state of a sample description apart from `unknown`, checked an operating system's code and a lossy path's U+FFFD in every record, and stopped the cause chain before it asks for a 33rd cause, and amended sections 6.3, 6.15, 10.2 and 12; section 16 lists the changes. The maintainer's review of revision 57, on 2026-11-26, approved the slice and amended section 6.3 to say that `Declared` can stand without a kept declaration. The second slice, on the same day, changed no signature; the maintainer moved the legacy text encoding option of section 4.3 to plan Phase 3, task 12, and section 16 lists the slice's choices. The maintainer's review of the second slice, on the same day, defined `Unknown` of section 6.3 by a missing state entry, added the rule of waking to section 9.3, and closed the question of the `tokio` feature on WebAssembly and UEFI; section 16 lists the changes. The maintainer's second review of the slice, the same day, let the rule of waking of section 9.3 allow for a poll before the wake, retried `Interrupted` from a length query (section 4.4), and had the image header read when either field of a picture is missing (section 4.3); section 16 lists the changes. The maintainer's third review, the same day, told apart a Tokio file that a dropped future owns from one passed as `&mut file` in the rule of cancellation of section 9.1, and stated the file-name hint of the Tokio `detect_file`; section 16 lists the changes. The third slice of the skeleton, the same day, implements section 12 in two parts; its first part, the strict reader and the form of every model type, adds no rule and records its choices in section 16. The maintainer's review of that part, the same day, chose the flat owner of section 6.12, a field table for exact values, that a report's references resolve, and the reasons of two header states, and amended sections 5.4, 6.2 to 6.4, 6.9, 6.10, 6.12, 6.15, 10.2, 11.2, 11.3 and 12; section 16 lists the changes. The maintainer's second review of that part, the same day, chose that a report's records that state a shortfall agree with its completeness, reduced exact values of at most 10000 digits, an enum held before the version whatever its shape, and no form for `TimecodeLabel`, and amended sections 3.1, 3.3, 5.3, 6.2 to 6.4, 6.9, 6.12, 6.15, 10.2, 11.2, 11.3, 12 and the history of section 16; section 16 lists the changes. The maintainer's third review of that part, the same day, chose that an expected companion that no entry requested rules out complete companions, that the bytes read of a usage cover those of its sources and of a partial report, that a section not requested holds nothing, and that an error's record keeps the first cause of its candidates for every known kind, and amended sections 4.3, 5.1, 5.3, 6.12, 6.15, 10.2, 11.3 and 12; section 16 lists the changes. The maintainer's fourth review of that part, the same day, chose that a reader's refusal of an enum's shape is the reader's error, that a limit of detection stopped detection first and a probe that ended at detection names no other part, that a header state's reason is kept, first or counted, and that an omitted declaration's reason is too, and amended sections 5.1, 5.3, 5.4, 6.3 to 6.6, 6.8, 6.15, 10.2 and 12; section 16 lists the changes. The maintainer's fifth review of that part, the same day, approved the plan at revision 61 and chose that a counter names the part that it stopped first only where it stopped one, while the limit that a reason names, and the limit behind an omitted reference or declaration, names its part, and amended section 5.3; section 16 lists the changes. The maintainer's sixth review of that part, the same day, chose that a counter of an activity that never ran is not exhausted, that no reason names `Diagnostics` and no record pairs it with a part, and that it is exhausted only beside an omitted diagnostic, and amended sections 5.3, 5.5 and 10.2; section 16 lists the changes. The maintainer's seventh review of that part, the same day, chose that a limit which only one activity charges stops only that activity's parts, that a companion refused by a limit names one that can stop it where it stands, and that a result whose companion lookup or prober never ran counts none of their usage, and amended sections 4.5, 5.3, 5.5, 8, 10.2 and 13; section 16 lists the changes. The second part of the third slice, the document, its entries and its writer, the same day, amended section 12 as the maintainer chose before it was written: reading checks each entry as soon as it has read it; section 16 lists the choices. The maintainer's review of that part, on 2026-11-27, amended section 12: an entry held before the document's version fails where the version was read, the writer turns its entries into their iterator only once the results have opened, and an entry holds its records behind pointers. Its second review, the same day, amended section 12: the last index is the limit of the form's numbers, beyond which JSON implementations need not agree on an integer's value. |
+| **Review history** | Approved at G2.2 on 2026-11-23, at revision 38 of the plan (`198991f`). Written in Phase 2, tasks 2 and 3, on 2026-11-22. The maintainer chose to review the specification together with the usage scenarios of task 3, which are in section 15. Writing them revised the specification where section 15.12 says, and the first five reviews revised it where section 16 lists. The maintainer approved the names at G2.1 on 2026-11-22 and the names added since at G2.2. Writing the CLI contract of task 4 added one reason after the approval, as the maintainer chose (section 5.5). The sixth review, of revision 39, the seventh, of revision 40, the eighth, of revision 41, the ninth, of revision 42, the tenth, of revision 43, the eleventh, of revision 44, and the twelfth, of revision 45, amended the approved specification where section 16 lists; G2.3 confirms the amendments with the JSON contract. Task 5 drafted that contract in [`docs/guide/json-output.md`](../guide/json-output.md) and changed section 12 where section 16 says. The thirteenth review, of the contract with this specification and `cli.md`, amended sections 3.1, 3.3, 6.3, 6.4, 6.9, 12 and 14 on the same day, and the fourteenth, on 2026-11-24, sections 5.3, 6.4, 8, 10.2, 11.3, 12 and 14. The fifteenth, of revision 49, amended sections 3.3, 5.1, 5.3, 5.5, 8, 10.2, 12 and 14 on the same day. The draft of [`docs/guide/stability.md`](../guide/stability.md), at revision 51, added a sentence to sections 4.5 and 14. The sixteenth review, of revision 50 with the drafts of revision 51, amended sections 5.3, 10.2, 12 and 14 on the same day, at revision 52. The seventeenth, of revision 52, amended sections 5.3, 12 and 14 on the same day, at revision 53. The eighteenth, of revision 53, amended the baseline above section 1 and sections 5.3, 6.12, 12 and 14 on the same day, at revision 54. The nineteenth, of revision 54, amended sections 3.3, 5.3, 6.1, 6.12, 12 and 14 on the same day, at revision 55. The Rust API Guidelines checklist of task 6, [`api-guidelines-checklist.md`](api-guidelines-checklist.md), amended sections 3.2, 3.3, 4.1, 4.5, 6.5, 11.4, 12 to 14 and 15.6 and added section 3.4 on 2026-11-25, at revision 56; section 16 lists the changes. The first slice of the skeleton of task 11, on the same day at revision 57, changed no signature and found one gap. The maintainer's review of that slice, on the same day, closed the gap with `Protection::has_sample_descriptions()`, kept no raw form of a path on a platform without an exact one, and amended sections 6.1, 6.3, 6.4, 6.9, 6.15, 10.1, 10.2, 11.1 and 12 where the skeleton had found them short; section 16 lists the changes. The maintainer's second review of the slice, on the same day, made the operating system's code text, bounded the cause chain, kept the bytes of a path on Hermit, SOLID and Xous, and bounded a timecode's nominal rate below by 1, and amended sections 6.3, 6.15, 10.2 and 12; section 16 lists the changes. The maintainer's third review of the slice, on the same day, bounded the indexes of a protection's sample descriptions and of its declarations, kept a newer state of a sample description apart from `unknown`, checked an operating system's code and a lossy path's U+FFFD in every record, and stopped the cause chain before it asks for a 33rd cause, and amended sections 6.3, 6.15, 10.2 and 12; section 16 lists the changes. The maintainer's review of revision 57, on 2026-11-26, approved the slice and amended section 6.3 to say that `Declared` can stand without a kept declaration. The second slice, on the same day, changed no signature; the maintainer moved the legacy text encoding option of section 4.3 to plan Phase 3, task 12, and section 16 lists the slice's choices. The maintainer's review of the second slice, on the same day, defined `Unknown` of section 6.3 by a missing state entry, added the rule of waking to section 9.3, and closed the question of the `tokio` feature on WebAssembly and UEFI; section 16 lists the changes. The maintainer's second review of the slice, the same day, let the rule of waking of section 9.3 allow for a poll before the wake, retried `Interrupted` from a length query (section 4.4), and had the image header read when either field of a picture is missing (section 4.3); section 16 lists the changes. The maintainer's third review, the same day, told apart a Tokio file that a dropped future owns from one passed as `&mut file` in the rule of cancellation of section 9.1, and stated the file-name hint of the Tokio `detect_file`; section 16 lists the changes. The third slice of the skeleton, the same day, implements section 12 in two parts; its first part, the strict reader and the form of every model type, adds no rule and records its choices in section 16. The maintainer's review of that part, the same day, chose the flat owner of section 6.12, a field table for exact values, that a report's references resolve, and the reasons of two header states, and amended sections 5.4, 6.2 to 6.4, 6.9, 6.10, 6.12, 6.15, 10.2, 11.2, 11.3 and 12; section 16 lists the changes. The maintainer's second review of that part, the same day, chose that a report's records that state a shortfall agree with its completeness, reduced exact values of at most 10000 digits, an enum held before the version whatever its shape, and no form for `TimecodeLabel`, and amended sections 3.1, 3.3, 5.3, 6.2 to 6.4, 6.9, 6.12, 6.15, 10.2, 11.2, 11.3, 12 and the history of section 16; section 16 lists the changes. The maintainer's third review of that part, the same day, chose that an expected companion that no entry requested rules out complete companions, that the bytes read of a usage cover those of its sources and of a partial report, that a section not requested holds nothing, and that an error's record keeps the first cause of its candidates for every known kind, and amended sections 4.3, 5.1, 5.3, 6.12, 6.15, 10.2, 11.3 and 12; section 16 lists the changes. The maintainer's fourth review of that part, the same day, chose that a reader's refusal of an enum's shape is the reader's error, that a limit of detection stopped detection first and a probe that ended at detection names no other part, that a header state's reason is kept, first or counted, and that an omitted declaration's reason is too, and amended sections 5.1, 5.3, 5.4, 6.3 to 6.6, 6.8, 6.15, 10.2 and 12; section 16 lists the changes. The maintainer's fifth review of that part, the same day, approved the plan at revision 61 and chose that a counter names the part that it stopped first only where it stopped one, while the limit that a reason names, and the limit behind an omitted reference or declaration, names its part, and amended section 5.3; section 16 lists the changes. The maintainer's sixth review of that part, the same day, chose that a counter of an activity that never ran is not exhausted, that no reason names `Diagnostics` and no record pairs it with a part, and that it is exhausted only beside an omitted diagnostic, and amended sections 5.3, 5.5 and 10.2; section 16 lists the changes. The maintainer's seventh review of that part, the same day, chose that a limit which only one activity charges stops only that activity's parts, that a companion refused by a limit names one that can stop it where it stands, and that a result whose companion lookup or prober never ran counts none of their usage, and amended sections 4.5, 5.3, 5.5, 8, 10.2 and 13; section 16 lists the changes. The second part of the third slice, the document, its entries and its writer, the same day, amended section 12 as the maintainer chose before it was written: reading checks each entry as soon as it has read it; section 16 lists the choices. The maintainer's review of that part, on 2026-11-27, amended section 12: an entry held before the document's version fails where the version was read, the writer turns its entries into their iterator only once the results have opened, and an entry holds its records behind pointers. Its second review, the same day, amended section 12: the last index is the limit of the form's numbers, beyond which JSON implementations need not agree on an integer's value. The maintainer approved revision 66 and the skeleton the same day. Tasks 12 and 13, the same day, made the scenarios of section 15 the shipped examples, revised sections 15.1 and 15.10, gave `Language` the display that section 3.3 promises, and amended section 3.3 where the run of the guidelines checklist against the code found it silent; section 16 lists the changes. The maintainer's review of tasks 12 and 13, the same day, revised the examples of sections 15.1 to 15.4, 15.9 and 15.10 and amended sections 11.1 and 14; section 16 lists the changes. Its second review, the same day, revised the example of section 15.4; section 16 lists the changes. |
 | **Plan** | [Section 8](../plans/plan-init-project.md#8-public-api-design) fixes the principles and the behavior. This document fixes the types, accessors and entry points that carry them. |
 | **Fields** | [`docs/guide/fields.md`](../guide/fields.md) is the normative table of every normalized field. Section 6 below gives each of its fields an accessor. |
 
@@ -239,7 +239,7 @@ The internal module tree of plan section 7.2 may differ from these paths; the pu
   - `UnrecognizedValue`, `UnrecognizedKind` and `UnrecognizedDetails`, the payloads of the catch-alls of a string enum, of an enum that carries data and of a typed detail (section 1, rule 5). Their enum writes the text, or the kind and the kept members, as its own value. A payload read on its own could hold a name that its enum knows, such as `error` for an `EntryOutcome`, and the enum would then write a value that no reader takes. So a payload comes only from reading its enum, as the type parameter that binds it to the enum promises;
   - `TimecodeLabel`, which `Timecode::label()` computes from a `Timecode`, whose form holds what the label needs, and which no record holds. As the maintainer chose at the second review of the third slice's first part, which found it without either trait, it gains no form, since a label read alone could not check its frames against a rate that it lacks.
 
-  None of the seven implements the two traits. A `Chapter` or `Tag` alone implements both, as the flat array of its subtree (section 12).
+  None of the seven implements the two traits. A `Chapter` or `Tag` alone implements both, as the flat array of its subtree (section 12). The options of a `Prober`, `Limits`, `AttachmentHandling` and `SectionRequest`, are not model types and have no form either, nor does `DeriveOutcomeError`, a refusal that stays with the caller who builds the entry. Every root record, and every type of `document` but `DocumentEntry`, has its form, as the run of the guidelines checklist against the code confirmed on 2026-11-27 (section 16).
 - **Every entry point reads by the same rules.** A type that implements `Deserialize` follows every rule of section 12 that it follows inside a root record, whether it is read alone, such as a bare `Rational`, or as part of a report, as the thirteenth review asked: a member that holds null, a map that names a member twice and a record written as an array fail at both entry points. Only the version error is for root records alone, since no other type carries a version. Every check that needs only the type's own members runs at both entry points too, as the fifteenth review asked: a bare `Candidate` keeps its confidence within 100, a bare `Reason` holds the members of its kind (section 5.5), and a bare `Completeness` agrees with its record (section 5.3), as they do inside a detection and a report. A check that needs more than the value runs where the value is held: a stream's index against its position, and the headers status against the streams. A type has no other way in, as the nineteenth review asked: no inherent `deserialize` or `serialize` stands beside the two traits, such as Serde's derive gives a type with `serde(remote = "Self")`, through which the review read `Generator::deserialize` of the positional array `["catalog", "1"]`. A value that one of Serde's own value deserializers gives in place of a read under way, a map, a sequence, a string or a number, is read alone from that value, so a `Chapter` reads its flat array from `SeqDeserializer`, and no sequence passes for a read under way, where the review read `["unused", {"name": "catalog", "version": "1"}]` as a generator and refused `[{"titles": []}]` as a chapter (section 12).
 - No operation on a tree of the report recurses on its depth. Dropping, cloning, comparing, hashing and `Debug` walk a tree of chapters or tags with an explicit stack, and so does its serialized form (plan section 7.6). A document can hold a tree of any depth (section 12), so no input can exhaust the stack. The scenarios of sections 15.4 and 15.5, which become shipped examples, print their trees with a stack of their own for the same reason.
 
@@ -1260,7 +1260,7 @@ pub enum CodecDetails {
 - `MediaReport::format_details()` returns the format's details. The container's per-stream details live inside them, reached by stream index, such as `MatroskaDetails::track(index)`.
 - `Stream::codec_details()` returns the codec header's details.
 - Both enums have `as_str() -> &str`, the kind's stable name, such as `matroska` or `h264` (section 1, rule 7, and section 2), and for the catch-all the name that it keeps, so a caller never matches `Unrecognized` to read it.
-- `UnrecognizedDetails` is what a reader gets for a `kind` that a newer version wrote. It keeps the kind name through `kind() -> &str`, and the detail's other members as written, unread, which writing the enclosing detail gives back unchanged (section 12). Like `UnrecognizedKind`, it has no serialized form of its own (section 3.3), and its type parameter names the enum that read it (section 1, rule 5), so a format's catch-all never becomes a codec's, where its kind could name a codec that this version knows. The library never produces it while probing.
+- `UnrecognizedDetails` is what a reader gets for a `kind` that a newer version wrote. It keeps the kind name through `kind() -> &str`, and the detail's other members as written, unread, which writing the enclosing detail gives back unchanged (section 12). Its lists are among those members, so the enum's `conflicts()`, `observed_lower_bounds()` and `exact_values()` give none for it, whatever its writer recorded: an empty list from it says nothing, as the review of tasks 12 and 13 asked the example and the rustdoc to say. Like `UnrecognizedKind`, it has no serialized form of its own (section 3.3), and its type parameter names the enum that read it (section 1, rule 5), so a format's catch-all never becomes a codec's, where its kind could name a codec that this version knows. The library never produces it while probing.
 - In `0.1.0` the skeleton of task 11 has only the catch-all. Each format and codec phase adds its variant. Adding a variant to a non-exhaustive enum is a compatible change.
 
 Each phase designs its own detail type within these conventions and has it reviewed at its gate.
@@ -1720,7 +1720,7 @@ The rules of plan section 8.10 apply to every item above. This section names the
 | A new provided method of a trait callers implement | A method with a default body that keeps the trait dyn compatible, as the sixteenth review asked: callers pass `Box<dyn PositionalSource + Send>` (section 4.4) and `Pin<Box<dyn AsyncPositionalSource + Send>>` (section 13), so a new method stays dispatchable, and carries no bound, only when it has no type or const parameter, a receiver of `&self`, `&mut self`, `Box<Self>`, `Rc<Self>`, `Arc<Self>` or a `Pin` of one of them, no other use of the type `Self` in its parameters or its return type, and no opaque return type, as an `async fn` or a return of `impl Trait` has; every other new method carries `where Self: Sized` (Rust Reference, "Dyn compatibility"), as the nineteenth review asked to state as one test. The bound would keep a trait object from calling a method that is dispatchable, as the seventeenth review asked. Lifetime parameters alone do not make a method dispatchable: `fn copy_from<'other>(&mut self, other: &'other Self)` uses `Self` and needs the bound, and rustc 1.100.0 refuses the trait object without it with E0038. An associated type of the trait is not such a use of `Self`: a trait object names it, as in `dyn Items<Item = u8>`, and rustc 1.100.0 dispatches `fn item(&self) -> Option<Self::Item>` through it. A const parameter counts as the eighteenth review found: the Reference's generics count constants among a function's generic parameters, and rustc 1.100.0 refuses `&dyn` of a trait with a provided `fn preview<const COUNT: usize>(&self)` with E0038. The Cargo SemVer guide counts losing dyn compatibility as a breaking change and a new defaulted item as possibly breaking, since a caller's type that implements another trait with a method of the same name must then name the trait in the call, so a new method gets a distinct name. The traits are otherwise kept minimal. |
 | A new kind of input | A new entry point; existing ones keep their signatures |
 
-Traits the library does not intend callers to implement are sealed, and the rustdoc of each says that it is sealed and not meant to be implemented outside the library (C-SEALED). In `0.1.0` callers implement every public trait, so none is sealed yet. Compile-fail tests prove that an exhaustive match and a struct literal on a public type do not compile (plan section 8.10). `cargo-semver-checks` compares the API with the last release at the level "no breaking change", with all features, the defaults and none.
+Traits the library does not intend callers to implement are sealed, and the rustdoc of each says that it is sealed and not meant to be implemented outside the library (C-SEALED). In `0.1.0` callers implement every public trait, so none is sealed yet. Compile-fail tests prove that an exhaustive match and a struct literal on a public type do not compile (plan section 8.10). A struct literal already fails when one field is private, so it proves no other field private; the structure check of plan D23 does, refusing a field of the library declared `pub` without a restriction, as the maintainer chose at the review of tasks 12 and 13. `cargo-semver-checks` compares the API with the last release at the level "no breaking change", with all features, the defaults and none.
 
 **In the serialized form:** a field that a later minor version adds to a record that an earlier minor of the same major defines is optional on input and takes the default of its type, for a record of version 1.0, which `0.1.0` writes, as for one that a later minor introduces, such as the payload of a kind new in 1.1, which a reader of 1.2 reads without a field that 1.2 added, as the eighteenth review asked, in Rust and in the serialized form alike, as the thirteenth review asked: an optional value is absent, a list is empty and a plain flag is false. A newer version that reads and rewrites an older record writes those defaults, so a later version adds a list or a plain flag only where its default is true of every record that an earlier version wrote, and adds any other field as an optional value (`json-output.md` section 5.2). A new outcome or a new kind is a record of its own, which no earlier version wrote, so it may require its members whenever it is present, as `skipped` would require its `skip_reason` (section 12), as the fourteenth review asked to scope, but only where its record keeps the members that it does not read, so that an older reader writes them back: an entry's outcome, a detection's outcome, an error record's kind, and the kind of an enum that carries data or of a typed detail, as the maintainer chose at the fifteenth review. Any other new value, such as a reason's kind or a header state, adds only optional fields. Across major versions, an older reader gives the version error for a newer major version, always, and a newer reader for an older one, unless the release that raised the major version documents a migration, which the newer reader then applies in place of the version error (plan section 8.8; `json-output.md` section 9; `stability.md` section 5.4). No field is removed, renamed or given a new meaning within a schema major version, and every field that the first version of a major requires stays in that major's output (plan section 8.8; `stability.md` section 5.3), as the seventeenth review asked to state here. An old reader ignores unknown members, reads unknown enum strings into the catch-all, reads unknown detail kinds into `UnrecognizedDetails`, and reads an unknown kind of an enum that carries data into its catch-all. Each catch-all's payload names its enum (section 1, rule 5), so it is written back only by that enum. Each catch-all writes back what it read: the string, or the kind with its other members kept by value, so a document that an old version rewrites stays readable by the version that wrote the kind (section 12). An entry of an outcome that a newer version wrote keeps and writes back the members it does not read in the same way. An unknown member of a known struct, kind or outcome is still ignored and not written back. A member that a minor version adds must therefore be of one of two kinds, as the nineteenth review asked to tell apart: an optional member of a known struct, which an older reader may drop, since the record stays readable without it; or a member of a new kind or outcome, which an older reader never drops, since the catch-all keeps it and writes it back, so the version that requires it, as `skipped` would require `skip_reason`, reads the record again. A member that the catch-all keeps never holds a root record, as the maintainer chose at the ninth review: an older version writes it back as it read it, with the version that wrote it, inside a document of its own version. A new outcome that carries a report, a detection or an error record puts it in `report`, `detection` or `error`, which every version reads and gives its own version, and a new kind of a typed detail or of an enum that carries data carries none (section 12). So a root record read alone gives the version error for a higher major always, and for a lower one unless such a migration applies, before it decodes any other member, and after only what the format's reader cannot read before the version (section 12), as the eighteenth review asked to state; no version writes null.
 
@@ -1730,57 +1730,87 @@ Traits the library does not intend callers to implement are sealed, and the rust
 
 ## 15. Usage scenarios
 
-Each scenario below is a program that a caller would write. Together they cover the list of plan Phase 2, task 3. The spike [`spikes/api-scenarios/`](../../spikes/api-scenarios/README.md) type-checks them against a stub of this specification. The stub has the signatures of sections 3 to 13 and parses nothing. The code here is the spike's, without its file headers. Clippy passes with warnings denied, with no feature, with each feature alone and with all of them. Each program also runs to an ordinary error, since the stub parses nothing. Task 12 turns the approved scenarios into the shipped examples.
+Each scenario below is a program that a caller would write. Together they cover the list of plan Phase 2, task 3. The disposable spike `spikes/api-scenarios/` first type-checked them against a stub of this specification, which had the signatures of sections 3 to 13 and parsed nothing. Since task 12, on 2026-11-27, they are the library's shipped examples, `crates/cc-media-probe/examples/`, which [`examples.md`](examples.md) lists with their features. The code here is theirs, without their file headers and the tests of the quick start. They pass Clippy under the workspace's lint table, with no feature, with each feature alone and with all of them. Until a format is detected, every probe in them ends with an error, and what a program then does is its own: eleven return the error from `main`, which exits unsuccessfully, while `export_json` writes each error as an entry of its document and `scan_directory` reports each file's error and goes on, and both of those exit successfully. The spike was deleted with task 13, and [`deferred-cases.md`](deferred-cases.md) keeps the inputs and expected results of its cases that the library cannot run before a later phase: the typed details, and the reads of the source protocol. Task 12 brought the scenarios under the lint table, which needed no rule of this specification: a depth that grows with `saturating_add`, an indent with `saturating_mul`, a range read with `get`, and `map_or_default`.
 
 Where a scenario read awkwardly, the specification was revised, and section 15.12 lists each change. The comments in the code are the annotations: they say which rule of this specification a line relies on.
 
 ### 15.1 List the streams
 
-The rendering half of the quick start is `print_report`, a function of its own, which a test calls with a complete and an incomplete report (plan section 9.7). A kind prints by its stable name, and a codec by its name, or by the identifier the file wrote when the library does not know it.
+The rendering half of the quick start is `print_report`, a function of its own. It writes to any `io::Write`, so the example's own tests call it with a complete report and with one in which the media type, the duration, the display size, the sample rate and the channel count are all absent, and compare the text written byte for byte (plan section 9.7). As the maintainer chose on 2026-11-27, it renders the video size and the audio parameters of plan section 8.2 as well, so every value that the incomplete report lacks is shown absent. A kind prints by its stable name, and a codec by its name, or by the identifier the file wrote when the library does not know it. A title is the file's own text, so it is written as a quoted string with its quotes and control characters escaped and stays on its line, as the review of tasks 12 and 13 asked; a third test gives one with quotes, a line break and a tab. The tests' reports hold every language and title in the lists from which the primary language and the convenience title come (field guide section 3.2). The crate's front page shows the same program.
 
 ```rust
-use cc_media_probe::{Error, MediaReport, probe_file};
+use std::io::{self, Write};
 
-fn main() -> Result<(), Error> {
+use cc_media_probe::{MediaReport, probe_file};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
   let report = probe_file("movie.mkv")?;
-  print_report(&report);
+  print_report(&mut io::stdout().lock(), &report)?;
   Ok(())
 }
 
-fn print_report(report: &MediaReport) {
-  println!("{}", report.format());
+/// Writes what the report holds. Every value that a file may not state is an `Option`, so each one says what an
+/// absent value means here.
+fn print_report(output: &mut impl Write, report: &MediaReport) -> io::Result<()> {
+  writeln!(output, "{}", report.format())?;
   if let Some(media_type) = report.media_type() {
-    println!("media type: {media_type}");
+    writeln!(output, "media type: {media_type}")?;
   }
   match report.duration() {
-    Some(duration) => println!("duration: {duration}"),
-    None => println!("duration: unknown"),
+    Some(duration) => writeln!(output, "duration: {duration}")?,
+    None => writeln!(output, "duration: unknown")?,
   }
   for stream in report.streams() {
     // The codec displays its name, or for an unknown codec the identifier that the file wrote.
-    print!("#{} {} {}", stream.index(), stream.kind().as_str(), stream.codec());
+    write!(
+      output,
+      "#{} {} {}",
+      stream.index(),
+      stream.kind().as_str(),
+      stream.codec()
+    )?;
     if let Some(tag) = stream.language().and_then(|language| language.tag()) {
-      print!(" [{tag}]");
+      write!(output, " [{tag}]")?;
     }
+    // A title is the file's own text: written as a quoted string, its quotes and control characters escaped, it
+    // stays on its line.
     if let Some(title) = stream.title() {
-      print!(" \"{title}\"");
+      write!(output, " {title:?}")?;
     }
-    println!();
+    // `video()` and `audio()` are present exactly for their kinds, but every field inside them may be absent.
+    if let Some(video) = stream.video() {
+      match video.display_size() {
+        Some(size) => write!(output, ", {size}")?,
+        None => write!(output, ", size unknown")?,
+      }
+    }
+    if let Some(audio) = stream.audio() {
+      match audio.sample_rate() {
+        Some(rate) => write!(output, ", {rate} Hz")?,
+        None => write!(output, ", sample rate unknown")?,
+      }
+      match audio.channel_count() {
+        Some(channels) => write!(output, ", {channels} channels")?,
+        None => write!(output, ", channels unknown")?,
+      }
+    }
+    writeln!(output)?;
     // A header that was not parsed says why.
     if !stream.header_status().is_parsed() {
-      println!("    headers: {}", stream.header_status());
+      writeln!(output, "    headers: {}", stream.header_status())?;
     }
   }
   // An incomplete report names what stopped it.
   if !report.completeness().is_complete() {
-    println!("note: {}", report.completeness());
+    writeln!(output, "note: {}", report.completeness())?;
   }
+  Ok(())
 }
 ```
 
 ### 15.2 Video size and frame rate, with absent values
 
-`video()` is present for every video stream, and any field inside it may be absent. The frame-rate mode is returned by reference, and the tuple pattern matches through it.
+`video()` is present for every video stream, and any field inside it may be absent. The frame-rate mode is returned by reference, and the tuple pattern matches through it. A variable mode can stand beside a rate, which is then not every frame's, so the program says both, as the review of tasks 12 and 13 asked.
 
 ```rust
 use cc_media_probe::model::{FrameRateMode, VideoInformation};
@@ -1810,6 +1840,8 @@ fn frame_rate(video: &VideoInformation) -> String {
   // A rate and its mode are separate: a declared rate can stand while the mode stays unknown.
   match (video.frame_rate(), video.frame_rate_mode()) {
     (Some(rate), FrameRateMode::Constant) => format!("{rate} fps ({:.3})", rate.to_f64()),
+    // Two intervals were shown to differ, so the rate is not every frame's.
+    (Some(rate), FrameRateMode::Variable) => format!("{rate} fps, variable"),
     (Some(rate), _) => format!("{rate} fps, constancy not shown"),
     (None, FrameRateMode::Variable) => "variable frame rate".to_owned(),
     (None, _) => "frame rate unknown".to_owned(),
@@ -1819,31 +1851,32 @@ fn frame_rate(video: &VideoInformation) -> String {
 
 ### 15.3 The default audio language
 
-A disposition flag is `Option<bool>`. `None` means that the format states nothing, so the search asks for `Some(true)` and falls back to the first audio stream.
+A disposition flag is `Option<bool>`. `None` means that the format states nothing, so the search asks for `Some(true)` and falls back to the first audio stream. The program says which way it chose, since that first stream can be one whose flag says it is not the default, as the review of tasks 12 and 13 asked.
 
 ```rust
 use cc_media_probe::{Error, MediaReport, Stream, StreamKind, probe_file};
 
 fn main() -> Result<(), Error> {
   let report = probe_file("movie.mkv")?;
-  let Some(stream) = default_audio(&report) else {
+  let Some((stream, chosen)) = default_audio(&report) else {
     println!("no audio stream");
     return Ok(());
   };
   match stream.language() {
     Some(language) => match language.tag() {
-      Some(tag) => println!("default audio: #{} in {tag}", stream.index()),
+      Some(tag) => println!("{chosen}: #{} in {tag}", stream.index()),
       // `und` has no BCP 47 tag; `as_written()` still gives what the file stored.
-      None => println!("default audio: #{}, language {}", stream.index(), language.as_written()),
+      None => println!("{chosen}: #{}, language {}", stream.index(), language.as_written()),
     },
-    None => println!("default audio: #{}, language not stated", stream.index()),
+    None => println!("{chosen}: #{}, language not stated", stream.index()),
   }
   Ok(())
 }
 
-/// The audio stream marked as the default, or else the first audio stream. A format that states no default leaves
-/// `is_default()` absent, which is not the same as "not the default".
-fn default_audio(report: &MediaReport) -> Option<&Stream> {
+/// The audio stream marked as the default, or else the first audio stream, with how it was chosen. A format that
+/// states no default leaves `is_default()` absent, which is not the same as "not the default", and the first audio
+/// stream can be one whose flag says it is not the default.
+fn default_audio(report: &MediaReport) -> Option<(&Stream, &'static str)> {
   let audio = || {
     report
       .streams()
@@ -1852,42 +1885,48 @@ fn default_audio(report: &MediaReport) -> Option<&Stream> {
   };
   audio()
     .find(|stream| stream.disposition().is_default() == Some(true))
-    .or_else(|| audio().next())
+    .map(|stream| (stream, "default audio"))
+    .or_else(|| {
+      audio()
+        .next()
+        .map(|stream| (stream, "first audio, none marked default"))
+    })
 }
 ```
 
 ### 15.4 Tags with their targets
 
-A tag set describes the whole file, or the entities its four target lists name, and the program prints all four. A resolved reference gives a location in the report. For a chapter, `ChapterEdition::chapter_at` turns that location into the chapter itself. An unmatched identifier is unresolved in this report, not proven absent from the file, since a skipped section leaves its entities out. The flat lookup `tag()` serves the common case of one file-level value.
+A tag set describes the whole file, or the entities its four target lists name, and the program prints all four. A resolved reference gives a location in the report. For a chapter, `ChapterEdition::chapter_at` turns that location into the chapter itself, and the program prints the edition and the chapter's path as well as its title, since titles can be missing or repeated, as the review of tasks 12 and 13 asked. An unmatched identifier is unresolved in this report, not proven absent from the file, since a skipped section leaves its entities out. The flat lookup `tag()` serves the common case of one file-level value. A level's number and name are each optional, and the program prints whichever the file gives, since Matroska's number often comes without a name. An incomplete scope says that the targets were not all read or kept, and a scope or a reference kind of a newer version is named as written, not read as one of this version, as the maintainer's second review of tasks 12 and 13 asked. The file's own text, a tag's name and value and the title, is written as a quoted string, so a value of several lines stays on its line. The rendering half, `print_tag_sets`, writes to any `io::Write`, and the example's tests compare its text byte for byte (plan section 9.7).
 
 ```rust
-use cc_media_probe::model::{Tag, TagKey, TagSet, TagValue, TargetReference, TargetReferenceKind, TargetScope};
-use cc_media_probe::{Error, MediaReport, probe_file};
+use std::io::{self, Write};
 
-fn main() -> Result<(), Error> {
+use cc_media_probe::model::{
+  Tag, TagKey, TagSet, TagValue, TargetLevel, TargetReference, TargetReferenceKind, TargetScope,
+};
+use cc_media_probe::{MediaReport, probe_file};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
   let report = probe_file("concert.mka")?;
+  Ok(print_tag_sets(&mut io::stdout().lock(), &report)?)
+}
+
+/// Writes each tag set's targets and its tree of tags, then the file-level title. The file's own text, a name, a
+/// value or a title, is written as a quoted string: its quotes and control characters escaped, it stays on its line.
+fn print_tag_sets(output: &mut impl Write, report: &MediaReport) -> io::Result<()> {
   for tag_set in report.tag_sets() {
-    println!("{}", describe_targets(&report, tag_set));
-    print_tags(tag_set.tags());
+    writeln!(output, "{}", describe_targets(report, tag_set))?;
+    print_tags(output, tag_set.tags())?;
   }
   // The flat view: the file-level title, whatever name the format gives it.
   if let Some(TagValue::Text(title)) = report.tag(&TagKey::Title).and_then(Tag::value) {
-    println!("title: {title}");
+    writeln!(output, "title: {title:?}")?;
   }
   Ok(())
 }
 
 fn describe_targets(report: &MediaReport, tag_set: &TagSet) -> String {
-  let level = tag_set
-    .target_level()
-    .and_then(|level| level.type_name())
-    .unwrap_or("no level");
-  // Empty lists mean the whole file only once the probe read the targets in full.
-  let note = match tag_set.target_scope() {
-    TargetScope::WholeFile => return format!("the whole file ({level})"),
-    TargetScope::Entities => "",
-    _ => ", and targets that were not read",
-  };
+  let level = describe_level(tag_set.target_level());
   let mut targets = Vec::new();
   for reference in tag_set.stream_targets() {
     targets.push(describe(reference, "stream", |index, _| {
@@ -1913,48 +1952,89 @@ fn describe_targets(report: &MediaReport, tag_set: &TagSet) -> String {
       report.attachments().get(index)?.name().map(str::to_owned)
     }));
   }
-  format!("{}{note} ({level})", targets.join(", "))
-}
-
-/// One reference: resolved to an entity of the report, a wildcard, or an identifier that matches nothing the report
-/// holds. Such an entity can still be in the file: chapters that were skipped or cut short are not in the report.
-fn describe(reference: &TargetReference, entity: &str, name: impl Fn(usize, &[usize]) -> Option<String>) -> String {
-  match (reference.kind(), reference.location()) {
-    (TargetReferenceKind::Resolved, Some(location)) => {
-      let name = name(location.index(), location.chapter_path()).unwrap_or_default();
-      format!("{entity} {} {name}", location.index())
-    }
-    (TargetReferenceKind::Wildcard, _) => format!("every {entity}"),
-    _ => {
-      let written = reference.identifier().map_or("?", |identifier| identifier.as_str());
-      format!("{entity} {written}, unresolved in this report")
-    }
+  let listed = if targets.is_empty() {
+    "no target listed".to_owned()
+  } else {
+    targets.join(", ")
+  };
+  // Empty lists mean the whole file only once the probe read the targets in full.
+  match tag_set.target_scope() {
+    TargetScope::WholeFile => format!("the whole file ({level})"),
+    TargetScope::Entities => format!("{listed} ({level})"),
+    // The probe stopped before it read every target, or could not keep every target that it read.
+    TargetScope::Incomplete => format!("{listed}; the targets were not all read or kept ({level})"),
+    // A scope of a newer version, whose lists this version cannot interpret, is named as written.
+    other => format!(
+      "{listed}; the target scope {} is of a newer version ({level})",
+      other.as_str()
+    ),
   }
 }
 
-/// Prints a tree of tags in depth-first order with a stack of its own, since a tree can be as deep as its input
+/// The level: its number and its name are each optional, and the number often comes alone, as Matroska's
+/// `TargetTypeValue` does without a `TargetType`.
+fn describe_level(level: Option<&TargetLevel>) -> String {
+  match (
+    level.and_then(TargetLevel::value),
+    level.and_then(TargetLevel::type_name),
+  ) {
+    (Some(value), Some(name)) => format!("level {value} {name:?}"),
+    (Some(value), None) => format!("level {value}"),
+    (None, Some(name)) => format!("level {name:?}"),
+    (None, None) => "no level".to_owned(),
+  }
+}
+
+/// One reference: resolved to an entity of the report, a wildcard, an identifier that matches nothing the report
+/// holds, or a reference of a kind of a newer version. An unmatched entity can still be in the file: chapters that
+/// were skipped or cut short are not in the report.
+fn describe(reference: &TargetReference, entity: &str, name: impl Fn(usize, &[usize]) -> Option<String>) -> String {
+  let written = reference.identifier().map_or("?", |identifier| identifier.as_str());
+  match (reference.kind(), reference.location()) {
+    (TargetReferenceKind::Resolved, Some(location)) => {
+      let name = name(location.index(), location.chapter_path()).map_or_default(|name| format!(" {name:?}"));
+      // A chapter is found by its edition and its path of child indexes, since titles can be missing or repeated.
+      match location.chapter_path() {
+        [] => format!("{entity} {}{name}", location.index()),
+        path => {
+          let path: Vec<String> = path.iter().map(ToString::to_string).collect();
+          format!("{entity} {} of edition {}{name}", path.join("."), location.index())
+        }
+      }
+    }
+    (TargetReferenceKind::Wildcard, _) => format!("every {entity}"),
+    (TargetReferenceKind::Unmatched, _) => format!("{entity} {written}, unresolved in this report"),
+    // A kind of a newer version, whose meaning this version does not know, is named as written.
+    (kind, _) => format!("{entity} {written}, a reference of the kind {}", kind.as_str()),
+  }
+}
+
+/// Writes a tree of tags in depth-first order with a stack of its own, since a tree can be as deep as its input
 /// (section 3.3): a call per level could exhaust the call stack.
-fn print_tags(tags: &[Tag]) {
+fn print_tags(output: &mut impl Write, tags: &[Tag]) -> io::Result<()> {
   // Each node waits with its depth; the children go on in reverse, so the first comes off first.
   let mut waiting: Vec<(&Tag, usize)> = tags.iter().rev().map(|tag| (tag, 1)).collect();
   while let Some((tag, depth)) = waiting.pop() {
     let value = match tag.value() {
-      Some(TagValue::Text(text)) => text.clone(),
-      Some(TagValue::Integer(integer)) => integer.to_string(),
-      Some(TagValue::Binary(binary)) => format!("{} bytes", binary.size()),
-      Some(other) => format!("{other:?}"),
+      Some(TagValue::Text(text)) => format!(" = {text:?}"),
+      Some(TagValue::Integer(integer)) => format!(" = {integer}"),
+      Some(TagValue::Binary(binary)) => format!(" = {} bytes", binary.size()),
+      Some(other) => format!(" = {other:?}"),
       // A node that only groups its children.
       None => String::new(),
     };
-    let key = tag.key().map(|key| format!(" ({})", key.as_str())).unwrap_or_default();
-    println!(
-      "{:indent$}{}{key} = {value}",
+    let key = tag.key().map_or_default(|key| format!(" ({})", key.as_str()));
+    writeln!(
+      output,
+      "{:indent$}{:?}{key}{value}",
       "",
       tag.name().as_written(),
-      indent = depth * 2
-    );
-    waiting.extend(tag.children().iter().rev().map(|child| (child, depth + 1)));
+      indent = depth.saturating_mul(2)
+    )?;
+    let child_depth = depth.saturating_add(1);
+    waiting.extend(tag.children().iter().rev().map(|child| (child, child_depth)));
   }
+  Ok(())
 }
 ```
 
@@ -2001,7 +2081,7 @@ fn print_chapters(chapters: &[Chapter], ordered: bool) {
       "",
       time(chapter.start()),
       time(chapter.end()),
-      indent = depth * 2
+      indent = depth.saturating_mul(2)
     );
     if ordered && let Some(position) = chapter.playback_position() {
       print!(", at {position} of playback");
@@ -2010,7 +2090,8 @@ fn print_chapters(chapters: &[Chapter], ordered: bool) {
       print!(" (hidden)");
     }
     println!();
-    waiting.extend(chapter.children().iter().rev().map(|child| (child, depth + 1)));
+    let child_depth = depth.saturating_add(1);
+    waiting.extend(chapter.children().iter().rev().map(|child| (child, child_depth)));
   }
 }
 
@@ -2177,7 +2258,7 @@ impl Store {
     async move {
       let start = usize::try_from(position).unwrap_or(usize::MAX).min(object.len());
       let end = start.saturating_add(length).min(object.len());
-      Ok(object[start..end].to_vec())
+      Ok(object.get(start..end).unwrap_or_default().to_vec())
     }
   }
 }
@@ -2225,7 +2306,7 @@ impl AsyncPositionalSource for RemoteObject {
     this.pending = None;
     let bytes = bytes?;
     let count = bytes.len().min(buffer.len());
-    buffer[..count].copy_from_slice(&bytes[..count]);
+    buffer.iter_mut().zip(&bytes).for_each(|(target, byte)| *target = *byte);
     Poll::Ready(Ok(count))
   }
 
@@ -2311,9 +2392,10 @@ impl PositionalSource for RangedObject {
 
 ### 15.9 Scanning a directory
 
-One prober serves every file and every thread. A fixed number of workers, one per available processor, shares the files, so a directory of any size starts no more threads than that. An error says what kind of failure stopped the probe and carries what was established before it. A limit that ended detection names the part `Detection` in the error's record (section 5.3). The usage counters are there for an error too.
+One prober serves every file and every thread. A fixed number of workers, one per available processor, shares the files, so a directory of any size starts no more threads than that. An error says what kind of failure stopped the probe and carries what was established before it. A limit that ended detection names the part `Detection` in the error's record (section 5.3). The usage counters are there for an error too. A worker writes a file's lines under one lock of standard output once its probe has ended, so the lines of two files never interleave, as the review of tasks 12 and 13 asked, and a failure of the output ends the scan with its error.
 
 ```rust
+use std::io::{self, Write};
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -2322,7 +2404,7 @@ use std::thread;
 use cc_media_probe::completeness::{Part, Reason};
 use cc_media_probe::{Error, ErrorKind, Limits, Prober};
 
-fn main() -> std::io::Result<()> {
+fn main() -> io::Result<()> {
   // One prober serves every file. It is `Sync`, so the threads share it.
   let prober = Prober::new().with_limits(Limits::default().with_bytes_read(8 * 1024 * 1024));
   let mut paths = Vec::new();
@@ -2336,45 +2418,56 @@ fn main() -> std::io::Result<()> {
   let workers = thread::available_parallelism().map_or(1, NonZeroUsize::get);
   let next = AtomicUsize::new(0);
   thread::scope(|scope| {
-    for _ in 0..workers.min(paths.len()) {
-      scope.spawn(|| {
-        while let Some(path) = paths.get(next.fetch_add(1, Ordering::Relaxed)) {
-          scan(&prober, path);
-        }
-      });
-    }
-  });
-  Ok(())
+    let handles: Vec<_> = (0..workers.min(paths.len()))
+      .map(|_| {
+        scope.spawn(|| -> io::Result<()> {
+          while let Some(path) = paths.get(next.fetch_add(1, Ordering::Relaxed)) {
+            scan(&prober, path)?;
+          }
+          Ok(())
+        })
+      })
+      .collect();
+    // A worker whose output failed gives its error, and one that panicked passes the panic on.
+    handles
+      .into_iter()
+      .try_for_each(|handle| handle.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)))
+  })
 }
 
-fn scan(prober: &Prober, path: &Path) {
-  match prober.probe_file(path) {
+/// Probes one file, and then writes all of its lines under one lock of standard output, so the lines of the files
+/// that other workers finish meanwhile never come between them.
+fn scan(prober: &Prober, path: &Path) -> io::Result<()> {
+  let outcome = prober.probe_file(path);
+  let mut output = io::stdout().lock();
+  match outcome {
     Ok(report) => {
       let status = if report.completeness().is_complete() {
         "complete"
       } else {
         "incomplete"
       };
-      println!(
+      writeln!(
+        output,
         "{}: {} with {} streams, {status}",
         path.display(),
         report.format(),
         report.streams().len()
-      );
+      )
     }
     Err(error) => {
-      println!("{}: {error}", path.display());
-      print_partial_data(&error);
+      writeln!(output, "{}: {error}", path.display())?;
+      print_partial_data(&mut output, &error)
     }
   }
 }
 
-fn print_partial_data(error: &Error) {
+fn print_partial_data(output: &mut impl Write, error: &Error) -> io::Result<()> {
   match error.kind() {
     // The source failed. If the stream inventory was reached first, the report so far comes with the error.
     ErrorKind::SourceFailed => {
       if let Some(partial) = error.partial_report() {
-        println!("  before the failure: {} streams", partial.streams().len());
+        writeln!(output, "  before the failure: {} streams", partial.streams().len())?;
       }
     }
     // The probe stopped before any stream list; what it saw is kept as observations.
@@ -2383,7 +2476,7 @@ fn print_partial_data(error: &Error) {
         .observations()
         .map_or(&[][..], |observations| observations.diagnostics())
       {
-        println!("  {}: {}", diagnostic.code(), diagnostic.message());
+        writeln!(output, "  {}: {}", diagnostic.code(), diagnostic.message())?;
       }
     }
     // Detection could not decide. A limit that ended it, such as a read limit of zero, stopped the part `Detection`,
@@ -2391,20 +2484,91 @@ fn print_partial_data(error: &Error) {
     ErrorKind::FormatNotDetermined => {
       if let Some(limit) = error.reason().and_then(Reason::limit) {
         let part = error.record().first_stopped(limit).map_or("no part", Part::as_str);
-        println!("  the {} limit stopped {part}", limit.as_str());
+        writeln!(output, "  the {} limit stopped {part}", limit.as_str())?;
       }
     }
     // Not a media file, or none this version reads, and the kinds of later versions: nothing more to show.
     _ => {}
   }
   // The usage is known for an error too, so a scan can total its reads.
-  println!("  read {} bytes", error.usage().bytes_read());
+  writeln!(output, "  read {} bytes", error.usage().bytes_read())
 }
 ```
 
 ### 15.10 Format-specific details
 
 The details are reached through the two open enums. A caller matches the variant it knows, and a stored flag tells a stored value from a default. A track entry or a parameter set cut short keeps the fields read before the cut, so each of them is optional, even an element that the specification makes mandatory. Conflicts are read the same way for every format.
+
+In Phase 2 each of the two enums has only its catch-all (plan Phase 2, task 11), so the shipped example shows what every kind shares: its stable name through `as_str()`, and the conflicts, the observed lower bounds and the exact values, read without matching on a variant. As the maintainer chose at the approval review of 2026-11-27, the typed cases join it when their variants ship: the Matroska part with plan Phase 5 and the H.264 part with Phase 4. The approved sketch of those parts follows the example; the stub type-checked it. A kind of a newer version keeps its three lists unread (section 11.1), so the example says so instead of printing nothing for it, and an observed value of a kind that a newer version wrote prints as a bound of that kind, never with its kind's name as the value, as the review of tasks 12 and 13 asked.
+
+```rust
+use cc_media_probe::details::{CodecDetails, Conflict, ExactValue, FormatDetails, ObservedBound, ObservedValue};
+use cc_media_probe::{Error, probe_file};
+
+fn main() -> Result<(), Error> {
+  let report = probe_file("movie.mkv")?;
+  // The container's own facts.
+  if let Some(details) = report.format_details() {
+    println!("format details: {}", details.as_str());
+    if matches!(details, FormatDetails::Unrecognized(_)) {
+      println!("  a kind of a newer version, whose lists this version does not read");
+    } else {
+      print_lists(
+        details.conflicts(),
+        details.observed_lower_bounds(),
+        details.exact_values(),
+      );
+    }
+  }
+  // The coded values of each stream's codec.
+  for stream in report.streams() {
+    if let Some(details) = stream.codec_details() {
+      println!("#{}: codec details {}", stream.index(), details.as_str());
+      if matches!(details, CodecDetails::Unrecognized(_)) {
+        println!("  a kind of a newer version, whose lists this version does not read");
+      } else {
+        print_lists(
+          details.conflicts(),
+          details.observed_lower_bounds(),
+          details.exact_values(),
+        );
+      }
+    }
+  }
+  Ok(())
+}
+
+/// The three lists that every kind of details keeps, the same for formats and codecs.
+fn print_lists(conflicts: &[Conflict], bounds: &[ObservedBound], exact_values: &[ExactValue]) {
+  // Two sources that disagree keep their raw values.
+  for conflict in conflicts {
+    let values: Vec<String> = conflict
+      .values()
+      .iter()
+      .map(|value| format!("{} says {}", value.source(), value.value()))
+      .collect();
+    println!("  {} disagrees: {}", conflict.field(), values.join("; "));
+  }
+  // A count or a time observed while its total was not established: a partial count is never a total.
+  for bound in bounds {
+    match bound.value() {
+      ObservedValue::Count(count) => println!("  {} is at least {count}", bound.field()),
+      ObservedValue::Time(time) => println!("  {} is at least {time}", bound.field()),
+      // A value of a kind that a newer version wrote: its name is known, its value is not read.
+      other => println!("  {} has a lower bound of the kind {}", bound.field(), other.as_str()),
+    }
+  }
+  // A value beyond the exact range of the serialized form, kept as decimal text.
+  for value in exact_values {
+    match value.denominator() {
+      Some(denominator) => println!("  {} is exactly {}/{denominator}", value.field(), value.numerator()),
+      None => println!("  {} is exactly {}", value.field(), value.numerator()),
+    }
+  }
+}
+```
+
+**The typed part.** The approved sketch, which the stub type-checked, as the example becomes once `FormatDetails::Matroska` and `CodecDetails::H264` exist. The variant of each format and codec, and the names of its accessors, are reviewed at the gate of its phase (plan Phase 2, task 2).
 
 ```rust
 use cc_media_probe::details::{CodecDetails, FormatDetails};
@@ -3676,3 +3840,64 @@ These choices were made without asking, each open at G2.5:
 - **The reader's module comment** still promised the place just after a broken entry; it now names the place after the version for an entry held before it, as section 12 does.
 - **The last index.** The writer's rustdoc said that no index beyond 2^53 − 1 is carried exactly, while a double holds 2^53 exactly. The limit is the form's: beyond it, JSON implementations need not agree on an integer's value, since a double cannot tell 2^53 + 1 from 2^53 (RFC 8259 section 6; RFC 7493 section 2.2). The rustdoc, the comment of the range error's message and section 12 now say so; section 12 had said that an index is therefore always an exact number.
 - **The first review's count.** It added seven tests, six serialization tests and the unit test of the entry's size, not six, and four of them pass against the part it reviewed, not three; the history above and the development log now say so.
+
+**The examples and the contract tests (tasks 12 and 13).** On 2026-11-27 the maintainer approved revision 66 and the completed skeleton, with G2.1 to G2.4 already passed, and held G2.5 open for tasks 12 and 13. Task 12 made the scenarios of section 15 the shipped examples, and task 13 completed the contract tests. The maintainer chose:
+
+- **The typed details' example,** at the approval review. Twelve of the thirteen programs compiled against the library as written; `format_details` named `FormatDetails::Matroska` and `CodecDetails::H264`, which arrive in plan Phases 5 and 4. The shipped program shows what every kind shares, its stable name and its three lists, and section 15.10 keeps the approved sketch of the typed parts, which join the example in their phases.
+- **A compile-fail test for every public type.** Each of the 70 public enums has a match that names every variant without a wildcard arm, and each of the 109 public structs a struct literal that takes every field from another value, each with a twin that compiles: the same match with a wildcard arm, or the type named alone. Stable Rust does not check a compile-fail test's error code, so the twin is what fails for a mistyped name (plan section 8.10).
+- **The quick start's shape and test.** `print_report` renders the video size and the audio parameters of plan section 8.2 as well, so every value that the incomplete report lacks is shown absent, and writes to any `io::Write`, so the example's tests compare its text for both reports byte for byte (section 15.1).
+- **The spike's typed cases,** which the catch-alls cannot test, are kept with their inputs and expected results in [`deferred-cases.md`](deferred-cases.md), which Phases 4 to 6 empty, and the spike was deleted. The review below added the cases of the source protocol, which Phase 3 empties.
+
+The run of the guidelines checklist against the code ([`api-guidelines-checklist.md`](api-guidelines-checklist.md) section 15) found:
+
+- **`Language` had no `Display`,** which section 3.3 lists. It displays its BCP 47 tag, or the code as written where it has none.
+- **The front page had no links to the guides,** which section 3.4 requires. It now links the field guide, the JSON contract, the stability guide and the examples, and it shows the quick start of section 15.1.
+- **`asynchronous::detect_source` named no example;** it now names `AsyncPositionalSource`'s, which detects a source both ways.
+- **Section 3.3 did not say** that the options, `Limits`, `AttachmentHandling` and `SectionRequest`, and `DeriveOutcomeError` have no serialized form; it does now. A test asserts both traits on the 160 types that have one.
+
+These choices were made without asking, each open at G2.5:
+
+- **The display of a language** is its tag, else the code as written, as the type's own example wrote it by hand. `Display` is for people and outside the stability contract (section 3.3).
+- **Where the compile-fail tests stand.** A private module, `downstream`, built only for the crate's own tests and for rustdoc's collection of doc tests, so the rendered documentation shows none of them. Each test stands on an item named after its type, so a failure names the type, and the crate's own tests match each enum's list exhaustively, so a list that misses a variant does not build.
+- **The examples under the lint table.** The spike checked the scenarios with Clippy's default lints; the workspace's table also denies unchecked arithmetic and indexing in examples. Four programs changed without a new rule: a depth grows with `saturating_add`, an indent with `saturating_mul`, a range is read with `get`, and `map(..).unwrap_or_default()` became `map_or_default`.
+- **The earlier compile-fail tests.** Of the four that the skeleton's slices wrote, those of the payloads of a string enum and of an enum that carries data already had a twin that compiles; the payload of a typed detail and `Generator`'s `deserialize` without the trait in scope each gained one.
+- **The surface tests** are an integration test, `tests/surface/`, so they see the library as a dependent crate does: the traits of section 3.3 at compile time, and every entry point through `&mut` of its reader or source (C-RW-VALUE).
+- **The examples' features in CI.** CI's `cargo-hack` runs built the library's targets only, so an example's required features were checked by `cargo hack clippy --all-targets` run by hand, as this change was. The review below had CI build every target.
+
+**The review of tasks 12 and 13.** On 2026-11-27 the maintainer reviewed the staged examples and contract tests: three findings of priority 2 and eleven of priority 3, with `node scripts/check.ts` and `git diff --cached --check` passing. Each holds. The maintainer chose two of the fixes:
+
+- **A field's privacy is checked by the structure check.** The struct-literal test proves that a struct has a private field, not that each one is: `Size` with only `width` public still refused the literal. The structure check of plan D23 now refuses a field of the library's source declared `pub` without a restriction, outside the embedded tests (section 14); made public, `Size::width` gives that finding. The alternatives were a compile-fail test for every field, several hundred doc-test builds, and narrowing the claim alone.
+- **The package ships no integration tests,** as plan section 9.7 says: the manifest excludes `tests/`, and Cargo drops their targets from the published manifest with a warning for each. The alternative was to amend section 9.7 to ship the tests that need only registry dependencies.
+
+| Finding | Change | Sections |
+|---|---|---|
+| The spike's tests of the source protocol were deleted with no record: a pending read asked again with the same range, a source reused after a dropped probe, and no read of zero bytes | In Phase 2 the library reads nothing, so they cannot run yet. [`deferred-cases.md`](deferred-cases.md) section 5 keeps their inputs and expected results for plan Phase 3, and its status no longer claims that the library's tests took over every other case. The surface tests also took over the spike's remaining bounds: the model types and the prober are `'static`, and the completeness statuses are returned by reference | 15 |
+| A forward-only reader's rest was compared with the input after the cursor, which passes when the probe consumes more than it counts, and blocking `detect_stream` was not run | The surface tests compare the cursor with the bytes that the result counts, for blocking `probe_stream` and `detect_stream` and for both runtimes; before detection finds a format the primary input is the only source | — |
+| The struct-literal test does not catch a field made public beside a private one | The structure check, as chosen above; `api-guidelines-checklist.md` claims construction only for the test | 14 |
+| `dump_tags` printed two untitled sibling chapters alike, as "chapter 0" | It prints the edition and the chapter's path, and the title as a quoted string. `EntityLocation`'s rustdoc example had the same gap and prints the path too | 15.4 |
+| `scan_directory` wrote a file's lines in separate writes, so another worker's lines could come between them | Each file's lines are written under one lock of standard output after its probe | 15.9 |
+| `video_summary` printed a rate beside a variable mode as "constancy not shown" | A variable mode is printed with its rate | 15.2 |
+| `default_audio_language` called the first audio stream "default audio" when none is marked default | It says "first audio, none marked default" | 15.3 |
+| The quick start wrote a title as it came, so a line break split the line and a quote made it ambiguous | A title is written as a quoted string with its quotes and control characters escaped, and a third test covers one | 15.1 |
+| The quick start's complete fixture had a primary language and a title but empty `languages` and `titles` | The fixture holds both lists, from which the primary values come | 15.1 |
+| `format_details` printed a newer kind's empty lists as if nothing were recorded | It says that a newer kind's lists are not read. The accessors' and `UnrecognizedDetails`'s rustdoc say so too | 11.1, 15.10 |
+| `format_details` printed an observed value of a newer kind as "at least {kind}" | It prints a bound of that kind. `ObservedBound`'s rustdoc example had the same pattern and prints "a value of the kind …" | 15.10 |
+| The package shipped `tests/`, which plan section 9.7 excludes | As chosen above; the expected package list drops the 47 files | — |
+| CI's feature-combination build left out the examples | It builds every target of every combination, the examples and the tests included (plan section 9.8) | — |
+| `examples.md` and section 15 said that every example runs to an ordinary error | They tell the probe's outcome from the program's exit status: eleven exit unsuccessfully, `export_json` and `scan_directory` successfully | 15 |
+
+**The second review of tasks 12 and 13.** On 2026-11-27 the maintainer reviewed the staged snapshot again, which the fixes above had not yet joined: four new findings, one of priority 2 and three of priority 3, besides the fourteen above, with `git diff --cached --check` passing, and the surface tests and the quick start's tests passing in a copy of the index. Each holds; the third was already fixed outside the index. The maintainer chose one of the fixes:
+
+- **`dump_tags` is tested like the quick start,** since its targets were misreported a second time. Its rendering half, `print_tag_sets`, writes to any `io::Write`, and four tests compare the text written for tag sets read from JSON byte for byte: a level that has a number and no name, beside a tree of tags and a value of two lines; every kind of target, with a chapter's path; an incomplete scope, with a level that has a name and no number; and a scope and a reference kind of a newer version (plan section 9.7). The alternative was to check the fix outside the repository, leaving the example compile-only until Phase 5.
+
+| Finding | Change | Sections |
+|---|---|---|
+| `dump_tags` printed a level that has a number and no name as "no level" | It prints the number, the name, both or neither. A Matroska level always has its number, `TargetTypeValue`, which defaults to 50, while its name, `TargetType`, is optional (RFC 9559 sections 5.1.8.1.1.1 and 5.1.8.1.1.2) | 15.4 |
+| `dump_tags` read a target scope of a newer version as targets that were not read, and a reference kind of a newer version as an identifier unresolved in the report | It matches `Incomplete` and `Unmatched` by name and names a newer scope or kind as written. An incomplete scope says that the targets were not all read or kept, since the probe can also read a target that it cannot keep | 15.4 |
+| The surface tests dropped the spike's assertion that `MediaReport` and `Prober` are `'static` | Already fixed by the changes above: every model type, `MediaReport` among them, is asserted `'static`, and `Prober` is asserted `Send` and `'static` | — |
+| `api-guidelines-checklist.md` said that every derived `Debug` writes its type's name | It says that a struct's writes the struct's name, and an enum's the name of its variant, as the standard library documents | — |
+
+Two more changes came from revising them:
+
+- **The file's text in `dump_tags`.** A tag's name and value and the flat title were written as they came, so a value of several lines broke the tree, as a title did in the quick start. They are written as quoted strings, and a tag that only groups its children no longer ends in " = ".
+- **The changelog** said that each example ends with an ordinary error. It says that each probe does, as `examples.md` does since the review above.

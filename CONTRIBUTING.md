@@ -107,6 +107,7 @@ Everything is written in American English: `color`, `behavior`, `license`, `anal
 
 - Line coverage is **above 90%**, where exactly 90.0% fails, for each published crate and for each area of the library (R28). Tests arrive together with the code they cover.
 - Zero warnings from the compiler, the linter and rustdoc. Every public item has rustdoc with an example.
+- A new public enum, variant or struct joins its module's list in `crates/cc-media-probe/src/downstream/`, which gives it a doc test proving that a dependent crate can neither match it exhaustively nor build it with a struct literal (plan section 8.10). A variant left out stops the crate's own tests from building. A field of the library is private, or `pub(crate)` and narrower; the Rust structure check refuses one declared `pub` without a restriction.
 - In Markdown documents, workflows and processes are drawn as Mermaid diagrams that restate the prose beside them (R14).
 - Every change that users of the published crates can notice is entered in [CHANGELOG.md](CHANGELOG.md) in the same commit. An entry for a breaking change begins with **Breaking**.
 
@@ -145,7 +146,7 @@ It runs, in order: the Node.js version, file hygiene, Markdown links, the specif
 
 **Never set `RUSTFLAGS`.** It replaces the flag that marks a repository build, and a guard test then fails. Warnings are denied by the workspace's lint table instead.
 
-CI ([section 9.8](docs/plans/plan-init-project.md#98-continuous-integration)) runs the same checks on Linux, macOS and Windows on every push to `main` and to every `release/*` branch. It also runs the tests on current stable Rust and on the `rust-version` that the crates declare, builds and documents every feature combination with `cargo-hack` 0.6.46, and audits licenses, advisories and the crate allow-list with `cargo-deny` 0.21.0.
+CI ([section 9.8](docs/plans/plan-init-project.md#98-continuous-integration)) runs the same checks on Linux, macOS and Windows on every push to `main` and to every `release/*` branch. It also runs the tests on current stable Rust and on the `rust-version` that the crates declare, builds every target, the examples and the tests included, and documents every feature combination with `cargo-hack` 0.6.46, and audits licenses, advisories and the crate allow-list with `cargo-deny` 0.21.0.
 
 ```mermaid
 flowchart LR
