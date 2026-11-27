@@ -1,0 +1,45 @@
+description: one stream in stream mode whose header, a setup and a parameters unit, comes in two packets
+source: the draft of the toy format and its codec, spikes/input/README.md sections 2 and 3
+target: toy
+outcome: report
+length: 57
+# The setup is the whole payload of the first packet and the parameters of the second, so the codec gets the
+# header in two deliveries, whatever the reads, and parses the second only with the continuation of the first:
+# a continuation that is lost leaves the parameters without their setup, which is malformed.
+---
+## Toy format (spikes/input/README.md section 2): the file header
+"CCToy" 00              # signature, "CCToy" and a zero byte
+01                      # version 1
+00                      # flags: none is defined
+00 00 00 0c             # offset of the first element: 12, right after the header
+
+## Toy format (section 2): the stream declaration, element STRM
+"STRM"                  # code
+00 00 00 07             # length of the body: 7
+01                      # stream number 1
+01                      # framing 1: stream mode
+00                      # representation 0: units with one-byte lengths
+"TCOD"                  # codec code: the toy codec
+
+## Toy format (section 2): the first packet, element PACK
+"PACK"                  # code
+00 00 00 09             # length of the body: 9
+01                      # stream number 1
+
+## Toy codec (spikes/input/README.md section 3): the setup, kind 1, the first delivery
+01                      # kind 1: setup
+06                      # length 6
+01 40                   # width 320
+00 f0                   # height 240
+01                      # parameter count 1
+00                      # flags: none, so the parameters can be read
+
+## Toy format (section 2): the second packet, element PACK
+"PACK"                  # code
+00 00 00 05             # length of the body: 5
+01                      # stream number 1
+
+## Toy codec (section 3): the parameters, kind 2, the second delivery
+02                      # kind 2: parameters
+02                      # length 2: the setup's one 16-bit parameter
+00 07                   # parameter 7

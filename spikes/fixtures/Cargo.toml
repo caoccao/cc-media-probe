@@ -1,0 +1,38 @@
+# Spike for Phase 3, task 3: the fixture format, the routing of fuzz seeds, the
+# expectations and the hidden entry points, for gate G3.2. Its own workspace and
+# lock file, excluded from the root workspace (plan section 7.1). `kit` stands in
+# for the test kit and `library` for the library; `fuzz/` is a cargo-fuzz
+# workspace of its own. See README.md.
+
+[workspace]
+resolver = "3"
+members = ["kit", "library"]
+exclude = ["fuzz"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "Apache-2.0"
+publish = false
+
+# The lint table of the root workspace, so that the spike meets the rules that
+# the permanent test kit, entry points and fuzz targets must meet.
+[workspace.lints.rust]
+warnings = { level = "deny", priority = -1 }
+unsafe_code = "forbid"
+missing_docs = "deny"
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(fuzzing)", "cfg(cc_media_probe_repository)"] }
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+self_named_module_files = "deny"
+definition_in_module_root = "deny"
+min_ident_chars = "deny"
+single_char_lifetime_names = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"

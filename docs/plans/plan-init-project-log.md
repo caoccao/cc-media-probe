@@ -5678,3 +5678,387 @@ In memory the state machine is +24.8% to +26.6% with few packets and +44.0% to +
 
 - G3.1: D8, with the measurements above, D9, D15 and D17, the internal sizes, and the toy format as the start of task 5. The maintainer decides whether to confirm D8 with the measured overhead, to change the bar, or to switch to the fallback despite its cost.
 - Tasks 5 and 6 take the spike as their reference, and task 6's commit deletes it.
+
+## 2026-11-27 — G3.1 I/O architecture [CONFIRM]
+
+**Approved** for revision 72 at `2de60bf` on `main`. The maintainer's approval review read the spike after both reviews' fixes, reran its 92 integration cases, its embedded test and the heap check, all passing, and kept the gate open on one point only: D8 missed the bar that task 1 wrote for it. Asked how to decide the gate, the maintainer chose to approve it with D8 accepted by exception.
+
+**Question asked and the maintainer's answer, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| The review approves D9, D15 and D17 and recommends accepting D8's missed bar as a one-time exception: approve with D8 by exception, keeping the bar as written; approve and amend the bar so that D8 holds by it; switch to the fallback; or keep the gate open and rerun the gate's three runs on an idle machine | Approve, D8 by exception |
+
+| Decision | Outcome | Basis |
+|---|---|---|
+| D8, one code base for blocking and async | **Confirmed by a one-time exception** | The async walker missed the bar of 10% in each of the gate's three runs: few packets by 10.8% in the first and 11.1% in the third, many packets by 12.6% in the second (spike README, section 5). The fallback's state machine measured +24.8% to +26.6% with few packets and +44.0% to +48.9% with many in the three direct comparisons, with the same heap peaks. The review found no change of the public API or of the source protocol that the decision needs. |
+| D9, forward-only input | **Confirmed** | Detection's bytes stay pinned and available; a backward read outside the window has a defined outcome, "range unavailable" for that range only; and the walk goes on with the next readable element. |
+| D15, the async surface | **Confirmed** | The Tokio and futures-io entry points coexist with both features enabled. The spike runs pending reads, cancellation, and a caller's source reused after a dropped probe. |
+| D17, the codec parsing contract | **Confirmed** | Framing, representation, the packet's known length, consumption and the continuation value are explicit. The tests cover split headers, exact limits, and the fields kept when a source fails. |
+
+- **What the exception means.** Task 1's bar stays in the plan as written, and the record says that D8 missed it. The exception covers this decision only and relaxes no later criterion. The shared async walker stays, and the permanent walkers of tasks 5 and 6 follow its condition: a walker awaits only where a read must wait, and keeps an element's path in one `async fn` (spike README, section 6).
+- **Also approved, as starting points.** The spike's internal sizes (a block of 64 KiB and 8 blocks in the cache; a window of 1 MiB, a pinned prefix of at most 64 KiB and reads of 64 KiB on a forward-only input; a piece of 4 KiB; a cap on bytes examined of 16 times the per-stream header limit) and its toy format, the draft of task 5's. The public defaults of `Limits` belong to G3.3.
+- **What follows.** The spike stays as the reference for tasks 5 and 6, and the commit that completes task 6 deletes it (task 2). G3.2, the fixture format and access to internals, is the next gate, before any permanent test-kit or fuzz code.
+
+**Plan revision 73:** Phase 3, task 2 records the approval and the exception; the status line; Appendix E. `api.md` section 16 records G3.1, and its two notes on repeated requests in the I/O layer say that the spike confirmed them; the spike's README records the decision in its introduction and section 6. `deferred-cases.md` keeps its section 5 until those cases become the library's tests in Phase 3, as it says.
+
+## 2026-11-27 — Phase 3, task 3: the proposal for G3.2
+
+After G3.1, the next step of Phase 3 is G3.2, which must confirm D14, the fixture format, and D19, access to internals for fuzzing, before any permanent test-kit or fuzz code. Task 3 asks for six things: the hex-fixture format with two sample fixtures, how a recipe states the values its tests expect, the builder interface, the routing fields of fuzz seeds, the hidden access path of fuzz targets, and the list of repository-only entry points. They are proposed in a new design document, [`docs/design/test-kit.md`](../design/test-kit.md), with the disposable spike `spikes/fixtures/` as its evidence. G3.2 stays open for the maintainer.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| What evidence comes with the proposal: a document plus a spike with a cargo-fuzz build, the same spike without cargo-fuzz, or the document only | Document plus spike |
+| What a line of a hex fixture may hold besides its bytes and comment: hex, quoted text and repeats with nothing computed; hex and comments only; or labels and computed sizes too | Hex, text and repeats |
+| What form expectations take: the library's JSON form split into a semantic and an adapter part, written when an environment variable asks; a text rendering of the project's own; or the JSON form refreshed by a separate script | The JSON form, split |
+| Where the seed check runs, since D19 compiles `fuzzing_entry_points` only under `cfg(fuzzing)` and the repository forbids `RUSTFLAGS`: in repository builds too, or in the fuzz workspace only | In repository builds too |
+
+**Online check, on 2026-11-27.**
+- cargo-fuzz compiles "every crate instrumented for fuzzing", the dependencies included, with `--cfg fuzzing` (Rust Fuzz Book, cargo-fuzz guide). It sets the flag through `RUSTFLAGS` (cargo-fuzz, `src/project.rs`), and `--no-cfg-fuzzing` leaves it out.
+- Cargo's four sources of extra compiler flags are "mutually exclusive" and "checked in order, with the first one being used": `CARGO_ENCODED_RUSTFLAGS`, `RUSTFLAGS`, the target's `rustflags`, then `build.rustflags` (The Cargo Book, configuration). So a fuzz build has no repository marker, as the spike confirmed.
+- No established format of annotated hex fixtures was found:
+  - one converter reads hex with `;` comments back into bytes;
+  - Python's `hexdump.dehex` strips white space but has no comments;
+  - Go's txtar shows a header of text followed by sections, "simple enough to write and edit by hand" and diff-friendly.
+
+  The format is the project's own.
+- RFC 9639's errata on the RFC Editor's page are 8256 and 8810, verified, and 9096, rejected. None covers Appendix D.1.4.
+- cargo-fuzz 0.13.2, the dossier's version, was installed with `cargo install --locked --version 0.13.2 cargo-fuzz`, and run on nightly 1.102.0 of 2026-11-20.
+
+**The proposal,** `test-kit.md` sections 2 to 7:
+- **The format (section 2).** A header of `name: value` members:
+  - `description`, `source` and `erratum`;
+  - the route: `target`, `representation`, `context` and `outcome`;
+  - an optional `length`.
+
+  Then `---` and a body. In the body, each line of bytes holds hex pairs, quoted printable ASCII and repeats, and ends with a comment that names its field. A heading `##` names the specification and section for the lines below it. `@seed` and `@end` mark a region that is a seed of its own. Nothing is computed, and a body is at most 16 MiB.
+- **The two samples (section 3).** A toy file whose packet is a codec header, marked as a seed of the codec target. And RFC 9639, Appendix D.1, transcribed from its tables 27 to 31.
+- **Expectations (section 4).** `<name>.expected.json`, the semantic part that every seekable adapter shares. `<name>.forward.json`, only where the forward-only part differs. And `<name>.adapters.json`, one adapter part per adapter, keyed by JSON pointer, with `read_calls`. The adapter part holds:
+  - a root record's `size`;
+  - the usage's `bytes_read` and `peak_working_memory`;
+  - each source entry's identity, path and bytes read.
+
+  A recipe states its values in a member `expected`, a partial report matched by place, where `null` asserts an absent member. Expectations are written only when `CC_MEDIA_PROBE_WRITE_EXPECTATIONS` is set, and compared as values.
+- **Builders, readers and paths (section 5).**
+  - `ByteWriter` and `BitWriter`;
+  - container builders whose computed fields each have an override;
+  - the toy file builder;
+  - `CountingReader` and `FaultingReader`;
+  - `Fixture::load`, `fixture::names`, `expectation_path` and `generated::path`.
+- **Seeds (section 6).** The input encodings are written once, in the library's `fuzzing_entry_points`:
+  - a container target takes the file's bytes;
+  - a codec target takes a representation code, the target's fixed context and the bytes;
+  - detection takes the bytes.
+
+  The module is compiled under `cfg(any(fuzzing, cc_media_probe_repository))`. The seed check is an ordinary test of the library, and the corpus tool a harness-less test target of the library, run by `cargo test --test corpus`.
+- **Repository-only entry points (section 7).** One: `with_toy_format(prober) -> Prober`, which adds the toy format to a prober's detection, so that every blocking and async method of `Prober` reaches the toy walker.
+
+**The spike, `spikes/fixtures/`:**
+- `kit/` stands in for the test kit, with the standard library only.
+- `library/` stands in for the library. Its private toy walker and codec parser and the two hidden modules are compiled under the conditions proposed. Its tests use the real library for the JSON form.
+- `fuzz/` is a cargo-fuzz workspace with the target `toy_codec`.
+- What it showed:
+  - The FLAC fixture assembles to the RFC's own dump in D.1.1, transcribed separately, and the toy fixture to what the builder writes.
+  - The format refuses each malformed form at its line.
+  - Through bytes, a file, a seekable reader and a custom positional source, the real library's semantic parts agree. The forward-only part equals them, and the adapter parts hold each adapter's bytes read and peak memory, with the counting reader's read calls. The Phase 2 library reads nothing, so every record is the error of an unknown format.
+  - The seed check passes both toy seeds and accepts the FLAC fixture's target only from its list of later targets. A seed routed with the other representation fails it.
+  - cargo-fuzz built the target. A run of 31 seconds with plan section 9.5's limits executed 40,291,264 inputs without a failure, at a peak RSS of 555 MB, and the target checked on every input that the build had `fuzzing` and no marker.
+  - A copy of the stand-in outside the repository builds with warnings denied, and a consumer that names either hidden module fails with E0433.
+
+**Found while writing:**
+- **RFC 9639, Appendix D.1.4, puts the frame CRC at 0x38 in its text,** while its dump in D.1.1 and its table 31, whose second subframe ends with byte 0x36, put it at 0x37. The fixture follows the bytes and says so in a comment. No erratum covers it, and the appendix is informational, so nothing in the formal sections changes.
+- **A fuzz build is a third configuration.** The stand-in's first cargo-fuzz build failed: an import that only `repository_entry_points` used was unused without the marker, and warnings are denied. Every gated item must compile cleanly in a repository build, a fuzz build and a published build. `test-kit.md` section 6.3 says so.
+- **The order of an expectation's members.** `serde_json::Value` without `preserve_order` sorts members, so a written file does not keep the form's order, `schema_version` first. The comparison parses the stored file and compares values, so order and white space never count.
+- **R30 and the fuzz targets.** `fuzz_target!` is a macro call, which a binary's root may not hold. A target's root therefore declares `mod target;`, and the macro sits in `target.rs`. The `no_mangle` that it writes comes from another crate's macro, which `forbid(unsafe_code)` does not report, so the fuzz workspace keeps the root's lint table.
+- **R32 and "hex".** The name check flagged `hex` in five names of the spike. They are spelled `hexadecimal`; the format's prose and the extension `.hex` keep the short word, which is no name.
+- **The corpus tool cannot stay whole in the test kit.** With the encodings written once in the library, as R36 asks, the tool needs both crates, while plan section 7.1 places it in the test kit, which cannot call the library. `test-kit.md` section 6.4 proposes the split, open at G3.2, with its alternative.
+- **The toy format needs a `Format` value.** `test-kit.md` section 7 proposes a variant `Toy` compiled only in repository builds and for fuzzing, open at G3.2, with the catch-all as its alternative.
+
+**Choices made without asking,** each open at G3.2, are listed in `test-kit.md` section 8. Three of them would amend the plan if G3.2 keeps them, so they are proposed rather than made:
+- the section named once in a heading, where section 9.1 has it on every line;
+- the corpus tool split between the test kit and the library's tests;
+- the `Toy` variant.
+
+**Plan revision 74:** D19 and sections 7.2 and 9.5, `fuzzing_entry_points` compiled in repository builds too; section 9.1, lines of hex, quoted text and repeats with nothing computed, and expectations in the JSON form, split; Phase 3, task 3, which records the four choices and the proposal; the status line; Appendix E.
+
+**Documents updated:** the plan; [`docs/design/test-kit.md`](../design/test-kit.md), new; the test-files guide, section 3, with the member `expected` as proposed for G3.2; the spike's README, new; this log.
+
+**Verification.**
+- In `spikes/fixtures/`:
+  - `cargo fmt --check` passes, and `cargo clippy --all-targets` and `cargo clippy --test corpus` find nothing.
+  - `cargo test` passes the kit's 12 cases, 2 of them embedded, and the library's 8.
+  - `cargo test --test corpus` writes 2 seeds.
+- In `spikes/fixtures/fuzz/`: `cargo +nightly fmt --check` passes, `cargo +nightly clippy` finds nothing, and `cargo +nightly fuzz build toy_codec` and the run above succeed.
+- The structure check of `cc-media-probe-checks` gives no finding on the repository.
+- The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js.
+- `node scripts/check.ts` passes on the final tree.
+
+**Open:**
+- G3.2: the proposal of `test-kit.md`, with the three plan amendments that it would need.
+- Tasks 4 and 20 take the spike as their reference, and task 20's commit deletes it.
+
+## 2026-11-27 — Phase 3, task 3: the review of the G3.2 proposal
+
+The maintainer reviewed the staged proposal, `docs/design/test-kit.md`, with its spike `spikes/fixtures/`, and kept G3.2 open. The review found no reason to reopen G3.1. It has 25 findings: 2 P1, 16 P2 and 7 P3. They fall under fixture expectations and adapter parity (8), the toy parser and fuzz coverage (7), corpus generation (3), and the fixture grammar and documentation (7). Every finding is fixed; `test-kit.md` section 10 lists each with what changed and where.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| Where a fixture's cases live, the conditions under which its tests probe the same bytes, each with its own expected result: `case:` lines in the `.hex` header, a `<name>.cases.json` beside the fixture, or the test code alone | `case:` lines in the `.hex` header, each with its own expectation files |
+| How the file adapter's reads are counted, which plan section 9.4 asks for: a second repository-only entry point that counts every source that the library opens itself, the file adapter's own unit tests in `src/` alone, or a public read-call counter in the usage summary | A repository-only counter |
+| How parity treats the retained data of a path that a file probe keeps and a bytes probe lacks: semantic, net of the paths that the test handed the library, or in the adapter part with a bound check | Semantic, net of paths, so the library must charge a path at exactly its length |
+| What shape the corpus tool takes: the seed check writes the corpus when a variable asks, a separate tool with a shared check, or a seeds folder that the tool owns, which amends plan section 9.5 | The seed check writes it, removing only its own stale files |
+
+**Online check, on 2026-11-27.**
+- **libFuzzer** ([llvm.org/docs/LibFuzzer.html](https://llvm.org/docs/LibFuzzer.html)) writes new inputs into the first of several corpus folders. Its `FuzzerFlags.def` says of `-max_len` that "contents of corpus files are going to be truncated to this value". So a seed beyond the run's 1 MiB never reaches its target whole, as the review said.
+- **Cargo's `CARGO_TARGET_TMPDIR`** is "only set when building integration test or benchmark code", a folder "where integration tests or benchmarks are free to put any data", which Cargo creates and leaves to the tests (doc.rust-lang.org/cargo, "Environment Variables").
+- **RFC 6901, section 3**, escapes `~` as `~0` and `/` as `~1` in a member's name.
+
+**Reproduced first.** A temporary test module in the spike, removed before the fixes, ran the review's cases against the staged code:
+
+| Finding | What the staged spike gave |
+|---|---|
+| The toy codec's documented outcomes | A complete setup with a count of 1 at its packet's end: `malformed`. A stream's payload unit, then a setup: `no_header`. A setup with the needs-decoding flag and a count of 1: `parsed` |
+| The first element before a toy report | A file of its 12-byte header alone: `report`. A header whose first element is at offset 100: `report` |
+| The declared codec and framing | A stream that declares `XCOD`: its packet `parsed` by the toy codec. A framing of 2: a stream declared, its packet `parsed` |
+| The split's declared places | A typed detail's `usage` of `{ "bytes_read": 9 }`: moved to the adapter part as `/streams/0/details/usage/bytes_read` |
+| A bare `@end` | `@end stray words` closed its region |
+| Escaped pointers | `{ "a/b": 1, "a": { "b": 2 } }` against other values: two differences, both at `/a/b` |
+| Comparison as values | With `cargo test -p library --features serde_json/preserve_order`, the FLAC golden test failed on the order of the expected part's members |
+
+The other 18 were found by reading the proposal and the code, as the review described them. Among them are the corpus file shared by a region's seed and a fixture named like it, the writer's silent skip of an unknown target, and its stale seeds.
+
+**What changed.** The proposal and the spike were revised together:
+- **Equal conditions.** Every adapter of a parity run gets the fixture's file name, a new header member that defaults to the fixture's own name, and the same resolver. A case with the built-in lookup runs through the file adapters alone.
+- **Cases.** `case:` lines carry limits, pieces, companions and the lookup, each case with expectation files `<name>.<case>.<part>.json`. A stale file fails the test, or is removed when expectations are written.
+- **The split.** It takes members only at the places that the form defines. `retained_data` stays semantic, net of the test's paths. Paths below the test's folder collapse into one Unicode form with the placeholder, in a folder below `CARGO_TARGET_TMPDIR`. An error's native details become placeholders.
+- **Reads.** Read calls and bytes delivered are counted for every adapter but bytes, and the file adapter's by the repository-only `with_source_counter` of `test-kit.md` section 7, which task 6 builds.
+- **Comparison.** Values are compared directly, written with an explicit sort, and the recipe matcher escapes member names.
+- **The toy code.** The spike's toy codec parser is now the I/O spike's accepted parser, ported whole. Its detection follows the accepted rule, and its walker checks the codec and the framing, enters lists, and assembles headers across packets.
+- **Seeds.** The FLAC example's streaminfo block is a region routed to `flac_codec`, of Phase 4. A `probe` target runs the full public probe, with every fixture as its seed. The detection and probe inputs carry an optional file-name hint, and no encoded seed exceeds 1 MiB; a longer fixture takes the target `none` and gives bounded regions.
+- **The corpus.** The seed check writes it when `CC_MEDIA_PROBE_WRITE_CORPUS` is set, after every seed passed. Files are named `seed.<format>.<name>[.<region>]`, two seeds of one file are refused before any write, and only stale `seed.` files are removed.
+- **The format.** It refuses a word after `@end`, and the fixtures' folder is checked whole against its layout. The inventory tests accept added fixtures.
+- **Documents.** The API checklist's C-HIDDEN row gives D19's condition. The catch-all alternative for the toy format's value says what it would have to compile. Task 5 retargets the toy fixture's citations of the I/O spike's README.
+
+**Found while revising:**
+- **`attempted_identity` is semantic now.** The review asked to treat an error record's top-level `attempted_identity` as the source entries' one, which the first split sent to the adapter part. With the same file name for every adapter, every adapter gives the same identity, so both are semantic. That is a stronger parity check.
+- **The recipe matcher's order.** Its list of differences followed `serde_json::Map`'s order, which `preserve_order` changes, a sibling of the comparison finding. The list is sorted by pointer.
+- **The third configuration again.** In a fuzz build, a field that only `repository_entry_points` reads is dead code, which warnings deny. So the toy walk's stream states are part of the fuzz entry point's `Reached`.
+- **`Fixture::load` took any name.** It accepted `../toy/setup-and-parameters`, a sibling of the discovery finding. It now refuses a name that the layout does not allow.
+- **A case-insensitive file system.** On macOS `Toy/` and `toy/` are one folder, so the layout test misnames a folder and a fixture with names that differ by more than case.
+- **The seed check depends on the golden test.** The probe target's outcome is the default case's expectation, so a fixture without one fails the seed check, with the variable's name.
+- **The stand-in's dependency.** Outside the repository, Cargo reports the stand-in's dependency on the real library as unused, since only gated code uses it. The permanent library has no such dependency.
+- **Throughput.** The toy codec target's entry point now gives its outcome as an owned string, and the fuzzer ran about a fifth as many inputs in the same time: 7.1 million against 40.3 million.
+
+**Choices made without asking,** each open at G3.2, are listed in `test-kit.md` section 8. The new ones:
+- the members `file_name` and the target `none`, and comments in the header;
+- the conditions' grammar and the case files' names;
+- the layout check;
+- the placeholder `{native}` and `attempted_identity` in the semantic part;
+- the folder below `CARGO_TARGET_TMPDIR`;
+- `read_calls` and `bytes_delivered`;
+- seed names with `#` and corpus files with `seed.`;
+- the `_codec` suffix only where names collide, and `flac_codec` with `metadata_blocks` until Phase 4;
+- the hint's length byte, with a hint that is not UTF-8 read with U+FFFD;
+- every fixture as a seed of `probe`, and detection seeded only by fixtures that route to it;
+- the names `with_source_counter` and `SourceCounter`.
+
+Two items stay proposed and open at G3.2 and would amend the plan: the section named in a heading (section 9.1) and the `Toy` variant (section 7.2). The corpus split of the first draft is settled by the maintainer's choice.
+
+**Plan revision 75:**
+- **The maintainer's choices:**
+  - sections 7.1 and 9.4, the repository-only counter of the sources that the library opens itself;
+  - section 9.1, a fixture's cases;
+  - section 9.2, the same file name and resolver for every adapter, a case that depends on the file's folder kept apart, and retained data net of paths;
+  - sections 7.1 and 9.5 and tasks 19 and 20, the seed check as the corpus tool, and no seed beyond the run's input length.
+- **The review's findings:**
+  - task 5, the retargeted citations;
+  - task 20, a target of the full public probe.
+- **The record:** task 3, which records the choices; the status line; Appendix E.
+
+**Documents updated:**
+- `test-kit.md`: sections 1 to 9, and a new section 10, the review's table;
+- the spike's README;
+- `test-files.md`, its link to section 4.4;
+- `api-guidelines-checklist.md`, the C-HIDDEN row;
+- the plan, and this log.
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`, `cargo fmt --check` and `cargo clippy --all-targets` find nothing. `cargo test` passes the kit's 19 cases, 2 of them embedded, and the library's 25. `cargo test -p library --features serde_json/preserve_order` passes too. A stale expectation file failed the golden test and was removed by the writing run. `CC_MEDIA_PROBE_WRITE_CORPUS=1` wrote four seeds.
+- **The fuzz runs.** In `fuzz/`, `cargo +nightly fuzz build` builds both targets. Under plan section 9.5's limits, each ran 31 seconds without a failure: `toy_codec` 7,148,755 inputs at a peak RSS of 532 MB, and `probe` 6,887,776 at 464 MB. A rewrite of the corpus afterward kept the fuzzer's 134 files of `toy_codec/` and rewrote its one seed.
+- **Clippy on the fuzz crate.** `cargo +nightly clippy --all-targets` finds nothing. A second Clippy run set `RUSTFLAGS="--cfg fuzzing"`, which CLAUDE.md forbids. It touched only the ignored `fuzz/target/` and changed no file, but it should not have been run, and was not repeated.
+- **Outside the repository.** A copy of the stand-in builds there with warnings denied. A consumer that names either hidden module fails with E0433 for each.
+- **Repository checks.** The structure check of `cc-media-probe-checks` gives no finding on the spike. The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal: the format, the cases, the expectations and their split, the builder interface, the routing fields and seeds, the hidden access path, the two repository-only entry points, and the choices of `test-kit.md` section 8. It also decides the two open items above.
+- `with_source_counter`, the custom resolver of a case's companions, and results that differ by case wait for the I/O layer of task 6.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-27 — Phase 3, task 3: the second review of the G3.2 proposal
+
+The maintainer reviewed revision 75 as staged, `docs/design/test-kit.md` with its spike `spikes/fixtures/`, and approved three things:
+- **The specification and section in a heading.** A heading names them for the lines of bytes below it, each line names its field, and a line that another subsection governs cites it. Plan section 9.1 is amended to match.
+- **`Format::Toy`.** The explicit variant, with the JSON name `toy`, gated by `cfg(any(fuzzing, cc_media_probe_repository))`, so the toy walker can report the format it recognized, without Serde too. The ordinary published build omits it, and `Format::Unrecognized` keeps its meaning. Plan section 7.2 is amended to match.
+- **The choices of `test-kit.md` section 8**, the ones made without asking.
+
+The review held the proposal as a whole on four contract issues, each fixed below. It ran the fixture workspace's 44 tests and `git diff --cached --check`, both passing. G3.2 stays open.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How a file probe reaches the others' results at a retained-data limit, with a path charged at the strings that keep it, held at their length and charged first: the file adapters' limit raised by that charge, or file-adapter expectations of their own for a case that meets the limit | An equal remaining budget: the limit raised by the charge, in case folders padded to a fixed length so every path charges the same on every machine |
+| What an explicit route to `probe` means, beside the seed that every fixture with a target gives it: refused for a whole fixture and allowed for a region, refused everywhere, or deduplicated | Refused for a whole fixture, allowed for a region |
+| How tests reach the names that no file can have, once `file_name` is a name that every platform can write: `hint=` cases and platform-specific tests with the fuzz hint as native bytes on Unix, platform-specific fixture cases too, or `hint=` cases with a fuzz hint that stays Unicode | `hint=` cases in percent-encoded UTF-8, names that are not Unicode in platform-specific tests of the library, and the fuzz hint as native bytes on Unix |
+
+**Online check, on 2026-11-27.**
+- **Microsoft, "Naming Files, Paths, and Namespaces"** (learn.microsoft.com, updated 2025-04-11) reserves `CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `COM¹` to `COM³`, `LPT1` to `LPT9` and `LPT¹` to `LPT³`, also "followed immediately by an extension", says not to end a name with a space or a period, and not to assume case sensitivity. That is the list of `api.md` section 13; neither lists `COM0` or `LPT0`.
+- **Rust's `OsStringExt::from_vec`** builds an `OsString` from bytes, stable since 1.0 and available on Unix only. **`String::with_capacity`** promises "at least" the capacity asked for, and **`String::into_boxed_str`** "discards excess capacity", so only a boxed string's capacity is its length by type.
+- **RFC 3986, section 2.1**, writes a percent-encoded octet as `%` and two hexadecimal digits, either case equivalent.
+
+**The four issues, and what changed:**
+
+| # | Issue | What changed | Reproduced |
+|---|---|---|---|
+| 1 | Companion cases did not match the approved API: every default run had a custom resolver, whose unanswered request gave `NotFound` where the default makes no request and reports the companions "not enabled", and `lookup=built_in` ran through every file adapter, though only the blocking API offers built-in lookup | Lookup is off by default. `lookup=custom` is explicit and gives the blocking adapters `CompanionLookup::custom` and the async ones `AsyncCompanionLookup::custom`. `lookup=built_in` runs through the blocking `probe_file` alone. Each request must have its answer, and each answer must be asked for. Companion cases wait for Phase 14, task 1, and task 6 keeps the two-file input for it | By reading: the spike built no resolver at all, while the draft gave one to every run |
+| 2 | Subtracting `OsStr::len` after the probe matched neither a lossy path's charge nor a file probe whose path had used the budget that then left a field out | A path is charged at its display string and a lossy path's raw data, each held at its length, as the probe's first charge to retained data (plan section 7.5). The file adapters' limit is raised by that charge, and each case's folder is padded to 200 bytes | Yes: a lossy Unix path of 5 bytes by `OsStr::len` keeps 17 in the report |
+| 3 | The seed check ran the probe without the toy format, which the draft added in a fuzz build alone, and an explicit route to `probe` was undefined | One prober, `fuzzing_entry_points::prober`, for the `detection` and `probe` targets, the seed check and the golden tests, adding the toy format in both builds through the private function that `with_toy_format` calls. A whole fixture's route to `probe` is refused, and a region's is checked with its own outcome | By reading: the spike's probe target and golden test each built their own `Prober::new()` |
+| 4 | The grammar allowed file names that Windows cannot hold, such as `NUL.idx` and `movie.`, and the fuzz hint's U+FFFD made valid Unicode of a name that is not | `file_name` is a name that every platform can write; `hint=` cases give the others to every adapter but the file ones; names that are not Unicode are left to platform-specific tests; the fuzz hint's bytes are the native name on Unix, and a hint that is not UTF-8 is rejected elsewhere | Yes: revision 75 parsed `NUL.idx`, `movie.` and `con`, and made U+FFFD of the hint's byte `ff` |
+
+The reproductions ran as throwaway tests against a copy of the staged tree, taken with `git write-tree` and `git archive` into the scratchpad, and were not kept. The tests that hold the fixes:
+- **The kit** refuses `NUL.idx`, `nul`, `Aux.tar.gz`, `com1.idx`, `LPT9`, `con.`, `con.backup.idx`, `movie.` and `.` as file names, and accepts `.hidden`, `icon.backup.idx`, `lpt10` and `nul-a.idx`. `Fixture::load` refuses `toy/nul` and `com1/sample`.
+- **The library's tests** read the lookups and the percent-encoded hint, refuse conditions that no adapter can run together, check the fixed folder length, the raised limit and a lossy path's charge, refuse a whole fixture routed to `probe`, and check a region routed to it.
+- **The library's two embedded tests** read a hint as native bytes under `cfg(unix)` and reject it under `cfg(not(unix))`.
+
+**Found while revising:**
+- **Device names in the layout.** A fixture or a format named `nul` or `com1` cannot exist on Windows either, since `nul.hex` names the device there, and revision 75 took `nul` for a fixture's name. The layout check and `Fixture::load` refuse such names now.
+- **A built-in companion's name** is written beside the file, so it follows the file-name rule too, and differs from the file's and each other's by more than case, since Windows and macOS compare names without regard to case by default.
+- **A sign among hexadecimal digits.** `u8::from_str_radix` takes a leading `+`, so revision 75 read a companion's token `+a` as the byte 10, which a scratch test showed. The token and the percent-encoding now check two hexadecimal digits.
+- **No resolver before Phase 14.** The draft's section 9 had task 6 add the cases' custom resolver, which no build of the library has before Phase 14, task 1.
+- **Boxed strings.** The library's `PortablePath` holds its strings as `String`, whose capacity can exceed its length. Task 7 holds them at their length, as the charge needs.
+
+**Choices made without asking,** each open at G3.2 and listed in `test-kit.md` section 8:
+- device names refused as names of formats, fixtures and cases;
+- the condition `hint`, percent-encoded, and the lookup names `off`, `custom` and `built_in`;
+- a built-in companion's name held to the file-name rule, apart from the file's and the others' by more than case;
+- each request answered, and each answer asked for;
+- conditions that no adapter can run together refused;
+- task 6 noting the I/O spike's resolver results in the comments of the two-file fixtures;
+- the folder's fixed length of 200 bytes, padded with `_`, in a folder for tests that is valid Unicode;
+- `fuzzing_entry_points::prober` as the one prober, from which the golden tests start;
+- a hint that is not UTF-8 rejected off Unix.
+
+**Plan revision 76:**
+- **The approvals:** section 9.1, the specification and section named in a heading; section 7.2, `Format::Toy` under the two conditions.
+- **The maintainer's choices:** section 7.5, a path charged at the strings that keep it, held at their length, the primary input's first; section 9.1, a file name that every platform can write and a hint-only case; section 9.2, the file adapters' limit raised by their path's charge in folders of a fixed length; section 9.5, no whole fixture routed to the target of the full public probe.
+- **The review's findings:** section 9.2, lookup off by default, a custom resolver for every adapter that asks for one, and the built-in resolver through the blocking `probe_file` alone; section 9.5, one prober for the golden tests, the seed check and the targets; Phase 3, tasks 5 and 7; Phase 14, task 1, which adds the companion cases.
+- **The record:** Phase 3, task 3; the status line; Appendix E.
+
+**Documents updated:**
+- `test-kit.md`: the status, sections 1 to 9, and section 10, split into the first review's table and a new section 10.2, the second's;
+- the spike's README;
+- the plan, and this log.
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`, `cargo fmt` leaves nothing to change and `cargo clippy --all-targets` finds nothing. `cargo test` passes the kit's 20 cases and the library's 35, 2 of each embedded, and `cargo test -p library --features serde_json/preserve_order` passes too. No expectation file changed, since the Phase 2 library's records carry no path. `CC_MEDIA_PROBE_WRITE_CORPUS=1` wrote the four seeds again and kept the fuzzer's files: 135 in `toy_codec/` and 13 in `probe/`.
+- **The fuzz runs.** In `fuzz/`, `cargo +nightly fuzz build` builds both targets, with no `RUSTFLAGS` of this session's own. Under plan section 9.5's limits, each ran 21 seconds without a failure: `toy_codec` 4,872,752 inputs and `probe` 4,720,011.
+- **Repository checks.** The structure check of `cc-media-probe-checks` gives no finding on the spike. The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js, 13 nodes.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal, with the choices made since the second review.
+- `with_source_counter` waits for the I/O layer of task 6, the toy format in `fuzzing_entry_points::prober` for task 5, the charge of a path for task 7, and the companion cases for Phase 14, task 1.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-27 — Phase 3, task 3: the third review of the G3.2 proposal
+
+The maintainer reviewed revision 76 as staged, `docs/design/test-kit.md` with its spike `spikes/fixtures/`, and kept G3.2 open on 19 findings: 15 of priority 2 and 4 of priority 3. The review ran the 55 staged fixture tests and `git diff --cached --check`, both passing, and in a temporary copy reproduced a race in writing expectations, wrong retained-data totals and two cases in which the toy walker lost what it had received. It left the working tree and the index unchanged. Nothing was approved this round, and G3.2 stays open.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| What a file probe gives when its retained-data limit cannot hold the charge of its own path: the entry kept without its path, the limit exhausted with no part stopped and the probe going on under the same limit, or the path kept outside the limit and counted in the usage | The entry kept without its path |
+| How each case's folder is built: 512 bytes from components of a fixed width for the run and the case, or folders of any length, with a built-in case barred from setting the retained-data limit | 512 bytes from components of a fixed width |
+
+**Online check, on 2026-11-27.**
+- **rust-lang/rust#89174** ("Automatically convert paths to verbatim for filesystem operations that support it", in Rust 1.58): on Windows, `std::fs` gives a long absolute path the verbatim prefix itself, so a folder beyond 260 characters needs neither the registry setting nor a manifest.
+- **Apple's `bsd/sys/syslimits.h`** in xnu defines `PATH_MAX` as 1024 bytes and `NAME_MAX` as 255, so a folder of 512 bytes leaves room for a file name of 255 below it on macOS.
+
+**The findings, and what changed.** `test-kit.md` section 10.3 lists each finding with its change and where it lands; in short:
+
+| # | Finding | What changed | Reproduced |
+|---|---|---|---|
+| 1 | A file probe whose limit cannot hold its path's charge had no defined result | The path is left out and its entry stays, as the maintainer chose: plan section 7.5, `api.md` sections 5.3 and 6.15, and task 7's tests one byte below the charge and exactly at it | By reading: the Phase 2 library charges no path |
+| 2 | A partial report's path stayed in the error's own usage | It comes out of both usages | Yes: 24 stayed beside the partial report's 2 |
+| 3 | A cut list lost its complete children, and a cut packet its complete header | Both keep what arrived, as the accepted walker does | Yes: no stream, and `not_found` |
+| 4 | Containment by string prefix, and the lossy flag and raw form dropped unchecked | Containment by components, and each path in exactly its form | Yes: `{folder}2/file`, and a Unicode path marked lossy collapsed |
+| 5 | Writing expectations raced the seed check, which reads them | The seed check runs the golden pass first, once in a process | Yes: the check failed on a new fixture's missing file while the writer ran |
+| 6 | Names and long checkouts broke the 200-byte folder | 512 bytes from fixed-width components, as the maintainer chose | Yes: a 155-character fixture name, and the two samples in the scratch copy, whose path is long |
+| 7 | Concurrent runs shared folders | The run's component, the process's identifier | By reading |
+| 8 | `pieces` counted read calls, and the library may join reads, so `split-header` split nothing at the codec | Pieces cut at fixed bytes; the case renamed `short-reads`; a stream fixture whose two packets split the header | Yes: reads of 8 and 64 bytes delivered 8 and 8 |
+| 9 | The custom source narrowed a position before comparing it with the length | It compares first | By reading: a 32-bit host |
+| 10 | The matcher sorted messages, `/10` before `/1` | Members by name and entries by index as it walks | Yes |
+| 11 | A requested name with a space or `=` could not be written | Percent-encoded names, each decoded name once | Yes |
+| 12 | No case reached lookup without a name, or built-in lookup without a folder | `hint=none`, and built-in lookup with a hint or none through every adapter but the file | Yes: no way to withhold the hint, and built-in lookup beside a hint refused |
+| 13 | Responses did not match the resolver's results | Each argument checked as the result takes it | Yes: `limit_reached:streams`, `failed:whatever` and `found:` accepted; `declined:` with a reason and an empty token refused |
+| 14 | Pieces beside built-in lookup were accepted | Refused with the file | Yes |
+| 15 | No target ran the toy-container corpus | A `toy` target in the spike and in task 20 | By reading |
+| 16 | Task 4's golden harness needed a prober that task 20 added | Task 4 adds `fuzzing_entry_points::prober` alone, task 5 the toy format, task 20 the rest | By reading |
+| 17 | A fixture of the target `none` without a region gave no seed, and a later target's region escaped every length check | A region required, and every seed held to the bound first | Yes: both passed |
+| 18 | The toy codec target took any declared packet length | The bytes' own length in packet mode, 0 in stream mode | Yes: a claim of 100 bytes beside 8 parsed |
+| 19 | The corpus writer dropped its listing's errors | Missing is empty, any other error fails with its path | Yes: an unreadable folder kept its stale seed |
+
+The reproductions ran as a throwaway module of 13 scratch tests, all failing, and one run with `CC_MEDIA_PROBE_WRITE_EXPECTATIONS` set and a new fixture, in a copy of the staged tree taken with `git write-tree` and `git archive` into the scratchpad. They were not kept. The tests that hold the fixes:
+- **The kit.** Two tests of the readers, which cut at fixed bytes across reads and seeks, and the syntax test's fixture of the target `none` without a region, refused.
+- **The library's tests.** The conditions' six tests, for percent-encoded requested names, the responses' arguments, the nameless case and built-in lookup without the file. The expectations' tests of a sibling folder, a partial report, a Unicode path marked lossy, the folder of 512 bytes and a custom source read at and beyond its end. The matcher's order, a seed beyond the bound with a later target, an unreadable corpus folder, and four toy tests: a cut list, a cut packet in both framings, a context that misstates its length, and the stream fixture.
+
+**Found while revising:**
+- **The pieces' state.** Cutting at bytes makes `Pieces` a function of a position, so `FaultingReader` keeps its position across reads and seeks.
+- **The toy tests' stream inputs** stated their bytes' length as the context; with finding 18's rule they state 0.
+- **The renamed case** kept its files' content, since the Phase 2 library reads nothing.
+- **The strict reader and the path's rule.** `RetainedData` exhausted beside no omission and no stopped part is readable: the stub checks each omitted count against an exhausted limit, and nothing the other way.
+- **A file at the corpus's top** is skipped as no target folder, which an ignored error had hidden before.
+- **The fuzz runs add inputs to the corpus.** After this round's runs, `toy/` held 394 of the fuzzer's files and `toy_codec/` 212, and a rewrite of the corpus kept them all.
+
+**Choices made without asking,** each open at G3.2 and listed in `test-kit.md` section 8:
+- `pieces` as cuts at fixed bytes, the case `short-reads`, and the stream fixture `toy/header-across-packets`;
+- `hint=none` for a nameless case, and `%6Eone` for a hint spelled `none`;
+- built-in lookup without the file through every other adapter, with no answer there, and pieces refused beside it with the file;
+- requested names percent-encoded, each decoded name once; `declined:<reason>`; tokens that may be empty; the three limits that a resolver may name; the I/O error kinds by their stable names;
+- a fixture of the target `none` with at least one region;
+- the rule for a path beyond the limit for every path that a report keeps, a built-in companion's too;
+- a path below the test's folder that is no handed path in its exact form failing the test;
+- the run's component as the process identifier and the case's as its number, 8 hexadecimal digits each;
+- the toy codec's context length 0 in stream mode;
+- the golden pass run once in a process, which the seed check calls first;
+- a `toy` target in the fuzz workspace.
+
+**Plan revision 77:**
+- **The maintainer's choices:** section 7.5, a path that the limit cannot hold left out of its entry; section 9.2, each case's folder of 512 bytes from components of a fixed width.
+- **The review's findings:** section 9.2, built-in lookup without the file through the other adapters; section 9.5, every seed held to the input length before a later target, a fixture beyond it with a region, and the seed check after the golden pass; Phase 3, task 4, `fuzzing_entry_points::prober`; task 5, the toy format added to it; task 7, a file probe tested at its own limit; task 20, the toy-container target.
+- **The record:** Phase 3, task 3; the status line; Appendix E.
+
+**`api.md`, approved at G2.2,** is amended in sections 5.3 and 6.15, with a note in section 16 and its history: a path that the retained-data limit cannot hold is left out of its entry, and that loss stops no part. The amendment is confirmed with the proposal at G3.2 (plan section 1.2).
+
+**Documents updated:**
+- `test-kit.md`: the status, sections 1 to 9, and a new section 10.3, the third review's table;
+- `api.md`, sections 5.3, 6.15 and 16;
+- the spike's README;
+- the plan, and this log.
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`, `cargo fmt` leaves nothing to change and `cargo clippy --workspace --all-targets` finds nothing. `cargo test` passes the kit's 22 cases and the library's 46, 2 of each embedded, and `cargo test -p library --features serde_json/preserve_order` passes too. With `CC_MEDIA_PROBE_WRITE_EXPECTATIONS` set, the run wrote the stream fixture's expectations, and the seed check read them after the golden pass; the renamed case's files kept their content. With `CC_MEDIA_PROBE_WRITE_CORPUS` set, the check wrote its six seeds and kept the fuzzer's files.
+- **The fuzz runs.** In `fuzz/`, `cargo +nightly fuzz build` builds the three targets, with no `RUSTFLAGS` of this session's own. Under plan section 9.5's limits, each ran 21 seconds without a failure: `toy` 3,390,710 inputs from its 2 seeds, `toy_codec` 4,799,386 and `probe` 4,641,077.
+- **Repository checks.** The structure check of `cc-media-probe-checks` gives 0 findings on the spike. The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js, 13 nodes and no error.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal, with the choices made since the second and third reviews.
+- `with_source_counter` waits for the I/O layer of task 6, the toy format in `fuzzing_entry_points::prober` for task 5, the charge of a path and its tests at the limit for task 7, and the companion cases for Phase 14, task 1.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.

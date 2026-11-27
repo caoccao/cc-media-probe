@@ -145,6 +145,29 @@ The generator checks all recipes before it runs any tool, and stops when it find
 
 A recipe may carry other members, such as the values its tests expect. The generator ignores them, and they are not part of the file's identity, so changing an expectation never makes a file again.
 
+**The values a test expects, proposed for G3.2.** [`docs/design/test-kit.md`](../design/test-kit.md#44-the-values-that-a-recipe-states) section 4.4 proposes a member `expected` for each file. It holds a partial report in the library's JSON form, with only what the recipe fixes and the specifications derive from it (section 6):
+- every member that `expected` names must hold that value;
+- a member that it names as `null` must be absent;
+- an array must have as many entries as it lists;
+- a member that it does not name is not compared.
+
+```json
+{
+  "name": "h264-opus.mkv",
+  "tool": "mkvmerge",
+  "inputs": ["video/h264/baseline-320x240.h264", "audio/opus/stereo-48k.opus"],
+  "arguments": ["--deterministic", "cc-media-probe", "--output", "{output}", "{input:0}", "{input:1}"],
+  "expected": {
+    "format": "matroska",
+    "streams": [
+      { "kind": "video", "video": { "coded_size": { "width": 320, "height": 240 } } },
+      { "kind": "audio", "audio": { "channel_count": 2 } }
+    ],
+    "creation_time": null
+  }
+}
+```
+
 ## 4. When a file is generated, kept or removed
 
 Every file has an **identity**: the SHA-256 of its path, its tool, the first line of that tool's version report, its arguments, and the identities of its inputs. The identity says everything that decides the file's bytes. The state file, `target/test-files/generation-state.json`, records the identity and tool version of every file it holds:

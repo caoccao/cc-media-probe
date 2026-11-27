@@ -1,0 +1,65 @@
+# The cargo-fuzz workspace of the fixture spike: `toy_codec`, which reaches the
+# stand-in's private codec parser through `fuzzing_entry_points`, and `probe`,
+# which runs the real library's full public probe, the two targets of plan
+# section 9.5's smoke test; and `toy`, which walks a whole toy file, so that
+# the whole toy fixtures that the seed check writes into corpus/toy/ have a
+# target. Built with `cargo +nightly fuzz build`; see ../README.md.
+
+[package]
+name = "fixtures-fuzz"
+version = "0.0.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+members = ["."]
+
+[dependencies]
+libfuzzer-sys = "=0.4.13"
+library = { path = "../library" }
+
+[[bin]]
+name = "toy"
+path = "targets/toy/main.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "toy_codec"
+path = "targets/toy_codec/main.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "probe"
+path = "targets/probe/main.rs"
+test = false
+doc = false
+bench = false
+
+# The lint table of the root workspace, to see which of its rules a fuzz target
+# can meet.
+[lints.rust]
+warnings = { level = "deny", priority = -1 }
+unsafe_code = "forbid"
+missing_docs = "deny"
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(fuzzing)", "cfg(cc_media_probe_repository)"] }
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+self_named_module_files = "deny"
+definition_in_module_root = "deny"
+min_ident_chars = "deny"
+single_char_lifetime_names = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"

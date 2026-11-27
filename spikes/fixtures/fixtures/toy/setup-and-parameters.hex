@@ -1,0 +1,47 @@
+description: one stream in packet mode whose header, a setup and a parameters unit, fills one packet
+source: the draft of the toy format and its codec, spikes/input/README.md sections 2 and 3
+target: toy
+outcome: report
+length: 48
+# Reads that end at byte 40, inside the codec header that starts at byte 36, and every 8 bytes after give what
+# reads that are not cut give, since the library joins short reads before its parsers see them; a header split
+# across deliveries to the codec is toy/header-across-packets. A header limit of 8 bytes is smaller than the
+# packet's 12.
+case: short-reads pieces=40,8
+case: small-header-limit limit.header_bytes_per_stream=8
+---
+## Toy format (spikes/input/README.md section 2): the file header
+"CCToy" 00              # signature, "CCToy" and a zero byte
+01                      # version 1
+00                      # flags: none is defined
+00 00 00 0c             # offset of the first element: 12, right after the header
+
+## Toy format (section 2): the stream declaration, element STRM
+"STRM"                  # code
+00 00 00 07             # length of the body: 7
+01                      # stream number 1
+00                      # framing 0: packet mode
+00                      # representation 0: units with one-byte lengths
+"TCOD"                  # codec code: the toy codec
+
+## Toy format (section 2): a packet, element PACK
+"PACK"                  # code
+00 00 00 0d             # length of the body: 13
+01                      # stream number 1
+# The packet's payload is the codec header, so it is a seed of the codec target too: in packet mode (framing 0),
+# with the packet's known length, 12, as the container knows them.
+@seed target=toy_codec representation=one_byte_lengths context=000000000c outcome=parsed
+
+## Toy codec (spikes/input/README.md section 3): the setup, kind 1
+01                      # kind 1: setup
+06                      # length 6
+01 40                   # width 320
+00 f0                   # height 240
+01                      # parameter count 1
+00                      # flags: none, so the parameters can be read
+
+## Toy codec (section 3): the parameters, kind 2
+02                      # kind 2: parameters
+02                      # length 2: the setup's one 16-bit parameter
+00 07                   # parameter 7
+@end

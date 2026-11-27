@@ -1,0 +1,16 @@
+# The stand-in for the test kit: the standard library only, and no dependency on
+# the library (plan section 7.1).
+
+[package]
+name = "kit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[test]]
+name = "cases"
+
+[lints]
+workspace = true

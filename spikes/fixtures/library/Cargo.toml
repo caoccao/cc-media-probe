@@ -1,0 +1,25 @@
+# The stand-in for the library. It depends on the real library, whose public
+# probe and detection the probe and detection targets run. Its tests use the
+# stand-in for the test kit, and the real library's JSON form with serde_json.
+
+[package]
+name = "library"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+cc-media-probe = { path = "../../../crates/cc-media-probe" }
+
+[dev-dependencies]
+cc-media-probe = { path = "../../../crates/cc-media-probe", features = ["serde"] }
+kit = { path = "../kit" }
+serde_json = "1.0.154"
+
+[[test]]
+name = "cases"
+
+[lints]
+workspace = true
