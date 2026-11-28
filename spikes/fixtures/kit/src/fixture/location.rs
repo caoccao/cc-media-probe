@@ -62,7 +62,7 @@ pub struct Expectation {
   pub fixture: String,
   /// The case, or `None` for the default one.
   pub case: Option<String>,
-  /// The part: `expected`, `forward` or `adapters`.
+  /// The part: `expected`, `forward`, `outcomes` or `adapters`.
   pub part: String,
 }
 

@@ -214,6 +214,38 @@ fn a_case_gives_its_name_and_its_conditions_once_each() {
 }
 
 #[test]
+fn a_default_line_gives_the_default_cases_conditions_once() {
+  let body = "---\n## a\n00 # f\n";
+  let header = |lines: &str| format!("description: a\nsource: b\ntarget: toy\noutcome: report\n{lines}{body}");
+  let parsed = parse(&header("default: outcomes=per_adapter\n")).unwrap();
+  let conditions: Vec<(&str, &str)> = parsed
+    .header
+    .default_conditions
+    .iter()
+    .map(|condition| (condition.name.as_str(), condition.value.as_str()))
+    .collect();
+  assert_eq!(conditions, [("outcomes", "per_adapter")]);
+  assert_eq!(parsed.header.cases, []);
+  assert_eq!(parse(&header("")).unwrap().header.default_conditions, []);
+  let error = |lines: &str| {
+    let error = parse(&header(lines)).unwrap_err();
+    (error.line, error.kind)
+  };
+  assert_eq!(
+    error("default: outcomes=shared\ndefault: outcomes=per_adapter\n"),
+    (6, SyntaxErrorKind::RepeatedMember("default".to_owned()))
+  );
+  assert_eq!(
+    error("default: per-adapter outcomes=per_adapter\n"),
+    (5, SyntaxErrorKind::MalformedCondition("per-adapter".to_owned()))
+  );
+  assert_eq!(
+    error("default: outcomes=shared outcomes=per_adapter\n"),
+    (5, SyntaxErrorKind::RepeatedMember("outcomes".to_owned()))
+  );
+}
+
+#[test]
 fn a_file_name_is_a_plain_name_of_its_own() {
   let body = "---\n## a\n00 # f\n";
   let header =

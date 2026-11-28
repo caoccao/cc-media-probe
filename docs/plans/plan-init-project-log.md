@@ -6062,3 +6062,341 @@ The reproductions ran as a throwaway module of 13 scratch tests, all failing, an
 - G3.2 decides on the whole proposal, with the choices made since the second and third reviews.
 - `with_source_counter` waits for the I/O layer of task 6, the toy format in `fuzzing_entry_points::prober` for task 5, the charge of a path and its tests at the limit for task 7, and the companion cases for Phase 14, task 1.
 - A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-27 — Phase 3, task 3: the fourth review of the G3.2 proposal
+
+The maintainer reviewed revision 77, committed as `a88ceea`, with all 68 fixture-spike tests passing. The review approved D19, including the hidden fuzz and repository entry points, and the rest of D14, including the fixture syntax, the seed routing and the revised rule of path accounting. It held G3.2 on two findings of the fixture protocol, both of which hold, and said that both corrections belong in the test protocol and keep the approved public API. G3.2 stays open, as the maintainer chose: no gate entry is written until the maintainer has reviewed the corrected protocol.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How a case that deliberately exhausts an adapter's resources records adapter-specific outcomes: an opt-in condition with each adapter's semantic part in one file, the same condition with overrides only where an adapter differs from its class's first, or per-adapter outcomes implied by a limit of working memory or bytes read | The opt-in condition `outcomes=per_adapter`, beside a `limit.` condition, with each adapter's semantic part in `<name>.<case>.outcomes.json`, refused where every adapter agrees with its class, and each adapter's usage within the case's limits |
+| Where the async outcome under built-in lookup is tested: one library test beside the resolvers, or every built-in fixture case also running the async adapters against their own probe with lookup off | One library test of Phase 14, task 1 |
+| How G3.2 is recorded once both corrections land: kept open for the maintainer's review of the corrected protocol, or recorded as passed | Kept open for review |
+
+**Online check, on 2026-11-27.** LLVM's FileCheck documentation (`--check-prefixes`, `--allow-unused-prefixes`) keeps shared expectations beside target-specific ones and, by default, refuses a prefix that no line uses. The Swift project's testing guide uses a shared `CHECK` prefix beside per-target ones the same way. That is the precedent for shared parts by default, with a case of outcomes of each adapter refused where every adapter agrees with its class.
+
+**The findings, and what changed.** `test-kit.md` section 10.4 lists each finding with its change and where it lands; in short:
+
+| # | Finding | What changed | Reproduced |
+|---|---|---|---|
+| 1 | A pathless `lookup=built_in` case ran through every adapter but the file, expecting `Declined` from the async ones too, though an async probe reads only the async option (`api.md` section 13), makes no request and reports its companions "not enabled" | Built-in lookup runs through blocking adapters alone, with the built-in resolver's own decline; Phase 14, task 1, adds a library test that an async probe beside only the blocking built-in option makes no request and reports "not enabled" | By reading `api.md` section 13: the spike runs no async adapter, and no lookup before Phase 14 |
+| 2 | One shared seekable expectation cannot hold the valid outcomes of adapters at a resource limit | `outcomes=per_adapter`, as the maintainer chose; plan section 9.2 states it, and task 7 adds the first case, under a working memory of 0 | Yes, in the I/O spike with a working memory of 0: on bytes that are no toy file, `probe_bytes` gave `Unknown` with no limit exhausted, and the seekable and forward-only readers `InsufficientData(Limit(WorkingMemory))` with `WorkingMemory` exhausted. On the spike's typical toy file, bytes gave `Identified` and the readers `InsufficientData`. The peak was 0 in each, so each honored the limit |
+
+The reproduction ran as a temporary test module of the I/O spike, which was removed afterwards; `git status` showed the spike unchanged. The tests that hold the fixes:
+- **The kit.** The layout test accepts an `outcomes` file beside the other parts.
+- **The library's tests.** Five tests of the new `common/outcomes.rs`:
+  - each class's shared part, a forward-only part of its own, and a case without a forward-only adapter;
+  - an adapter that stops apart from its class failing a shared case;
+  - each adapter's part kept in a case of outcomes of each adapter, from the review's scenario;
+  - such a case refused where every class agrees;
+  - each usage counter, and its twin, held to its limit.
+- **The conditions.** One new test reads `outcomes` with its default, and `outcomes=per_adapter` beside pieces alone is refused. The test of built-in lookup without the file is renamed for its blocking adapters.
+- **End to end.** A temporary case `no-memory limit.working_memory=0 outcomes=per_adapter` on the toy sample failed the golden pass by the agreement rule, in the check and when writing, since the Phase 2 library gives every adapter the same error. With `outcomes=shared`, it wrote the shared parts. The case and its files were removed again, and the fixture is unchanged.
+
+**Found while revising:**
+- **A class without an adapter.** The golden pass required a forward-only adapter in every case, though a case of built-in lookup with the file runs through `probe_file` alone. A class that no adapter of a case runs now has no part.
+- **No sample case yet.** In Phase 2 a sample's case of outcomes of each adapter fails by the agreement rule, so the spike's tests give the parts themselves, and task 7 adds the first fixture case.
+- **The layout.** The kit's list of expectation parts gains `outcomes`, so its file passes the layout check and the stale-file check covers it.
+
+**Choices made without asking,** each open at G3.2 and listed in `test-kit.md` section 8:
+- each adapter's usage held within the case's limits in every case, not only in a case of outcomes of each adapter, each counter read as its number or its twin;
+- `shared` as the explicit default of `outcomes`, with a case's adapter parts kept in `adapters` either way;
+- a class that no adapter of a case runs given no part;
+- task 7 as the task of the first case of outcomes of each adapter.
+
+**The approvals recorded.** `test-kit.md` records the approvals in its status line, its section 1, its section 8 and its new section 10.4. Section 8 now lists the choices made since the second and third reviews as approved at the fourth, apart from one: built-in lookup without the file, which the first finding changed. The spike's README and the plan's task 3 and status line record them too.
+
+**Plan revision 78:**
+- **The maintainer's choices:** section 9.2, each adapter's semantic part kept apart only in a case that says so beside a limit, with each adapter's usage within the case's limits; and a case of built-in lookup through blocking adapters alone.
+- **The review's findings:** Phase 3, task 7, the first case of outcomes of each adapter under a working memory of 0; Phase 14, task 1, the test of an async probe's companions "not enabled" beside the blocking built-in option.
+- **The record:** Phase 3, task 3, with the review's approvals; the status line; Appendix E.
+
+**Documents updated:**
+- `test-kit.md`: the status, sections 1, 2.3, 4.1, 8 and 9, and a new section 10.4, the fourth review's table;
+- the spike's README;
+- the plan, and this log.
+
+`api.md` needs no change: section 13 already states the rule that the first finding applies.
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`, `cargo fmt` leaves nothing to change and `cargo clippy --workspace --all-targets` finds nothing. `cargo test` passes the kit's 22 cases and the library's 52, 2 of each embedded, 74 in all where the review counted 68. `cargo test -p library --features serde_json/preserve_order` passes too. No fixture or expectation file changed.
+- **The fuzz workspace** was not rebuilt or rerun, since nothing that it builds changed: the stand-in library's `src/`, the kit's code that the targets use and `fuzz/` are untouched apart from the kit's list of expectation parts, which no target reads.
+- **Repository checks.** The structure check of `cc-media-probe-checks` gives 0 findings on the spike. The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js, 14 nodes and no error.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal, with the choices made since the fourth review, once the maintainer has reviewed the corrected protocol.
+- `with_source_counter` waits for the I/O layer of task 6, the toy format in `fuzzing_entry_points::prober` for task 5, and the charge of a path, its tests at the limit and the first case of outcomes of each adapter for task 7. The companion cases and the async test of built-in lookup wait for Phase 14, task 1.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-27 — Phase 3, task 3: the fifth review of the G3.2 proposal
+
+The maintainer reviewed revision 78 as staged, with all 74 fixture-spike tests passing and `git diff --cached --check` clean. The review held G3.2 on findings of the fixture protocol. Its summary counts seven issues and its comments give eight, five of priority 2 and three of priority 3. Each holds, and each is fixed. The review approved nothing more, so G3.2 stays open and no gate entry is written.
+
+**Questions asked and the maintainer's answers, on 2026-11-27:**
+
+| Question | Answer |
+|---|---|
+| How a case opts into outcomes of each adapter, now that the default limits can stop one adapter and the default case cannot have a `limit.` condition: a header line `default: outcomes=per_adapter` with no limit rule, the same line with the `limit.` rule kept for named cases, or no opt-in at all | The header line, the default case's only condition, with no `limit.` condition needed in any case, since the evidence of a limit replaces it |
+| What shows that a limit caused a difference: in each class, the adapters that exhausted no limit share one part, or, as the review words it, a class that differs with some adapter of it that exhausted a limit | The adapters that exhausted no limit share one part, so a third adapter's limit excuses no difference between two that exhausted none |
+
+**Online check, on 2026-11-27.** LLVM's FileCheck documentation says of `--check-prefixes` that multiple prefixes "are useful for tests which might change for different run options, but most lines remain the same", and `--allow-unused-prefixes` is false by default. So shared expectations stay the default, and a run whose output differs says so, which is how the default case now opts in. RFC 8259, section 6, makes integers in [-(2^53)+1, 2^53-1] interoperable, the range in which the netting writes a figure as a number before it writes the twin.
+
+**The findings, and what changed.** `test-kit.md` section 10.5 lists each finding with its change and where it lands; in short:
+
+| # | Finding | What changed | Reproduced |
+|---|---|---|---|
+| 1 | P2: the default limits can stop adapters differently, but the default case had to share its parts | `default: outcomes=per_adapter`, as the maintainer chose, and the seed check reads the bytes adapter's outcome from `outcomes` | Yes, in the I/O spike: a toy file of 675,504 bytes, ten blocks of titles and 1,259 title references cycling back across them, gave 1,269 titles from 31,665 bytes read through bytes in memory with no limit exhausted, and 1,024 titles at 67,108,864 bytes with `BytesRead` exhausted through the seekable reader |
+| 2 | P2: any `limit.` condition qualified a case, so differences that no limit caused passed, and a run without a seekable adapter gave an empty `outcomes` | In each class, the adapters that exhausted no limit share one part, as the maintainer chose; a run without a seekable adapter fails by its own message | Yes: `toy` beside `flac` with no limit exhausted was accepted, and an empty run gave `{}` |
+| 3 | P2: the partial report's usage was not checked | Checked too | Yes: a partial report's peak of 3 passed a limit of 0 |
+| 4 | P2: a missing usage, a missing counter or a malformed twin skipped its check, and the number won over its twin | The library's strict `Usage` reads each usage | Yes: each passed a limit of 0, `0` beside `"9007199254740993"` among them |
+| 5 | P2: the measured bytes delivered were never compared with the read limit | Compared before anything is compared or written | By reading: the Phase 2 library reads nothing, so no fixture reaches it |
+| 6 | P3: the netting of paths left a twin gross | Either form netted and written in its canonical form | Yes: a net figure of 9007199254740991 with an 18-byte path, written in its twin, was reported 18 bytes over |
+| 7 | P3: the rule of each request's answer covered the requests that built-in lookup without the file declines itself, and a limit can stop one adapter before another's request | Those requests take no answer; each answer is asked for by at least one adapter | By reading: no lookup before Phase 14 |
+| 8 | P3: the async test of Phase 14 expected no source-table entry, though a report lists its primary input | No companion request or source opened, the primary input listed and no companion, and "not enabled" for an input that expects a companion | By reading |
+
+Findings 1 to 4 and 6 were reproduced first: finding 1 as a temporary test module of the I/O spike, and the others as one of the fixture spike against revision 78's helpers. Both modules were removed, and `git status` showed both spikes as before. The tests that hold the fixes:
+- **The kit.** A test of the `default:` line: its conditions read, none without it, and refusals for a second line, a word without `=` and a repeated condition.
+- **The outcomes.** Seven tests, two of them new:
+  - the fifth review's run, where bytes complete and the readers stop at the read limit, with adapters that each exhausted a limit allowed to stop at different points;
+  - a difference that no limit explains refused: the review's two formats, two unlimited adapters beside a third that exhausted a limit, and the forward-only class;
+  - a run without a seekable adapter failing by its own message.
+- **The usage.** Four tests, in a new `usage.rs`:
+  - each counter within its limit;
+  - a partial report's usage held to the limits, and refused when it is not the form's;
+  - a missing usage, a missing counter and four malformed forms refused;
+  - the bytes delivered within the read limit and equal to the usage's bytes read.
+- **The paths.** The tests of the netting move to a new `sources.rs`, with a new test of a twin netted below and beyond 2^53 − 1.
+- **The conditions.** A test of the default line: its `outcomes` read, a named case's conditions its own, and a limit, pieces or a lookup on it refused. `outcomes=per_adapter` beside pieces alone is now accepted.
+- **The seed check.** A test that the probe target's outcome comes from `expected`, or from the `bytes` member of `outcomes` beside a default line.
+- **End to end.** A temporary `default: outcomes=per_adapter` on the toy sample failed the golden pass by the agreement rule, since every adapter gives the same error in Phase 2. A temporary `default: limit.working_memory=0` failed as a condition that the default case does not take. The fixture was restored and is unchanged.
+
+**Found while revising:**
+- **The bytes read and the bytes delivered.** Plan section 7.5 defines the bytes read as the bytes that every source of the probe delivers. So the usage's figure must equal the measured delivery wherever the test counts every source, and the test checks that beside finding 5's bound.
+- **Older tests with a usage of one counter.** The tests of the netting gave a usage of `retained_data` alone, which the strict reader refuses, so the netting left it gross and two tests failed. They now give a whole usage.
+- **The kit's list of parts.** An expectation's doc comment named three parts without `outcomes`.
+
+**Choices made without asking,** each open at G3.2 and listed in `test-kit.md` section 8:
+- the header member `default`, read by the test kit as a case's words without a name, with `outcomes` the only condition there;
+- a limit counted as exhausted when the record's `exhausted` lists it, a report's in its completeness and an error record's at its root;
+- the bytes delivered equal to the usage's bytes read;
+- a usage that is not the form's left gross by the netting, for the limit check to refuse with its place;
+- the seed check's choice of part by the default case's condition rather than by the files present;
+- a toy fixture of title references, with a default line, proposed for task 7 beside the case under a working memory of 0.
+
+**Plan revision 79:**
+- **The maintainer's choices:** section 9.2, the default case's outcomes on a line of its own, no limit condition beside them, and a limit that explains each difference.
+- **The review's findings:**
+  - section 9.2, each adapter's usage, its partial report's and its measured reads checked before any expectation;
+  - section 9.4, the measured bound in every case of every fixture;
+  - section 9.5, the probe seed's outcome from bytes in memory;
+  - Phase 14, task 1, the async test with the primary input's entry.
+- **The record:** Phase 3, task 3; the status line; Appendix E.
+
+**Documents updated:**
+- `test-kit.md`:
+  - the status;
+  - section 1, with a table of the fifth review's questions and the diagram's edge from `outcomes` to the seed check;
+  - sections 2.1, 2.3, 4.1, 4.2, 6.1, 6.4, 8 and 9;
+  - a new section 10.5, the fifth review's table;
+- the spike's README;
+- the plan, and this log.
+
+`api.md` needs no change. Section 13 already gives an async probe without its option no lookup, and section 6.14 the bytes read that an error's usage covers.
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`:
+  - `cargo fmt` leaves nothing to change, and `cargo clippy --workspace --all-targets` finds nothing.
+  - `cargo test` passes the kit's 23 cases and the library's 61, 2 of each embedded: 84 in all, where the review counted 74.
+  - `cargo test -p library --features serde_json/preserve_order` passes too.
+  - No fixture or expectation file changed.
+- **The fuzz workspace** was not rebuilt or rerun, since nothing that it builds changed: it depends on the stand-in library's `src/` alone, which is untouched.
+- **Repository checks.**
+  - The structure check of `cc-media-probe-checks` gives 0 findings on the spike.
+  - The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js: 14 nodes, 16 edges and no error.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal, with the choices made since the fourth and fifth reviews, once the maintainer has reviewed the corrected protocol.
+- These wait for later tasks:
+  - `with_source_counter`, for the I/O layer of task 6;
+  - the toy format in `fuzzing_entry_points::prober`, for task 5;
+  - for task 7, the charge of a path with its tests at the limit, and the first cases of outcomes of each adapter, a named one and a default one;
+  - the companion cases, the rule of their answers and the async test of built-in lookup, for Phase 14, task 1.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-28 — Phase 3, task 3: the sixth review of the G3.2 proposal
+
+The maintainer reviewed revision 79 as staged, with all 84 fixture-spike tests passing on macOS, the library's also with `serde_json/preserve_order`, and `git diff --cached --check` clean. The review held G3.2 on five findings of the fixture protocol and its spike, four of priority 2 and one of priority 3. Each holds, and each is fixed. The review approved nothing more, so G3.2 stays open and no gate entry is written.
+
+**The question asked and the maintainer's answer, on 2026-11-28:**
+
+| Question | Answer |
+|---|---|
+| Which features of the library compare and write expectations, since the async adapters are behind `tokio` and `futures-io` and `zlib` changes a compressed header's semantic part: every feature, by one test target whose `required-features` name them all; a fixed set whose test fails under fewer; or partial runs that compare their own adapters' members | Every feature. The golden tests and the seed check form one test target whose `required-features` name each feature of the library, as the `serialization` target names `serde` |
+
+**Online check, on 2026-11-28.** The Cargo Book's page on targets says of `required-features` that "If any of the required features are not enabled, the target will be skipped", for `[[test]]` among the other targets, and says nothing of a message. A scratch crate with a test target that required two features showed the rest:
+- `cargo test` and `cargo test --features` with one of them both skipped the target without a word;
+- `cargo test --test` with its name refused, naming both features;
+- `cargo test --all-features` ran it.
+
+Every test run of `node scripts/check.ts` and of CI passes `--all-features`, the declared `rust-version`'s and the coverage run among them (`scripts/checks/steps.ts`), so the target runs wherever a check runs.
+
+**The findings, and what changed.** `test-kit.md` section 10.6 lists each finding with its change and where it lands; in short:
+
+| # | Finding | What changed | Reproduced |
+|---|---|---|---|
+| 1 | P2: the test of the twin's netting wrote `/tmp/abcdefg/x.bin` into the record beside a handed path built with `Path::join`, which on Windows puts its own separator before `x.bin`, so the normalizer would panic | The record lists the handed path's own display string | By reading: the comparison is exact, and the review verified it by inspection |
+| 2 | P2: a partial report without a usage passed the check as no partial report | A partial report needs its usage wherever the member stands, one of `null` too | Yes: a partial report of `sources` alone passed |
+| 3 | P2: the check ran after the netting and against the case's limit, while the file probe's limit is raised by its primary path alone, so an overrun below a built-in companion's charge passed | Each record checked as written, against the limits that its adapter was given, before the netting | Yes: under a limit of 128 with two paths of 18 bytes, 147 against an actual limit of 146 was netted to 111 and passed |
+| 4 | P2: the maps keyed by adapter differ between a run with the async features and one without, and a run without them would rewrite them, the seed check's among them | One target of the golden tests and the seed check that requires every feature, as the maintainer chose | By reading, and the scratch crate above: the spike runs no async adapter |
+| 5 | P3: the async test of Phase 14 asked every async entry point for a source table and a companions status, which a `Detection` does not have | A `probe_*` report gives both; a `detect_*` detection is held to its usage, no companion request and no source opened | By reading `api.md` sections 6.14 and 8 |
+
+Findings 2 and 3 were reproduced first, as two temporary tests of the fixture spike against revision 79's helpers. The file was restored from a copy, and `git status` showed it unchanged. The tests that hold the fixes:
+- **The usage.** The partial report's test now refuses a partial report without a usage and one of `null`, and accepts a record without a partial report.
+- **The order.** A new test of `prepared`, the step that checks a record and then nets its paths, with the review's numbers: 147 refused as `147 > 146`, and 146 accepted and netted to 110, the companion's path written with the placeholder.
+- **The paths.** The twin's test takes its record's path from the handed path.
+
+**Found while revising:**
+- **The limit that a built-in companion meets.** The spike raised the file adapter's limit by the charge of every path that the test handed the library, while `test-kit.md` section 4.2 raises it by the probed file's path alone. Before Phase 14 the two agree, but the spike would then have raised the limit by each built-in companion's path too. It now raises the limit by the file's path.
+- **`zlib`.** The review named the async features. `zlib`, which task 14 declares, changes the semantic part of a compressed header, so the target requires it too.
+- **The fuzz workflow.** It writes the corpus through the seed check, so it must pass `--all-features`, or Cargo would skip the check and write nothing.
+
+**Choices made without asking,** each open at G3.2 and listed in `test-kit.md` section 8:
+- a partial report checked wherever its member stands, so one of `null` fails;
+- the file adapters' limit raised by the probed file's path alone, a built-in companion's charged within the case's limit;
+- a feature that the library gains joining the target's required features in the change that declares it;
+- the fuzz workflow running the seed check with `--all-features`.
+
+**Plan revision 80:**
+- **The maintainer's choice:** section 9.2, expectations compared and written under every feature of the library, by one target that requires them all.
+- **The review's findings:**
+  - section 9.2, each record checked as written against its adapter's limits before the netting, and a partial report's usage required;
+  - section 9.5, the seed check in that target, run with `--all-features` by the fuzz workflow;
+  - Phase 14, task 1, the async test's assertions by the result's type.
+- **Found while revising:** section 9.2, a built-in companion's path charged within the case's limit; Phase 3, tasks 4, 14 and 20, the target's required features, `zlib` joining them, and the workflow's features.
+- **The record:** Phase 3, task 3; the status line; Appendix E.
+
+**Documents updated:**
+- `test-kit.md`:
+  - the status;
+  - section 1, with a table of the sixth review's question and the diagram's two nodes: the tests under every feature, and the usage checked before the paths;
+  - sections 2.3, 4.1, 4.2, 4.3, 6.4, 8 and 9;
+  - a new section 10.6, the sixth review's table;
+- the spike's README;
+- the plan, and this log.
+
+`api.md` needs no change. Section 6.14 already counts companions alone in `sources_opened`, and section 8 gives a `Detection` its usage and neither a source table nor a companions status.
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`:
+  - `cargo fmt` leaves nothing to change, and `cargo clippy --workspace --all-targets` finds nothing.
+  - `cargo test` passes the kit's 23 cases and the library's 62, 2 of each embedded: 85 in all.
+  - `cargo test -p library --features serde_json/preserve_order` passes too.
+  - No fixture or expectation file changed.
+- **The fuzz workspace** was not rebuilt or rerun, since nothing that it builds changed: it depends on the stand-in library's `src/` alone, which is untouched.
+- **Repository checks.**
+  - The structure check of `cc-media-probe-checks` gives 0 findings on the spike.
+  - The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js: 14 nodes, its 16 edges and no error.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal, with the choices made since the fourth, fifth and sixth reviews, once the maintainer has reviewed the corrected protocol.
+- These wait for later tasks:
+  - the golden tests' target with every feature, for task 4, and `zlib` joining it, for task 14;
+  - `with_source_counter`, for the I/O layer of task 6;
+  - the toy format in `fuzzing_entry_points::prober`, for task 5;
+  - for task 7, the charge of a path with its tests at the limit, and the first cases of outcomes of each adapter, a named one and a default one;
+  - the seed check in the golden target and the fuzz workflow's features, for task 20;
+  - the companion cases, the rule of their answers and the async test of built-in lookup, for Phase 14, task 1.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-28 — Phase 3, task 3: the seventh review of the G3.2 proposal
+
+The maintainer reviewed revision 80 as staged, with all 85 fixture-spike tests passing from a copy of the index, the library's also with `serde_json/preserve_order`, regeneration giving identical expectation files, and `git diff --cached --check` clean. The review held G3.2 on three findings of the fixture protocol and its spike, two of priority 2 and one of priority 3. Each holds, and each is fixed. The review approved nothing more, so G3.2 stays open and no gate entry is written.
+
+**The question asked and the maintainer's answer, on 2026-11-28:**
+
+| Question | Answer |
+|---|---|
+| What runs without `zlib` from task 14, since the golden target is skipped there and Phases 5 and 6 test the behavior without it: a step of `node scripts/check.ts` with Clippy and every test of the library; the same step with only a target of the disabled behavior's tests; or a CI step on Linux alone | A step of `node scripts/check.ts`, which CI runs on Linux, macOS and Windows: Clippy and every test of the library alone, selected with `-p`, under every feature but `zlib`. The tests of the disabled behavior are gated on `not(feature = "zlib")` and assert its status by hand; the golden files stay under every feature |
+
+**Online check, on 2026-11-28.** The Cargo Book's page on features says that `--no-default-features` "does not activate the default feature of the selected packages", and that development dependencies activate features when a target that needs them is built. It does not say what a workspace member that depends on the library with its default features does to a run of the whole workspace, so a scratch workspace settled it. It had a library with a default feature `zlib`, a golden test target that required it, unit and integration tests gated on `not(feature = "zlib")`, and a second member that depended on the library with its default features, as the CLI will:
+- `cargo test -p library --no-default-features --features serde` ran both gated tests and skipped the golden target;
+- `cargo test --workspace --no-default-features --features library/serde` ran the golden target and neither gated test, since the second member turned `zlib` back on;
+- `cargo test -p library --all-features` ran the golden target and neither gated test.
+
+So the step selects the library alone, and no development dependency of the library may depend on it with its default features. The test kit depends on no library at all (plan section 7.1). Every test run of `node scripts/check.ts` passes `--all-features` (`scripts/checks/steps.ts`), and CI's feature-combination job builds every combination and runs none (`ci.yml`), which bears out finding 2.
+
+**The findings, and what changed.** `test-kit.md` section 10.7 lists each finding with its change and where it lands; in short:
+
+| # | Finding | What changed | Reproduced |
+|---|---|---|---|
+| 1 | P2: a file report could leave out the primary path that its raised limit pays for, so the whole raised limit served the rest of the probe, and both the check and the file adapter's comparison took it | Each source table lists the primary input with exactly the path that its adapter was given, checked after the usage and before the netting | Yes: a complete report that listed its primary input without a path and retained 146 bytes passed `prepared` under a limit of 128 raised by the path's 18 |
+| 2 | P2: the golden target is skipped without `zlib`, so the disabled behavior that Phase 5 tests had no run | From task 14, a step of `node scripts/check.ts` that lints and tests the library alone under every feature but `zlib`, as the maintainer chose | By reading the check script and `ci.yml`, and the scratch workspace above |
+| 3 | P3: the test of the budget built an `unknown_format` that opened a companion, with its sources at the error's root | A complete report with an opened companion, built as the library's serialization tests build theirs and read back by the strict reader | Yes: the strict reader refuses an `unknown_format` that counts a companion, and reads an error's root `sources` only as a member of a newer version |
+
+Findings 1 and 3 were reproduced first, as one temporary test of the fixture spike against revision 80. The file was restored from a copy, and `git status` showed it unchanged. The tests that hold the fixes:
+- **The path kept.** A new test of `prepared` with the review's case: the report without its path is refused, and the same report with it passes and nets to 128. With the check taken out, that test fails. A second test checks each table and adapter: a report, an error's partial report and its observations, an error that ended at detection and lists nothing, a reader that lists a path, and the records that the strict reader refuses.
+- **The order.** The test of `prepared` with the sixth review's numbers now builds a complete Matroska report with an opened companion. 147 is still refused as `147 > 146`, and 146 still nets to 110.
+- **The records.** A new module of the spike's tests builds the smallest records that the library's strict reader reads, as the library's serialization tests build theirs, and reads each back.
+
+**Found while revising:**
+- **The other tables and adapters.** The review asked for a successful file report. The raised limit holds the path in every record of a file probe, so an error's observations and partial report list it too, where they stand. Every other adapter is given no path, since a name hint is never one (`api.md` section 4.3). So its primary input lists none, and a probe that wrote its hint as a path would otherwise have reached its adapter part unchecked.
+- **The other tests of paths.** The twin's test listed its source at an `unknown_format`'s root, and the partial report's test built a `source_failed` of three members. Both now use the strictly read records. The test of a Unicode path marked lossy keeps a record that the reader refuses, since that record is the defect that it tests.
+- **Lint and coverage.** Clippy and coverage run under every feature, so neither sees the code that only a build without `zlib` compiles. The step lints that code and tests it; coverage leaves it out of its count.
+- **Phase 6.** Its compressed movie box without `zlib` is a case of the same run, beside Phase 5's compressed codec private data.
+
+**Choices made without asking,** each open at G3.2 and listed in `test-kit.md` section 8:
+- the check of the primary input's path held in an error's observations and partial report, and for every other adapter, whose primary input lists no path;
+- the step's selection, `-p cc-media-probe --no-default-features` with every other feature named, and no development dependency of the library depending on it with its default features;
+- the spike's tests of paths built on records that the strict reader reads, with a companion of a role of a later version.
+
+**Plan revision 81:**
+- **The maintainer's choice:**
+  - section 9.2, the run without `zlib` from task 14;
+  - section 9.8, that run among CI's;
+  - Phase 3, task 14, the step, with `CLAUDE.md` and `CONTRIBUTING.md` naming it in that change.
+- **The review's findings:** section 9.2 and Phase 3, task 4, the primary input's path.
+- **Found while revising:** Phases 5 and 6, their tests without `zlib` in that run.
+- **The record:** Phase 3, task 3; the status line; Appendix E.
+
+`CLAUDE.md` and `CONTRIBUTING.md` describe the check script as it runs today, so they change with task 14, when the step exists.
+
+**Documents updated:**
+- `test-kit.md`:
+  - the status;
+  - section 1, with a table of the seventh review's question, and two changes to the diagram: the primary input's path in the check's node, and a node for the tests without `zlib`;
+  - sections 4.1, 4.2, 4.3, 8 and 9;
+  - a new section 10.7, the seventh review's table;
+- the spike's README;
+- the plan, and this log.
+
+`api.md` needs no change. Section 6.15 already makes the primary input's path the probe's first charge, and section 4.3 makes the file-name hint a name that is never opened. Section 3.1 already gives `zlib` off its status "compression unavailable".
+
+**Verification.**
+- **The spike.** In `spikes/fixtures/`:
+  - `cargo fmt` leaves nothing to change, and `cargo clippy --workspace --all-targets` finds nothing.
+  - `cargo test` passes the kit's 23 cases and the library's 64, 2 of each embedded: 87 in all.
+  - `cargo test -p library --features serde_json/preserve_order` passes too.
+  - No fixture or expectation file changed.
+- **The fuzz workspace** was not rebuilt or rerun, since nothing that it builds changed: it depends on the stand-in library's `src/` alone, which is untouched.
+- **Repository checks.**
+  - The structure check of `cc-media-probe-checks` gives 0 findings on the spike.
+  - The diagram of `test-kit.md` section 1 renders in headless Chromium with mermaid.js: 15 nodes and no error.
+  - `git diff --check` is clean.
+- **`node scripts/check.ts` passes.**
+
+**Open:**
+- G3.2 decides on the whole proposal, with the choices made since the fourth to the seventh reviews, once the maintainer has reviewed the corrected protocol.
+- These wait for later tasks:
+  - the golden tests' target with every feature and the check of the primary input's path, for task 4;
+  - `zlib` joining that target, and the step without it with its first tests, for task 14;
+  - `with_source_counter`, for the I/O layer of task 6;
+  - the toy format in `fuzzing_entry_points::prober`, for task 5;
+  - for task 7, the charge of a path with its tests at the limit, and the first cases of outcomes of each adapter, a named one and a default one;
+  - the seed check in the golden target and the fuzz workflow's features, for task 20;
+  - the companion cases, the rule of their answers and the async test of built-in lookup, for Phase 14, task 1.
+- A fixture that records `hint_only` waits for detection's file-name hints of G3.5.

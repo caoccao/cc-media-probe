@@ -23,10 +23,18 @@
 //! adapter; and the file adapter's retained-data limit is raised by its path's charge, so that the rest of its probe
 //! has the others' budget exactly. Each record is split into a semantic part, which the seekable adapters share and
 //! `<name>[.<case>].expected.json` holds; a forward-only part, which `<name>[.<case>].forward.json` holds only where
-//! it differs; and an adapter part for each adapter, which `<name>[.<case>].adapters.json` holds. The pass runs once
-//! in a process, before the seed check reads the default cases' expectations, so that with the variable set they
-//! are written before they are read. In Phase 2 the library reads no input, so every record is the error of an
-//! unknown format, whatever the case.
+//! it differs; and an adapter part for each adapter, which `<name>[.<case>].adapters.json` holds. A case with
+//! `outcomes=per_adapter`, or a default case whose `default:` line says so, keeps each adapter's semantic part in
+//! `<name>[.<case>].outcomes.json` instead of the first two, where a limit explains each difference. Before
+//! anything is compared or written, and before its paths are netted, each adapter's usage, and its partial
+//! report's, is read strictly and stays within the limits that the adapter was given, the file adapter's raised,
+//! and the bytes that the test's counters measured stay within the read limit and are the usage's bytes read. Each
+//! source table of the record then lists the primary input with exactly the path that its adapter was given: the
+//! file adapter's file, whose charge its raised limit always holds, and none for the others. The pass runs once in a process, before the seed check reads the default cases' expectations, so that with the
+//! variable set they are written before they are read. The library's golden target requires every feature of the
+//! library, so that its expectations have one feature set (section 4.3); this stand-in runs no async adapter, and
+//! the library has no `zlib` before task 14, so `serde` is every feature that it needs. In Phase 2 the library
+//! reads no input, so every record is the error of an unknown format, whatever the case.
 
 use std::fs;
 use std::io::{self, Cursor};
@@ -42,10 +50,13 @@ use kit::syntax::Case;
 use library::fuzzing_entry_points::prober;
 use serde_json::{Map, Value, json};
 
-use crate::common::conditions::{Conditions, Lookup, Naming, conditions};
+use crate::common::conditions::{Conditions, Lookup, Naming, Outcomes, conditions};
 use crate::common::expectation::{check, check_absent, writing};
-use crate::common::sources::{Handed, normalize};
+use crate::common::outcomes::{Outcome, per_adapter, shared};
+use crate::common::sources::{Handed, normalize, primary_path};
 use crate::common::split::split;
+use crate::common::usage::{within_limits, within_reads};
+use crate::records::{entry, report};
 
 /// The length of every case's folder, in bytes of its display string, so that each path below it has the same
 /// charge on every machine. A file name of 255 bytes below it stays under the 1,024 bytes of a path on macOS.
@@ -99,6 +110,11 @@ struct Probed {
   /// The reads that the adapter's counter saw, where the test counts them. The file adapter's are counted by the
   /// repository-only counter of `docs/design/test-kit.md` section 7, which the I/O layer of task 6 brings.
   counts: Option<Counts>,
+  /// The limits that the adapter was given: the case's, the file adapter's raised by its file's path.
+  limits: Limits,
+  /// Whether the adapter was given the probed file's path, which its primary input's entry then holds; the others
+  /// are given none.
+  given_path: bool,
 }
 
 /// The folder of one case: the case's own component, removed when the case is done, and the padded folder below it.
@@ -128,8 +144,9 @@ fn reader(bytes: &[u8], conditions: &Conditions) -> CountingReader<FaultingReade
   CountingReader::new(FaultingReader::new(Cursor::new(bytes.to_vec())).with_pieces(&conditions.pieces))
 }
 
-/// The limits of the file adapters: the case's, with the retained-data limit raised by the charge of the paths that
-/// the test hands the library, which the library charges before anything else that the probe retains.
+/// The limits of the file adapters: the case's, with the retained-data limit raised by the charge of the probed
+/// file's path, which the library charges before anything else that the probe retains. A companion that built-in
+/// lookup opens is charged within the case's limit, as any companion is.
 fn raised(limits: &Limits, charge: u64) -> Limits {
   limits
     .clone()
@@ -137,9 +154,9 @@ fn raised(limits: &Limits, charge: u64) -> Limits {
 }
 
 /// The fixture probed through each blocking adapter under `conditions`: a file written into `folder` under the
-/// fixture's file name, unless the case gives another name or none, bytes, a seekable reader, a custom positional
-/// source and a forward-only reader.
-fn probes(fixture: &Fixture, conditions: &Conditions, folder: &Path, handed: &[Handed]) -> Vec<Probed> {
+/// fixture's file name, unless the case gives another name or none, with the retained-data limit raised by
+/// `charge`, its path's, and bytes, a seekable reader, a custom positional source and a forward-only reader.
+fn probes(fixture: &Fixture, conditions: &Conditions, folder: &Path, charge: u64) -> Vec<Probed> {
   assert!(
     conditions.lookup == Lookup::Off,
     "{}: the library has no companion lookup before Phase 14, task 1",
@@ -157,6 +174,8 @@ fn probes(fixture: &Fixture, conditions: &Conditions, folder: &Path, handed: &[H
     forward_only,
     record,
     counts,
+    limits: conditions.limits.clone(),
+    given_path: false,
   };
   let mut seekable = reader(bytes, conditions);
   let read = record(prober.probe_reader(&mut seekable));
@@ -177,11 +196,33 @@ fn probes(fixture: &Fixture, conditions: &Conditions, folder: &Path, handed: &[H
   if conditions.has_file() {
     let path = folder.join(fixture.file_name());
     fs::write(&path, bytes).unwrap();
-    let charge = handed.iter().map(|path| path.length).sum();
-    let file_prober = prober.with_limits(raised(&conditions.limits, charge));
-    results.insert(1, result("file", false, record(file_prober.probe_file(&path)), None));
+    let limits = raised(&conditions.limits, charge);
+    let filed = record(prober.with_limits(limits.clone()).probe_file(&path));
+    results.insert(
+      1,
+      Probed {
+        limits,
+        given_path: true,
+        ..result("file", false, filed, None)
+      },
+    );
   }
   results
+}
+
+/// Checks the record of `probe` as the library wrote it, against the limits that its adapter was given and the
+/// reads that its counter saw, and its primary input against the path that the adapter was given, the first of
+/// `handed` or none, and then writes its paths with the placeholder and its retained data net of the paths in
+/// `handed`. Checked after the netting, against the case's limits, a file probe that passed its raised limit by
+/// less than a built-in companion's charge would pass, as the sixth review of the proposal found; and a file
+/// report without its path would have the whole raised limit for the rest, as the seventh found.
+fn prepared(probe: &mut Probed, folder: &Path, handed: &[Handed]) -> Result<(), String> {
+  within_limits(&probe.record, &probe.limits, probe.adapter)?;
+  within_reads(&probe.record, probe.counts, &probe.limits, probe.adapter)?;
+  let given = handed.first().filter(|_| probe.given_path);
+  primary_path(&probe.record, given, probe.adapter)?;
+  normalize(&mut probe.record, folder, handed);
+  Ok(())
 }
 
 /// The adapter part of a probe, with the reads that its counter saw.
@@ -234,41 +275,53 @@ fn case_folder() -> CaseFolder {
   CaseFolder { root, path }
 }
 
+/// The value of `result`, or a failure that names fixture `name`.
+fn passed<Passed>(name: &str, result: Result<Passed, String>) -> Passed {
+  result.unwrap_or_else(|message| panic!("{name}: {message}"))
+}
+
 /// Checks one case of `fixture`, and gives the parts that it compared.
 fn check_case(fixture: &Fixture, case: Option<&Case>) -> Vec<(Option<String>, &'static str)> {
   let name = case.map(|case| case.name.as_str());
-  let conditions =
-    conditions(case, fixture.file_name()).unwrap_or_else(|refused| panic!("{}: {refused}", fixture.name));
+  let conditions = conditions(case, &fixture.header.default_conditions, fixture.file_name())
+    .unwrap_or_else(|refused| panic!("{}: {refused}", fixture.name));
   let folder = case_folder();
-  let handed = [Handed::new(&folder.path, fixture.file_name())];
+  let primary = Handed::new(&folder.path, fixture.file_name());
+  let probed = probes(fixture, &conditions, &folder.path, primary.length);
+  let handed = [primary];
   let mut adapters = Map::new();
-  let mut seekable: Option<Value> = None;
-  let mut forward = None;
-  for mut probe in probes(fixture, &conditions, &folder.path, &handed) {
-    normalize(&mut probe.record, &folder.path, &handed);
+  let mut outcomes = Vec::new();
+  for mut probe in probed {
+    passed(&fixture.name, prepared(&mut probe, &folder.path, &handed));
     let (semantic, part) = split(&probe.record);
     adapters.insert(probe.adapter.to_owned(), adapter_part(&probe, part));
-    if probe.forward_only {
-      forward = Some(semantic);
-    } else if let Some(first) = &seekable {
-      assert_eq!(
-        &semantic, first,
-        "{}: the semantic part through {} differs",
-        fixture.name, probe.adapter
-      );
-    } else {
-      seekable = Some(semantic);
-    }
+    outcomes.push(Outcome {
+      adapter: probe.adapter,
+      forward_only: probe.forward_only,
+      semantic,
+    });
   }
-  let (seekable, forward) = (seekable.unwrap(), forward.unwrap());
   let case_name = name.map(str::to_owned);
-  let mut compared = vec![(case_name.clone(), "expected"), (case_name.clone(), "adapters")];
-  check(&fixture.name, name, "expected", &seekable);
-  if forward == seekable {
-    check_absent(&fixture.name, name, "forward");
+  let mut compared = vec![(case_name.clone(), "adapters")];
+  if conditions.outcomes == Outcomes::PerAdapter {
+    check(
+      &fixture.name,
+      name,
+      "outcomes",
+      &passed(&fixture.name, per_adapter(&outcomes)),
+    );
+    compared.push((case_name, "outcomes"));
   } else {
-    check(&fixture.name, name, "forward", &forward);
-    compared.push((case_name, "forward"));
+    let (seekable, forward) = passed(&fixture.name, shared(&outcomes));
+    check(&fixture.name, name, "expected", &seekable);
+    compared.push((case_name.clone(), "expected"));
+    match forward.filter(|forward| *forward != seekable) {
+      Some(forward) => {
+        check(&fixture.name, name, "forward", &forward);
+        compared.push((case_name, "forward"));
+      }
+      None => check_absent(&fixture.name, name, "forward"),
+    }
   }
   check(&fixture.name, name, "adapters", &Value::Object(adapters));
   compared
@@ -319,67 +372,6 @@ fn every_fixture_meets_its_expectations_in_every_case_through_every_blocking_ada
 }
 
 #[test]
-fn a_path_below_the_folder_is_written_with_the_placeholder_and_taken_out_of_the_retained_data() {
-  let folder = Path::new(env!("CARGO_TARGET_TMPDIR")).join("placeholder");
-  let path = folder.join("movie.idx");
-  let sibling = Path::new(env!("CARGO_TARGET_TMPDIR"))
-    .join("placeholder2")
-    .join("movie.idx");
-  let mut record = json!({
-    "schema_version": "1.0",
-    "usage": { "retained_data": 1000 },
-    "sources": [
-      { "identifier": "0", "path": path.to_str().unwrap() },
-      { "identifier": "1", "path": "/elsewhere/movie.sub" },
-      { "identifier": "2", "path": sibling.to_str().unwrap() },
-    ],
-  });
-  normalize(&mut record, &folder, &[Handed::new(&folder, "movie.idx")]);
-  let length = u64::try_from(path.as_os_str().len()).unwrap();
-  assert_eq!(
-    record["sources"][0],
-    json!({ "identifier": "0", "path": "{folder}/movie.idx" })
-  );
-  assert_eq!(record["sources"][1]["path"], "/elsewhere/movie.sub");
-  assert_eq!(record["sources"][2]["path"], sibling.to_str().unwrap());
-  assert_eq!(record["usage"]["retained_data"], json!(1000 - length));
-}
-
-#[test]
-fn a_partial_reports_path_is_taken_out_of_the_errors_usage_too() {
-  let folder = Path::new(env!("CARGO_TARGET_TMPDIR")).join("placeholder");
-  let path = folder.join("movie.idx");
-  let mut record = json!({
-    "kind": "source_failed",
-    "usage": { "retained_data": 1000 },
-    "partial_report": {
-      "usage": { "retained_data": 900 },
-      "sources": [{ "identifier": "0", "path": path.to_str().unwrap() }],
-    },
-  });
-  normalize(&mut record, &folder, &[Handed::new(&folder, "movie.idx")]);
-  let length = u64::try_from(path.as_os_str().len()).unwrap();
-  assert_eq!(record["usage"]["retained_data"], json!(1000 - length));
-  assert_eq!(record["partial_report"]["usage"]["retained_data"], json!(900 - length));
-}
-
-#[test]
-#[should_panic(expected = "written as its form gives it")]
-fn a_unicode_path_written_as_lossy_fails_the_comparison() {
-  let folder = Path::new(env!("CARGO_TARGET_TMPDIR")).join("placeholder");
-  let mut record = json!({
-    "usage": { "retained_data": 1000 },
-    "sources": [{
-      "identifier": "0",
-      "path": folder.join("movie.idx").to_str().unwrap(),
-      "path_lossy": true,
-      "path_raw": { "encoding": "unix_bytes", "data": "6d" },
-    }],
-  });
-  normalize(&mut record, &folder, &[Handed::new(&folder, "movie.idx")]);
-}
-
-#[test]
 fn every_case_folder_has_the_same_length_and_one_of_its_own() {
   let folders = [case_folder(), case_folder()];
   assert_ne!(folders[0].path, folders[1].path);
@@ -408,6 +400,59 @@ fn the_file_adapters_limit_is_raised_by_the_paths_charge_alone() {
   );
 }
 
+/// The file adapter's probe of a file below `/tmp/abcdefg` under a case's retained-data limit of 128 bytes, raised
+/// by its path's 18, whose report retains `retained` bytes and lists `sources`.
+fn file_probe(retained: u64, sources: &[Value]) -> Probed {
+  Probed {
+    adapter: "file",
+    forward_only: false,
+    record: report(retained, sources),
+    counts: None,
+    limits: raised(&Limits::new().with_retained_data(128), 18),
+    given_path: true,
+  }
+}
+
+#[test]
+fn a_record_is_checked_against_its_adapters_limits_before_its_paths_are_netted() {
+  let folder = Path::new("/tmp/abcdefg");
+  let handed = [Handed::new(folder, "x.bin"), Handed::new(folder, "x.idx")];
+  assert_eq!((handed[0].length, handed[1].length), (18, 18));
+  // A report whose companion was opened, as the seventh review asked: 18 bytes for each path and 110 for the rest.
+  let file = |retained| {
+    file_probe(
+      retained,
+      &[
+        entry("0", "opened", &handed[0].members),
+        entry("1", "opened", &handed[1].members),
+      ],
+    )
+  };
+  let error = prepared(&mut file(147), folder, &handed).unwrap_err();
+  assert!(error.ends_with("file: /usage/retained_data 147 > 146"), "{error}");
+  let mut within = file(146);
+  prepared(&mut within, folder, &handed).unwrap();
+  assert_eq!(within.record["usage"]["retained_data"], json!(110));
+  assert_eq!(within.record["sources"][1]["path"], "{folder}/x.idx");
+}
+
+#[test]
+fn a_file_report_keeps_the_path_that_its_raised_limit_pays_for() {
+  let folder = Path::new("/tmp/abcdefg");
+  let handed = [Handed::new(folder, "x.bin")];
+  // The review's case: 146 bytes retained within the raised limit, and the primary input listed without its path.
+  let mut pathless = file_probe(146, &[entry("0", "opened", &Map::new())]);
+  let error = prepared(&mut pathless, folder, &handed).unwrap_err();
+  assert!(
+    error.contains("not the one that its adapter was given at /sources of file"),
+    "{error}"
+  );
+  let mut kept = file_probe(146, &[entry("0", "opened", &handed[0].members)]);
+  prepared(&mut kept, folder, &handed).unwrap();
+  assert_eq!(kept.record["usage"]["retained_data"], json!(128));
+  assert_eq!(kept.record["sources"][0]["path"], "{folder}/x.bin");
+}
+
 #[test]
 fn a_custom_source_gives_no_bytes_at_and_beyond_its_end() {
   let mut memory = Memory {
@@ -420,19 +465,4 @@ fn a_custom_source_gives_no_bytes_at_and_beyond_its_end() {
   assert_eq!(memory.read_at(2, &mut buffer).unwrap(), 1);
   assert_eq!(memory.read_at(3, &mut buffer).unwrap(), 0);
   assert_eq!(memory.read_at(u64::MAX, &mut buffer).unwrap(), 0);
-}
-
-#[cfg(unix)]
-#[test]
-fn a_lossy_path_is_charged_at_its_display_string_and_its_raw_forms_data() {
-  use std::ffi::OsStr;
-  use std::os::unix::ffi::OsStrExt;
-
-  let folder = Path::new(OsStr::from_bytes(b"/f\xff"));
-  let handed = Handed::new(folder, "a");
-  assert_eq!(folder.join("a").as_os_str().len(), 5);
-  assert_eq!("/f\u{fffd}/a".len() + "2f66ff2f61".len(), 17);
-  assert_eq!(handed.length, 17);
-  assert_eq!(handed.members["path_lossy"], json!(true));
-  assert_eq!(handed.members["path_raw"]["data"], "2f66ff2f61");
 }

@@ -23,13 +23,17 @@
 //!   machine's folder, and a serialization that marked a Unicode path as lossy fails rather than collapsing away;
 //! - a record's retained data is taken net of the handed paths that it lists, so that `retained_data` stays
 //!   semantic. An error's usage covers its partial report's (`api.md` section 6.14), so a path that the partial
-//!   report lists is taken out of both.
+//!   report lists is taken out of both. The figure is read from its number or its twin and written net in its
+//!   canonical form;
+//! - each source table of a record lists the primary input with exactly the path that its adapter was given, the
+//!   probed file's for a file adapter and none for the others, before the placeholder replaces it.
 //!
 //! A path is charged, as plan section 7.5 charges retained data by capacity, at the strings that the report keeps
 //! for it, each held at exactly its length: its display string, and a lossy path's raw form's data.
 
 use std::path::Path;
 
+use cc_media_probe::model::Usage;
 use cc_media_probe::source::{PortablePath, RawPath};
 use serde_json::{Map, Value};
 
@@ -45,6 +49,28 @@ const PATH_RAW: &str = "path_raw";
 const PATH_MEMBERS: [&str; 3] = [PATH, PATH_LOSSY, PATH_RAW];
 /// The separator that an expectation's path uses on every platform.
 const SEPARATOR: &str = "/";
+/// The usage's retained data as a number.
+const RETAINED_DATA: &str = "retained_data";
+/// Its twin, a decimal string beyond 2^53 − 1.
+const RETAINED_DATA_EXACT: &str = "retained_data_exact";
+/// The largest quantity that the form writes as a number, 2^53 − 1 (`json-output.md` section 5.5).
+const LARGEST_EXACT: u64 = 9_007_199_254_740_991;
+/// The member that only an error record has.
+const KIND: &str = "kind";
+/// A source entry's identifier.
+const IDENTIFIER: &str = "identifier";
+/// The identifier of the primary input (`api.md` section 6.15).
+const PRIMARY: &str = "0";
+/// The place of a report's source table.
+const REPORT_TABLE: &str = "/sources";
+/// The places of an error's source tables: in its observations and in its partial report.
+const ERROR_TABLES: [&str; 2] = ["/observations/sources", "/partial_report/sources"];
+/// The message of a report without a source table.
+const NO_TABLE: &str = "the report has no source table at";
+/// The message of a source table without the primary input.
+const NO_PRIMARY: &str = "the source table lists no primary input at";
+/// The message of a primary input whose path is not the one that its adapter was given.
+const OTHER_PATH: &str = "the primary input's path is not the one that its adapter was given at";
 
 /// A path that the test handed the library: its form with the placeholder, the members that a source entry writes
 /// for it, and its charge to retained data.
@@ -82,6 +108,57 @@ impl Handed {
 fn charge(portable: &PortablePath) -> u64 {
   let raw = portable.raw().map_or(0, |raw: &RawPath| raw.data().len());
   u64::try_from(portable.display().len().checked_add(raw).unwrap()).unwrap()
+}
+
+/// Checks that each source table of `record` lists the primary input with exactly the path that its adapter was
+/// given, written as its form gives it: `given`, the probed file's, for a file adapter, and none for the others, since
+/// a name hint is never a path (`api.md` section 4.3). A report has its table, and an error one in its observations
+/// and one in its partial report where they stand. A file adapter's retained-data limit is raised by its path's
+/// charge, which is the probe's first, so the path always fits and is never left out (`api.md` section 6.15). A file
+/// report without it passed, with the whole raised limit left to the rest of the probe, as the seventh review of the
+/// proposal found.
+///
+/// # Errors
+///
+/// Returns the table that is missing, that lacks the primary input or that gives it another path, with `adapter`.
+pub fn primary_path(record: &Value, given: Option<&Handed>, adapter: &str) -> Result<(), String> {
+  let error = record.get(KIND).is_some();
+  let tables: &[&str] = if error { &ERROR_TABLES } else { &[REPORT_TABLE] };
+  let expected = given.map_or_default(|path| path.members.clone());
+  for place in tables {
+    let Some(table) = record.pointer(place) else {
+      if error {
+        continue;
+      }
+      return Err(format!("{NO_TABLE} {place} of {adapter}"));
+    };
+    let primary = table
+      .as_array()
+      .and_then(|entries| {
+        entries
+          .iter()
+          .filter_map(Value::as_object)
+          .find(|entry| entry.get(IDENTIFIER).and_then(Value::as_str) == Some(PRIMARY))
+      })
+      .ok_or_else(|| format!("{NO_PRIMARY} {place} of {adapter}"))?;
+    let written = path_members(primary);
+    if written != expected {
+      return Err(format!(
+        "{OTHER_PATH} {place} of {adapter}: {} != {}",
+        Value::Object(written),
+        Value::Object(expected)
+      ));
+    }
+  }
+  Ok(())
+}
+
+/// The members of `source` that write its path, in the order that the form writes them.
+fn path_members(source: &Map<String, Value>) -> Map<String, Value> {
+  PATH_MEMBERS
+    .iter()
+    .filter_map(|name| source.get(*name).map(|value| ((*name).to_owned(), value.clone())))
+    .collect()
 }
 
 /// Writes each path below `folder` with the placeholder, and takes the retained data of each record net of the
@@ -131,10 +208,7 @@ fn normalize_entry(source: &mut Map<String, Value>, folder: &Path, handed: &[Han
   if !Path::new(display).starts_with(folder) {
     return 0;
   }
-  let written: Map<String, Value> = PATH_MEMBERS
-    .iter()
-    .filter_map(|name| source.get(*name).map(|value| ((*name).to_owned(), value.clone())))
-    .collect();
+  let written = path_members(source);
   let path = handed.iter().find(|path| path.members == written).unwrap_or_else(|| {
     panic!(
       "{}: a path below the test's folder is one that the test handed the library, written as its form gives it",
@@ -147,10 +221,31 @@ fn normalize_entry(source: &mut Map<String, Value>, folder: &Path, handed: &[Han
   path.length
 }
 
-/// Takes `charge` from the retained data of `usage`.
+/// Takes `charge` from the retained data of `usage`, read from its number or its twin, and writes the net figure
+/// in its canonical form: a number up to 2^53 − 1, its twin beyond, as the fifth review of the proposal found the
+/// twin left gross. The check of its limits comes first and refuses a usage that is not the form's, so one that
+/// reaches this is left as it is.
 fn subtract(usage: Option<&mut Value>, charge: u64) {
-  if let Some(retained) = usage.and_then(|usage| usage.get_mut("retained_data")) {
-    let figure = retained.as_u64().unwrap();
-    *retained = Value::from(figure.checked_sub(charge).unwrap());
+  let Some(members) = usage.and_then(Value::as_object_mut) else {
+    return;
+  };
+  if charge == 0 {
+    return;
+  }
+  let Ok(read) = serde_json::from_value::<Usage>(Value::Object(members.clone())) else {
+    return;
+  };
+  let net = read.retained_data().checked_sub(charge).unwrap_or_else(|| {
+    panic!(
+      "retained data of {} is below the charge {charge} of its paths",
+      read.retained_data()
+    )
+  });
+  members.remove(RETAINED_DATA);
+  members.remove(RETAINED_DATA_EXACT);
+  if net <= LARGEST_EXACT {
+    members.insert(RETAINED_DATA.to_owned(), Value::from(net));
+  } else {
+    members.insert(RETAINED_DATA_EXACT.to_owned(), Value::from(net.to_string()));
   }
 }

@@ -70,6 +70,8 @@ pub const LENGTH: &str = "length";
 pub const FILE_NAME: &str = "file_name";
 /// The header member, which may repeat, that gives a case: its name and its conditions.
 pub const CASE: &str = "case";
+/// The header member that gives the default case's conditions, without a name.
+pub const DEFAULT: &str = "default";
 /// The most bytes of a file name, as most file systems allow.
 pub const MAXIMUM_FILE_NAME_LENGTH: usize = 255;
 /// The device names that Windows reserves in every folder, with any extension, compared without regard to ASCII

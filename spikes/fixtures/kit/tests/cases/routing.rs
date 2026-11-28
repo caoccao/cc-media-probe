@@ -89,12 +89,13 @@ fn a_file_or_folder_that_the_layout_does_not_allow_is_an_error() {
     "sample.hex",
     "sample.expected.json",
     "sample.split-header.adapters.json",
+    "sample.no-memory.outcomes.json",
   ] {
     fs::write(base.join("toy").join(file), "").unwrap();
   }
   let layout = layout_of(&base).unwrap();
   assert_eq!(layout.fixtures, ["toy/sample"]);
-  assert_eq!(layout.expectations.len(), 2);
+  assert_eq!(layout.expectations.len(), 3);
   fs::remove_dir_all(&base).unwrap();
 }
 

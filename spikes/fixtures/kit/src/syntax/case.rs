@@ -18,7 +18,8 @@
 //! A case of a fixture: the conditions, beyond its bytes, under which its tests probe it, such as a limit, the
 //! pieces that a reader delivers, or a companion's response. A `case:` line of the header gives its name and its
 //! conditions as `name=value` words, as `@seed` gives a route; the test kit reads the words and never interprets
-//! them, and the library's tests do (`docs/design/test-kit.md` section 2.1).
+//! them, and the library's tests do (`docs/design/test-kit.md` section 2.1). A `default:` line gives the default
+//! case's conditions the same way, without a name.
 
 use super::constants::ASSIGNMENT;
 use super::error::SyntaxErrorKind;
@@ -49,6 +50,22 @@ pub(crate) fn parse_case(value: &str) -> Result<Case, SyntaxErrorKind> {
     .next()
     .filter(|name| is_hyphenated_name(name))
     .ok_or_else(|| SyntaxErrorKind::MalformedCase(value.to_owned()))?;
+  Ok(Case {
+    name: name.to_owned(),
+    conditions: parse_conditions(words, value)?,
+  })
+}
+
+/// Reads the value of a `default:` line: at least one `name=value` word, each name once.
+pub(crate) fn parse_default(value: &str) -> Result<Vec<Condition>, SyntaxErrorKind> {
+  parse_conditions(value.split_whitespace(), value)
+}
+
+/// Reads `words`, the conditions of the line `value`: at least one `name=value` word, each name once.
+fn parse_conditions<'value>(
+  words: impl Iterator<Item = &'value str>,
+  value: &str,
+) -> Result<Vec<Condition>, SyntaxErrorKind> {
   let mut conditions: Vec<Condition> = Vec::new();
   for word in words {
     let (condition, setting) = word
@@ -66,8 +83,5 @@ pub(crate) fn parse_case(value: &str) -> Result<Case, SyntaxErrorKind> {
   if conditions.is_empty() {
     return Err(SyntaxErrorKind::MalformedCase(value.to_owned()));
   }
-  Ok(Case {
-    name: name.to_owned(),
-    conditions,
-  })
+  Ok(conditions)
 }

@@ -24,20 +24,25 @@
 //!   given to every adapter but the file adapters, whose file has a name that every platform can write; or
 //!   `hint=none`, which gives those adapters no hint at all, so that no name can be built (a hint spelled `none` is
 //!   written `%6Eone`);
-//! - `lookup=off|custom|built_in`: the companion lookup, off by default as the API's is;
+//! - `lookup=off|custom|built_in`: the companion lookup, off by default as the API's is; built-in lookup runs
+//!   through blocking adapters alone, since an async probe reads only the async option, which has no built-in
+//!   resolver;
 //! - `companion.<requested name>=<response>`: the answer to the request for that name, percent-encoded as a hint
 //!   is: `found:<fixture>`, `found_with_identity:<fixture>:<hexadecimal token>`, `not_found`, `declined:<reason>`,
 //!   `limit_reached:<limit>` or `failed:<error kind>` from the custom resolver, as its five results allow them, and
 //!   `found:<fixture>` or `not_found` with built-in lookup, which writes each found companion beside the file under a
-//!   name that every platform can write.
+//!   name that every platform can write;
+//! - `outcomes=shared|per_adapter`: whether the adapters of each class share one semantic part, the default, or
+//!   each has its own, where a limit stops adapters differently, the default limits among them.
 //!
-//! A word that no rule reads fails the test, so a misspelled condition is never ignored, and so do conditions that
-//! no adapter can run together.
+//! The default case is the probe target's, so its `default:` line takes only `outcomes`. A word that no rule reads
+//! fails the test, so a misspelled condition is never ignored, and so do conditions that no adapter can run
+//! together.
 
 use std::io::ErrorKind;
 
 use cc_media_probe::{Limit, Limits};
-use kit::syntax::{Case, is_hyphenated_name, is_portable_file_name};
+use kit::syntax::{Case, Condition, is_hyphenated_name, is_portable_file_name};
 use serde_json::Value;
 
 use super::failures::failure_kind;
@@ -54,6 +59,8 @@ const NO_HINT: &str = "none";
 const COMPANION: &str = "companion.";
 /// The condition of the lookup.
 const LOOKUP: &str = "lookup";
+/// The condition of the outcomes.
+const OUTCOMES: &str = "outcomes";
 /// Separates the sizes of the pieces.
 const SIZE_SEPARATOR: char = ',';
 /// Separates a response from its argument.
@@ -77,6 +84,9 @@ const NOT_PORTABLE: &str =
 const PATHLESS_BUILT_IN: &str = "built-in lookup without a path declines each request itself, so it takes no answer";
 /// The message of pieces beside built-in lookup, which only the file adapter runs.
 const PIECES_WITH_BUILT_IN: &str = "built-in lookup runs the file adapter alone, whose reads are not cut";
+/// The message of a condition of the default case other than its outcomes.
+const DEFAULT_OUTCOMES_ONLY: &str =
+  "the default case is the probe target's, so its `default:` line takes only `outcomes`";
 
 /// The name that the adapters of a case are given.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -98,9 +108,22 @@ pub enum Lookup {
   Off,
   /// Every adapter's custom resolver, blocking or async, answers as the case says.
   Custom,
-  /// The built-in resolver: through the blocking `probe_file` with its folder, and through every other adapter
-  /// without one, where it declines each request.
+  /// The built-in resolver: through the blocking `probe_file` with its folder, and through every other blocking
+  /// adapter without one, where it declines each request. An async probe reads only the async option, which has
+  /// no built-in resolver, so the async adapters never run it; a library test of Phase 14, task 1, checks that
+  /// they make no request and report the companions "not enabled".
   BuiltIn,
+}
+
+/// Whether the adapters of a case share their semantic part.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Outcomes {
+  /// The adapters of each class share one semantic part: the seekable class's, and the forward-only class's where
+  /// it differs.
+  #[default]
+  Shared,
+  /// Each adapter has a semantic part of its own, since a limit stops adapters differently.
+  PerAdapter,
 }
 
 /// The answer to one request, one of a resolver's five results (`api.md` section 13).
@@ -133,6 +156,8 @@ pub struct Conditions {
   pub lookup: Lookup,
   /// The answer to each requested name, decoded.
   pub companions: Vec<(String, Response)>,
+  /// Whether the adapters share their semantic part.
+  pub outcomes: Outcomes,
 }
 
 impl Conditions {
@@ -142,14 +167,23 @@ impl Conditions {
   }
 }
 
-/// The conditions of `case` of a fixture whose file name is `file_name`, or the default ones for `None`.
+/// The conditions of `case` of a fixture whose file name is `file_name`, or for `None` those of its default case,
+/// which the header's `default:` line gives as `default`, only `outcomes` among them.
 ///
 /// # Errors
 ///
 /// Returns the word that no rule reads, or whose value does not fit its rule, or why conditions cannot run together.
-pub fn conditions(case: Option<&Case>, file_name: &str) -> Result<Conditions, String> {
+pub fn conditions(case: Option<&Case>, default: &[Condition], file_name: &str) -> Result<Conditions, String> {
+  let words = if let Some(case) = case {
+    case.conditions.as_slice()
+  } else {
+    if let Some(word) = default.iter().find(|word| word.name != OUTCOMES) {
+      return Err(format!("{}={}: {DEFAULT_OUTCOMES_ONLY}", word.name, word.value));
+    }
+    default
+  };
   let mut conditions = Conditions::default();
-  for condition in case.map_or_default(|case| case.conditions.as_slice()) {
+  for condition in words {
     let (name, value) = (condition.name.as_str(), condition.value.as_str());
     let refused = || format!("{name}={value}");
     if let Some(limit) = name.strip_prefix(LIMIT) {
@@ -183,6 +217,8 @@ pub fn conditions(case: Option<&Case>, file_name: &str) -> Result<Conditions, St
         .push((requested, response(value).ok_or_else(refused)?));
     } else if name == LOOKUP {
       conditions.lookup = lookup_named(value).ok_or_else(refused)?;
+    } else if name == OUTCOMES {
+      conditions.outcomes = outcomes_named(value).ok_or_else(refused)?;
     } else {
       return Err(refused());
     }
@@ -247,6 +283,15 @@ fn percent_decoded(value: &str) -> Option<String> {
     }
   }
   String::from_utf8(bytes).ok()
+}
+
+/// The outcomes of a serialized name.
+fn outcomes_named(name: &str) -> Option<Outcomes> {
+  match name {
+    "shared" => Some(Outcomes::Shared),
+    "per_adapter" => Some(Outcomes::PerAdapter),
+    _ => None,
+  }
 }
 
 /// The limit of a serialized name, or `None` for a name that this version does not know.

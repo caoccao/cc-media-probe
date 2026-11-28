@@ -17,8 +17,10 @@
 
 //! The seed check (plan section 9.5), which is also the corpus tool: every seed of every fixture, in its target's
 //! input encoding, reaches the parser that it was written for and gives the outcome that its fixture records. Each
-//! fixture with a target is also a seed of the full public probe, whose outcome is its expectation's: `report`, or
-//! the error record's kind, so a whole fixture never names `probe` as its target, while a region may. The check
+//! fixture with a target is also a seed of the full public probe, which probes bytes in memory, so its outcome is
+//! that of the bytes adapter in the default case's expectation: `expected`, or the `bytes` member of `outcomes`
+//! where the default case's adapters keep their own; `report`, or the error record's kind. So a whole fixture
+//! never names `probe` as its target, while a region may. The check
 //! reads those expectations only after the golden pass has run in the same process, so that with
 //! `CC_MEDIA_PROBE_WRITE_EXPECTATIONS` set it reads what that pass wrote. Every seed is within the fuzz run's input
 //! length whatever its target, before a target that a fixture names ahead of the library is let through on the
@@ -34,6 +36,7 @@ use kit::syntax::parse;
 use library::fuzzing_entry_points::{EncodingError, MAXIMUM_INPUT_LENGTH, Parser, Target, encode, run};
 use serde_json::Value;
 
+use crate::common::conditions::{Outcomes, conditions};
 use crate::common::corpus::{self, Checked, file_name};
 use crate::common::expectation::stored;
 use crate::expectations::checked_expectations;
@@ -41,9 +44,22 @@ use crate::expectations::checked_expectations;
 /// The targets that a fixture may name before the library has them, each with the phase that adds it.
 const LATER_TARGETS: [(&str, &str); 2] = [("flac", "Phase 9"), ("flac_codec", "Phase 4")];
 
-/// The outcome of the full public probe that the default case's expectation of fixture `name` records.
-fn probe_outcome(name: &str) -> String {
-  let expected = stored(&expectation_path(name, None, "expected"));
+/// The outcome of the full public probe, which probes bytes in memory, that the default case's expectation of
+/// `fixture` records: its `expected`, or the `bytes` member of its `outcomes` where its adapters keep their own, as
+/// the fifth review of the proposal asked, which found a reader stopped by the default read limit beside bytes in
+/// memory that completed.
+fn probe_outcome(fixture: &Fixture) -> String {
+  bytes_outcome(fixture, |part| stored(&expectation_path(&fixture.name, None, part)))
+}
+
+/// The outcome of the bytes adapter in the default case of `fixture`, whose expectation `part` `stored` gives.
+fn bytes_outcome(fixture: &Fixture, stored: impl Fn(&str) -> Value) -> String {
+  let default = conditions(None, &fixture.header.default_conditions, fixture.file_name())
+    .unwrap_or_else(|refused| panic!("{}: {refused}", fixture.name));
+  let expected = match default.outcomes {
+    Outcomes::Shared => stored("expected"),
+    Outcomes::PerAdapter => stored("outcomes")["bytes"].clone(),
+  };
   expected
     .get("kind")
     .and_then(Value::as_str)
@@ -116,7 +132,7 @@ fn checked_seeds_of(fixture: &Fixture) -> Vec<Checked> {
     let reached = run(Target::Probe, &input);
     assert_eq!(
       (reached.parser, reached.outcome),
-      (Some(Parser::PublicProbe), probe_outcome(name)),
+      (Some(Parser::PublicProbe), probe_outcome(fixture)),
       "{name}: the public probe"
     );
     checked.push(Checked {
@@ -136,6 +152,21 @@ fn fixture_of(name: &str, text: &str) -> Fixture {
     header: parsed.header,
     body: parsed.body,
   }
+}
+
+#[test]
+fn the_probe_targets_outcome_is_the_bytes_adapters_in_the_default_case() {
+  let text =
+    |default: &str| format!("description: a\nsource: b\ntarget: toy\noutcome: report\n{default}---\n## a\n00 # f\n");
+  let parts = |part: &str| match part {
+    "expected" => serde_json::json!({ "kind": "unknown_format" }),
+    "outcomes" => serde_json::json!({ "bytes": { "format": "toy" }, "reader": { "kind": "format_not_determined" } }),
+    other => panic!("{other}: no such part"),
+  };
+  let shared = fixture_of("test/shared", &text(""));
+  assert_eq!(bytes_outcome(&shared, parts), "unknown_format");
+  let each = fixture_of("test/each", &text("default: outcomes=per_adapter\n"));
+  assert_eq!(bytes_outcome(&each, parts), "report");
 }
 
 #[test]

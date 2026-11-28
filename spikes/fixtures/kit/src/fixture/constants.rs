@@ -33,8 +33,9 @@ pub const PART_SEPARATOR: char = '.';
 /// never holds it, so no seed's name is another's.
 pub const REGION_SEPARATOR: char = '#';
 /// The parts of an expectation: the semantic part of the seekable class, the forward-only class's where it
-/// differs, and each adapter's part.
-pub const PARTS: [&str; 3] = ["expected", "forward", "adapters"];
+/// differs, each adapter's semantic part in a case whose adapters may stop differently at a limit, and each
+/// adapter's part.
+pub const PARTS: [&str; 4] = ["expected", "forward", "outcomes", "adapters"];
 
 /// The message of a fixture that cannot be read.
 pub const UNREADABLE: &str = "the fixture cannot be read";

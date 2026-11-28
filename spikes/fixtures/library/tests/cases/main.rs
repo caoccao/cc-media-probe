@@ -17,8 +17,9 @@
 
 //! The cases of the fixture spike's stand-in for the library: the seed check over every fixture, which also writes
 //! the corpus, the configuration names of a repository build, the expectations in the library's JSON form in each
-//! case through each blocking adapter, the conditions of a case, the split of a record, the values that a recipe
-//! states, and the toy walker's and parser's outcomes.
+//! case through each blocking adapter, the conditions of a case, the outcomes that adapters share or keep apart, the
+//! usage of each record against the case's limits, the paths of a record, the split of a record, the values that a
+//! recipe states, the toy walker's and parser's outcomes, and the smallest records that the tests build.
 
 #[cfg(test)]
 mod common;
@@ -29,10 +30,18 @@ mod configuration;
 #[cfg(test)]
 mod expectations;
 #[cfg(test)]
+mod outcomes;
+#[cfg(test)]
 mod recipes;
 #[cfg(test)]
+mod records;
+#[cfg(test)]
 mod seeds;
+#[cfg(test)]
+mod sources;
 #[cfg(test)]
 mod split;
 #[cfg(test)]
 mod toy;
+#[cfg(test)]
+mod usage;

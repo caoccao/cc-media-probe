@@ -17,14 +17,17 @@
 
 //! What the cases share, as the library's `tests/common/` would hold it: the conditions of a case, the places of
 //! source entries and their paths, the split of a record into its semantic and adapter parts, the comparison of an
-//! expectation with its file, the I/O error kinds of a failed companion, the match of a recipe's stated values, JSON
-//! pointers, and the corpus that the seed check writes.
+//! expectation with its file, the outcomes that adapters share or keep apart where a limit explains it, the usage
+//! of each record against the case's limits and the measured reads, the I/O error kinds of a failed companion, the
+//! match of a recipe's stated values, JSON pointers, and the corpus that the seed check writes.
 
 pub mod conditions;
 pub mod corpus;
 pub mod expectation;
 pub mod failures;
 pub mod matcher;
+pub mod outcomes;
 pub mod pointer;
 pub mod sources;
 pub mod split;
+pub mod usage;

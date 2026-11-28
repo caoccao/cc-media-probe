@@ -18,9 +18,9 @@
 //! The header of a fixture: `name: value` lines up to the line `---`, with blank lines and `#` comments between
 //! them.
 
-use super::case::{Case, parse_case};
+use super::case::{Case, Condition, parse_case, parse_default};
 use super::constants::{
-  CASE, COMMENT, DECIMAL_RADIX, DESCRIPTION, ERRATUM, FILE_NAME, LENGTH, MEMBER_SEPARATOR, SOURCE,
+  CASE, COMMENT, DECIMAL_RADIX, DEFAULT, DESCRIPTION, ERRATUM, FILE_NAME, LENGTH, MEMBER_SEPARATOR, SOURCE,
 };
 use super::error::{SyntaxError, SyntaxErrorKind};
 use super::names::file_name;
@@ -39,6 +39,8 @@ pub struct Header {
   pub route: Option<Route>,
   /// The name of the input as a file, when the header states one.
   pub file_name: Option<String>,
+  /// The conditions of the default case, which a `default:` line gives; empty without one.
+  pub default_conditions: Vec<Condition>,
   /// The cases beyond the default conditions, in the order given.
   pub cases: Vec<Case>,
   /// How many bytes the body assembles to, when the header states it.
@@ -58,6 +60,8 @@ struct Members {
   route: RouteMembers,
   /// The file name, once read.
   file_name: Option<String>,
+  /// The default case's conditions, once read.
+  default_conditions: Option<Vec<Condition>>,
   /// The cases so far.
   cases: Vec<Case>,
   /// The length, once read.
@@ -75,6 +79,7 @@ impl Members {
         Ok(())
       }
       FILE_NAME => file_name(value).and_then(|value| once(&mut self.file_name, name, value)),
+      DEFAULT => parse_default(value).and_then(|value| once(&mut self.default_conditions, name, value)),
       CASE => {
         let case = parse_case(value)?;
         if self.cases.iter().any(|known| known.name == case.name) {
@@ -118,6 +123,7 @@ pub(crate) fn parse_header<'text>(
     errata: members.errata,
     route: members.route.finish_header().map_err(|kind| kind.at(end_line))?,
     file_name: members.file_name,
+    default_conditions: members.default_conditions.unwrap_or_default(),
     cases: members.cases,
     length: members.length,
   })

@@ -21,10 +21,10 @@
 
 use std::io::ErrorKind;
 
-use cc_media_probe::Limit;
+use cc_media_probe::{Limit, Limits};
 use kit::syntax::{Case, Condition};
 
-use crate::common::conditions::{Lookup, Naming, Response, conditions};
+use crate::common::conditions::{Lookup, Naming, Outcomes, Response, conditions};
 
 /// The file name of the fixture whose cases these tests read.
 const FILE_NAME: &str = "movie.idx";
@@ -58,6 +58,7 @@ fn each_condition_is_read_by_its_rule() {
       ("companion.quiet.toyc", "declined:"),
       ("lookup", "custom"),
     ])),
+    &[],
     FILE_NAME,
   )
   .unwrap();
@@ -85,6 +86,7 @@ fn each_condition_is_read_by_its_rule() {
   );
   let built_in = conditions(
     Some(&case(&[("lookup", "built_in"), ("companion.movie.sub", "not_found")])),
+    &[],
     FILE_NAME,
   )
   .unwrap();
@@ -93,13 +95,13 @@ fn each_condition_is_read_by_its_rule() {
 
 #[test]
 fn the_default_case_has_its_lookup_off_and_the_fixtures_file_name() {
-  let read = conditions(None, FILE_NAME).unwrap();
+  let read = conditions(None, &[], FILE_NAME).unwrap();
   assert_eq!(read.lookup, Lookup::Off);
   assert_eq!(
     (read.pieces, read.naming, read.companions),
     (Vec::new(), Naming::FileName, Vec::new())
   );
-  let off = conditions(Some(&case(&[("lookup", "off")])), FILE_NAME).unwrap();
+  let off = conditions(Some(&case(&[("lookup", "off")])), &[], FILE_NAME).unwrap();
   assert_eq!(off.lookup, Lookup::Off);
 }
 
@@ -112,11 +114,11 @@ fn a_hint_is_percent_encoded_utf_8_for_the_names_that_no_file_can_have_or_none()
     ("movie.", "movie."),
     ("%6Eone", "none"),
   ] {
-    let read = conditions(Some(&case(&[("hint", value)])), FILE_NAME).unwrap();
+    let read = conditions(Some(&case(&[("hint", value)])), &[], FILE_NAME).unwrap();
     assert_eq!(read.naming, Naming::Hint(hint.to_owned()), "{value}");
     assert!(!read.has_file());
   }
-  let nameless = conditions(Some(&case(&[("lookup", "custom"), ("hint", "none")])), FILE_NAME).unwrap();
+  let nameless = conditions(Some(&case(&[("lookup", "custom"), ("hint", "none")])), &[], FILE_NAME).unwrap();
   assert_eq!((nameless.naming, nameless.lookup), (Naming::Absent, Lookup::Custom));
 }
 
@@ -144,13 +146,14 @@ fn a_word_that_no_rule_reads_is_refused() {
     ("companion.movie%2", "not_found"),
     ("companion.", "not_found"),
     ("lookup", "anywhere"),
+    ("outcomes", "each"),
     ("hint", ""),
     ("hint", "a%2"),
     ("hint", "a%+1"),
     ("hint", "m%FFkv"),
     ("delay", "5"),
   ] {
-    let refused = conditions(Some(&case(&[(name, value)])), FILE_NAME).unwrap_err();
+    let refused = conditions(Some(&case(&[(name, value)])), &[], FILE_NAME).unwrap_err();
     assert_eq!(refused, format!("{name}={value}"));
   }
 }
@@ -197,19 +200,55 @@ fn conditions_that_no_adapter_can_run_together_are_refused() {
     ),
     (&[("lookup", "built_in"), ("pieces", "4")][..], "pieces"),
   ] {
-    let error = conditions(Some(&case(words)), FILE_NAME).unwrap_err();
+    let error = conditions(Some(&case(words)), &[], FILE_NAME).unwrap_err();
     assert!(error.starts_with(&format!("{refused}: ")), "{error}");
   }
 }
 
 #[test]
-fn built_in_lookup_without_a_path_runs_through_every_other_adapter() {
+fn built_in_lookup_without_a_path_runs_through_every_other_blocking_adapter() {
   for hint in ["a.idx", "none"] {
     let read = conditions(
       Some(&case(&[("lookup", "built_in"), ("hint", hint), ("pieces", "4")])),
+      &[],
       FILE_NAME,
     )
     .unwrap();
     assert_eq!((read.lookup, read.has_file()), (Lookup::BuiltIn, false), "{hint}");
+  }
+}
+
+#[test]
+fn outcomes_of_each_adapter_need_no_limit_and_are_shared_by_default() {
+  let read = conditions(
+    Some(&case(&[("limit.working_memory", "0"), ("outcomes", "per_adapter")])),
+    &[],
+    FILE_NAME,
+  )
+  .unwrap();
+  assert_eq!((read.outcomes, read.limits.working_memory()), (Outcomes::PerAdapter, 0));
+  let pieces = conditions(
+    Some(&case(&[("outcomes", "per_adapter"), ("pieces", "4")])),
+    &[],
+    FILE_NAME,
+  )
+  .unwrap();
+  assert_eq!((pieces.outcomes, pieces.pieces), (Outcomes::PerAdapter, vec![4]));
+  let shared = conditions(Some(&case(&[("outcomes", "shared")])), &[], FILE_NAME).unwrap();
+  assert_eq!(shared.outcomes, Outcomes::Shared);
+  assert_eq!(conditions(None, &[], FILE_NAME).unwrap().outcomes, Outcomes::Shared);
+}
+
+#[test]
+fn the_default_line_gives_the_default_case_its_outcomes_alone() {
+  let default = case(&[("outcomes", "per_adapter")]).conditions;
+  let read = conditions(None, &default, FILE_NAME).unwrap();
+  assert_eq!((read.outcomes, read.limits), (Outcomes::PerAdapter, Limits::default()));
+  let named = conditions(Some(&case(&[("pieces", "4")])), &default, FILE_NAME).unwrap();
+  assert_eq!(named.outcomes, Outcomes::Shared, "a named case has its own conditions");
+  for (name, value) in [("limit.working_memory", "0"), ("pieces", "4"), ("lookup", "custom")] {
+    let default = case(&[("outcomes", "per_adapter"), (name, value)]).conditions;
+    let error = conditions(None, &default, FILE_NAME).unwrap_err();
+    assert!(error.starts_with(&format!("{name}={value}: ")), "{error}");
   }
 }
