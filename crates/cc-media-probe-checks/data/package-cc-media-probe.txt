@@ -145,6 +145,7 @@ src/format/constants.rs
 src/format/identity.rs
 src/format/mod.rs
 src/format/support_level.rs
+src/fuzzing_entry_points.rs
 src/lib.rs
 src/model/attachments/attachment.rs
 src/model/attachments/constants.rs

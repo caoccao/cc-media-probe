@@ -221,6 +221,9 @@ pub mod error;
 mod form;
 mod form_record;
 mod format;
+#[cfg(any(fuzzing, cc_media_probe_repository))]
+#[doc(hidden)]
+pub mod fuzzing_entry_points;
 pub mod model;
 mod prober;
 pub mod source;

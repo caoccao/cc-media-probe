@@ -108,7 +108,7 @@ These rules hold in every crate of the repository (§7.2). Clippy lints and the 
 ## Quality bars
 
 - **Coverage (R28):** line coverage **above 90%**, where exactly 90.0% fails. It applies to each published crate as a whole and to each library area: `containers/`, `codecs/`, `tags/`, `text/`, `disc/`, `detect/`, `registry/`, `input/` and `utilities/`. A crate or area is held to it from the first change that gives it executable code, so write the tests together with the code. It is measured from the LCOV report of `cargo llvm-cov --workspace --all-features --lcov`, without the lines of embedded test blocks, which the tool would count as covered.
-- Zero warnings from the compiler, Clippy and rustdoc. Every public item has rustdoc with an example; `missing_docs` is denied.
+- Zero warnings from the compiler, Clippy and rustdoc. Every public item has rustdoc, and `missing_docs` is denied. Each public type, function and constant of the published crates and of the test kit has an example in its rustdoc; the checks crate's library, which only its binary uses, has none.
 - **Every implementation phase is covered** (§9.3, §12). Phases 3 to 17 add the tests of their code in the same change, and the format phases add their recipes and hex fixtures. Each phase gate reports the coverage of both published crates and every area, all above 90%.
 - A bug found after a format ships gets a minimized test file before it is fixed: a recipe where a tool can produce the case, a hex fixture otherwise.
 - A change to reported output updates its expectation files and is listed in `CHANGELOG.md` under "Changed output" and in the phase-gate summary (§9.6).

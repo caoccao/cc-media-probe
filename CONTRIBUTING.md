@@ -82,6 +82,7 @@ Each rule names its source in the plan: a requirement (R…) of [section 3](docs
 - **Coverage.** Every implementation phase is covered by tests, and its gate requires line coverage above 90% for both published crates and every area (R28).
 - A bug found after a format ships gets a minimized test file before it is fixed: a recipe where a tool can produce the case, a hex fixture otherwise.
 - A change to what a probe reports updates its expectation files and is listed in the changelog under "Changed output" ([section 9.6](docs/plans/plan-init-project.md#96-reviewing-changes-in-reported-output)).
+  - **Writing expectations.** The files beside each fixture are written only on purpose. Run `cargo test -p cc-media-probe --all-features --test golden` with `CC_MEDIA_PROBE_WRITE_EXPECTATIONS=1`, then review the diff. Without the variable, a missing, different or stale file fails the test ([`docs/design/test-kit.md`](docs/design/test-kit.md) section 4.3). A file holds exactly the text that the writer writes, so write it again rather than edit it by hand: a file whose white space or member order differs fails too. The run writes each file below Cargo's target folder first and renames it into place, so the target folder must be on the repository's file system.
 
 ### Code
 
@@ -106,7 +107,7 @@ Everything is written in American English: `color`, `behavior`, `license`, `anal
 ### Coverage and documentation
 
 - Line coverage is **above 90%**, where exactly 90.0% fails, for each published crate and for each area of the library (R28). Tests arrive together with the code they cover.
-- Zero warnings from the compiler, the linter and rustdoc. Every public item has rustdoc with an example.
+- Zero warnings from the compiler, the linter and rustdoc. Every public item has rustdoc, and each public type, function and constant of the published crates and of the test kit has an example in it.
 - A new public enum, variant or struct joins its module's list in `crates/cc-media-probe/src/downstream/`, which gives it a doc test proving that a dependent crate can neither match it exhaustively nor build it with a struct literal (plan section 8.10). A variant left out stops the crate's own tests from building. A field of the library is private, or `pub(crate)` and narrower; the Rust structure check refuses one declared `pub` without a restriction.
 - In Markdown documents, workflows and processes are drawn as Mermaid diagrams that restate the prose beside them (R14).
 - Every change that users of the published crates can notice is entered in [CHANGELOG.md](CHANGELOG.md) in the same commit. An entry for a breaking change begins with **Breaking**.

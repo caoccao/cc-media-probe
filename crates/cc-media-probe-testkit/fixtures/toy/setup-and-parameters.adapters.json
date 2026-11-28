@@ -1,0 +1,62 @@
+{
+  "async_source": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "bytes": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0
+  },
+  "file": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0
+  },
+  "futures_reader": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "futures_stream": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "reader": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "source": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "stream": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "tokio_file": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0
+  },
+  "tokio_reader": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  },
+  "tokio_stream": {
+    "/usage/bytes_read": 0,
+    "/usage/peak_working_memory": 0,
+    "bytes_delivered": 0,
+    "read_calls": 0
+  }
+}

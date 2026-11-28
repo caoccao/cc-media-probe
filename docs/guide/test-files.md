@@ -145,7 +145,7 @@ The generator checks all recipes before it runs any tool, and stops when it find
 
 A recipe may carry other members, such as the values its tests expect. The generator ignores them, and they are not part of the file's identity, so changing an expectation never makes a file again.
 
-**The values a test expects, proposed for G3.2.** [`docs/design/test-kit.md`](../design/test-kit.md#44-the-values-that-a-recipe-states) section 4.4 proposes a member `expected` for each file. It holds a partial report in the library's JSON form, with only what the recipe fixes and the specifications derive from it (section 6):
+**The values a test expects, approved at G3.2.** [`docs/design/test-kit.md`](../design/test-kit.md#44-the-values-that-a-recipe-states) section 4.4 gives each file a member `expected`, which the file's test matches with its report through the golden tests' matcher. It holds a partial report in the library's JSON form, with only what the recipe fixes and the specifications derive from it (section 6):
 - every member that `expected` names must hold that value;
 - a member that it names as `null` must be absent;
 - an array must have as many entries as it lists;
@@ -229,7 +229,7 @@ Different machines and CI platforms can have different tool versions, so a gener
 
 It does not assert byte offsets, sizes in bytes, unique identifiers that a seed produces, element order or anything else that a tool version decides. Those belong to hex fixtures. No test reads or compares what a tool reports about a file: expected values come from the recipe and the specifications only (R8, R16).
 
-A test whose generated file is missing fails, and its message names `node scripts/generate-test-files.ts`. It is never skipped silently. The test kit resolves the paths of generated files from Phase 3 on.
+A test whose generated file is missing fails, and its message names `node scripts/generate-test-files.ts`. It is never skipped silently. The test kit resolves the paths: `generated::path("containers/matroska/h264-opus.mkv")` gives the file below `target/test-files/`, or that error, and `generated::recipe_path` the recipe file that describes it. Both take a name only as the generator writes it, by the rules of sections 1 and 3, so a missing file is one that a recipe could describe. Only a file that is absent is missing: a path whose metadata cannot be read fails with the system's error, and a path that holds a folder or another entry says so, since running the generator again fixes neither. `generated::path_in` looks below another folder alike, so that the lookup's own tests do not depend on the files that a developer has generated.
 
 ## 7. What hex fixtures still cover
 

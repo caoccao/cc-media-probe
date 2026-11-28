@@ -6400,3 +6400,215 @@ Findings 1 and 3 were reproduced first, as one temporary test of the fixture spi
   - the seed check in the golden target and the fuzz workflow's features, for task 20;
   - the companion cases, the rule of their answers and the async test of built-in lookup, for Phase 14, task 1.
 - A fixture that records `hint_only` waits for detection's file-name hints of G3.5.
+
+## 2026-11-28 — G3.2 Fixture format and access to internals [CONFIRM]
+
+**Approved** for plan revision 81 at `b37e471`. The decision covers the complete [test-kit design](../design/test-kit.md), including D14, D19 and the choices in section 8 as revised through the seventh review.
+
+The fixture records which adapters must agree and how to represent a difference at a resource limit. A fuzz seed for the public probe uses the byte-slice adapter's expected outcome. The golden tests use all library features. Phase 3, task 14 adds a separate library run for the behavior with `zlib` disabled. The tests use the existing public report and error formats, with access to internals confined to repository and fuzz builds.
+
+The gate review reran all 87 fixture-spike tests and the library tests with `serde_json/preserve_order`. The path checks cover file reports, partial reports and observations using records accepted by the strict reader. Phase 3 proceeds with task 4, the permanent test kit. G3.3 reviews the public default limits after the budget work in task 7.
+
+## 2026-11-28 — Phase 3, task 4: the test kit, first part
+
+After G3.2, task 4 writes the test kit's first part from `test-kit.md` sections 2, 4 and 5, starting from the fixture spike's `kit/` and `library/tests/cases/`: the hex-fixture assembler, the byte and bit writers, the fault-injecting and counting readers, the expectation comparison with its semantic and adapter parts, the paths of generated test files with the values that a recipe states, and `fuzzing_entry_points::prober`.
+
+**Questions asked and the maintainer's answers, on 2026-11-28:**
+
+| Question | Answer |
+|---|---|
+| Where the golden tests' target and its helpers live, since plan section 7.1 put the helpers in `tests/common/`, which a folder target reaches only through `#[path]`, forbidden by R31: inside the target, in shared `tests/common/` with file roots and `autotests = false`, or in a support crate | Inside the target, `tests/golden/common/` |
+| How much of the routing task 4's assembler takes on, since task 19 has the seeds with their routes: the whole syntax, routes and regions included, with the seeds by name in task 19; the seeds now too; or directives kept raw until task 19 | The whole syntax, the seeds by name in task 19 |
+| How the six async adapters' readers deliver: pending once before each read, or ready at once | Pending once before each read |
+
+**Online and specification check, on 2026-11-28.**
+- ITU-T H.264 (V16, 06/2026), section 7.4.1: the three-byte sequences 0x000000, 0x000001 and 0x000002 may not occur in a NAL unit, nor 0x000003 followed by a byte above 0x03, and its last byte may not be 0x00. Section 7.4.1.1 gives the encoder's procedure: a 0x03 after each two zero bytes that a byte of at most 0x03 follows, the third zero counting toward the next search, and a final 0x03 when the RBSP ends with 0x00, "which can only occur when the RBSP ends in a cabac_zero_word". Section 7.3.1 gives the syntax that reads it back. A web search found the same rule restated; no implementation's source was opened.
+- ITU-T H.264, section 9.1 with tables 9-1 and 9-2, the unsigned Exp-Golomb bit strings, and section 9.1.1 with table 9-3, the signed mapping, `(−1)^(k+1) Ceil(k ÷ 2)`.
+- The Vorbis I specification, section 2.1.4, packs integers least significant bit first into the least significant unused bit, and section 2.1.6 codes 12 in 4 bits, −1 in 3, 17 in 7 and 6969 in 13 as `FC 48 CE 06`.
+- Tokio's `AsyncSeek`: `poll_complete` gives an unspecified value when no `start_seek` came before it, and its `seek` future calls `poll_complete` before `start_seek`, so the test's reader gives its tracked position there rather than seeking. futures-lite's `AssertAsync` serves futures-io's traits over a standard reader and is never pending, so the pending reader is the test's own.
+- The Rust book, "Test Organization": `tests/common/mod.rs` is reached by `mod common;` from a file root in `tests/`, and a folder's files are no crates of their own. The Cargo Book, "Cargo Targets": a test target whose `required-features` are off is skipped, and `path` names a target's root.
+
+**What was built.**
+- **The test kit,** `crates/cc-media-probe-testkit/`, with the standard library only:
+  - `syntax/`, the text format and its assembler, every member, condition, route and region of section 2, with each refusal of section 2.4 at its line, as the spike had them;
+  - `fixture/`, the fixtures by name from `fixtures/` in the kit's manifest folder, the layout checked whole, and `expectation_path`; the seeds by name wait for task 19;
+  - `builder/`, `ByteWriter` with the interface of section 5, `BitWriter` in either `BitOrder` with Exp-Golomb codes and alignment, `insert_emulation_prevention`, and `BuildError`, which a writer records for its first value wider than its field and gives back from `into_bytes`;
+  - `readers/`, `CountingReader` with `Counts` and its seeks, and `FaultingReader` with `Faults`: pieces, an error of a chosen kind at an offset, an error that wraps any Rust error, and an interruption once, which a custom source applies at its own positions too;
+  - `generated/`, `path` below `target/test-files/` at the repository's root, failing with a message that names `node scripts/generate-test-files.ts` when the file is missing, `recipe_path` and `folder`;
+  - the two samples in `fixtures/toy/` and `fixtures/flac/`, and their expectation files, written by the golden pass.
+- **The library,** `fuzzing_entry_points.rs`, compiled under `cfg(any(fuzzing, cc_media_probe_repository))` and hidden, with `prober(hint)` alone; and the test kit as a development dependency by path, which Cargo leaves out of the published manifest.
+- **The golden target,** `tests/golden/`, with `required-features` of `serde`, `tokio` and `futures-io`:
+  - eleven adapters, `file`, `reader`, `bytes`, `source` and `stream`, blocking, `tokio_file`, `tokio_reader`, `tokio_stream`, `futures_reader`, `futures_stream` and `async_source`;
+  - `common/memory.rs`, the custom positional sources, blocking and async, and `common/pending.rs`, the reader of both runtimes, each async one pending once before each read;
+  - the protocol of the spike: the conditions, the usage within each adapter's limits before the netting, the primary input's path, the paths with the placeholder, the split, the shared or per-adapter outcomes, the comparison or writing of each part and the removal of stale ones, the case folders of 512 bytes, and the recipe matcher;
+  - a lookup other than `off`, and a companion's answer, refused until Phase 14, task 1, by a message that names it.
+
+**Tests.** The kit's target `kit` has 38 cases: the format's refusals, the layout, the samples against the RFC's dump and against the byte writer, the readers' faults and counts, the writers against tables 9-2 and 9-3, the Vorbis example and the escape of section 7.4.1, and the generated paths. The golden target has 41: the pass through every adapter over both samples, the toy sample in its default case and its two named cases and the FLAC sample in its default case, and the protocol's parts with the spike's tests, among them the sixth and seventh reviews' cases of the netting and the path, and five of the test's sources and readers. The semantic parts written for the samples are byte for byte the spike's, and the adapter parts add the six async adapters.
+
+**Found while building:**
+- **The duplicate-code check matched short constructors.** `cargo dupes` found `CountingReader::new`, `FaultingReader::new` and `BitWriter::new` 82% alike, and `FaultingReader::with_faults` 80% alike with the library's `StrictVisitor::new`, all struct literals of one shape. Each became shorter than the check's five lines, by a delegation or a literal of shorthand fields, without a threshold or an exclusion changed.
+- **The structure check found the field names of `Faults`' hand-written `Debug` as literals,** which moved into the readers' constants module.
+- **The escape reads back only after pairs of trailing zeros.** A payload that ends with a lone zero byte takes the final 0x03 of section 7.4.1.1, which the syntax of section 7.3.1 reads back as data. Such an RBSP cannot occur, so the exhaustive test asserts the round trip for payloads whose trailing zeros come in pairs, as `cabac_zero_word`s do, and the allowed patterns and a last byte other than 0x00 for every payload of up to five bytes over 0 to 4.
+- **Clippy in test helpers.** `arithmetic_side_effects` has no allowance for tests, so the helpers outside `#[test]` functions read without arithmetic; and the test reader's field `pending` repeated its type's name, so it is `suspends`.
+
+**Choices made without asking,** each open at G3.6:
+- the target names `golden` and `kit`, and the eleven adapters' names;
+- `Faults` as one type for the faulting reader and a custom source, and an error at its offset that every read there gives, while an interruption comes once;
+- a writer's first error kept and given back by `into_bytes`, so that `ByteWriter::into_bytes` returns a `Result`, and the most significant bit first as `BitOrder`'s default;
+- an Exp-Golomb code written bit after bit in a least-significant-first writer too, which no specification defines;
+- `generated::path` refusing a topic outside the five of the test-files guide, and a component that is empty, `.`, `..`, or holds `\` or `:`;
+- only reads pending in the async readers, while seeks and lengths are ready;
+- the conditions read without the fixture's file name until Phase 14 needs it for built-in companions;
+- `fuzzing_entry_points` a single file until task 20 gives it modules.
+
+**Plan revision 83.** Section 7.1: a test target's helpers in its own `common/` folder. Phase 3, task 4: the three choices and the task done; task 19: the seeds by name of the routes that task 4 reads; the status line, which also says that the seventh revision answered its review.
+
+**Documents.** `test-kit.md`: the status, section 5's writers, faults, async readers and `recipe_path`, and section 9's task 4 with the adapters' names, and task 19. `docs/guide/test-files.md`: the recipe's values approved at G3.2, and the paths that the test kit gives. `CONTRIBUTING.md`: how expectations are written. `spikes/fixtures/README.md`: what task 4 took over.
+
+**Verification.**
+- `cargo test -p cc-media-probe-testkit`: 38 cases and 2 embedded, all passing.
+- `cargo test -p cc-media-probe --all-features --test golden`: 41 passing, also with `serde_json/preserve_order`; with `--features serde` alone, Cargo refuses the target and names the missing features.
+- `cargo run -p cc-media-probe-checks -- structure`: 0 findings; `cargo dupes --path . check`: passed.
+- `node scripts/check.ts`: all checks passed, with the library's line coverage at 98.34%.
+
+**Open:**
+- the file adapters' read counts, with `with_source_counter` and the I/O layer, for task 6;
+- the toy format in the prober, the toy fixtures and `toy/header-across-packets`, for task 5;
+- the first case of outcomes of each adapter, for task 7;
+- the seeds by name and the truncation and mutation harness, for task 19, and the seed check with the rest of `fuzzing_entry_points`, for task 20;
+- the companion cases and their resolvers, for Phase 14, task 1.
+
+## 2026-11-28 — Phase 3, task 4: the review of the test kit's first part
+
+The maintainer reviewed task 4 as staged. All 81 tests of the test kit and the golden target passed, the golden tests also with `serde_json/preserve_order`, regeneration in an isolated copy reproduced the expectation files byte for byte, and `git diff --cached --check` was clean. The review found thirteen issues, six of priority 2 and seven of priority 3. Each holds, and each is fixed. No gate is involved.
+
+**The findings, and what changed:**
+
+| # | Finding | What changed | Shown |
+|---|---|---|---|
+| 1 | P2: an error's partial report or observations passed the primary-path check without its source table | Each of them that stands needs its table; only one that is absent is skipped | Yes |
+| 2 | P2: the file adapters were given the file name as an explicit hint, so a file probe that stopped taking its name from its path would still pass | The file adapters' prober has no hint, and every other adapter keeps it | By reading; the expectations are unchanged |
+| 3 | P2: a case's folder kept its root before the padding, so the drop removed a path that never existed, and the test checked that path | The root is the case's padded component. The test writes a file into each folder and checks that the folder and its root are gone after the drop | Yes; the 29 files that earlier runs left below `target/tmp/expectations/` were removed |
+| 4 | P2: a custom source's failed read was not counted | `read_at` counts every call, and a failed one as a call that delivered nothing, as `CountingReader` does | Yes: `read_calls` was 0 beside the reader's 1 |
+| 5 | P3: an array of another length hid the differences of its entries | The length is reported at the array's pointer, and the entries that both arrays have are still compared | Yes: `[1, 2]` against `[9]` gave the length alone |
+| 6 | P3: the golden pass read the whole layout again for each fixture | The layout is read once, before any file is written, and its expectation files are grouped by fixture. The forward-only part counts as accounted for whether it is compared or found absent, since a file that `check_absent` removes is in that early listing | By reading |
+| 7 | P3: the message of a stale file did not name the variable | It names `CC_MEDIA_PROBE_WRITE_EXPECTATIONS` through `WRITE` | By reading |
+| 8 | P2: the kit's layout tests shared two fixed folders, so concurrent runs removed each other's files | `tests/kit/scratch.rs` gives each test that writes files its own folder, named after the test, the process and a number, and removes it on drop | Yes: eight concurrent runs of the layout tests all pass, where the review saw six of eight fail |
+| 9 | P2: the layout check followed symbolic links, so writing expectations could go through a linked format folder or file | Each entry is taken by its own type, and a symbolic link in the folder, or as the folder itself, is refused with a message of its own | Yes, by a test under `cfg(unix)` |
+| 10 | P3: `FaultingReader` around a reader already moved applied its faults as if at byte 0 until a seek | `with_position` states where the inner reader stands | Yes |
+| 11 | P3: a case name that the syntax accepts could give expectation files whose names no file system holds | `Fixture::load`, and the new `Fixture::from_text`, refuse a case whose files would have a name beyond 255 bytes, the default case's among them, naming the fixture and the case | Yes: a case name of 240 bytes loaded |
+| 12 | P3: the generated-file lookups took names that the generator refuses, such as `video/H264/no-extension` | Both lookups apply the generator's rules for the topic, the format and the file name | Yes |
+| 13 | P3: an `@seed` directive took `context=` without bytes as no context | It is refused as `EmptyContext`. A header member without a value was already refused as malformed | Yes |
+
+**How the fixes were shown.** For each of the nine findings that a new test covers, a script in the scratchpad put the defect back into a copy of the workspace, by the staged file or a one-line change, and ran that test. Each of the nine tests failed with its defect, and the fixed copy passed every test but one that needs the repository's `scripts/` folder. The working tree and the index were not touched: `git status --short` gave the same listing before and after.
+
+**Found while fixing:**
+- **A run's own folder stays.** The cases of one process share the run's component below `expectations/`, so a case cannot remove it without racing a case that is starting. Each run now leaves one empty folder there and no file.
+- **Clippy and the name check.** `similar_names` refused `handled` beside `handed`, so the parts that a case accounts for are `accounted`. The name check refused `hex` in a test's name, which spells it out.
+
+**Choices made without asking,** each open at G3.6:
+- `Fixture::from_text` public, so that a test reaches the check of the names without a file in the fixtures' folder;
+- `FaultingReader::with_position` as a position that the caller states, rather than one read from a seekable inner reader;
+- the limit of 255 bytes checked for every part of every case, the default case's included;
+- the symbolic-link refusal for the fixtures' folder itself, besides its entries;
+- an empty context refused as a kind of its own, `EmptyContext`;
+- the generated names' rules taken from the generator's patterns, `FORMAT_PATTERN` and `FILE_NAME_PATTERN`, which replace task 4's choice of a plain component that is not empty, `.` or `..` and holds no `\` or `:`;
+- the empty folder of each run left below `expectations/`.
+
+**The fixture spike** keeps the earlier code of findings 1 to 5. It is evidence, not adopted code (plan section 1.2), so task 20 takes the golden protocol from the permanent target, not from the spike.
+
+**Documents.** `test-kit.md`: section 2, the symbolic links and the length of an expectation file's name; section 2.4, the empty context; section 4.1, the file adapters without a hint; section 4.4, the arrays; section 5, `with_position`, the custom source's count, `Fixture::from_text` and the generated names; and section 9, the review. `docs/guide/test-files.md` section 6: the names that the lookups take. The plan is unchanged, since no fix changes what it states.
+
+**Verification.**
+- `cargo test -p cc-media-probe-testkit`: 42 cases and 2 embedded, all passing.
+- `cargo test -p cc-media-probe --all-features --test golden`: 44 passing, also with `serde_json/preserve_order`. Afterward no file remained below `target/tmp/`.
+- `cargo clippy` on both crates with every target and feature: no warning; `cargo run -p cc-media-probe-checks -- structure`: 0 findings; `cargo dupes --path . check`: passed.
+- `node scripts/check.ts`: all checks passed, with the library's line coverage at 98.34%.
+
+## 2026-11-28 — Phase 3, task 4: the second review of the test kit's first part
+
+The maintainer reviewed the first review's fixes as staged. All 88 tests of the test kit and the golden target passed, as did eight concurrent runs of the layout tests and the golden tests with `serde_json/preserve_order`. Regeneration in an isolated copy reproduced the expectation files byte for byte, and `git diff --cached --check` was clean. The review found nine more issues: two of priority 2 in the golden validation and seven of priority 3 in the test kit and the adapters. Each holds, and each is fixed. One question went to the maintainer, the reach of the rule on rustdoc examples, below. The plan is amended to revision 84 for it, an amendment to call out at the phase gate (section 1.2). No gate is involved.
+
+**The reach of the rule on examples.** The rule says that every public item has rustdoc with an example (CLAUDE.md, `CONTRIBUTING.md`, plan section 10), but only the published library followed it, with an example on each public type and function rather than on each method. The checks crate's library, of about 500 public items, has none and passed Phase 1. The maintainer chose an example on each type, function and constant that the test kit's modules export, at the library's granularity, with the checks crate's library left as it is, since only its binary uses it, and the scope stated in the three documents. The alternatives were every library crate of the workspace, the checks crate's too, and the published crates alone with one example on `ByteWriter`.
+
+**The findings, and what changed:**
+
+| # | Finding | What changed | Shown |
+|---|---|---|---|
+| 1 | P2: each result was converted to a JSON value directly, so a writer whose output the strict reader refused would be accepted, and written when expectations are written; plan section 8.8 asks for a round trip of every fixture | `common/round_trip.rs`: each result's text must read back through the strict reader as the record that it is and write again as the same text, before anything is checked, split or written. A failure names the fixture | Yes: a writer of the schema version as `1.00` passed the old pass with expectations written, and fails the new one with the version error |
+| 2 | P2: a member named twice in an expectation passed, since serde_json's `Value` keeps the last one | `common/duplicates.rs` reads an expectation's text for a name repeated in one object, at every depth, before the value is parsed, and such a file fails with its path, line and column | Yes: the review's `"kind": "source_failed"` before the toy expectation's `kind` passed the old pass and fails the new one |
+| 3 | P3: an empty read consumed a pending interruption, and the custom source checked its end before its faults, so an error placed at the end was never given | `Faults::apply` gives an empty buffer back as it is, without a fault, for every reader, so an empty read returns 0 as `PositionalSource` requires. The custom source applies its faults before it looks for the end | Yes, by a kit test and a golden test |
+| 4 | P3: the reader for Tokio replaced a waiting seek with a second one | `start_seek` refuses a second seek while one waits for `poll_complete`, with `ErrorKind::Other`, as Tokio's trait allows | Yes: seeks of +2 and +3 stood at 3 |
+| 5 | P3: `Fixture::load` followed a symbolic link that the layout refuses | Loading refuses a link from the folder down: the folder, the format's folder and the file, by the layout's own check. `Fixture::load_from` loads below another folder, for the test | Yes, by a test under `cfg(unix)` |
+| 6 | P3: the test of a missing generated file looked in the developer's `target/test-files/` | The lookup's tests run below a folder of each test's own, through the new `generated::path_in` | Yes: with an ordinary file planted at the old path, the new test passes |
+| 7 | P3: the generated-file lookup called a path missing when its metadata could not be read or it held a folder | `GeneratedError` gains `Unreadable`, which keeps the system's error as its source, and `NotAFile`. Only an absent file is `Missing` | Yes |
+| 8 | P3: `@ seed` and `@ end` assembled as `@seed` and `@end` | A directive's name starts right after its `@`. An empty name is an unknown directive, whose message then shows no value and states the rule | Yes |
+| 9 | P3: the test kit's public items had no rustdoc examples, and `cargo test -p cc-media-probe-testkit` ran no doctest | A running example on each of the 38 types, functions and constants that its modules export. `ByteWriter`'s shows a chain whose `into_bytes` gives back the first error, as the review suggested | Yes: 38 doctests run |
+
+**How the fixes were shown.** As at the first review, a script in the scratchpad put each defect back into a copy of the workspace and ran the test that shows it, under a target folder of its own. Findings 3 to 5, 7 and 8 failed their new tests with the defect. For findings 1 and 2 the copy also took the reviewer's view: a defect planted in the writer or in an expectation file passed the old golden pass and failed the new one, and the new test of the duplicate check failed without the check. Finding 6's new test passed with a file planted at the path that the old test read. The fixed copy passed every test of both targets. The working tree and the index were not touched.
+
+**Found while fixing:**
+- **Rustdoc's `##`.** A line of a doc example that starts with `##` loses one `#`, since rustdoc reads `#` there as a hidden line's mark. A fixture's heading at the start of a continued string line became a comment, so the examples keep each heading after the `---` on the line before.
+- **The duplicate check in the copy.** Taking the check's call out left its module unused, which the denied warnings refuse, so the copy kept the function named and uncalled.
+- **A literal in the directive's split.** The structure check refused the `""` of a name without words after it, so the split takes the index of the first white space instead.
+
+**Choices made without asking,** each open at G3.6:
+- the round trip as two comparisons, of the record read back with the one written and of the text written again with the first, with a failure that names the fixture but not the adapter;
+- the duplicate check as a pass of its own over the text, by a visitor that keeps no value, rather than a value type of the test's own;
+- the empty buffer's rule in `Faults::apply`, so that `FaultingReader` keeps it too, not in the custom source alone;
+- a second seek refused, rather than the first completed before the second is taken;
+- `Fixture::load_from` and `generated::path_in` public, beside `layout_of`, so that a test reaches them below a folder of its own;
+- `GeneratedError` without `Clone`, `PartialEq` and `Eq`, which an `io::Error` does not have, so its tests match on the variants;
+- an empty directive name as `UnknownDirective` with an empty name, rather than a kind of its own;
+- the examples on the exported items alone, as the library has them, and none on each method.
+
+**Documents.** `test-kit.md`: section 2.2, the directive's name right after its `@`; section 2.4, the refusal of `@ seed`; section 4.3, the round trip and the repeated names; section 5, the examples, the empty read and the end, the seek, `Fixture::load_from`, and the generated lookup's errors with `path_in`; and section 9, the second review. `docs/guide/test-files.md` section 6: only an absent file is missing, and `path_in`. The rule on examples: CLAUDE.md, `CONTRIBUTING.md`, and the plan's section 10 and Phase 3, task 4, at revision 84.
+
+**Verification.**
+- `cargo test -p cc-media-probe-testkit`: 46 cases, 2 embedded and 38 doctests, all passing.
+- `cargo test -p cc-media-probe --all-features --test golden`: 50 passing, also with `serde_json/preserve_order`. Afterward no file remained below `target/tmp/`.
+- `cargo clippy` on both crates with every target and feature: no warning.
+- `cargo run -p cc-media-probe-checks -- structure`: 0 findings, after the literal above.
+- `node scripts/check.ts`: all checks passed, with the library's line coverage at 98.34%.
+
+## 2026-11-28 — Phase 3, task 4: the third review of the test kit's first part
+
+The maintainer reviewed the second review's fixes as staged. All 136 tests and doctests passed in the ordinary run, regeneration in an isolated copy reproduced the committed expectations byte for byte, and `git diff --cached --check` was clean. The review found six more issues: three of priority 2, in the golden validation and the direct load of a fixture, and three of priority 3. Each holds, and each is fixed. Two questions went to the maintainer, below. Neither choice changes what the plan states, so it is not amended. No gate is involved.
+
+**The maintainer's choices.**
+- **What an expectation file is (finding 2).** With serde_json's `arbitrary_precision` on, no reading through Serde tells an object of the private number name from the number that it spells, so only the text can. The maintainer chose that a file be exactly the text that the writer writes for its value, checked before the value is compared, so white space and the order of the members now count, where `test-kit.md` section 4.3 had said that neither did. The alternatives were a JSON reader of the tests' own that keeps every type as written, about 150 lines, and serde_json's `raw_value` feature for the golden tests, so that the duplicate check saw each value's text, a feature that might have needed GS.1.
+- **Where a written file waits (finding 1).** The layout refuses any other file in the fixtures' folder, so the maintainer chose Cargo's folder for integration tests, `target/tmp/`, from which a rename moves the file into place; a target folder on another file system than the repository's stops a writing run with a message that says so. The alternatives were the test kit's folder beside `fixtures/`, where a run killed between the write and the rename leaves a file, and that folder as the fallback of a rename across file systems, which CI cannot test.
+
+**The findings, and what changed:**
+
+| # | Finding | What changed | Shown |
+|---|---|---|---|
+| 1 | P2: `fs::write` truncated an expectation before writing it again, so a concurrent verification read it empty: 3 of the review's 60 runs | `common::expectation::replace` writes each file into a file of its own below `target/tmp/written/` and renames it over the old one, and leaves a file that holds the text already as it is | Yes: beside a writing run, 9 of 60 verification runs of the old pass failed with `EOF while parsing a value`, and none of the fixed. A writer that alternated two texts, in a test of the copy alone, tore 81 to 103 of 5,000 reads in place and none by the rename. The new test fails with a write in place, by the file's inode on Unix |
+| 2 | P2: with `arbitrary_precision`, `{"$serde_json::private::Number": "0"}` for a usage's `retained_data` of 0 passed, since the value parses it as the number | A file must be the text that the writer writes for its parsed value, or it fails with the first line that differs, as the file has it and as the writer writes it | Yes: the review's file passed the old pass with the feature, and fails the fixed pass in both builds; the new tests fail without the check |
+| 3 | P2: a direct load opened `toy/Sample.hex` for `toy/sample` on a file system that ignores case, and a FIFO named as a fixture blocked it | `Fixture::load_from` looks up the format's folder and the file in their folders' listings by the name's exact spelling, and requires a folder and a regular file of the layout's before it opens the file; a fixture that no entry so names is unreadable as not found | Yes: on macOS the old loader read `toy/Sample.hex`, and its load of a FIFO was still blocked when the test's 30 seconds ran out |
+| 4 | P3: the examples of `FixtureError`, `layout_of` and `path_in` depended on paths of the repository being absent | `layout_of`'s and `path_in`'s examples make a folder of their own below the system's temporary folder; `FixtureError`'s shows a syntax error and its source instead of a missing file | Yes: with the paths filled in, three of the old examples failed and the fixed ones passed |
+| 5 | P3: the golden adapters kept five copies of a fixture's bytes alive at once, a peak of 105 MiB for one of 16 MiB | The readers wrap `Cursor<&[u8]>` and the custom sources borrow the bytes | Yes: for a fixture of 16 MiB, the old pass peaked at 105.0 MiB and the fixed one at 24.9 MiB |
+| 6 | P3: `FixtureError` kept the cause of three kinds and gave none from `source()` | `source()` gives the cause of `Unreadable`, `Unlisted` and `Syntax`, and the message leaves it out | Yes |
+
+**How the fixes were shown.** As at the earlier reviews, a script in the scratchpad put each defect back into a copy of the workspace, the staged file where the old code was wanted, and ran the test that shows it, under a target folder of its own. The new tests of findings 1, 2, 3 and 6 failed with their defects. For findings 1, 2, 4 and 5 the copy also took the reviewer's view, with the results in the table. The working tree and the index were not touched.
+
+**Found while fixing:**
+- **The generated lookup's message.** The second review's fix gave `GeneratedError`'s cause from `source()` and repeated it in its message, which the library's errors never do: the guideline of the Rust error-handling project group is one or the other, never both. Its message now leaves the cause out, and its `Debug`, which an unwrap writes, gives both.
+- **One test, two builds.** The test of the private number asks serde_json at run time whether the feature is on, so each build asserts its own branch: without the feature the file parses as an object and fails the comparison, with it the file fails the writer's text.
+- **The old pass in the copy** needed the staged tests too, since the new ones import the writer's function and `replace`.
+
+**Choices made without asking,** each open at G3.6:
+- the kit's messages without the cause that `source()` gives, as the library's, with `GeneratedError`'s `Debug` writing both, rather than messages that repeat it;
+- a fixture that no entry names exactly, unreadable with `NotFound` and a message of the kit's own, rather than a kind of its own, and a folder on the way that cannot be listed as `Unlisted`;
+- the first line that differs in a failure of the writer's text, rather than both texts;
+- the FIFO made by the system's `mkfifo`, the test returning where it cannot be made, and a wait of 30 seconds, so that a load that blocks fails the test rather than hanging it;
+- the examples' folders below the system's temporary folder, named after the example and its process, as the library's own tests do, since Cargo gives no doctest a folder of its own: `CARGO_TARGET_TMPDIR` is set for integration tests and benchmarks alone.
+
+**Documents.** `test-kit.md`: section 4.3, the writer's text, the file written whole and the third check; section 5, the examples' folders, the borrowed bytes, the direct load and the errors; section 8, the end of the comparison as values; and section 9, the third review. `CONTRIBUTING.md`: an expectation is written again rather than edited, and the target folder's file system.
+
+**Verification.**
+- `cargo test -p cc-media-probe-testkit`: 49 cases, 2 embedded and 38 doctests, all passing.
+- `cargo test -p cc-media-probe --all-features --test golden`: 53 passing, also with `serde_json/arbitrary_precision` and with `serde_json/preserve_order`.
+- `cargo clippy` on both crates with every target and feature: no warning.
+- `cargo run -p cc-media-probe-checks -- structure`: 0 findings.
+- `node scripts/check.ts`: all checks passed, with the library's line coverage at 98.34%. Afterward no example's folder remained below the system's temporary folder.

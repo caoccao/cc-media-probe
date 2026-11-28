@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft of 2026-11-27 for gate G3.2 (plan Phase 3, task 3), written at revision 74 of the plan, revised at revision 75 after the maintainer's review the same day, at revision 76 after the maintainer's second review, at revision 77 after the third, at revision 78 after the fourth, at revision 79 after the fifth, at revision 80 after the sixth, and at revision 81 after the seventh (section 10). The second review approved the section named in a heading (section 2.2), the `Toy` variant (section 7) and the choices of section 8. The fourth approved D19, with the hidden module of fuzz targets and the repository-only entry points (sections 6.3 and 7), and the rest of D14, the fixture syntax, the seed routing and the revised rule of path accounting among it, and kept G3.2 open on two findings of the fixture protocol, which revision 78 answered (sections 2.3 and 4.1). The fifth review, of revision 78, kept G3.2 open on eight findings of the fixture protocol, which revision 79 answered (sections 2.1, 2.3, 4.1, 4.2 and 6.4). The sixth review, of revision 79, kept it open on five more, which revision 80 answered (sections 2.3, 4.1, 4.2, 4.3 and 6.4), and the seventh, of revision 80, on three more, which this revision answers (sections 4.2 and 4.3). The proposal as a whole is open at G3.2 until the maintainer confirms it. |
+| **Status** | Approved at G3.2 on 2026-11-28 for revision 81 (`b37e471`). The proposal was written on 2026-11-27 at revision 74 of the plan, revised at revision 75 after the maintainer's review the same day, at revision 76 after the maintainer's second review, at revision 77 after the third, at revision 78 after the fourth, at revision 79 after the fifth, at revision 80 after the sixth, and at revision 81 after the seventh (section 10). The second review approved the section named in a heading (section 2.2), the `Toy` variant (section 7) and the choices of section 8. The fourth approved D19, with the hidden module of fuzz targets and the repository-only entry points (sections 6.3 and 7), and the rest of D14, the fixture syntax, the seed routing and the revised rule of path accounting among it, and kept G3.2 open on two findings of the fixture protocol, which revision 78 answered (sections 2.3 and 4.1). The fifth review, of revision 78, kept G3.2 open on eight findings of the fixture protocol, which revision 79 answered (sections 2.1, 2.3, 4.1, 4.2 and 6.4). The sixth review, of revision 79, kept it open on five more, which revision 80 answered (sections 2.3, 4.1, 4.2, 4.3 and 6.4), and the seventh, of revision 80, on three more, which revision 81 answered (sections 4.2 and 4.3). The approval includes the remaining choices in section 8, as revised. Plan Phase 3, task 4, built sections 2, 4 and 5 and the prober of section 6.3 the same day, with three choices of the maintainer that section 9 lists. |
 | **Decides** | D14, the fixture format, and D19, access to internals for fuzzing (plan section 6). |
 | **Evidence** | The spike [`spikes/fixtures/`](../../spikes/fixtures/README.md), which runs this proposal end to end on the two sample fixtures of section 3. |
 | **Plan** | Sections [7.1](../plans/plan-init-project.md#71-workspace-layout-and-target-ownership), [9.1](../plans/plan-init-project.md#91-test-files), [9.2](../plans/plan-init-project.md#92-test-layers), [9.4](../plans/plan-init-project.md#94-resource-gates) and [9.5](../plans/plan-init-project.md#95-fuzzing). Generated test files and their recipes are in the [test-files guide](../guide/test-files.md). |
@@ -123,7 +123,10 @@ The fixtures' folder holds format folders only. Each format folder holds files o
 - a folder inside a format folder;
 - a name that breaks the rule, or that is not valid Unicode;
 - any other extension or part;
-- an expectation file without its fixture.
+- an expectation file without its fixture;
+- a symbolic link, inside the folder or as the folder itself, each entry taken by its own type rather than its target's, since writing expectations would follow a link out of the folder, as the review of task 4 found.
+
+An expectation file's name, `<name>[.<case>].<part>.json`, is at most 255 bytes, as most file systems allow. So `Fixture::load` refuses a fixture with a case whose files would have a longer name, its default case among them, and names the fixture and the case, before any file is written. The review of task 4 found a case name of 240 bytes that the syntax accepts and whose files could not be written.
 
 ### 2.1 The header
 
@@ -154,7 +157,7 @@ Each line of the body is one of:
 - **Blank**, or a **comment**: `#` and any text. Neither assembles to anything.
 - **A heading**: `##` and the specification and section of the lines of bytes below it, up to the next heading, such as `## RFC 9639 section 8.2, and Appendix D.1.3, table 28: streaminfo`. A heading needs text.
 - **A line of bytes**: items, then `#` and a comment that names the field or fields that the bytes hold. The comment is required, and a line of bytes before the first heading is refused.
-- **A directive**: `@seed` and `name=value` words, which open a region, or a bare `@end`, which closes it (section 6.1).
+- **A directive**: `@seed` and `name=value` words, which open a region, or a bare `@end`, which closes it (section 6.1). The name follows the `@` with nothing between them.
 
 The items of a line of bytes:
 
@@ -223,13 +226,14 @@ The assembler reports the first problem with its line, counted from 1, or 0 for 
   - more than 16 MiB in all.
 - **A heading** without text, a body without bytes, and a fixture of the target `none` that marks no region.
 - **A directive:**
-  - one other than `@seed` and `@end`;
+  - one other than `@seed` and `@end`, a space after the `@` among them, so that `@ seed` opens no region, as the second review of task 4 found;
   - an `@end` with a word after it;
   - a region opened inside another;
   - an `@end` without a region;
   - a region without bytes, or still open at the end;
   - a region routed to the target `none`;
-  - a `name=value` word that is not a route member.
+  - a `name=value` word that is not a route member;
+  - a `context=` without hex bytes, since only the member's absence gives no context, as the review of task 4 found. A header member without a value is no member at all.
 
 ## 3. Two sample fixtures
 
@@ -373,7 +377,7 @@ Every other case keeps the shared parts, and so does the default case without it
 - where the test counts an adapter's reads, the bytes delivered stay within the read limit and equal the usage's bytes read, which counts every byte that a source delivers (plan sections 7.5 and 9.4). The counters cover every source of a probe that the test hands the library: the primary input, and from Phase 14 each companion of a custom resolver, while the file adapter's reads join with task 6's counter. The fourth revision copied `bytes_delivered` into the adapter part unchecked, so an overread that the usage under-reported would have been written.
 
 **The same conditions for every adapter.** A file name or a resolver can change what a probe reports. A VobSub index, for one, asks for its data file by its own stem, which a probe from memory knows only from a hint. So each adapter of a run starts from the one prober of section 6.3, `fuzzing_entry_points::prober`, and gets the same conditions:
-- the fixture's file name (section 2.1): the file adapter's file has that name, and every other adapter gets it as the file-name hint;
+- the fixture's file name (section 2.1): the file adapter's file has that name, and every other adapter gets it as the file-name hint. The file adapters get no hint, so that their name comes from the path alone, and a probe of a file that stopped taking its name from its path fails the parity, as the review of task 4 found;
 - the case's limits, with the file adapters' retained-data limit raised by their path's charge (section 4.2);
 - the case's lookup: off by default, as the API's is, so that no request is made and the companions are "not enabled"; or, for `lookup=custom`, resolvers that answer as the case says, through `CompanionLookup::custom` for the blocking adapters and `AsyncCompanionLookup::custom` for the async ones, so that no adapter's result depends on the folder of a file.
 
@@ -417,7 +421,14 @@ An expectation is written only by an explicit action, whose diff is then reviewe
 - **What the other runs miss.** Clippy and coverage run under every feature, so neither sees code that only a build without `zlib` compiles: the step lints and tests it, and coverage leaves it out of its count. CI's feature-combination job builds every combination and runs none.
 - The sixth revision left the disabled behavior without a run, as the seventh review found.
 
-A file is parsed and compared with the value as a value, so the order of its members and its white space never count. This holds whichever order `serde_json::Map` keeps: its default sorts members, and its `preserve_order` feature keeps them as inserted. A written file has its members sorted by an explicit sort. The variable is no compiler flag, so it leaves the repository marker alone.
+A file holds exactly the text that the writer writes for its value: the members of each object sorted by an explicit sort, whichever order `serde_json::Map` keeps (its default sorts members, and its `preserve_order` feature keeps them as inserted), in pretty JSON with a final line feed. A file is parsed, must be that text again, and is then compared with the value as a value. So white space and the order of the members count, and a file that passes is what writing it again would give, as the maintainer chose at the third review of task 4; before it, neither counted. The variable is no compiler flag, so it leaves the repository marker alone.
+
+**A file is written whole.** A file is written into a file of its own below `CARGO_TARGET_TMPDIR`, outside the fixtures' folder that the layout lists, and a rename then moves it into its place, as the maintainer chose at the third review of task 4. A concurrent reader so meets the old text or the new one, never a truncated file: `fs::write` truncated each file before writing it again, which gave 3 of the review's 60 concurrent runs an empty file. A rename stays on one file system, so a target folder on another file system than the repository's stops a writing run with a message that says so. A file that already holds the text is left as it is.
+
+**What is compared, and what is read.** Three checks keep the comparison honest, as the second and third reviews of task 4 found:
+- **Each result reads back.** Before a probe's result is checked, split or written, its text is read back through the library's strict reader. It must read back as the record that it is, and write again as the same text: the round trip that plan section 8.8 asks of every fixture. The pass took each result's JSON value without reading it, so a writer whose output the reader refused, or read as another record, would have been accepted, and written when expectations were written.
+- **A file names each member once.** A value that serde_json has built keeps the last of two members of one name, so a file with `"kind": "source_failed"` before its own `"kind": "unknown_format"` passed. An expectation's text is read for a name repeated in one object, at every depth, before it is compared, and such a file fails with its path, line and column. The strict reader refuses such a record too (`json-output.md` section 2).
+- **A file is the writer's text.** With serde_json's `arbitrary_precision` feature on, an object of the one member `$serde_json::private::Number` parses as the number that it spells (`json-output.md` section 2), so the third review of task 4 put `{"$serde_json::private::Number": "0"}` in place of a usage's `retained_data` of 0 and saw the file pass in that build alone. No reading through Serde tells that object from the number, so the text decides: a file that is not the text of its value fails in every build, with the first line that differs, as the file has it and as the writer writes it.
 
 ### 4.4 The values that a recipe states
 
@@ -425,38 +436,40 @@ A generated file's bytes depend on the tool's version, so its test asserts only 
 
 - every member that it names holds that value; a member that it does not name is not compared;
 - a member that it names as `null` is absent, since the form never writes null;
-- an array has exactly as many entries as `expected` lists, each matched in order;
+- an array has exactly as many entries as `expected` lists, each matched in order. An array of another length is reported at its pointer, and the entries that both arrays have are still compared, as the review of task 4 found a difference at `/0` hidden behind the length;
 - a number, string or flag is equal to the report's.
 
 Each difference is reported by its JSON pointer, with each member's name escaped as RFC 6901 escapes it, such as `/streams/0/video/coded_size/width: expected 640, found 320`. The differences are listed in the order of their pointers: an object's members by name, and an array's entries by index, so `/1` comes before `/2` and `/10`. Sorting the messages instead, as the second draft did, compares the text after each pointer too and put `/10` before `/1`, as the third review found. The test-files guide, section 3, shows a recipe with its `expected` member.
 
 ## 5. Builders, readers and paths
 
-The test kit produces bytes and standard-library readers only, and never depends on the library (plan section 7.1). Its interface, as proposed for tasks 4 and 19:
+The test kit produces bytes and standard-library readers only, and never depends on the library (plan section 7.1). Its interface, as proposed for tasks 4 and 19, has a running rustdoc example on each type, function and constant that its modules export, as on the library's, as the maintainer chose at the second review of task 4. An example that needs a folder makes one of its own below the system's temporary folder, named after the example and its process, as the third review found three that depended on paths of the repository being absent:
 
 - **`ByteWriter`.** Appends in the orders that specifications state, and returns itself so that calls chain:
   - `byte`, `bytes` and `text`;
   - `big_endian_u16`, `big_endian_u24`, `big_endian_u32` and `big_endian_u64`, and their `little_endian_` twins;
   - `four_character_code`;
-  - `as_bytes` and `into_bytes`.
-- **`BitWriter`.** Writes bits most significant first or least significant first:
+  - `as_bytes` and `into_bytes`. A 24-bit value wider than its field is the writer's `BuildError`, which `into_bytes` gives back instead of the bytes, so calls still chain (task 4).
+- **`BitWriter`.** Writes bits most significant first or least significant first, from `most_significant_first`, `least_significant_first` or `new(BitOrder)`:
   - `bits(value, count)` and `flag`;
-  - `unsigned_exponential_golomb` and `signed_exponential_golomb`;
+  - `unsigned_exponential_golomb` and `signed_exponential_golomb`, the bit strings of ITU-T H.264, section 9.1, written bit after bit in the writer's order;
   - `align_with_zeros` and `align_with_ones`;
-  - `into_bytes`, which refuses an unaligned end.
+  - `into_bytes`, which refuses an unaligned end, and gives back the first value wider than its field.
 
-  `insert_emulation_prevention` turns a NAL unit's payload into its escaped bytes.
+  `insert_emulation_prevention` turns a NAL unit's payload into its escaped bytes, by the encoder's procedure of ITU-T H.264, section 7.4.1.1.
 - **Container builders,** one per family, as the formats arrive: EBML elements, boxes, RIFF chunks, Ogg pages and transport packets. Each builds a tree of values, and computes each size, length, offset and checksum at `build()`. Each computed field has a `with_…` override that writes a wrong value on purpose, such as `ToyElement::with_length(9)`. `build()` returns `Result<Vec<u8>, BuildError>`, since a computed field can overflow its width.
 - **The toy format's builder,** `ToyFile`, takes over the I/O spike's: streams, packets, titles, lists, references, companions and stray bytes, with the first element's offset and every length computed.
 - **Readers** over any standard-library reader:
   - `CountingReader` counts read calls, bytes delivered and seeks, and its `Counts` count the reads of a custom source too;
-  - `FaultingReader` gives short reads that end at the fixed bytes of a case's pieces (`Pieces`, which a custom source applies at the positions of its own reads), an error of a chosen kind at a chosen offset, an error that wraps any Rust error, or an interruption once.
+  - `FaultingReader` gives short reads that end at the fixed bytes of a case's pieces (`Pieces`), an error of a chosen kind at a chosen offset, an error that wraps any Rust error, or an interruption once. Those faults are a `Faults`, which a custom source applies at the positions of its own reads (task 4). `with_position` says where an inner reader stands when it is wrapped, such as a cursor already moved, so that the faults apply at the positions of its bytes, as the review of task 4 found. A custom source counts a read that fails as a call that delivered nothing, as `CountingReader` does.
+  - A read into an empty buffer meets no fault and consumes none, so it returns 0 as the library's `PositionalSource` requires, and an interruption waits for the first read of a byte. A custom source applies its faults before it looks for the end, so that an error at the end is given. An empty read consumed a pending interruption, and the end hid an error placed there, before the second review of task 4 found both.
 
-  Async pending readers implement the library's traits or a runtime's, so they live in the library's `tests/common/` (plan section 7.1), with the case's custom resolvers, blocking and async, from Phase 14 on.
+  Async pending readers implement the library's traits or a runtime's, so they live in the `common/` folder of the library's test target, `tests/golden/common/`, since a folder target reaches `tests/common/` only through `#[path]`, which R31 forbids (plan section 7.1, as the maintainer chose at task 4). The case's custom resolvers, blocking and async, join them from Phase 14 on. The reader for Tokio takes one seek at a time: a `start_seek` while another waits for `poll_complete` fails with `ErrorKind::Other`, as Tokio's `AsyncSeek` allows ([docs.rs, `tokio::io::AsyncSeek::start_seek`](https://docs.rs/tokio/latest/tokio/io/trait.AsyncSeek.html#tymethod.start_seek)), where the second replaced the first before that review. The golden tests' readers and custom sources borrow the fixture's bytes, which none copies: they had kept five copies alive at once, a peak of 105 MiB for a fixture of 16 MiB, where borrowing gives 25 MiB, before the third review of task 4 found it.
 - **Paths.**
-  - `Fixture::load("flac/decoding-example-1")` reads and assembles a fixture from the test kit's own manifest folder, and refuses a name that the layout does not allow. `Fixture::file_name()` gives its file name (section 2.1).
+  - `Fixture::load("flac/decoding-example-1")` reads and assembles a fixture from the test kit's own manifest folder, and refuses a name that the layout does not allow, or a case whose expectation files would have a name beyond 255 bytes (section 2). It refuses a symbolic link on the way too, the folder, the format's folder or the file, as the layout does, which the second review of task 4 found that a direct load skipped. It opens the file only once the layout would list it: the format's folder and the file are entries of their folders spelled exactly as the name spells them, a folder and a regular file, since the third review found `toy/sample` reading `toy/Sample.hex` on a file system that ignores case, and a FIFO blocking the load. A fixture that no entry so names is unreadable as not found. `Fixture::load_from` reads one below another folder alike, for a test, and `Fixture::from_text` assembles one from its text, for a test of a fixture that the folder does not hold. `Fixture::file_name()` gives its file name (section 2.1).
   - `fixture::names()` lists every fixture and `fixture::layout()` every expectation file too, each after checking the layout of section 2. `expectation_path(name, case, part)` gives the path of a part.
-  - `generated::path("containers/matroska/h264-opus.mkv")` gives a generated test file below `target/test-files/`. It fails with a message that names `node scripts/generate-test-files.ts` when the file is missing, and never skips (test-files guide, section 6).
+  - `generated::path("containers/matroska/h264-opus.mkv")` gives a generated test file below `target/test-files/`. It fails with a message that names `node scripts/generate-test-files.ts` when the file is missing, and never skips (test-files guide, section 6). Only an absent file is missing: a path whose metadata cannot be read keeps the system's error, and one that holds a folder or another entry says so, since rerunning the generator fixes neither, as the second review of task 4 found. `generated::path_in` looks below another folder alike, so that a test of the lookup never depends on what a developer generated. `generated::recipe_path` gives the recipe file that describes it, `test-files/containers/matroska.json`, whose entry holds the `expected` member of section 4.4 (task 4). Both take a name only as the generator would write it, as the review of task 4 found `video/H264/no-extension` taken: one of its topics, a format of lowercase words and digits joined by `-`, and a file of lowercase letters, digits and `-` with one or more extensions (test-files guide, section 3).
+- **Errors.** `FixtureError` gives the cause of a file that cannot be read, of a text that is not a fixture and of a folder that cannot be listed as its `source()`, which the third review of task 4 found hidden, and `GeneratedError` gives the system's error of a path whose metadata cannot be read. Neither repeats the cause in its message, as the library's errors do not, after the guideline of the Rust error-handling project group that an error gives its cause through `source()` or in its message, never both ([Inside Rust, "What the Error Handling Project Group is Working Towards"](https://blog.rust-lang.org/inside-rust/2021/07/01/What-the-error-handling-project-group-is-working-towards/)). `GeneratedError`'s `Debug` writes the message and the cause, so that a test that unwraps a path shows both; `FixtureError`'s derived `Debug` holds the cause too.
 
 ## 6. Fuzz seeds and the hidden access path
 
@@ -560,7 +573,7 @@ The maintainer approved these choices at the second review, and those of the nex
 - The members of the split and its places (section 4.2), `attempted_identity` in the semantic part, and the placeholder `{native}`.
 - One folder below `CARGO_TARGET_TMPDIR` for each case of each fixture, now padded to a fixed length.
 - `null` in a recipe's `expected` for an absent member, and the differences listed in the order of their pointers.
-- The variable `CC_MEDIA_PROBE_WRITE_EXPECTATIONS`, and comparison as values with an explicit sort on writing.
+- The variable `CC_MEDIA_PROBE_WRITE_EXPECTATIONS`, and an explicit sort on writing. The comparison as values, which white space and order did not change, lasted until the maintainer chose at the third review of task 4 that a file be the writer's text (section 4.3).
 - The input encodings of section 6.2, among them the hint's length byte, with the hint now read as native bytes on Unix.
 - The names of seeds with `#`, and of corpus files with `seed.`; the variable `CC_MEDIA_PROBE_WRITE_CORPUS`.
 - The target names: `_codec` only where a codec's name is its container's; `flac_codec` and `metadata_blocks` until Phase 4 confirms them.
@@ -595,14 +608,14 @@ Choices made since the third review, approved at the fourth:
 - The golden pass run once in a process, through one function that the seed check calls first (section 6.4).
 - A `toy` target in the fuzz workspace beside the two smoke targets (section 6.5).
 
-Choices made since the fourth review, open at G3.2:
+Choices made since the fourth review, approved at G3.2 on 2026-11-28.
 
 - Each adapter's usage held within the case's limits in every case, not only in a case of outcomes of each adapter, with each counter read as its number or its twin (section 4.1). Changed at the fifth review, as it asked: read strictly, the partial report's usage too, beside the measured reads.
 - `shared` as the explicit default of `outcomes`, and the adapter parts of a case of outcomes of each adapter kept in `adapters` (sections 2.3 and 4.1).
 - A class that no adapter of a case runs given no part, so that a case of built-in lookup with the file, through `probe_file` alone, has no `forward` file (section 4.1).
 - Task 7 as the task of the first case of outcomes of each adapter (section 9).
 
-Choices made since the fifth review, open at G3.2:
+Choices made since the fifth review, approved at G3.2 on 2026-11-28.
 
 - The header member `default`, which the test kit reads as a case's words without a name, with `outcomes` the only condition that the library's tests take there (sections 2.1 and 2.3).
 - A limit counted as exhausted when the record's `exhausted` lists it: a report's in its completeness, an error record's at its root (section 4.1).
@@ -611,14 +624,14 @@ Choices made since the fifth review, open at G3.2:
 - The seed check's choice between `expected` and `outcomes` by the default case's condition, not by the files present (section 6.4).
 - A toy fixture whose title references use up a reader's read limit under the default limits, with `default: outcomes=per_adapter`, added by task 7 beside the case under a working memory of 0 (section 9).
 
-Choices made since the sixth review, open at G3.2:
+Choices made since the sixth review, approved at G3.2 on 2026-11-28.
 
 - A partial report checked wherever its member stands, so one of `null` fails as one without a usage does (section 4.1).
 - The file adapters' retained-data limit raised by the probed file's path alone, a built-in companion's charged within the case's limit, as section 4.2 said; the spike summed every handed path, which held the primary input's alone before Phase 14 (section 4.2).
 - A feature that the library gains joining the golden target's required features in the change that declares it, as `zlib` does in task 14 (section 4.3).
 - The fuzz workflow running the seed check with `--all-features`, since the check is in the golden tests' target (section 6.4).
 
-Choices made since the seventh review, open at G3.2:
+Choices made since the seventh review, approved at G3.2 on 2026-11-28.
 
 - The check of the primary input's path held beyond the review's successful file report: in an error's observations and partial report too, and for every other adapter, whose primary input lists no path (section 4.2).
 - The step's selection, `-p cc-media-probe --no-default-features` with every other feature named, and no development dependency of the library depending on it with its default features (section 4.3).
@@ -626,12 +639,23 @@ Choices made since the seventh review, open at G3.2:
 
 ## 9. What happens after G3.2
 
-- Task 4 writes the test kit's first part from sections 2, 4 and 5, starting from the spike's `kit/`. It moves the two samples into `crates/cc-media-probe-testkit/fixtures/`, `toy/` and `flac/`, the second for Phases 4 and 9. The golden tests start each case's prober from `fuzzing_entry_points::prober`, so task 4 adds the hidden module with that function alone, as the third review asked. Their test target requires every feature of the library (section 4.3), and task 20 adds the seed check to it. They check each source table's primary input against the path that its adapter was given (section 4.2).
+- Task 4 writes the test kit's first part from sections 2, 4 and 5, starting from the spike's `kit/`. It moves the two samples into `crates/cc-media-probe-testkit/fixtures/`, `toy/` and `flac/`, the second for Phases 4 and 9. The golden tests start each case's prober from `fuzzing_entry_points::prober`, so task 4 adds the hidden module with that function alone, as the third review asked. Their test target requires every feature of the library (section 4.3), and task 20 adds the seed check to it. They check each source table's primary input against the path that its adapter was given (section 4.2). Task 4 was done on 2026-11-28, with three choices of the maintainer made before it:
+  - the golden tests' helpers in the target's own folder, `crates/cc-media-probe/tests/golden/common/` (section 5);
+  - the assembler reading the whole format of section 2, the routes of the header and of each region among it, with every refusal of section 2.4, while task 19 lists the seeds by name;
+  - the async adapters' readers and custom source pending once before each read, waking their task at once.
+
+  The golden target runs eleven adapters, the members of the files keyed by adapter: `file`, `reader`, `bytes`, `source` and `stream`, blocking; `tokio_file`, `tokio_reader` and `tokio_stream` on Tokio; `futures_reader` and `futures_stream` on futures-io; and `async_source`. The file adapters are `file` and `tokio_file`, and the forward-only ones `stream`, `tokio_stream` and `futures_stream`. Until Phase 14, task 1, a case's lookup other than `off`, and any companion's answer, is refused by a message that names that task (section 2.3).
+
+  The maintainer's review of the task, the same day, found thirteen issues, each fixed then, as the development log records: an error's observations or partial report passed without its source table (section 4.2); the file adapters were given a hint (section 4.1); a case's folder was left on disk, its root kept before its padding (section 4.2); a custom source's failed read went uncounted, and a reader already moved applied its faults as if at byte 0 (section 5); an array of another length hid its entries' differences (section 4.4); the golden pass read the whole layout again for each fixture, and its message of a stale file did not name the variable (section 4.3); the kit's layout tests shared fixed folders across concurrent runs; a symbolic link passed the layout check, a case name gave expectation files beyond 255 bytes, and a `context=` without bytes read as no context (section 2); and the generated-file lookups took names that the generator refuses (section 5).
+
+  The maintainer's second review, the same day, found nine more, each fixed then: no result was read back through the strict reader, and an expectation with a member named twice passed (section 4.3); an empty read consumed a pending fault, and a custom source hid an error at its end; the reader for Tokio dropped a seek that waited; a direct load followed a symbolic link that the layout refuses; the generated-file lookups called a path that could not be read, or that held a folder, missing, and their test depended on what a developer had generated (section 5); `@ seed` opened a region (section 2.4); and the test kit's public items had no examples (section 5).
+
+  The maintainer's third review, the same day, found six more, each fixed then, two by the maintainer's choice: writing an expectation truncated it under a concurrent reader, and with `arbitrary_precision` an object of serde_json's private number name passed as the number (section 4.3); a direct load opened an entry that the layout refuses, by another spelling or of another type; three examples depended on paths being absent; the golden tests' readers kept five copies of a fixture's bytes; and `FixtureError` hid its cause (section 5).
 - Task 5 writes the toy format's description, builder and fixtures, and the walker with `with_toy_format` and the hidden `Format::Toy`, and adds the toy format to task 4's `fuzzing_entry_points::prober` through the private function that `with_toy_format` calls. It writes the spike's `toy/header-across-packets` as a fixture of the toy format, for task 16's header split across deliveries. It retargets the toy fixture's `source` and headings, which cite `spikes/input/README.md`, to that description, since task 6 deletes the I/O spike with its README (plan Phase 3, task 5, revision 75).
 - Task 6 adds `with_source_counter` with the I/O layer, so that the file adapter's parts gain their read counts. It keeps the I/O spike's two-file toy input as fixtures of their default case, for Phase 14, task 1, which adds their cases of custom and built-in lookup once the resolvers ship, and the library test of the async adapters' outcome under built-in lookup (section 2.3).
 - Task 7 charges a path as section 4.2 says: its strings held at their length, the primary input's path first, and a path that the limit cannot hold left out of its entry, tested at a file probe's own limit one byte below its path's charge and exactly at it. It adds the first case of outcomes of each adapter, a toy fixture under a working memory of 0, once the block cache of task 6 and the working-memory accounting can stop adapters differently, and, as proposed, a toy fixture whose title references use up a reader's read limit under the default limits, whose `default:` line keeps outcomes of each adapter, as the fifth review found in the I/O spike (section 4.1).
 - Task 14 declares `zlib` and joins it to the golden target's required features. It adds the step of `node scripts/check.ts` that lints and tests the library alone without the feature, with the first tests of the disabled behavior, and `CLAUDE.md` and `CONTRIBUTING.md` name the step (section 4.3).
-- Task 19 adds the regions' routes to the test kit.
+- Task 19 adds each fixture's seeds by name to the test kit, from the routes that task 4's assembler reads, with the truncation and mutation harness.
 - Task 20 adds the rest of `fuzzing_entry_points`, the seed check that writes the corpus, and the `fuzz/` workspace with its two smoke targets and the toy-container target.
 - The spike stays as the reference of tasks 4 and 20, and is deleted in the commit that completes task 20, as section 1.2 of the plan keeps a spike.
 - The plan amendments. Revision 75 made those of the maintainer's choices at the first review: sections 7.1, 9.1, 9.2, 9.4 and 9.5, and Phase 3, tasks 5, 19 and 20. Revision 76 made those of the second review's approvals and choices: section 9.1, the section named in the heading, the file-name rule and the hint-only case; section 7.2, the `Toy` variant behind the two conditions; section 7.5, the charge of a path; sections 9.2 and 9.5, the lookup of a case, the equal remaining budget, the route to the probe target and the one prober; and Phase 3, tasks 3, 5 and 7, and Phase 14, task 1. Revision 77 made those of the third review's choices and direct asks: section 7.5, a path that the limit cannot hold; section 9.2, the folder of a fixed length from components of a fixed width, and built-in lookup without the file; section 9.5, the seed's bound before a later target, a fixture beyond it with a region, and the seed check after the golden pass; and Phase 3, tasks 3, 4, 5, 7 and 20. `api.md` sections 5.3, 6.15 and 16 state the path's rule. Revision 78 made those of the fourth review's approvals and choices: section 9.2, outcomes of each adapter at a limit and built-in lookup through blocking adapters alone; and Phase 3, tasks 3 and 7, and Phase 14, task 1. Revision 79 made those of the fifth review's choices and direct asks: section 9.2, outcomes of each adapter where a limit explains each difference, the default case's on a `default:` line, and the usage and reads checked before any expectation; section 9.5, the seed's outcome from the bytes adapter; and Phase 3, task 3, and Phase 14, task 1, the async test's outcome beside the primary input's entry. Revision 80 made those of the sixth review's choice and direct asks: section 9.2, the usage checked against the adapter's own limits before the paths are netted, a partial report's usage required, and the golden tests under every feature of the library; section 9.5, the seed check in their target; and Phase 3, tasks 3, 4 and 20, and Phase 14, task 1, the async test's assertions by the result's type. Revision 81 made those of the seventh review's choice and direct asks: section 9.2, the primary input's path and the run without `zlib`; section 9.8, that run among CI's; Phase 3, tasks 3, 4 and 14; and Phases 5 and 6, their tests without `zlib` in that run. No amendment waits on G3.2.

@@ -1,6 +1,6 @@
 [package]
 name = "cc-media-probe-testkit"
-description = "Test kit for cc-media-probe: hex fixtures, byte and bit writers, container builders and test readers."
+description = "Test kit for cc-media-probe: hex fixtures, byte and bit writers, test readers and the paths of generated test files."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,3 +10,9 @@ publish = false
 
 [lints]
 workspace = true
+
+# The test kit's own tests: the text format and its refusals, the layout of the fixtures' folder, the samples
+# against second transcriptions of their bytes, the writers against the specifications' vectors, the readers, and
+# the paths of generated test files.
+[[test]]
+name = "kit"

@@ -15,6 +15,24 @@
 * limitations under the License.
 */
 
-//! The test kit of `cc-media-probe`: in later phases, the hex fixture
-//! assembler, byte and bit writers, container and codec builders, the toy
-//! format and test readers. It never depends on the library.
+//! The test kit of `cc-media-probe` (plan section 7.1). It uses the standard library only and never depends on the
+//! library, so it gives bytes and standard-library readers only:
+//! - [`syntax`]: the text format of hand-annotated hex fixtures and its assembler (`docs/design/test-kit.md`
+//!   section 2);
+//! - [`fixture`]: the fixtures read by name from `fixtures/<format>/<name>.hex`, the layout of that folder, and
+//!   the places of each fixture's expectations (sections 2 and 4.1);
+//! - [`builder`]: the byte and bit writers that specifications' syntax tables are written with, and the removal
+//!   of start-code emulation from a NAL unit's payload (section 5);
+//! - [`readers`]: a reader that counts what it is asked for, and one that cuts its reads at fixed bytes and fails
+//!   on purpose (section 5);
+//! - [`generated`]: the paths of the generated test files below `target/test-files/` and of their recipes (plan
+//!   section 9.1, `docs/guide/test-files.md`).
+//!
+//! Later tasks add the container builders as their formats arrive, the toy format's builder (plan Phase 3, task
+//! 5), and each fixture's seeds by name with the truncation and mutation harness (task 19).
+
+pub mod builder;
+pub mod fixture;
+pub mod generated;
+pub mod readers;
+pub mod syntax;
